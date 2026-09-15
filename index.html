@@ -1,0 +1,2123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guild Hall</title>
+<style>
+  :root{
+    --bg-primary:#3a2e1d;
+    --bg-secondary:#2f2515;
+    --bg-tertiary:#241b10;
+    --bg-card:#493a24;
+    --bg-input:#261c11;
+    --bg-hover:rgba(207,154,68,0.08);
+    --bg-selected:rgba(207,154,68,0.14);
+    --divider:rgba(207,154,68,0.14);
+    --divider-strong:rgba(207,154,68,0.28);
+    --text-normal:#ece0c8;
+    --text-muted:#a4926c;
+    --text-faint:#6b5e46;
+    --blurple:#a97832;
+    --blurple-hover:#c4934a;
+    --green:#7fa363;
+    --green-bg:rgba(127,163,99,0.14);
+    --yellow:#cf9a44;
+    --yellow-bg:rgba(207,154,68,0.14);
+    --red:#b0524f;
+    --red-bg:rgba(176,82,79,0.14);
+    --gray-role:#6b5e46;
+    --shadow-card: 0 1px 0 rgba(0,0,0,0.3), 0 4px 14px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: linear-gradient(180deg, #2f2619 0px, #4a3c29 90px, var(--bg-primary) 420px, var(--bg-primary) 100%) var(--bg-primary);
+    color:var(--text-normal);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .sans{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  h1,h2,h3,h4{ font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif; font-weight:700; margin:0; color:var(--text-normal); letter-spacing:0.01em; }
+  a{ color:#dcb570; text-decoration:none; }
+  a:hover{ text-decoration:underline; }
+  button{ font-family:inherit; cursor:pointer; }
+  input,select,textarea{ font-family:inherit; }
+
+  #app{ min-height:100vh; }
+
+  .sidebar{
+    width:232px; flex-shrink:0;
+    background:var(--bg-secondary);
+    color:var(--text-normal);
+    display:flex; flex-direction:column;
+    padding:18px 0;
+    border-right:1px solid var(--divider-strong);
+  }
+  .sidebar .crest{
+    padding:0 16px 16px 16px;
+    border-bottom:1px solid var(--divider-strong);
+    margin-bottom:10px;
+  }
+  .sidebar .crest h1{ color:var(--text-normal); font-size:17px; line-height:1.3; font-weight:700; }
+  .sidebar .crest .tag{ font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted); margin-top:2px; }
+  .nav-item{
+    display:flex; align-items:center; gap:6px;
+    padding:8px 14px;
+    margin:0;
+    font-size:14px; font-weight:500;
+    color:var(--text-muted);
+    cursor:pointer;
+    border-radius:0;
+    background:none; border:none; border-left:2px solid transparent;
+    width:100%; text-align:left;
+    font-family: inherit;
+    letter-spacing:0.01em;
+  }
+  .nav-item:hover{ background:var(--bg-hover); color:var(--text-normal); border-left-color:var(--divider-strong); }
+  .nav-item.active{ background:var(--bg-selected); color:#f0dfb4; border-left-color:var(--blurple-hover); }
+  .nav-item .hash{ opacity:0.5; font-weight:600; color:var(--blurple); }
+  .nav-item.active .hash{ opacity:0.9; }
+  .sidebar-foot{
+    margin-top:auto; padding:12px 16px 0 16px; border-top:1px solid var(--divider-strong);
+    font-size:12px; color:var(--text-muted);
+  }
+  .sidebar-foot .who{ color:var(--text-normal); font-weight:600; }
+  .logout-link{ color:#dcb570; cursor:pointer; text-decoration:none; background:none; border:none; padding:0; font-size:12px; font-family:inherit; }
+  .logout-link:hover{ text-decoration:underline; }
+
+  .main{ max-width:1100px; margin:0 auto; padding:110px 40px 32px 40px; }
+  .eyebrow{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--blurple); margin-bottom:8px; }
+  .page-title{ font-size:26px; margin-bottom:6px; font-weight:700; }
+  .page-sub{ font-size:14px; color:var(--text-muted); margin-bottom:24px; line-height:1.5; }
+
+  .panel{
+    background:var(--bg-card);
+    border:1px solid var(--divider);
+    border-top:2px solid var(--divider-strong);
+    border-radius:2px;
+    padding:20px 22px;
+    margin-bottom:16px;
+    box-shadow: var(--shadow-card);
+  }
+  .panel + .panel{ margin-top:16px; }
+  .rule{ border:none; border-top:1px solid var(--divider); margin:16px 0; }
+
+  .btn{
+    font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;
+    padding:9px 18px; border-radius:2px;
+    border:1px solid rgba(255,224,153,0.35);
+    background:linear-gradient(180deg, #cf9a44 0%, #9c6a28 100%);
+    color:#1b130a;
+  }
+  .btn:hover{ background:linear-gradient(180deg, #e0b264 0%, #b17c34 100%); }
+  .btn.secondary{ background:var(--bg-hover); color:var(--text-normal); border:1px solid var(--divider-strong); text-transform:none; font-weight:500; letter-spacing:0; }
+  .btn.secondary:hover{ background:rgba(207,154,68,0.16); }
+  .btn.danger{ background:transparent; color:var(--red); border:1px solid rgba(176,82,79,0.4); text-transform:none; font-weight:500; letter-spacing:0; }
+  .btn.danger:hover{ background:var(--red); color:#fff; border-color:var(--red); }
+  .btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:11px; color:var(--text-muted); margin-bottom:6px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; }
+  .field input, .field select, .field textarea{
+    width:100%; padding:10px 11px; font-size:14px;
+    border:1px solid var(--divider-strong); border-radius:2px; background:var(--bg-input); color:var(--text-normal);
+    outline:none;
+  }
+  .field input::placeholder, .field textarea::placeholder{ color:var(--text-faint); }
+  .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--blurple); }
+  .field textarea{ min-height:90px; resize:vertical; }
+  .field-error{ color:var(--red); font-size:13px; margin-top:2px; margin-bottom:10px; }
+  .row{ display:flex; gap:14px; flex-wrap:wrap; }
+  .row > *{ flex:1; min-width:160px; }
+
+  .badge{
+    display:inline-block; font-size:11px; font-weight:700; padding:3px 8px; border-radius:2px;
+    letter-spacing:0.02em; border:1px solid transparent;
+  }
+  .badge.going{ background:var(--green-bg); color:var(--green); border-color:rgba(127,163,99,0.35); }
+  .badge.maybe{ background:var(--yellow-bg); color:var(--yellow); border-color:rgba(207,154,68,0.35); }
+  .badge.out{ background:var(--red-bg); color:var(--red); border-color:rgba(176,82,79,0.35); }
+  .badge.role-officer{ background:rgba(207,154,68,0.16); color:#e0c07f; border-color:rgba(207,154,68,0.35); }
+  .badge.role-member{ background:rgba(255,255,255,0.05); color:var(--text-muted); border-color:var(--divider-strong); }
+
+  table{ width:100%; border-collapse:collapse; font-size:14px; }
+  th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-muted); font-weight:700; padding:8px 10px; border-bottom:1px solid var(--divider); }
+  td{ padding:10px; border-bottom:1px solid var(--divider); vertical-align:top; color:var(--text-normal); }
+  tr:last-child td{ border-bottom:none; }
+
+  .empty{ text-align:center; padding:36px 20px; color:var(--text-muted); font-size:14px; }
+
+  .landing{ min-height:100vh; width:100%; display:flex; align-items:flex-start; justify-content:center; padding:56px 24px; background:var(--bg-primary); }
+  .landing-wrap{ max-width:920px; width:100%; }
+  .landing-hero{ text-align:center; margin-bottom:32px; }
+  .landing-hero h1{ font-size:32px; margin-bottom:10px; font-weight:700; }
+  .landing-hero p{ font-size:15px; color:var(--text-muted); max-width:520px; margin:0 auto; line-height:1.5; }
+  .landing-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media (max-width:760px){ .landing-grid{ grid-template-columns:1fr; } .sidebar{ display:none; } .main{ padding:24px; } }
+
+  .tab-strip{ display:flex; gap:4px; margin-bottom:22px; border-bottom:1px solid var(--divider); }
+  .tab-btn{
+    background:none; border:none; padding:10px 14px; font-size:13px; font-weight:600;
+    color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .tab-btn.active{ color:#fff; border-bottom-color:var(--blurple); }
+
+  .list-item{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:14px 0; border-bottom:1px solid var(--divider); }
+  .list-item:last-child{ border-bottom:none; }
+  .muted{ color:var(--text-muted); font-size:13px; }
+
+  .rsvp-btns{ display:flex; gap:6px; flex-wrap:wrap; }
+  .rsvp-btn{
+    font-size:12px; font-weight:600; padding:6px 11px; border-radius:2px; border:1px solid var(--divider-strong); background:var(--bg-input); color:var(--text-muted);
+  }
+  .rsvp-btn.sel-going{ background:var(--green-bg); border-color:var(--green); color:var(--green); }
+  .rsvp-btn.sel-maybe{ background:var(--yellow-bg); border-color:var(--yellow); color:var(--yellow); }
+  .rsvp-btn.sel-out{ background:var(--red-bg); border-color:var(--red); color:var(--red); }
+
+  .toast{
+    position:absolute; top:18px; right:18px; background:#100d09; color:var(--text-normal);
+    padding:10px 16px; border-radius:2px; font-size:13px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.5); z-index:50; border:1px solid var(--divider-strong);
+  }
+  .icon{ font-family: inherit; }
+  .link-row a{ word-break:break-all; }
+
+  /* ---- calendar ---- */
+  .cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+  .cal-nav{ display:flex; align-items:center; gap:8px; }
+  .cal-nav-btn{ background:var(--bg-hover); border:1px solid var(--divider-strong); color:var(--text-normal); width:30px; height:30px; border-radius:2px; font-size:16px; line-height:1; }
+  .cal-nav-btn:hover{ background:rgba(207,154,68,0.16); }
+  .cal-month-label{ font-size:18px; font-weight:700; font-family: Georgia, "Iowan Old Style", serif; min-width:150px; text-align:center; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:8px; }
+  .cal-weekday{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-muted); text-align:center; padding-bottom:4px; }
+  .cal-cell{ background:var(--bg-card); border:1px solid var(--divider); border-radius:2px; min-height:90px; padding:6px; position:relative; display:flex; flex-direction:column; gap:4px; }
+  .cal-cell.other-month{ opacity:0.35; }
+  .cal-cell.today{ border-color:var(--blurple); box-shadow: 0 0 0 1px var(--blurple) inset; }
+  .cal-daynum{ font-size:12px; font-weight:700; color:var(--text-muted); }
+  .cal-cell.today .cal-daynum{ color:#f0dfb4; }
+  .cal-events{ display:flex; flex-direction:column; gap:3px; overflow:hidden; }
+  .cal-event-pill{ background:var(--bg-selected); color:#e0c07f; border:1px solid rgba(207,154,68,0.25); border-radius:2px; padding:3px 6px; font-size:11px; text-align:left; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; }
+  .cal-event-pill:hover{ background:rgba(207,154,68,0.28); }
+  .cal-add-btn{ position:absolute; top:4px; right:4px; width:18px; height:18px; border-radius:2px; background:var(--bg-hover); border:none; color:var(--text-muted); font-size:13px; line-height:1; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .1s; }
+  .cal-cell:hover .cal-add-btn{ opacity:1; }
+  .cal-add-btn:hover{ background:var(--blurple); color:#1b130a; }
+  @media (max-width:760px){
+    .cal-cell{ min-height:60px; }
+    .cal-event-pill{ font-size:10px; }
+  }
+
+  /* ---- modal ---- */
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,0.65); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; }
+  .modal-panel{ background:var(--bg-card); border-radius:2px; border-top:2px solid var(--divider-strong); max-width:480px; width:100%; max-height:85vh; overflow-y:auto; padding:24px; box-shadow:0 16px 48px rgba(0,0,0,0.6); border-left:1px solid var(--divider); border-right:1px solid var(--divider); border-bottom:1px solid var(--divider); }
+  .modal-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; gap:12px; }
+  .modal-header h3{ font-size:19px; font-family: Georgia, "Iowan Old Style", serif; }
+  .modal-x{ background:none; border:none; color:var(--text-muted); font-size:22px; line-height:1; padding:2px 8px; border-radius:2px; flex-shrink:0; }
+  .modal-x:hover{ background:var(--bg-hover); color:#fff; }
+
+  /* ---- epic hero (setup / login) ---- */
+  .wow-hero{
+    position:relative;
+    min-height:100vh; width:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:90px 24px 0 24px;
+    background:
+      radial-gradient(ellipse 900px 500px at 50% 0%, rgba(207,154,68,0.16), transparent 65%),
+      linear-gradient(180deg, #0b0d16 0%, #14172a 45%, #1b1e30 100%);
+    overflow:hidden;
+  }
+  .starfield{
+    position:absolute; inset:0;
+    background-image:
+      radial-gradient(1.6px 1.6px at 10% 20%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 50% 70%, #fff, transparent),
+      radial-gradient(1px 1px at 80% 40%, #fff, transparent),
+      radial-gradient(1.4px 1.4px at 30% 85%, #fff, transparent),
+      radial-gradient(1px 1px at 65% 15%, #fff, transparent),
+      radial-gradient(1.6px 1.6px at 90% 60%, #fff, transparent),
+      radial-gradient(1px 1px at 15% 55%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 45% 40%, #fff, transparent),
+      radial-gradient(1px 1px at 5% 90%, #fff, transparent),
+      radial-gradient(1.3px 1.3px at 95% 10%, #fff, transparent);
+    background-repeat:repeat; background-size:340px 340px;
+    opacity:0.4; pointer-events:none;
+  }
+  .hero-glow{
+    position:absolute; top:-120px; left:50%; transform:translateX(-50%);
+    width:700px; height:500px;
+    background:radial-gradient(ellipse at center, rgba(207,154,68,0.22), transparent 70%);
+    filter:blur(10px); pointer-events:none;
+  }
+  .hero-content{ position:relative; z-index:2; max-width:920px; width:100%; display:flex; flex-direction:column; align-items:center; padding-bottom:60px; }
+  .crest-svg{ filter:drop-shadow(0 4px 16px rgba(0,0,0,0.5)); }
+  .gold-text{
+    background:linear-gradient(180deg, #f5d78e 0%, #cf9a44 45%, #8a5a20 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .hero-title{
+    font-size:44px; font-weight:800; text-align:center; letter-spacing:0.01em;
+    margin-bottom:14px; line-height:1.15;
+    filter:drop-shadow(0 0 22px rgba(207,154,68,0.28));
+  }
+  .hero-sub{ font-size:15px; color:var(--text-muted); text-align:center; max-width:540px; margin:0 auto 32px auto; line-height:1.6; }
+  .hero-panel{ width:100%; background:rgba(20,22,36,0.72); backdrop-filter:blur(6px); border:1px solid rgba(207,154,68,0.18); }
+  .landing-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; width:100%; }
+  @media (max-width:760px){ .landing-grid{ grid-template-columns:1fr; } .hero-title{ font-size:32px; } }
+  .btn-epic{
+    display:block; width:100%; margin-top:6px;
+    background:linear-gradient(180deg, #d8b26a 0%, #a97832 55%, #8a5a20 100%);
+    color:#1b130a; font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:0.08em;
+    padding:13px 20px; border-radius:4px; border:1px solid rgba(255,224,153,0.55);
+    box-shadow:0 6px 18px rgba(0,0,0,0.4);
+  }
+  .btn-epic:hover{ background:linear-gradient(180deg, #e6c47e 0%, #b98a40 55%, #9c6a28 100%); }
+  .aurora{
+    position:absolute; inset:0;
+    background:linear-gradient(120deg, rgba(80,200,170,0.10), rgba(140,90,220,0.09) 40%, rgba(207,154,68,0.10) 70%);
+    mix-blend-mode:screen;
+    animation:auroraShift 16s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes auroraShift{
+    0%,100%{ opacity:0.5; transform:translateX(-2%); }
+    50%{ opacity:0.85; transform:translateX(2%); }
+  }
+  .hero-mountains-far{
+    position:absolute; left:0; right:0; bottom:70px; width:100%; height:220px;
+    z-index:1; pointer-events:none;
+  }
+  .hero-mountains-near{
+    position:absolute; left:0; right:0; bottom:0; width:100%; height:150px;
+    z-index:1; pointer-events:none;
+  }
+  .embers{ position:absolute; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
+  .ember{
+    position:absolute; bottom:60px; border-radius:50%;
+    background:radial-gradient(circle, #ffe1a3, #cf9a44 55%, transparent 75%);
+    box-shadow:0 0 6px 1px rgba(230,180,100,0.55);
+    animation-name:emberFloat; animation-timing-function:linear; animation-iteration-count:infinite;
+  }
+  @keyframes emberFloat{
+    0%{ transform:translateY(0) translateX(0); opacity:0; }
+    10%{ opacity:0.9; }
+    85%{ opacity:0.5; }
+    100%{ transform:translateY(-360px) translateX(var(--drift,20px)); opacity:0; }
+  }
+
+  .news-banner{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(ellipse 500px 200px at 20% 0%, rgba(207,154,68,0.18), transparent 70%),
+      linear-gradient(135deg, #14172a 0%, #1b1e30 100%);
+    border:1px solid rgba(207,154,68,0.18);
+    border-radius:8px;
+    padding:22px 24px;
+    margin-bottom:24px;
+  }
+  .news-banner .starfield{ opacity:0.25; }
+
+  /* ---- marketing page (login screen) ---- */
+  html{ scroll-behavior:smooth; }
+  .site-nav{
+    position:fixed; top:16px; left:16px; right:16px; z-index:40;
+    background:linear-gradient(90deg, #0b2027 0%, #123641 60%, #17424e 100%);
+    border:1px solid #c6af8d;
+    border-radius:14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  }
+  .site-nav-inner{
+    max-width:1200px; margin:0 auto; padding:14px 24px;
+    display:flex; align-items:center; gap:24px;
+  }
+  .nav-brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .nav-brand-name{ font-family: Georgia, "Iowan Old Style", serif; font-weight:700; color:#f0dfb4; font-size:16px; letter-spacing:0.02em; }
+  .nav-links{ display:flex; gap:2px; flex:1; flex-wrap:wrap; align-items:center; }
+  .nav-link{ font-size:13px; font-weight:600; color:#cfe3e6; letter-spacing:0.01em; padding:8px 12px; border-radius:4px; transition:background 0.12s ease; }
+  .nav-link:hover{ color:#fff; text-decoration:none; background:rgba(255,255,255,0.12); }
+  .nav-cta-group{ display:flex; gap:10px; align-items:center; flex-shrink:0; }
+  .btn-nav-outline{
+    font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    color:#cfe3e6; background:transparent; border:1px solid rgba(207,227,230,0.4); border-radius:2px; padding:8px 14px;
+  }
+  .btn-nav-outline:hover{ background:rgba(255,255,255,0.08); text-decoration:none; }
+  .btn-nav-solid{
+    font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    color:#1b130a; background:linear-gradient(180deg, #cf9a44 0%, #9c6a28 100%);
+    border:1px solid rgba(255,224,153,0.5); border-radius:2px; padding:8px 16px;
+  }
+  .btn-nav-solid:hover{ text-decoration:none; background:linear-gradient(180deg, #e0b264 0%, #b17c34 100%); }
+  @media (max-width:900px){ .nav-links{ display:none; } }
+
+  .app-nav-links{ display:flex; gap:2px; flex-wrap:wrap; align-items:center; }
+  .nav-tab-btn{
+    background:none; border:none;
+    padding:8px 12px; border-radius:4px; font-size:13px; font-weight:600; color:#cfe3e6;
+    font-family: inherit; letter-spacing:0.01em; transition:background 0.12s ease;
+  }
+  .nav-tab-btn:hover{ color:#fff; background:rgba(255,255,255,0.12); }
+  .nav-tab-btn.active{ color:#f0dfb4; background:rgba(207,154,68,0.18); }
+  @media (max-width:900px){ .app-nav-links{ display:none; } }
+  .nav-user{ font-size:13px; color:#cfe3e6; display:flex; align-items:center; gap:8px; white-space:nowrap; }
+
+  .marketing-hero{
+    position:relative; overflow:hidden;
+    background:linear-gradient(180deg, #2f2619 0%, #4a3c29 12%, #5d4d38 24%, #6c5a3e 42%, var(--bg-primary) 85%, var(--bg-primary) 100%);
+    padding:110px 24px 0 24px;
+  }
+  .hero-split{
+    max-width:1200px; margin:0 auto; padding-bottom:60px;
+    display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center;
+  }
+  .hero-split-text .eyebrow{ color:#f0dfb4; -webkit-text-fill-color:initial; background:none; }
+  .hero-title2{ font-family: Georgia, "Iowan Old Style", serif; font-size:44px; font-weight:700; margin-bottom:18px; line-height:1.1; }
+  .hero-split-sub{ font-size:15px; line-height:1.65; color:rgba(255,255,255,0.85); max-width:480px; }
+  .hero-split-media{ display:flex; justify-content:center; }
+  .ornate-frame{
+    position:relative; width:100%; max-width:520px; aspect-ratio:16/9;
+    border:2px solid #dcb877; border-radius:2px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.45);
+    overflow:hidden;
+  }
+  .ornate-frame svg.hero-landscape-svg{ width:100%; height:100%; display:block; }
+  .hero-video-embed{ width:100%; height:100%; display:block; border:none; }
+  .hero-video-thumb{ position:relative; display:block; width:100%; height:100%; }
+  .hero-video-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .play-badge{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:62px; height:62px; border-radius:50%;
+    background:rgba(20,16,10,0.6); border:2px solid rgba(255,255,255,0.85);
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:22px; padding-left:4px; transition:background 0.15s, border-color 0.15s;
+  }
+  .hero-video-thumb:hover .play-badge{ background:rgba(207,154,68,0.85); border-color:#f0dfb4; }
+  .ornate-corner{ position:absolute; width:22px; height:22px; border:2px solid #f0dfb4; z-index:2; opacity:0.9; }
+  .ornate-corner.tl{ top:-2px; left:-2px; border-right:none; border-bottom:none; }
+  .ornate-corner.tr{ top:-2px; right:-2px; border-left:none; border-bottom:none; }
+  .ornate-corner.bl{ bottom:-2px; left:-2px; border-right:none; border-top:none; }
+  .ornate-corner.br{ bottom:-2px; right:-2px; border-left:none; border-top:none; }
+  .section-mountain-divider{ display:block; width:100%; height:90px; }
+  @media (max-width:860px){
+    .hero-split{ grid-template-columns:1fr; }
+    .hero-title2{ font-size:32px; }
+  }
+
+  .marketing-section{ max-width:1100px; margin:0 auto; padding:56px 24px; }
+  .feature-cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  .feature-card{
+    background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong);
+    border-radius:2px; padding:26px 22px; text-align:center;
+  }
+  .feature-card h3{ font-size:17px; margin:14px 0 8px 0; }
+  .feature-card p{ font-size:13px; color:var(--text-muted); line-height:1.6; margin:0; }
+  .feature-icon{ display:flex; justify-content:center; }
+  @media (max-width:760px){ .feature-cards{ grid-template-columns:1fr; } }
+
+  .site-footer{
+    text-align:center; padding:28px 24px; font-size:12px; color:var(--text-faint);
+    border-top:1px solid var(--divider); background:var(--bg-secondary);
+  }
+
+  /* ---- rich text toolbar ---- */
+  .rte-toolbar{
+    display:flex; align-items:center; gap:4px; flex-wrap:wrap;
+    background:var(--bg-input); border:1px solid var(--divider-strong); border-bottom:none;
+    border-radius:2px 2px 0 0; padding:6px;
+  }
+  .rte-btn{
+    background:transparent; border:1px solid transparent; border-radius:2px;
+    color:var(--text-muted); font-size:12px; font-weight:700; padding:5px 9px;
+    min-width:28px; text-align:center;
+  }
+  .rte-btn:hover{ background:var(--bg-hover); color:var(--text-normal); border-color:var(--divider-strong); }
+  .rte-sep{ width:1px; height:18px; background:var(--divider-strong); margin:0 2px; }
+  .rte-color-swatches{ display:flex; gap:5px; align-items:center; padding:0 4px; }
+  .rte-swatch{
+    width:18px; height:18px; border-radius:50%; padding:0; cursor:pointer;
+    border:1px solid rgba(255,255,255,0.3);
+  }
+  .rte-swatch:hover{ transform:scale(1.2); border-color:#fff; }
+  #news-body-input{ border-radius:0 0 2px 2px; border-top:none; min-height:120px; }
+  .rte-hint{ font-size:11px; color:var(--text-faint); margin-top:5px; }
+  .rte-preview{
+    background:var(--bg-input); border:1px solid var(--divider-strong); border-radius:2px;
+    padding:12px 14px; min-height:60px; font-size:14px; color:var(--text-normal);
+  }
+  .rte-preview h2, .rte-preview h3, .rte-preview h4{ color:var(--text-normal); }
+  .rte-preview a{ color:#dcb570; }
+
+  /* ---- boss strategy tree ---- */
+  .strat-breadcrumb{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); margin-bottom:4px; }
+  .strat-breadcrumb button{ background:none; border:none; color:var(--text-muted); font-size:12px; padding:2px 0; text-decoration:underline; }
+  .strat-breadcrumb button:hover{ color:var(--blurple); }
+  .strat-breadcrumb .crumb-current{ color:var(--text-normal); font-weight:600; }
+  .tree-row{ cursor:pointer; }
+  .tree-row:hover{ background:rgba(207,154,68,0.08); }
+  .boss-screenshot{ display:block; max-width:100%; border-radius:2px; border:1px solid var(--divider-strong); }
+
+  /* ---- raid composition planner ---- */
+  .comp-palette{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px; }
+  .class-block{
+    display:flex; gap:3px; padding:6px; border:1px solid var(--divider-strong); border-radius:4px;
+    background:var(--bg-input);
+  }
+  .spec-btn{
+    width:41px; height:41px; border-radius:4px; border:2px solid transparent;
+    background: radial-gradient(circle at 32% 26%, #2b2318 0%, #17130d 55%, #0e0b07 100%);
+    padding:7px;
+  }
+  .spec-btn svg{ width:100%; height:100%; display:block; }
+  .spec-btn:hover{ filter:brightness(1.3); }
+  .spec-btn.selected{ border-color:#fff !important; box-shadow:inset 0 0 0 1px rgba(0,0,0,0.65), 0 0 0 2px rgba(255,255,255,0.9), 0 0 14px rgba(207,154,68,0.85) !important; }
+  .spec-btn.readonly{ cursor:default; }
+  .spec-btn.readonly:hover{ filter:none; }
+  .painted-icon{ filter: drop-shadow(0 1px 1.5px rgba(0,0,0,0.75)); }
+
+  .comp-groups{ display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; }
+  @media (max-width:860px){ .comp-groups{ grid-template-columns:repeat(2, 1fr); } }
+  @media (max-width:520px){ .comp-groups{ grid-template-columns:1fr; } }
+  .comp-group-title{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:8px; text-align:center; }
+  .comp-slot{
+    display:flex; align-items:center; gap:8px; min-height:42px; padding:5px 8px; margin-bottom:6px;
+    background:var(--bg-input); border:1px solid var(--divider-strong); border-radius:2px;
+  }
+  .comp-slot.editable{ cursor:pointer; }
+  .comp-slot.editable:hover{ background:rgba(207,154,68,0.1); border-color:var(--blurple); }
+  .comp-slot-empty{ font-size:12px; }
+  .spec-icon-sm{
+    width:29px; height:29px; border-radius:4px; border:2px solid transparent;
+    background: radial-gradient(circle at 32% 26%, #2b2318 0%, #17130d 55%, #0e0b07 100%);
+    display:flex; align-items:center; justify-content:center; padding:5px; flex-shrink:0;
+  }
+  .spec-icon-sm svg{ width:100%; height:100%; display:block; }
+  .comp-slot-info{ display:flex; flex-direction:column; flex:1; overflow:hidden; line-height:1.25; }
+  .comp-slot-name{ font-size:13px; font-weight:600; color:var(--text-normal); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .comp-slot-spec{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .comp-slot-remove{
+    background:none; border:none; color:var(--text-muted); font-size:16px; line-height:1; padding:2px 4px; flex-shrink:0;
+  }
+  .comp-slot-remove:hover{ color:var(--red); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+
+/* ---------------- storage helpers ---------------- */
+async function sGet(key, fallback){
+  try{
+    const r = await window.storage.get(key, true);
+    return r ? JSON.parse(r.value) : fallback;
+  }catch(e){ return fallback; }
+}
+async function sSet(key, value, retries=2){
+  for(let attempt=0; attempt<=retries; attempt++){
+    try{
+      await window.storage.set(key, JSON.stringify(value), true);
+      return true;
+    }catch(e){
+      console.error("storage set failed", key, e, "attempt", attempt);
+      if(attempt<retries) await new Promise(r=>setTimeout(r, 350 * (attempt+1)));
+    }
+  }
+  return false;
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function esc(s){ const d=document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; }
+
+/* ---------------- lightweight rich text (self-contained, no external libs) ---------------- */
+function rteParseInline(text){
+  text = text.replace(/`([^`]+)`/g, (m,p1)=>`<code>${p1}</code>`);
+  text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  text = text.replace(/__([^_]+)__/g, '<u>$1</u>');
+  text = text.replace(/~~([^~]+)~~/g, '<s>$1</s>');
+  text = text.replace(/\{color:(#[0-9a-fA-F]{3,6})\}([\s\S]*?)\{\/color\}/g, (m,color,inner)=>`<span style="color:${color}">${inner}</span>`);
+  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return text;
+}
+function renderRichText(raw){
+  if(!raw) return '';
+  const escaped = esc(raw);
+  const lines = escaped.split('\n');
+  let html = '', inList = null, inQuote = false;
+  function closeList(){ if(inList){ html += inList==='ul' ? '</ul>' : '</ol>'; inList=null; } }
+  function closeQuote(){ if(inQuote){ html += '</blockquote>'; inQuote=false; } }
+  lines.forEach(line=>{
+    const t = line.trim();
+    let m;
+    if(t===''){ closeList(); closeQuote(); return; }
+    if(m = t.match(/^### (.*)$/)){ closeList(); closeQuote(); html += `<h4 style="margin:10px 0 4px 0;">${rteParseInline(m[1])}</h4>`; return; }
+    if(m = t.match(/^## (.*)$/)){ closeList(); closeQuote(); html += `<h3 style="margin:12px 0 6px 0;">${rteParseInline(m[1])}</h3>`; return; }
+    if(m = t.match(/^# (.*)$/)){ closeList(); closeQuote(); html += `<h2 style="margin:14px 0 6px 0;">${rteParseInline(m[1])}</h2>`; return; }
+    if(m = t.match(/^&gt; (.*)$/)){
+      closeList();
+      if(!inQuote){ html += '<blockquote style="margin:6px 0; padding:6px 14px; border-left:3px solid var(--divider-strong); color:var(--text-muted);">'; inQuote=true; }
+      html += `<div>${rteParseInline(m[1])}</div>`;
+      return;
+    } else { closeQuote(); }
+    if(m = t.match(/^- (.*)$/)){
+      closeQuote();
+      if(inList!=='ul'){ closeList(); html += '<ul style="margin:6px 0; padding-left:22px;">'; inList='ul'; }
+      html += `<li>${rteParseInline(m[1])}</li>`;
+      return;
+    }
+    if(m = t.match(/^\d+\. (.*)$/)){
+      closeQuote();
+      if(inList!=='ol'){ closeList(); html += '<ol style="margin:6px 0; padding-left:22px;">'; inList='ol'; }
+      html += `<li>${rteParseInline(m[1])}</li>`;
+      return;
+    }
+    closeList(); closeQuote();
+    html += `<p style="margin:0 0 8px 0; line-height:1.6;">${rteParseInline(line)}</p>`;
+  });
+  closeList(); closeQuote();
+  return html;
+}
+function rteApply(textareaId, action, colorValue){
+  const ta = document.getElementById(textareaId);
+  if(!ta) return;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const selected = ta.value.substring(start, end);
+  const before = ta.value.substring(0, start);
+  const after = ta.value.substring(end);
+  let insert = selected;
+
+  function wrap(pre, post, placeholder){
+    const body = selected || placeholder;
+    insert = pre + body + post;
+  }
+
+  switch(action){
+    case 'bold': wrap('**','**','bold text'); break;
+    case 'italic': wrap('*','*','italic text'); break;
+    case 'underline': wrap('__','__','underlined text'); break;
+    case 'strike': wrap('~~','~~','strikethrough text'); break;
+    case 'code': wrap('`','`','code'); break;
+    case 'h1': wrap('# ','','Heading'); break;
+    case 'h2': wrap('## ','','Subheading'); break;
+    case 'ul': wrap('- ','','list item'); break;
+    case 'ol': wrap('1. ','','list item'); break;
+    case 'quote': wrap('> ','','quoted text'); break;
+    case 'link': {
+      const label = selected || 'link text';
+      insert = `[${label}](https://)`;
+      break;
+    }
+    case 'color': {
+      const body = selected || 'colored text';
+      insert = `{color:${colorValue}}${body}{/color}`;
+      break;
+    }
+    default: return;
+  }
+
+  ta.value = before + insert + after;
+  ta.focus();
+  const pos = before.length + insert.length;
+  ta.setSelectionRange(pos, pos);
+  ta.dispatchEvent(new Event('input'));
+}
+
+function fmtDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso+"T00:00:00");
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString(undefined,{ weekday:'short', month:'short', day:'numeric' });
+}
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WEEKDAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function pad2(n){ return n<10 ? '0'+n : ''+n; }
+
+/* ---------------- raid composition data ---------------- */
+const CLASS_SPECS = {
+  warrior:  { label:'Warrior',  color:'#C79C6E', specs:[{key:'arms',label:'Arms',glyph:'sword'},{key:'fury',label:'Fury',glyph:'crossedSwords'},{key:'protection',label:'Protection',glyph:'shield'}] },
+  paladin:  { label:'Paladin',  color:'#F58CBA', specs:[{key:'holy',label:'Holy',glyph:'sunburst'},{key:'protection',label:'Protection',glyph:'shieldCross'},{key:'retribution',label:'Retribution',glyph:'hammer'}] },
+  hunter:   { label:'Hunter',   color:'#ABD473', specs:[{key:'beastmastery',label:'Beast Mastery',glyph:'pawprint'},{key:'marksmanship',label:'Marksmanship',glyph:'bow'},{key:'survival',label:'Survival',glyph:'trap'}] },
+  rogue:    { label:'Rogue',    color:'#FFF569', specs:[{key:'assassination',label:'Assassination',glyph:'dagger'},{key:'combat',label:'Combat',glyph:'crossedDaggers'},{key:'subtlety',label:'Subtlety',glyph:'mask'}] },
+  priest:   { label:'Priest',   color:'#FFFFFF', specs:[{key:'discipline',label:'Discipline',glyph:'orb'},{key:'holy',label:'Holy',glyph:'sunburst'},{key:'shadow',label:'Shadow',glyph:'swirl'}] },
+  shaman:   { label:'Shaman',   color:'#0070DE', specs:[{key:'elemental',label:'Elemental',glyph:'lightning'},{key:'enhancement',label:'Enhancement',glyph:'totem'},{key:'restoration',label:'Restoration',glyph:'waterdrop'}] },
+  mage:     { label:'Mage',     color:'#69CCF0', specs:[{key:'arcane',label:'Arcane',glyph:'sparkle'},{key:'fire',label:'Fire',glyph:'flame'},{key:'frost',label:'Frost',glyph:'snowflake'}] },
+  warlock:  { label:'Warlock',  color:'#9482C9', specs:[{key:'affliction',label:'Affliction',glyph:'skull'},{key:'demonology',label:'Demonology',glyph:'hornSkull'},{key:'destruction',label:'Destruction',glyph:'burst'}] },
+  druid:    { label:'Druid',    color:'#FF7D0A', specs:[{key:'balance',label:'Balance',glyph:'moonstar'},{key:'feral',label:'Feral',glyph:'claws'},{key:'restoration',label:'Restoration',glyph:'leaf'}] },
+};
+
+/* Original line-icon glyph set (not game assets) — inner SVG markup, rendered with
+   fill="none" stroke="currentColor" so each renders in its class color. */
+const GLYPHS = {
+  sword: '<line x1="5" y1="19" x2="18" y2="6"/><line x1="13" y1="4" x2="20" y2="11"/><line x1="3" y1="17" x2="7" y2="21"/><circle cx="4" cy="19" r="1.3"/>',
+  crossedSwords: '<line x1="4" y1="18" x2="16" y2="6"/><line x1="4" y1="6" x2="16" y2="18"/><circle cx="17" cy="17" r="1.2"/><circle cx="3" cy="19" r="1.2"/>',
+  shield: '<path d="M12 3l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3z"/><circle cx="12" cy="11" r="2.2"/>',
+  shieldCross: '<path d="M12 3l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3z"/><line x1="12" y1="8" x2="12" y2="15"/><line x1="8.5" y1="11.5" x2="15.5" y2="11.5"/><circle cx="12" cy="6" r="0.9"/>',
+  hammer: '<rect x="9" y="3" width="6" height="5" rx="1"/><line x1="12" y1="8" x2="12" y2="21"/><line x1="6" y1="4" x2="8" y2="6"/><line x1="18" y1="4" x2="16" y2="6"/>',
+  sunburst: '<circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.8"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="5" y1="5" x2="7" y2="7"/><line x1="17" y1="17" x2="19" y2="19"/><line x1="5" y1="19" x2="7" y2="17"/><line x1="17" y1="7" x2="19" y2="5"/>',
+  pawprint: '<path d="M3 15c0-6 4-11 9-11" opacity="0.45"/><circle cx="12" cy="15" r="4"/><circle cx="6" cy="9" r="2"/><circle cx="18" cy="9" r="2"/><circle cx="9" cy="5" r="1.6"/><circle cx="15" cy="5" r="1.6"/>',
+  bow: '<path d="M6 3c6 3 6 15 0 18"/><line x1="6" y1="3" x2="20" y2="21"/><polyline points="15,21 20,21 20,16"/><line x1="18" y1="19" x2="20" y2="21"/><line x1="20" y1="19" x2="18" y2="21"/>',
+  trap: '<polyline points="3,8 7,4 11,8 15,4 19,8"/><line x1="3" y1="8" x2="19" y2="8"/><line x1="12" y1="8" x2="12" y2="20"/><line x1="12" y1="10" x2="12" y2="2"/>',
+  dagger: '<line x1="12" y1="2" x2="12" y2="14"/><polygon points="9,14 15,14 12,20"/><line x1="8" y1="6" x2="16" y2="6"/><circle cx="12" cy="21.5" r="0.9"/>',
+  crossedDaggers: '<line x1="5" y1="19" x2="19" y2="5"/><line x1="5" y1="5" x2="19" y2="19"/><line x1="4" y1="20" x2="6" y2="18"/><line x1="18" y1="18" x2="20" y2="20"/><circle cx="18.5" cy="6.5" r="0.8"/><circle cx="5.5" cy="17.5" r="0.8"/>',
+  mask: '<path d="M2 12a10 10 0 0 0 4 8" opacity="0.4"/><path d="M4 10c0-4 4-7 8-7s8 3 8 7-3 9-8 9-8-5-8-9z"/><circle cx="9" cy="10" r="1.4"/><circle cx="15" cy="10" r="1.4"/>',
+  orb: '<circle cx="12" cy="12" r="6"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="9" y1="12" x2="15" y2="12"/>',
+  swirl: '<path d="M12 3a9 9 0 1 0 9 9"/><circle cx="12" cy="12" r="2"/><circle cx="17" cy="6" r="0.8"/>',
+  lightning: '<polygon points="13,2 5,14 11,14 9,22 19,10 13,10"/><circle cx="4" cy="18" r="1"/><circle cx="20" cy="6" r="1"/>',
+  totem: '<line x1="12" y1="3" x2="12" y2="1"/><line x1="10" y1="2" x2="14" y2="2"/><rect x="9" y="3" width="6" height="5"/><rect x="8" y="9" width="8" height="5"/><rect x="7" y="15" width="10" height="6"/>',
+  waterdrop: '<path d="M12 2c4 6 7 10 7 14a7 7 0 1 1-14 0c0-4 3-8 7-14z"/><ellipse cx="12" cy="20" rx="5" ry="1.2" opacity="0.5"/>',
+  sparkle: '<polygon points="12,2 14,10 22,12 14,14 12,22 10,14 2,12 10,10"/><circle cx="4" cy="4" r="0.8"/><circle cx="20" cy="20" r="0.8"/>',
+  flame: '<path d="M12 2c2 4-2 5-2 8a4 4 0 1 0 8 0c0-2-1-3-2-4 1 3-1 4-2 3 1-2-1-3-2-7z"/><path d="M12 10c0.6 1 -0.6 1.6 -0.6 2.6a1.6 1.6 0 1 0 3.2 0c0-0.8-0.4-1.2-0.8-1.6 0.2 1-0.6 1.2-0.8 0.8 0.2-0.6-0.4-0.8-1-1.8z" opacity="0.65"/>',
+  snowflake: '<line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="5" y1="5" x2="19" y2="19"/><line x1="5" y1="19" x2="19" y2="5"/><rect x="10.5" y="10.5" width="3" height="3" transform="rotate(45 12 12)"/>',
+  skull: '<path d="M4 4c1 2 0 4-1 5" opacity="0.5"/><path d="M20 4c-1 2 0 4 1 5" opacity="0.5"/><circle cx="12" cy="10" r="7"/><circle cx="9" cy="10" r="1.4"/><circle cx="15" cy="10" r="1.4"/><line x1="9" y1="16" x2="9" y2="19"/><line x1="15" y1="16" x2="15" y2="19"/><line x1="12" y1="17" x2="12" y2="20"/>',
+  hornSkull: '<path d="M9.5 12.5c-0.5 1-0.3 2 0.3 2.5" opacity="0.6"/><path d="M14.5 12.5c0.5 1 0.3 2-0.3 2.5" opacity="0.6"/><circle cx="12" cy="11" r="6"/><circle cx="9.5" cy="11" r="1.3"/><circle cx="14.5" cy="11" r="1.3"/><path d="M7 6c-2-2-2-4 0-4"/><path d="M17 6c2-2 2-4 0-4"/>',
+  burst: '<polygon points="12,7 13.5,10.5 17,10.5 14,12.8 15,16.3 12,14 9,16.3 10,12.8 7,10.5 10.5,10.5" opacity="0.6"/><polygon points="12,2 15,9 22,9 16,13 18,20 12,16 6,20 8,13 2,9 9,9"/>',
+  moonstar: '<circle cx="5" cy="18" r="0.8"/><circle cx="8" cy="20" r="0.6"/><path d="M15 3a8 8 0 1 0 6 13 7 7 0 0 1-6-13z"/><polygon points="19,3 20,5 22,5.5 20,6.5 19,8.5 18,6.5 16,5.5 18,5"/>',
+  claws: '<ellipse cx="12" cy="21" rx="4" ry="1.5" opacity="0.4"/><line x1="5" y1="4" x2="10" y2="20"/><line x1="10" y1="4" x2="14" y2="20"/><line x1="15" y1="4" x2="19" y2="20"/>',
+  leaf: '<path d="M20 4C10 4 4 10 4 20c10 0 16-6 16-16z"/><line x1="6" y1="18" x2="16" y2="8"/><path d="M9 15c1-2 3-2 4-4" opacity="0.6"/>',
+};
+function specGlyphKey(classKey, specKey){
+  const cls = CLASS_SPECS[classKey];
+  const spec = cls.specs.find(s=>s.key===specKey);
+  return spec ? spec.glyph : 'orb';
+}
+function shadeColor(hex, percent){
+  hex = hex.replace('#','');
+  if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  let r = parseInt(hex.substring(0,2),16), g = parseInt(hex.substring(2,4),16), b = parseInt(hex.substring(4,6),16);
+  const adj = v => Math.min(255, Math.max(0, Math.round(v + 255*(percent/100))));
+  return '#' + [adj(r),adj(g),adj(b)].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+let __iconUid = 0;
+function specIconSvg(classKey, specKey){
+  const inner = GLYPHS[specGlyphKey(classKey,specKey)] || GLYPHS.orb;
+  const c = CLASS_SPECS[classKey].color;
+  const light = shadeColor(c, 42);
+  const dark = shadeColor(c, -62);
+  const id = 'pi' + (__iconUid++);
+  return `<svg viewBox="0 0 24 24" class="painted-icon">
+    <defs>
+      <linearGradient id="${id}" x1="0" y1="0" x2="0.35" y2="1">
+        <stop offset="0%" stop-color="${light}"/>
+        <stop offset="55%" stop-color="${c}"/>
+        <stop offset="100%" stop-color="${dark}"/>
+      </linearGradient>
+    </defs>
+    <g fill="url(#${id})" fill-opacity="0.32" stroke="${dark}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">${inner}</g>
+    <g fill="none" stroke="url(#${id})" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round">${inner}</g>
+    <g fill="none" stroke="${light}" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.55">${inner}</g>
+  </svg>`;
+}
+function specIconStyle(classKey){
+  const c = CLASS_SPECS[classKey].color;
+  return `border-color:${c}; color:${c}; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.75), inset 0 -3px 5px rgba(0,0,0,0.6), inset 0 2px 2px rgba(255,255,255,0.16), 0 0 9px ${c}77, 0 0 2px ${c}bb;`;
+}
+
+function isoFromParts(y,m,d){ return `${y}-${pad2(m+1)}-${pad2(d)}`; }
+function todayISO(){ const d=new Date(); return isoFromParts(d.getFullYear(), d.getMonth(), d.getDate()); }
+function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+function firstWeekdayOfMonth(y,m){ return new Date(y, m, 1).getDay(); }
+
+/* ---------------- state ---------------- */
+let state = {
+  view: 'loading',      // loading | setup | login | app
+  tab: 'news',
+  currentUser: null,     // {name, role}
+  config: null,
+  events: [],
+  rsvps: {},             // eventId -> { name: status }
+  raids: [],              // [{id, name}]
+  bossesIndex: [],        // [{id, raidId, name}]
+  bossDetails: {},        // bossId -> {notes, screenshot} (lazy-loaded)
+  stratNav: { raidId: null, bossId: null },
+  softres: [],
+  raidplans: [],
+  loot: [],
+  news: [],
+  recruitment: { body:'', roles:'' },
+  toast: null,
+  calendarYear: new Date().getFullYear(),
+  calendarMonth: new Date().getMonth(), // 0-11
+  modal: null,           // null | {type:'add-event', date} | {type:'event-detail', eventId}
+  comp: null,             // raid composition planner: { groups: [[slot,...],...] }
+  selectedSpec: null,     // {classKey, specKey} currently selected in the comp palette
+};
+
+function setState(patch){ state = Object.assign({}, state, patch); render(); }
+function showToast(msg){
+  state.toast = msg;
+  render();
+  setTimeout(()=>{ state.toast=null; render(); }, 2200);
+}
+function saveNotice(ok, successMsg){
+  showToast(ok ? successMsg : "Couldn't save — check your connection and try again");
+}
+
+/* ---------------- data loading ---------------- */
+function defaultComp(){ return { groups: [0,1,2,3].map(()=>[null,null,null,null,null]) }; }
+
+async function loadAll(){
+  const [config, events, rsvps, raids, bossesIndex, softres, raidplans, loot, news, recruitment, comp] = await Promise.all([
+    sGet('guild-config', null),
+    sGet('guild-events', []),
+    sGet('guild-rsvps', {}),
+    sGet('guild-raids', []),
+    sGet('guild-bosses-index', []),
+    sGet('guild-softres', []),
+    sGet('guild-raidplans', []),
+    sGet('guild-loot', []),
+    sGet('guild-news', []),
+    sGet('guild-recruitment', { body:'', roles:'' }),
+    sGet('guild-comp', defaultComp()),
+  ]);
+  state.config = config;
+  state.events = events;
+  state.rsvps = rsvps;
+  state.raids = raids;
+  state.bossesIndex = bossesIndex;
+  state.softres = softres;
+  state.raidplans = raidplans;
+  state.loot = loot;
+  state.news = news;
+  state.recruitment = recruitment;
+  state.comp = comp && comp.groups ? comp : defaultComp();
+  state.view = config ? 'login' : 'setup';
+  render();
+}
+
+/* ---------------- setup / login ---------------- */
+async function handleSetup(){
+  const c = document.getElementById('setup-form');
+  const guildName = (c.querySelector('[name=guildName]').value||'').trim();
+  const memberPass = c.querySelector('[name=memberPass]').value||'';
+  const officerPass = c.querySelector('[name=officerPass]').value||'';
+  const officerName = (c.querySelector('[name=officerName]').value||'').trim();
+  let err = '';
+  if(!guildName) err = 'Enter a guild name.';
+  else if(!memberPass || !officerPass) err = 'Both passphrases are required.';
+  else if(memberPass === officerPass) err = 'Member and officer passphrases must be different.';
+  else if(!officerName) err = 'Enter your character name.';
+  const errEl = document.getElementById('setup-error');
+  if(err){ errEl.textContent = err; errEl.style.display='block'; return; }
+  const config = { guildName, memberPass, officerPass };
+  const ok = await sSet('guild-config', config);
+  if(!ok){ errEl.textContent = "Couldn't save to the server — check your connection and try again."; errEl.style.display='block'; return; }
+  state.config = config;
+  state.currentUser = { name: officerName, role: 'officer' };
+  state.view = 'app';
+  state.tab = 'news';
+  render();
+}
+
+async function handleLogin(){
+  const c = document.getElementById('login-form');
+  const name = (c.querySelector('[name=charName]').value||'').trim();
+  const pass = c.querySelector('[name=pass]').value||'';
+  const errEl = document.getElementById('login-error');
+  if(!name){ errEl.textContent = 'Enter your character name.'; errEl.style.display='block'; return; }
+  let role = null;
+  if(pass === state.config.officerPass) role = 'officer';
+  else if(pass === state.config.memberPass) role = 'member';
+  if(!role){ errEl.textContent = "That passphrase doesn't match. Check with an officer."; errEl.style.display='block'; return; }
+  state.currentUser = { name, role };
+  state.view = 'app';
+  state.tab = 'news';
+  render();
+}
+
+function handleLogout(){
+  state.currentUser = null;
+  state.view = 'login';
+  render();
+}
+
+/* ---------------- calendar / rsvp ---------------- */
+async function addEvent(){
+  const c = document.getElementById('event-form');
+  const title = (c.querySelector('[name=title]').value||'').trim();
+  const date = c.querySelector('[name=date]').value||'';
+  const time = (c.querySelector('[name=time]').value||'').trim();
+  const instance = (c.querySelector('[name=instance]').value||'').trim();
+  const notes = (c.querySelector('[name=notes]').value||'').trim();
+  const errEl = document.getElementById('event-error');
+  if(!title || !date){ errEl.textContent = 'Title and date are required.'; errEl.style.display='block'; return; }
+  const ev = { id: uid(), title, date, time, instance, notes };
+  const events = [...state.events, ev].sort((a,b)=> a.date.localeCompare(b.date));
+  const ok = await sSet('guild-events', events);
+  state.events = events;
+  state.modal = null;
+  state.calendarYear = parseInt(date.slice(0,4),10);
+  state.calendarMonth = parseInt(date.slice(5,7),10) - 1;
+  saveNotice(ok, 'Event added');
+  render();
+}
+async function deleteEvent(id){
+  const events = state.events.filter(e=>e.id!==id);
+  const rsvps = Object.assign({}, state.rsvps);
+  delete rsvps[id];
+  const results = await Promise.all([sSet('guild-events', events), sSet('guild-rsvps', rsvps)]);
+  state.events = events; state.rsvps = rsvps;
+  state.modal = null;
+  saveNotice(results.every(Boolean), 'Event removed');
+  render();
+}
+async function setRsvp(eventId, status){
+  const rsvps = JSON.parse(JSON.stringify(state.rsvps));
+  if(!rsvps[eventId]) rsvps[eventId] = {};
+  rsvps[eventId][state.currentUser.name] = status;
+  const ok = await sSet('guild-rsvps', rsvps);
+  state.rsvps = rsvps;
+  if(!ok) showToast("Couldn't save your RSVP — try again");
+  render();
+}
+
+/* ---------------- strategies ---------------- */
+/* ---------------- boss strategies: raid > boss tree ---------------- */
+async function addRaidInstance(){
+  const c = document.getElementById('raid-add-form');
+  const name = (c.querySelector('[name=raidName]').value||'').trim();
+  const errEl = document.getElementById('raid-add-error');
+  if(!name){ errEl.textContent = 'Enter a raid name.'; errEl.style.display='block'; return; }
+  const item = { id: uid(), name };
+  const raids = [...state.raids, item].sort((a,b)=>a.name.localeCompare(b.name));
+  const ok = await sSet('guild-raids', raids);
+  state.raids = raids;
+  saveNotice(ok, 'Raid added');
+  render();
+}
+async function deleteRaidInstance(raidId){
+  const raids = state.raids.filter(r=>r.id!==raidId);
+  const bosses = state.bossesIndex.filter(b=>b.raidId!==raidId);
+  const results = await Promise.all([sSet('guild-raids', raids), sSet('guild-bosses-index', bosses)]);
+  state.raids = raids;
+  state.bossesIndex = bosses;
+  state.stratNav = { raidId:null, bossId:null };
+  saveNotice(results.every(Boolean), 'Raid removed');
+  render();
+}
+async function addBoss(raidId){
+  const c = document.getElementById('boss-add-form');
+  const name = (c.querySelector('[name=bossName]').value||'').trim();
+  const errEl = document.getElementById('boss-add-error');
+  if(!name){ errEl.textContent = 'Enter a boss name.'; errEl.style.display='block'; return; }
+  const item = { id: uid(), raidId, name };
+  const bossesIndex = [...state.bossesIndex, item];
+  const ok = await sSet('guild-bosses-index', bossesIndex);
+  state.bossesIndex = bossesIndex;
+  saveNotice(ok, 'Boss added');
+  render();
+}
+async function deleteBoss(bossId){
+  const bossesIndex = state.bossesIndex.filter(b=>b.id!==bossId);
+  const ok = await sSet('guild-bosses-index', bossesIndex);
+  state.bossesIndex = bossesIndex;
+  delete state.bossDetails[bossId];
+  state.stratNav.bossId = null;
+  saveNotice(ok, 'Boss removed');
+  render();
+}
+async function loadBossDetail(bossId){
+  if(state.bossDetails[bossId]) return;
+  const detail = await sGet('guild-boss-detail:' + bossId, { notes:'', screenshot:null });
+  state.bossDetails[bossId] = detail;
+  render();
+}
+async function saveBossNotes(){
+  const bossId = state.stratNav.bossId;
+  const notes = (document.getElementById('boss-notes-input').value||'').trim();
+  const detail = Object.assign({}, state.bossDetails[bossId] || {notes:'',screenshot:null}, { notes });
+  const ok = await sSet('guild-boss-detail:' + bossId, detail);
+  state.bossDetails[bossId] = detail;
+  saveNotice(ok, 'Notes saved');
+  render();
+}
+async function saveBossScreenshot(bossId, dataUri){
+  const detail = Object.assign({}, state.bossDetails[bossId] || {notes:'',screenshot:null}, { screenshot: dataUri });
+  const ok = await sSet('guild-boss-detail:' + bossId, detail);
+  state.bossDetails[bossId] = detail;
+  saveNotice(ok, 'Screenshot uploaded');
+  render();
+}
+async function removeBossScreenshot(bossId){
+  const detail = Object.assign({}, state.bossDetails[bossId] || {notes:'',screenshot:null}, { screenshot: null });
+  const ok = await sSet('guild-boss-detail:' + bossId, detail);
+  state.bossDetails[bossId] = detail;
+  if(!ok) showToast("Couldn't save — try again");
+  render();
+}
+function handleScreenshotFile(bossId, file){
+  if(!file) return;
+  if(!file.type.startsWith('image/')){ showToast('Please choose an image file'); return; }
+  const MAX_BYTES = 4 * 1024 * 1024; // stay well under the 5MB per-key storage limit
+  if(file.size > MAX_BYTES){ showToast('That image is too large (max ~4MB) — try a smaller screenshot'); return; }
+  const reader = new FileReader();
+  reader.onload = () => saveBossScreenshot(bossId, reader.result);
+  reader.onerror = () => showToast("Couldn't read that file — try again");
+  reader.readAsDataURL(file);
+}
+
+/* ---------------- soft-res links ---------------- */
+async function addSoftres(){
+  const c = document.getElementById('softres-form');
+  const label = (c.querySelector('[name=label]').value||'').trim();
+  const url = (c.querySelector('[name=url]').value||'').trim();
+  const errEl = document.getElementById('softres-error');
+  if(!label || !url){ errEl.textContent = 'Label and link are both required.'; errEl.style.display='block'; return; }
+  if(!/^https?:\/\//i.test(url)){ errEl.textContent = 'Link must start with http:// or https://'; errEl.style.display='block'; return; }
+  const item = { id: uid(), label, url, date: new Date().toISOString().slice(0,10) };
+  const softres = [item, ...state.softres];
+  const ok = await sSet('guild-softres', softres);
+  state.softres = softres;
+  saveNotice(ok, 'Link added');
+  render();
+}
+async function deleteSoftres(id){
+  const softres = state.softres.filter(s=>s.id!==id);
+  const ok = await sSet('guild-softres', softres);
+  state.softres = softres;
+  if(!ok) showToast("Couldn't remove — try again");
+  render();
+}
+
+async function addRaidplan(){
+  const c = document.getElementById('raidplan-form');
+  const label = (c.querySelector('[name=label]').value||'').trim();
+  const url = (c.querySelector('[name=url]').value||'').trim();
+  const errEl = document.getElementById('raidplan-error');
+  if(!label || !url){ errEl.textContent = 'Label and link are both required.'; errEl.style.display='block'; return; }
+  if(!/^https?:\/\//i.test(url)){ errEl.textContent = 'Link must start with http:// or https://'; errEl.style.display='block'; return; }
+  const item = { id: uid(), label, url, date: new Date().toISOString().slice(0,10) };
+  const raidplans = [item, ...state.raidplans];
+  const ok = await sSet('guild-raidplans', raidplans);
+  state.raidplans = raidplans;
+  saveNotice(ok, 'Plan link added');
+  render();
+}
+async function deleteRaidplan(id){
+  const raidplans = state.raidplans.filter(r=>r.id!==id);
+  const ok = await sSet('guild-raidplans', raidplans);
+  state.raidplans = raidplans;
+  if(!ok) showToast("Couldn't remove — try again");
+  render();
+}
+
+/* ---------------- raid composition planner (officers edit, members view-only) ---------------- */
+function selectSpec(classKey, specKey){
+  if(state.currentUser.role !== 'officer') return;
+  if(state.selectedSpec && state.selectedSpec.classKey===classKey && state.selectedSpec.specKey===specKey){
+    state.selectedSpec = null;
+  } else {
+    state.selectedSpec = { classKey, specKey };
+  }
+  render();
+}
+function openCompSlotModal(groupIdx, slotIdx){
+  if(state.currentUser.role !== 'officer') return;
+  if(!state.selectedSpec){ showToast('Pick a class/spec above first'); return; }
+  state.modal = { type:'assign-slot', groupIdx, slotIdx };
+  render();
+}
+async function saveCompSlot(){
+  if(!state.modal || state.modal.type !== 'assign-slot') return;
+  if(state.currentUser.role !== 'officer'){ showToast('Only officers can edit the roster'); state.modal=null; render(); return; }
+  const { groupIdx, slotIdx } = state.modal;
+  if(!state.selectedSpec){ showToast('Pick a class/spec above first'); state.modal=null; render(); return; }
+  const nameInput = document.getElementById('assign-slot-name');
+  const name = (nameInput.value||'').trim();
+  const errEl = document.getElementById('assign-slot-error');
+  if(!name){ errEl.textContent = 'Enter a raider name.'; errEl.style.display = 'block'; return; }
+  const comp = JSON.parse(JSON.stringify(state.comp));
+  comp.groups[groupIdx][slotIdx] = { classKey: state.selectedSpec.classKey, specKey: state.selectedSpec.specKey, name };
+  const ok = await sSet('guild-comp', comp);
+  state.comp = comp;
+  state.modal = null;
+  saveNotice(ok, 'Roster updated');
+  render();
+}
+async function removeCompSlot(groupIdx, slotIdx){
+  if(state.currentUser.role !== 'officer'){ showToast('Only officers can edit the roster'); return; }
+  const comp = JSON.parse(JSON.stringify(state.comp));
+  const slot = comp.groups[groupIdx][slotIdx];
+  if(!slot) return;
+  comp.groups[groupIdx][slotIdx] = null;
+  const ok = await sSet('guild-comp', comp);
+  state.comp = comp;
+  state.modal = null;
+  if(!ok) showToast("Couldn't save — try again");
+  render();
+}
+
+/* ---------------- loot log ---------------- */
+async function addLoot(){
+  const c = document.getElementById('loot-form');
+  const item = (c.querySelector('[name=item]').value||'').trim();
+  const winner = (c.querySelector('[name=winner]').value||'').trim();
+  const boss = (c.querySelector('[name=boss]').value||'').trim();
+  const date = c.querySelector('[name=date]').value || new Date().toISOString().slice(0,10);
+  const errEl = document.getElementById('loot-error');
+  if(!item || !winner){ errEl.textContent = 'Item and winner are both required.'; errEl.style.display='block'; return; }
+  const entry = { id: uid(), item, winner, boss, date };
+  const loot = [entry, ...state.loot];
+  const ok = await sSet('guild-loot', loot);
+  state.loot = loot;
+  saveNotice(ok, 'Loot logged');
+  render();
+}
+async function deleteLoot(id){
+  const loot = state.loot.filter(l=>l.id!==id);
+  const ok = await sSet('guild-loot', loot);
+  state.loot = loot;
+  if(!ok) showToast("Couldn't remove — try again");
+  render();
+}
+
+/* ---------------- news ---------------- */
+async function addNews(){
+  const c = document.getElementById('news-form');
+  const title = (c.querySelector('[name=title]').value||'').trim();
+  const body = (c.querySelector('[name=body]').value||'').trim();
+  const errEl = document.getElementById('news-error');
+  if(!title || !body){ errEl.textContent = 'Title and message are both required.'; errEl.style.display='block'; return; }
+  const post = { id: uid(), title, body, date: new Date().toISOString().slice(0,10), author: state.currentUser.name };
+  const news = [post, ...state.news];
+  const ok = await sSet('guild-news', news);
+  state.news = news;
+  saveNotice(ok, 'Posted');
+  render();
+}
+async function deleteNews(id){
+  const news = state.news.filter(n=>n.id!==id);
+  const ok = await sSet('guild-news', news);
+  state.news = news;
+  if(!ok) showToast("Couldn't remove — try again");
+  render();
+}
+
+/* ---------------- recruitment ---------------- */
+async function saveRecruitment(){
+  const c = document.getElementById('rec-form');
+  const rec = { body: (c.querySelector('[name=body]').value||'').trim(), roles: (c.querySelector('[name=roles]').value||'').trim() };
+  const ok = await sSet('guild-recruitment', rec);
+  state.recruitment = rec;
+  saveNotice(ok, 'Recruitment page updated');
+  render();
+}
+
+/* ---------------- render ---------------- */
+function render(){
+  const app = document.getElementById('app');
+  if(state.view === 'loading'){
+    app.innerHTML = '<div class="landing"><p class="sans muted">Opening the guild hall...</p></div>';
+    return;
+  }
+  if(state.view === 'setup'){ app.innerHTML = renderSetup(); bindSetup(); return; }
+  if(state.view === 'login'){ app.innerHTML = renderLogin(); bindLogin(); return; }
+  app.innerHTML = renderApp();
+  bindApp();
+}
+
+function crestSvg(id, size){
+  return `<svg viewBox="0 0 100 120" width="${size}" height="${size*1.2}" class="crest-svg">
+    <defs>
+      <linearGradient id="goldGrad${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f5d78e"/>
+        <stop offset="50%" stop-color="#cf9a44"/>
+        <stop offset="100%" stop-color="#8a5a20"/>
+      </linearGradient>
+    </defs>
+    <path d="M50 4 L92 20 L92 55 C92 85 74 106 50 116 C26 106 8 85 8 55 L8 20 Z" fill="rgba(15,16,26,0.55)" stroke="url(#goldGrad${id})" stroke-width="2.5"/>
+    <circle cx="50" cy="56" r="16" fill="none" stroke="url(#goldGrad${id})" stroke-width="1.5" opacity="0.8"/>
+    <path d="M50 40 L54.5 51.5 L67 52 L57 59.5 L60.5 71.5 L50 64 L39.5 71.5 L43 59.5 L33 52 L45.5 51.5 Z" fill="url(#goldGrad${id})"/>
+  </svg>`;
+}
+function emberField(count){
+  let out = '';
+  for(let i=0;i<count;i++){
+    const left = (Math.random()*100).toFixed(1);
+    const delay = (Math.random()*9).toFixed(2);
+    const duration = (7 + Math.random()*6).toFixed(2);
+    const drift = (Math.random()*40 - 20).toFixed(0);
+    const size = (2 + Math.random()*2).toFixed(1);
+    out += `<div class="ember" style="left:${left}%; width:${size}px; height:${size}px; animation-delay:${delay}s; animation-duration:${duration}s; --drift:${drift}px;"></div>`;
+  }
+  return out;
+}
+function heroBackdrop(){
+  return `
+    <div class="starfield"></div>
+    <div class="aurora"></div>
+    <div class="hero-glow"></div>
+    <svg class="hero-mountains-far" viewBox="0 0 1200 260" preserveAspectRatio="none">
+      <path d="M0,260 L0,150 L80,110 L150,140 L230,85 L300,125 L370,70 L430,60 L440,45 L448,60 L456,50 L462,60 L470,60 L480,95 L560,60 L640,120 L720,80 L800,130 L880,75 L960,115 L1040,65 L1120,110 L1200,80 L1200,260 Z" fill="#3a3660" opacity="0.55"/>
+      <rect x="425" y="60" width="7" height="20" fill="#2a2748" opacity="0.6"/>
+      <rect x="447" y="50" width="7" height="30" fill="#2a2748" opacity="0.65"/>
+      <rect x="469" y="60" width="7" height="20" fill="#2a2748" opacity="0.6"/>
+    </svg>
+    <svg class="hero-mountains-near" viewBox="0 0 1200 160" preserveAspectRatio="none">
+      <path d="M0,160 L0,100 L100,50 L190,90 L280,35 L360,80 L450,20 L540,75 L620,40 L710,85 L800,30 L890,70 L980,25 L1070,65 L1160,15 L1200,55 L1200,160 Z" fill="var(--bg-secondary)" opacity="0.9"/>
+      <path d="M0,160 L0,125 L140,80 L260,115 L370,70 L470,110 L600,60 L710,105 L830,65 L940,100 L1080,55 L1200,90 L1200,160 Z" fill="var(--bg-primary)"/>
+    </svg>
+    <div class="embers">${emberField(16)}</div>
+  `;
+}
+
+function heroLandscapeSvg(){
+  return `
+  <svg viewBox="0 0 800 500" class="hero-landscape-svg" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#8fb3c9"/>
+        <stop offset="45%" stop-color="#cdb896"/>
+        <stop offset="100%" stop-color="#e8d3a8"/>
+      </linearGradient>
+      <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#dbcaa0"/>
+        <stop offset="100%" stop-color="#a99a6d"/>
+      </linearGradient>
+      <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#fff3d6" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#fff3d6" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="0" y="0" width="800" height="500" fill="url(#skyGrad)"/>
+    <circle cx="590" cy="150" r="90" fill="url(#sunGlow)"/>
+    <circle cx="590" cy="150" r="26" fill="#fff8e6" opacity="0.85"/>
+
+    <path d="M0,260 L60,210 L140,240 L220,180 L300,225 L380,170 L460,215 L540,175 L620,220 L700,190 L800,230 L800,320 L0,320 Z" fill="#8093a0" opacity="0.45"/>
+    <path d="M0,290 L90,235 L190,270 L270,205 L360,255 L470,195 L560,250 L660,215 L760,260 L800,245 L800,340 L0,340 Z" fill="#697d8a" opacity="0.6"/>
+    <path d="M0,320 L110,255 L210,300 L330,235 L440,290 L560,245 L680,295 L800,270 L800,360 L0,360 Z" fill="#4f5f6a" opacity="0.8"/>
+
+    <rect x="0" y="330" width="800" height="170" fill="url(#waterGrad)"/>
+    <path d="M0,330 L110,265 L210,310 L330,245 L440,300 L560,255 L680,305 L800,280 L800,330 Z" fill="#4f5f6a" opacity="0.28"/>
+
+    <ellipse cx="400" cy="470" rx="420" ry="55" fill="#6b5334" opacity="0.9"/>
+    <path d="M0,500 L0,440 C120,410 220,460 340,435 C460,412 560,455 680,430 C730,420 780,432 800,440 L800,500 Z" fill="#5a4527"/>
+
+    <g opacity="0.92">
+      <ellipse cx="470" cy="432" rx="30" ry="16" fill="#241d13"/>
+      <path d="M462,420 C458,405 466,392 474,392 C482,392 488,404 486,418 L486,420 Z" fill="#241d13"/>
+      <rect x="440" y="400" width="4" height="38" fill="#241d13"/>
+      <path d="M436,398 L448,398 L442,384 Z" fill="#241d13"/>
+    </g>
+    <g opacity="0.92">
+      <ellipse cx="418" cy="440" rx="17" ry="26" fill="#1c160e"/>
+      <circle cx="418" cy="406" r="11" fill="#1c160e"/>
+    </g>
+  </svg>`;
+}
+
+function topNavBar(navLinks, opts){
+  opts = opts || {};
+  return `
+  <nav class="site-nav">
+    <div class="site-nav-inner">
+      <div class="nav-brand">
+        ${crestSvg('nav',24)}
+        <span class="nav-brand-name">${esc(opts.guildName||'')}</span>
+      </div>
+      <div class="nav-links">
+        ${ navLinks.map(l=>`<a href="#${l.id}" class="nav-link">${esc(l.label)}</a>`).join('') }
+      </div>
+      <div class="nav-cta-group">
+        ${ opts.showRecruit ? `<a href="#recruiting" class="btn-nav-outline">Recruiting</a>` : '' }
+        <a href="#signin" class="btn-nav-solid">Sign In</a>
+      </div>
+    </div>
+  </nav>`;
+}
+
+function renderSetup(){
+  return `
+  <div class="wow-hero">
+    ${heroBackdrop()}
+    <div class="hero-content" style="max-width:560px;">
+      ${crestSvg('setup',64)}
+      <div class="eyebrow gold-text" style="margin-top:18px;">First time here</div>
+      <h1 class="hero-title gold-text">Found Your Guild Hall</h1>
+      <p class="hero-sub sans">Set a member passphrase for your raiders and an officer passphrase for leadership. Share these however you like &mdash; Discord, in-game mail, carrier pigeon.</p>
+
+      <div class="panel hero-panel">
+        <div id="setup-form">
+          <div class="field">
+            <label>Guild name</label>
+            <input name="guildName" placeholder="e.g. Ashes of Hyjal" required>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Member passphrase</label>
+              <input name="memberPass" placeholder="Passphrase for raiders" required>
+            </div>
+            <div class="field">
+              <label>Officer passphrase</label>
+              <input name="officerPass" placeholder="Passphrase for officers" required>
+            </div>
+          </div>
+          <div class="field">
+            <label>Your character name</label>
+            <input name="officerName" placeholder="You'll be logged in as an officer" required>
+          </div>
+          <div id="setup-error" class="field-error" style="display:none;"></div>
+          <button class="btn-epic" type="button" id="setup-form-btn">Create Guild Hall</button>
+        </div>
+      </div>
+      <p class="sans muted" style="text-align:center; margin-top:16px;">Two different passphrases, please &mdash; that's what separates raiders from officers.</p>
+    </div>
+  </div>`;
+}
+function bindSetup(){
+  const c = document.getElementById('setup-form');
+  document.getElementById('setup-form-btn').addEventListener('click', handleSetup);
+  c.querySelectorAll('input').forEach(inp=>inp.addEventListener('keydown', e=>{ if(e.key==='Enter') handleSetup(); }));
+}
+
+function renderLogin(){
+  const rec = state.recruitment || {};
+  const navLinks = [
+    {id:'about', label:'About'},
+    {id:'feature-calendar', label:'Raid Calendar'},
+    {id:'feature-strategies', label:'Boss Strategies'},
+    {id:'feature-loot', label:'Loot Log'},
+    {id:'recruiting', label:'Recruiting'},
+  ];
+  return `
+  ${topNavBar(navLinks, {guildName: state.config.guildName, showRecruit:true})}
+
+  <div class="marketing-hero" id="about">
+    <div class="hero-split">
+      <div class="hero-split-text">
+        <div class="eyebrow gold-text">${esc(state.config.guildName)} Awaits</div>
+        <h1 class="hero-title2 gold-text">Adventure Is Forever</h1>
+        <p class="hero-split-sub sans">The guild hall is an invitation to take your first steps into raid nights, boss strategy, and the loot log &mdash; built for ${esc(state.config.guildName)} as we carry on into Warcraft Forever. Every raid, every kill, every soft-res sheet, kept in one place that grows with us.</p>
+      </div>
+      <div class="hero-split-media">
+        <div class="ornate-frame">
+          <div class="ornate-corner tl"></div>
+          <div class="ornate-corner tr"></div>
+          <div class="ornate-corner bl"></div>
+          <div class="ornate-corner br"></div>
+          <a class="hero-video-thumb" href="https://www.youtube.com/watch?v=D30zXcEjg_Y" target="_blank" rel="noopener">
+            <img src="https://img.youtube.com/vi/D30zXcEjg_Y/hqdefault.jpg" alt="Guild video">
+            <span class="play-badge">&#9654;</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="marketing-section" id="signin" style="padding-top:20px;">
+    <div class="panel hero-panel" style="max-width:420px; margin:0 auto;">
+      <h3 style="margin-bottom:16px; text-align:center;">Sign In</h3>
+      <div id="login-form">
+        <div class="field">
+          <label>Character name</label>
+          <input name="charName" placeholder="Your main's name" required>
+        </div>
+        <div class="field">
+          <label>Passphrase</label>
+          <input name="pass" type="password" placeholder="Member or officer passphrase" required>
+        </div>
+        <div id="login-error" class="field-error" style="display:none;"></div>
+        <button class="btn-epic" type="button" id="login-form-btn">Enter</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="marketing-section">
+    <div class="eyebrow gold-text" style="text-align:center; display:block;">Calling All Raiders</div>
+    <h2 class="page-title" style="text-align:center; margin-bottom:32px;">What's Inside the Hall</h2>
+    <div class="feature-cards">
+      <div class="feature-card" id="feature-calendar">
+        <div class="feature-icon">${crestSvg('fc1',34)}</div>
+        <h3>Raid Calendar</h3>
+        <p class="sans">A month-by-month view of every raid night. Click any event to mark yourself Going, Maybe, or Can't Make It.</p>
+      </div>
+      <div class="feature-card" id="feature-strategies">
+        <div class="feature-icon">${crestSvg('fc2',34)}</div>
+        <h3>Boss Strategies</h3>
+        <p class="sans">Positioning, cooldowns, and wipe triggers for every fight, organized by raid instance.</p>
+      </div>
+      <div class="feature-card" id="feature-loot">
+        <div class="feature-icon">${crestSvg('fc3',34)}</div>
+        <h3>Loot Log</h3>
+        <p class="sans">A running record of what's dropped and who won it, plus soft-res sheets for upcoming raids.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="marketing-section" id="recruiting" style="padding-bottom:100px;">
+    <div class="panel hero-panel" style="max-width:640px; margin:0 auto;">
+      <div class="eyebrow gold-text">Recruiting</div>
+      ${ rec.roles ? `<p class="sans" style="font-size:13px; font-weight:700; color:#e8c26c; margin-bottom:8px;">Open roles: ${esc(rec.roles)}</p>` : '' }
+      <p class="sans" style="font-size:14px; line-height:1.6; color:var(--text-muted);">${ rec.body ? esc(rec.body).replace(/\n/g,'<br>') : 'No recruitment notice posted yet. Officers can add one after signing in.' }</p>
+    </div>
+  </div>
+
+  <footer class="site-footer sans">${esc(state.config.guildName)} &middot; Guild Hall</footer>
+  `;
+}
+function bindLogin(){
+  const c = document.getElementById('login-form');
+  document.getElementById('login-form-btn').addEventListener('click', handleLogin);
+  c.querySelectorAll('input').forEach(inp=>inp.addEventListener('keydown', e=>{ if(e.key==='Enter') handleLogin(); }));
+}
+
+function renderApp(){
+  const isOfficer = state.currentUser.role === 'officer';
+  const navItems = [
+    ['news','News'],
+    ['calendar','Raid Calendar'],
+    ['roster','Roster'],
+    ['strategies','Boss Strategies'],
+    ['softres','Soft Res Links'],
+    ['loot','Loot Log'],
+    ['recruitment','Recruitment'],
+  ];
+  return `
+    <nav class="site-nav">
+      <div class="site-nav-inner">
+        <div class="nav-brand">
+          ${crestSvg('appnav',24)}
+          <span class="nav-brand-name">${esc(state.config.guildName)}</span>
+        </div>
+        <div class="nav-links app-nav-links">
+          ${navItems.map(([key,label])=>`
+            <button class="nav-tab-btn ${state.tab===key?'active':''}" data-tab="${key}">${esc(label)}</button>
+          `).join('')}
+        </div>
+        <div class="nav-cta-group">
+          <span class="nav-user sans">${esc(state.currentUser.name)} <span class="badge ${isOfficer?'role-officer':'role-member'}">${isOfficer?'Officer':'Member'}</span></span>
+          <button class="btn-nav-outline" id="logout-btn" type="button">Sign Out</button>
+        </div>
+      </div>
+    </nav>
+    <div class="main">
+      ${ state.toast ? `<div class="toast sans">${esc(state.toast)}</div>` : '' }
+      ${ renderTab() }
+    </div>
+  `;
+}
+
+function renderTab(){
+  switch(state.tab){
+    case 'calendar': return renderCalendar();
+    case 'strategies': return renderStrategies();
+    case 'softres': return renderSoftres();
+    case 'roster': return renderRoster();
+    case 'loot': return renderLoot();
+    case 'news': return renderNews();
+    case 'recruitment': return renderRecruitmentTab();
+    default: return '';
+  }
+}
+
+/* ---- calendar tab ---- */
+function renderCalendar(){
+  const isOfficer = state.currentUser.role === 'officer';
+  const y = state.calendarYear, m = state.calendarMonth;
+  const first = firstWeekdayOfMonth(y,m);
+  const numDays = daysInMonth(y,m);
+  const prevMonthDays = daysInMonth(m===0?y-1:y, m===0?11:m-1);
+  const cells = [];
+  for(let i=0;i<42;i++){
+    const offset = i - first;
+    let cy=y, cm=m, cd;
+    if(offset < 0){ cd = prevMonthDays + offset + 1; cm = m===0?11:m-1; cy = m===0?y-1:y; }
+    else if(offset >= numDays){ cd = offset - numDays + 1; cm = m===11?0:m+1; cy = m===11?y+1:y; }
+    else { cd = offset + 1; }
+    cells.push({ iso: isoFromParts(cy,cm,cd), day: cd, inMonth: offset>=0 && offset<numDays });
+  }
+  const today = todayISO();
+  const eventsByDate = {};
+  state.events.forEach(ev=>{ (eventsByDate[ev.date] = eventsByDate[ev.date] || []).push(ev); });
+
+  return `
+    <div class="eyebrow sans">Schedule</div>
+    <h2 class="page-title">Raid calendar</h2>
+    <p class="page-sub sans">Click any event to see details and mark yourself down for the night.</p>
+
+    <div class="cal-header">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="cal-prev">&lsaquo;</button>
+        <div class="cal-month-label">${MONTH_NAMES[m]} ${y}</div>
+        <button class="cal-nav-btn" id="cal-next">&rsaquo;</button>
+        <button class="btn secondary" id="cal-today" style="margin-left:6px;">Today</button>
+      </div>
+      ${ isOfficer ? `<button class="btn" id="cal-add-event">+ Add event</button>` : '' }
+    </div>
+
+    <div class="cal-grid">
+      ${ WEEKDAY_LABELS.map(w=>`<div class="cal-weekday">${w}</div>`).join('') }
+      ${ cells.map(c=>{
+        const evs = eventsByDate[c.iso] || [];
+        return `
+        <div class="cal-cell ${c.inMonth?'':'other-month'} ${c.iso===today?'today':''}">
+          <div class="cal-daynum">${c.day}</div>
+          <div class="cal-events">
+            ${ evs.map(ev=>`<button class="cal-event-pill" data-open-event="${ev.id}">${esc(ev.title)}</button>`).join('') }
+          </div>
+          ${ isOfficer ? `<button class="cal-add-btn" data-adddate="${c.iso}" title="Add event">+</button>` : '' }
+        </div>`;
+      }).join('') }
+    </div>
+
+    ${ renderModal() }
+  `;
+}
+
+function renderModal(){
+  if(!state.modal) return '';
+  if(state.modal.type === 'add-event') return renderAddEventModal(state.modal.date||'');
+  if(state.modal.type === 'event-detail') return renderEventDetailModal(state.modal.eventId);
+  if(state.modal.type === 'assign-slot') return renderAssignSlotModal(state.modal.groupIdx, state.modal.slotIdx);
+  return '';
+}
+
+function renderAssignSlotModal(groupIdx, slotIdx){
+  const sel = state.selectedSpec;
+  if(!sel) return '';
+  const slot = state.comp.groups[groupIdx][slotIdx];
+  const cls = CLASS_SPECS[sel.classKey];
+  const specLabel = cls.specs.find(s=>s.key===sel.specKey).label;
+  return `
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-panel" id="modal-panel">
+      <div class="modal-header">
+        <h3>Group ${groupIdx+1} — Slot ${slotIdx+1}</h3>
+        <button class="modal-x" id="modal-close">&times;</button>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+        <span class="spec-icon-sm" style="${specIconStyle(sel.classKey)}">${specIconSvg(sel.classKey, sel.specKey)}</span>
+        <div>
+          <div style="font-weight:700;">${esc(cls.label)}</div>
+          <div class="muted" style="font-size:12px;">${esc(specLabel)}</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Raider name</label>
+        <input id="assign-slot-name" placeholder="Character name" value="${esc(slot?slot.name:'')}">
+      </div>
+      <div id="assign-slot-error" class="field-error" style="display:none;"></div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" type="button" id="assign-slot-save">${slot?'Update':'Assign'}</button>
+        ${ slot ? `<button class="btn danger" type="button" id="assign-slot-clear">Clear slot</button>` : '' }
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAddEventModal(prefillDate){
+  return `
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-panel" id="modal-panel">
+      <div class="modal-header">
+        <h3>Schedule an event</h3>
+        <button class="modal-x" id="modal-close">&times;</button>
+      </div>
+      <div id="event-form">
+        <div class="row">
+          <div class="field"><label>Title</label><input name="title" placeholder="e.g. Hyjal Summit clear" required></div>
+          <div class="field"><label>Date</label><input name="date" type="date" value="${esc(prefillDate)}" required></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Time (optional)</label><input name="time" placeholder="e.g. 8:00 PM server"></div>
+          <div class="field"><label>Instance (optional)</label><input name="instance" placeholder="e.g. Onyxia's Lair"></div>
+        </div>
+        <div class="field"><label>Notes (optional)</label><textarea name="notes" placeholder="Invites go out 30 min early, bring flasks"></textarea></div>
+        <div id="event-error" class="field-error" style="display:none;"></div>
+        <button class="btn" type="button" id="event-form-btn">Add to calendar</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderEventDetailModal(eventId){
+  const ev = state.events.find(e=>e.id===eventId);
+  if(!ev) return '';
+  const isOfficer = state.currentUser.role === 'officer';
+  const rs = state.rsvps[ev.id] || {};
+  const mine = rs[state.currentUser.name];
+  const groups = { going:[], maybe:[], out:[] };
+  Object.entries(rs).forEach(([name,status])=>{ if(groups[status]) groups[status].push(name); });
+  function nameList(arr){ return arr.length ? esc(arr.join(', ')) : '<span class="muted">nobody yet</span>'; }
+  return `
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-panel" id="modal-panel">
+      <div class="modal-header">
+        <h3>${esc(ev.title)}</h3>
+        <button class="modal-x" id="modal-close">&times;</button>
+      </div>
+      <div class="muted" style="margin-bottom:14px;">${fmtDate(ev.date)}${ev.time?' &middot; '+esc(ev.time):''}${ev.instance?' &middot; '+esc(ev.instance):''}</div>
+      ${ ev.notes ? `<div style="margin-bottom:16px; line-height:1.6; white-space:pre-wrap;">${esc(ev.notes)}</div>` : '' }
+
+      <div class="rule"></div>
+      <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">Your RSVP</div>
+      <div class="rsvp-btns" style="margin-bottom:18px;">
+        <button class="rsvp-btn ${mine==='going'?'sel-going':''}" data-modal-rsvp="going">Going</button>
+        <button class="rsvp-btn ${mine==='maybe'?'sel-maybe':''}" data-modal-rsvp="maybe">Maybe</button>
+        <button class="rsvp-btn ${mine==='out'?'sel-out':''}" data-modal-rsvp="out">Can't make it</button>
+      </div>
+
+      <div class="rule"></div>
+      <div style="margin-top:14px;">
+        <div style="margin-bottom:8px;"><span class="badge going">${groups.going.length} going</span> ${nameList(groups.going)}</div>
+        <div style="margin-bottom:8px;"><span class="badge maybe">${groups.maybe.length} maybe</span> ${nameList(groups.maybe)}</div>
+        <div style="margin-bottom:8px;"><span class="badge out">${groups.out.length} out</span> ${nameList(groups.out)}</div>
+      </div>
+
+      ${ isOfficer ? `
+      <div class="rule"></div>
+      <button class="btn danger" data-modal-delete-event="${ev.id}">Remove event</button>` : '' }
+    </div>
+  </div>`;
+}
+
+/* ---- strategies tab ---- */
+function renderStrategies(){
+  const isOfficer = state.currentUser.role === 'officer';
+  const nav = state.stratNav;
+
+  // ---- level 3: boss detail ----
+  if(nav.raidId && nav.bossId){
+    const raid = state.raids.find(r=>r.id===nav.raidId);
+    const boss = state.bossesIndex.find(b=>b.id===nav.bossId);
+    if(!raid || !boss){ state.stratNav = {raidId:null,bossId:null}; return renderStrategies(); }
+    const detail = state.bossDetails[boss.id];
+    return `
+      ${renderStratBreadcrumb(raid, boss)}
+      <h2 class="page-title" style="margin-top:8px;">${esc(boss.name)}</h2>
+      <p class="page-sub sans">${esc(raid.name)}</p>
+
+      <div class="panel">
+        <h3 style="margin-bottom:12px;">Strategy notes</h3>
+        ${ detail===undefined ? `<div class="empty sans">Loading…</div>` : `
+          ${ isOfficer ? `
+            <div class="field"><textarea id="boss-notes-input" placeholder="Positioning, cooldown order, who tanks what, wipe triggers...">${esc(detail.notes||'')}</textarea></div>
+            <button class="btn" type="button" id="boss-notes-save-btn" style="margin-top:10px;">Save notes</button>
+          ` : (detail.notes ? `<div class="muted" style="white-space:pre-wrap; line-height:1.6;">${esc(detail.notes)}</div>` : `<div class="empty sans">No notes yet.</div>`) }
+        `}
+      </div>
+
+      <div class="panel">
+        <h3 style="margin-bottom:12px;">RaidPlan Screenshot</h3>
+        ${ detail===undefined ? `<div class="empty sans">Loading…</div>` : `
+          ${ detail.screenshot ? `
+            <img src="${detail.screenshot}" alt="${esc(boss.name)} raid plan screenshot" class="boss-screenshot">
+            ${ isOfficer ? `<div style="margin-top:12px; display:flex; gap:10px;">
+                <label class="btn secondary" style="cursor:pointer;">Replace screenshot<input type="file" accept="image/*" id="boss-screenshot-input" style="display:none;"></label>
+                <button class="btn danger" type="button" id="boss-screenshot-remove-btn">Remove</button>
+              </div>` : '' }
+          ` : ( isOfficer ? `
+            <p class="muted sans" style="margin-bottom:12px;">Build the plan on <a href="https://raidplan.io/classic" target="_blank" rel="noopener">raidplan.io</a>, screenshot it, and upload it here.</p>
+            <label class="btn" style="cursor:pointer; display:inline-block;">Upload screenshot<input type="file" accept="image/*" id="boss-screenshot-input" style="display:none;"></label>
+          ` : `<div class="empty sans">No screenshot posted yet.</div>` ) }
+        `}
+      </div>
+    `;
+  }
+
+  // ---- level 2: boss list within a raid ----
+  if(nav.raidId){
+    const raid = state.raids.find(r=>r.id===nav.raidId);
+    if(!raid){ state.stratNav = {raidId:null,bossId:null}; return renderStrategies(); }
+    const bosses = state.bossesIndex.filter(b=>b.raidId===raid.id);
+    return `
+      ${renderStratBreadcrumb(raid, null)}
+      <h2 class="page-title" style="margin-top:8px;">${esc(raid.name)}</h2>
+      <p class="page-sub sans">Click a boss to open its strategy notes and RaidPlan screenshot.</p>
+
+      ${ isOfficer ? `
+      <div class="panel">
+        <h3 style="margin-bottom:14px;">Add a boss</h3>
+        <div id="boss-add-form">
+          <div class="field"><label>Boss name</label><input name="bossName" placeholder="e.g. Rage Winterchill" required></div>
+          <div id="boss-add-error" class="field-error" style="display:none;"></div>
+          <button class="btn" type="button" id="boss-add-btn">Add boss</button>
+        </div>
+      </div>` : '' }
+
+      <div class="panel">
+        ${ bosses.length ? bosses.map(b=>`
+          <div class="list-item tree-row" data-open-boss="${b.id}">
+            <div style="flex:1; font-weight:600;">${esc(b.name)}</div>
+            ${ isOfficer ? `<button class="btn danger" data-del-boss="${b.id}" style="flex-shrink:0;">Remove</button>` : '' }
+          </div>
+        `).join('') : '<div class="empty sans">No bosses added yet.</div>' }
+      </div>
+    `;
+  }
+
+  // ---- level 1: raid instance list ----
+  return `
+    <div class="eyebrow sans">Strategy</div>
+    <h2 class="page-title">Boss Strategies</h2>
+    <p class="page-sub sans">Pick a raid instance, then a boss, to see notes and the RaidPlan screenshot.</p>
+
+    ${ isOfficer ? `
+    <div class="panel">
+      <h3 style="margin-bottom:14px;">Add a raid instance</h3>
+      <div id="raid-add-form">
+        <div class="field"><label>Raid name</label><input name="raidName" placeholder="e.g. Hyjal Summit" required></div>
+        <div id="raid-add-error" class="field-error" style="display:none;"></div>
+        <button class="btn" type="button" id="raid-add-btn">Add raid</button>
+      </div>
+    </div>` : '' }
+
+    <div class="panel">
+      ${ state.raids.length ? state.raids.map(r=>{
+        const count = state.bossesIndex.filter(b=>b.raidId===r.id).length;
+        return `
+        <div class="list-item tree-row" data-open-raid="${r.id}">
+          <div style="flex:1;">
+            <div style="font-weight:600;">${esc(r.name)}</div>
+            <div class="muted" style="font-size:12px; margin-top:2px;">${count} boss${count===1?'':'es'}</div>
+          </div>
+          ${ isOfficer ? `<button class="btn danger" data-del-raid="${r.id}" style="flex-shrink:0;">Remove</button>` : '' }
+        </div>`;
+      }).join('') : '<div class="empty sans">No raid instances yet.</div>' }
+    </div>
+
+    <div class="eyebrow sans" style="margin-top:8px;">Visual planning</div>
+    <h2 class="page-title">RaidPlan Links</h2>
+    <p class="page-sub sans">General reference links to <a href="https://raidplan.io/classic" target="_blank" rel="noopener">raidplan.io</a> plans. For a specific boss, open that boss's page to post a screenshot directly.</p>
+
+    ${ isOfficer ? `
+    <div class="panel">
+      <h3 style="margin-bottom:14px;">Add a plan link</h3>
+      <div id="raidplan-form">
+        <div class="row">
+          <div class="field"><label>Label</label><input name="label" placeholder="e.g. Onyxia phase 2 positioning" required></div>
+          <div class="field"><label>Link</label><input name="url" placeholder="https://raidplan.io/plan/..." required></div>
+        </div>
+        <div id="raidplan-error" class="field-error" style="display:none;"></div>
+        <button class="btn" type="button" id="raidplan-form-btn">Add link</button>
+      </div>
+    </div>` : ''}
+
+    <div class="panel">
+      ${ state.raidplans.length ? state.raidplans.map(r=>`
+        <div class="list-item link-row">
+          <div style="flex:1;">
+            <div style="font-weight:600;">${esc(r.label)}</div>
+            <a class="sans" href="${esc(r.url)}" target="_blank" rel="noopener" style="font-size:13px;">${esc(r.url)}</a>
+            <div class="muted" style="margin-top:4px;">Added ${fmtDate(r.date)}</div>
+          </div>
+          ${ isOfficer ? `<button class="btn danger" data-del-raidplan="${r.id}" style="flex-shrink:0;">Remove</button>` : '' }
+        </div>
+      `).join('') : '<div class="empty sans">No RaidPlan links yet.</div>' }
+    </div>
+  `;
+}
+
+function renderStratBreadcrumb(raid, boss){
+  return `
+    <div class="strat-breadcrumb sans">
+      <button type="button" data-crumb-raids>Raid Instances</button>
+      <span>/</span>
+      ${ raid ? `<button type="button" data-crumb-raid="${raid.id}">${esc(raid.name)}</button>` : '' }
+      ${ boss ? `<span>/</span><span class="crumb-current">${esc(boss.name)}</span>` : '' }
+    </div>
+  `;
+}
+
+
+/* ---- soft-res tab ---- */
+function renderSoftres(){
+  const isOfficer = state.currentUser.role === 'officer';
+  return `
+    <div class="eyebrow sans">Loot rules</div>
+    <h2 class="page-title">Soft-res links</h2>
+    <p class="page-sub sans">Links to soft-reserve sheets for upcoming raids. Newest first.</p>
+
+    ${ isOfficer ? `
+    <div class="panel">
+      <h3 style="margin-bottom:14px;">Add a link</h3>
+      <div id="softres-form">
+        <div class="row">
+          <div class="field"><label>Label</label><input name="label" placeholder="e.g. Hyjal Summit - Sept 20" required></div>
+          <div class="field"><label>Link</label><input name="url" placeholder="https://softres.it/raid/..." required></div>
+        </div>
+        <div id="softres-error" class="field-error" style="display:none;"></div>
+        <button class="btn" type="button" id="softres-form-btn">Add link</button>
+      </div>
+    </div>` : ''}
+
+    <div class="panel">
+      ${ state.softres.length ? state.softres.map(s=>`
+        <div class="list-item link-row">
+          <div style="flex:1;">
+            <div style="font-weight:600;">${esc(s.label)}</div>
+            <a class="sans" href="${esc(s.url)}" target="_blank" rel="noopener" style="font-size:13px;">${esc(s.url)}</a>
+            <div class="muted" style="margin-top:4px;">Added ${fmtDate(s.date)}</div>
+          </div>
+          ${ isOfficer ? `<button class="btn danger" data-del-softres="${s.id}" style="flex-shrink:0;">Remove</button>` : '' }
+        </div>
+      `).join('') : '<div class="empty sans">No soft-res sheets linked yet.</div>' }
+    </div>
+  `;
+}
+
+/* ---- roster tab ---- */
+function renderRoster(){
+  const isOfficer = state.currentUser.role === 'officer';
+  const comp = state.comp || defaultComp();
+  const sel = state.selectedSpec;
+  return `
+    <div class="eyebrow sans">Members</div>
+    <h2 class="page-title">Roster</h2>
+    <p class="page-sub sans">Who's raiding, what they play, and what role they fill.</p>
+
+    <div class="panel">
+      <h3 style="margin-bottom:4px;">Raid Composition</h3>
+      <p class="muted sans" style="margin-bottom:16px;">
+        ${ isOfficer
+          ? "Pick a class and spec below, then click a slot to assign a raider's name to it. Click a filled slot to reassign it, or use the × to clear it."
+          : "This is the current raid composition. Officers manage who's assigned to each spot." }
+      </p>
+
+      ${ isOfficer ? `
+      <div class="comp-palette">
+        ${ Object.entries(CLASS_SPECS).map(([classKey,cls])=>`
+          <div class="class-block" style="border-color:${cls.color}55;">
+            ${ cls.specs.map(s=>`
+              <button type="button" class="spec-btn ${sel && sel.classKey===classKey && sel.specKey===s.key ? 'selected':''}"
+                data-class="${classKey}" data-spec="${s.key}"
+                style="${specIconStyle(classKey)}" title="${esc(cls.label)} — ${esc(s.label)}">${specIconSvg(classKey, s.key)}</button>
+            `).join('') }
+          </div>
+        `).join('') }
+      </div>` : '' }
+
+      <div class="comp-groups">
+        ${ comp.groups.map((slots,gi)=>`
+          <div class="comp-group">
+            <div class="comp-group-title">Group ${gi+1}</div>
+            ${ slots.map((slot,si)=>{
+              const specLabel = slot ? CLASS_SPECS[slot.classKey].specs.find(s=>s.key===slot.specKey).label : '';
+              const clickAttr = isOfficer ? `data-slot-click="${gi}|${si}"` : '';
+              return `
+              <div class="comp-slot ${slot?'filled':''} ${isOfficer?'editable':''}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.classKey].color};`:''}">
+                ${ slot ? `
+                  <span class="spec-icon-sm" style="${specIconStyle(slot.classKey)}">${specIconSvg(slot.classKey, slot.specKey)}</span>
+                  <span class="comp-slot-info">
+                    <span class="comp-slot-name">${esc(slot.name)}</span>
+                    <span class="comp-slot-spec" style="color:${CLASS_SPECS[slot.classKey].color};">${esc(specLabel)}</span>
+                  </span>
+                  ${ isOfficer ? `<button type="button" class="comp-slot-remove" data-remove="${gi}|${si}" title="Remove">&times;</button>` : '' }
+                ` : `<span class="comp-slot-empty muted">Empty</span>` }
+              </div>`;
+            }).join('') }
+          </div>
+        `).join('') }
+      </div>
+    </div>
+
+    ${ renderModal() }
+  `;
+}
+
+/* ---- loot tab ---- */
+function renderLoot(){
+  const isOfficer = state.currentUser.role === 'officer';
+  return `
+    <div class="eyebrow sans">History</div>
+    <h2 class="page-title">Loot log</h2>
+    <p class="page-sub sans">A running record of what's dropped and who won it &mdash; handy when someone asks "didn't I already win one of these?"</p>
+
+    ${ isOfficer ? `
+    <div class="panel">
+      <h3 style="margin-bottom:14px;">Log an item</h3>
+      <div id="loot-form">
+        <div class="row">
+          <div class="field"><label>Item</label><input name="item" placeholder="e.g. Ashkandi, Greatsword of the Brotherhood" required></div>
+          <div class="field"><label>Winner</label><input name="winner" placeholder="Character name" required></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Boss (optional)</label><input name="boss" placeholder="e.g. Nefarian"></div>
+          <div class="field"><label>Date</label><input name="date" type="date"></div>
+        </div>
+        <div id="loot-error" class="field-error" style="display:none;"></div>
+        <button class="btn" type="button" id="loot-form-btn">Log item</button>
+      </div>
+    </div>` : ''}
+
+    <div class="panel">
+      ${ state.loot.length ? `
+      <table>
+        <thead><tr><th>Date</th><th>Item</th><th>Winner</th><th>Boss</th>${isOfficer?'<th></th>':''}</tr></thead>
+        <tbody>
+        ${ state.loot.map(l=>`
+          <tr>
+            <td class="muted">${fmtDate(l.date)}</td>
+            <td style="font-weight:600;">${esc(l.item)}</td>
+            <td>${esc(l.winner)}</td>
+            <td class="muted">${esc(l.boss)||'&mdash;'}</td>
+            ${ isOfficer ? `<td><button class="btn danger" data-del-loot="${l.id}">Remove</button></td>` : '' }
+          </tr>
+        `).join('') }
+        </tbody>
+      </table>` : '<div class="empty sans">No loot logged yet.</div>' }
+    </div>
+  `;
+}
+
+/* ---- news tab ---- */
+function renderNews(){
+  const isOfficer = state.currentUser.role === 'officer';
+  return `
+    <div class="news-banner">
+      <div class="starfield"></div>
+      <div style="position:relative; z-index:2; display:flex; align-items:center; gap:16px;">
+        ${crestSvg('newsbanner',40)}
+        <div>
+          <div class="eyebrow gold-text">${esc(state.config.guildName)}</div>
+          <h2 class="gold-text" style="font-size:26px; font-weight:800;">Welcome Back, ${esc(state.currentUser.name)}</h2>
+        </div>
+      </div>
+    </div>
+    <div class="eyebrow sans">Announcements</div>
+    <h2 class="page-title">News</h2>
+    <p class="page-sub sans">Officer posts for lockout changes, loot rule updates, and anything else worth pinning.</p>
+
+    ${ isOfficer ? `
+    <div class="panel">
+      <h3 style="margin-bottom:14px;">Post an announcement</h3>
+      <div id="news-form">
+        <div class="field"><label>Title</label><input name="title" placeholder="e.g. New loot council rules starting this week" required></div>
+        <div class="field">
+          <label>Message</label>
+          <div class="rte-toolbar">
+            <button type="button" class="rte-btn" data-rte="bold" title="Bold"><strong>B</strong></button>
+            <button type="button" class="rte-btn" data-rte="italic" title="Italic"><em>I</em></button>
+            <button type="button" class="rte-btn" data-rte="underline" title="Underline"><u>U</u></button>
+            <button type="button" class="rte-btn" data-rte="strike" title="Strikethrough"><s>S</s></button>
+            <span class="rte-sep"></span>
+            <button type="button" class="rte-btn" data-rte="h1" title="Heading">H1</button>
+            <button type="button" class="rte-btn" data-rte="h2" title="Subheading">H2</button>
+            <span class="rte-sep"></span>
+            <button type="button" class="rte-btn" data-rte="ul" title="Bullet list">&#8226; List</button>
+            <button type="button" class="rte-btn" data-rte="ol" title="Numbered list">1. List</button>
+            <button type="button" class="rte-btn" data-rte="quote" title="Quote">&rdquo; Quote</button>
+            <button type="button" class="rte-btn" data-rte="code" title="Code">&lt;/&gt;</button>
+            <button type="button" class="rte-btn" data-rte="link" title="Link">Link</button>
+            <span class="rte-sep"></span>
+            <span class="rte-color-swatches">
+              <button type="button" class="rte-swatch" data-color="#cf9a44" style="background:#cf9a44" title="Gold"></button>
+              <button type="button" class="rte-swatch" data-color="#e0507a" style="background:#e0507a" title="Pink"></button>
+              <button type="button" class="rte-swatch" data-color="#c0433f" style="background:#c0433f" title="Red"></button>
+              <button type="button" class="rte-swatch" data-color="#6fa354" style="background:#6fa354" title="Green"></button>
+              <button type="button" class="rte-swatch" data-color="#5b8fc7" style="background:#5b8fc7" title="Blue"></button>
+              <button type="button" class="rte-swatch" data-color="#a77fd6" style="background:#a77fd6" title="Purple"></button>
+              <button type="button" class="rte-swatch" data-color="#f2f0e6" style="background:#f2f0e6" title="White"></button>
+            </span>
+          </div>
+          <textarea id="news-body-input" name="body" placeholder="Details go here..." required></textarea>
+          <div class="rte-hint sans">Supports **bold**, *italic*, __underline__, ~~strikethrough~~, # headings, - lists, &gt; quotes, &#96;code&#96;, [links](https://), and color.</div>
+        </div>
+        <div class="field">
+          <label>Preview</label>
+          <div id="news-preview" class="rte-preview"><span class="muted">Nothing to preview yet.</span></div>
+        </div>
+        <div id="news-error" class="field-error" style="display:none;"></div>
+        <button class="btn" type="button" id="news-form-btn">Post</button>
+      </div>
+    </div>` : ''}
+
+    <div class="panel">
+      ${ state.news.length ? state.news.map(n=>`
+        <div class="list-item">
+          <div style="flex:1;">
+            <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
+            <div class="muted">${fmtDate(n.date)} &middot; ${esc(n.author||'')}</div>
+            <div style="margin-top:8px;">${renderRichText(n.body)}</div>
+          </div>
+          ${ isOfficer ? `<button class="btn danger" data-del-news="${n.id}" style="flex-shrink:0;">Remove</button>` : '' }
+        </div>
+      `).join('') : '<div class="empty sans">No announcements yet.</div>' }
+    </div>
+  `;
+}
+
+/* ---- recruitment tab ---- */
+function renderRecruitmentTab(){
+  const isOfficer = state.currentUser.role === 'officer';
+  const rec = state.recruitment || {};
+  return `
+    <div class="eyebrow sans">Public notice</div>
+    <h2 class="page-title">Recruitment</h2>
+    <p class="page-sub sans">This message is shown to anyone who visits before signing in &mdash; share the site link with prospective recruits.</p>
+
+    ${ isOfficer ? `
+    <div class="panel">
+      <h3 style="margin-bottom:14px;">Edit recruitment notice</h3>
+      <div id="rec-form">
+        <div class="field"><label>Open roles (optional)</label><input name="roles" value="${esc(rec.roles||'')}" placeholder="e.g. Healer, Ranged DPS"></div>
+        <div class="field"><label>Message</label><textarea name="body" placeholder="Tell prospective raiders about your guild, raid times, and what you're looking for.">${esc(rec.body||'')}</textarea></div>
+        <button class="btn" type="button" id="rec-form-btn">Save</button>
+      </div>
+    </div>` : `
+    <div class="panel">
+      ${ rec.roles ? `<p style="font-weight:600; color:var(--verdigris-dark); margin-bottom:8px;">Open roles: ${esc(rec.roles)}</p>` : '' }
+      <p style="line-height:1.6; white-space:pre-wrap;">${ rec.body ? esc(rec.body) : 'No recruitment notice posted yet.' }</p>
+    </div>`}
+  `;
+}
+
+/* ---------------- event binding ---------------- */
+function bindApp(){
+  document.querySelectorAll('.nav-tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ state.tab = btn.dataset.tab; state.modal = null; render(); });
+  });
+  const logoutBtn = document.getElementById('logout-btn');
+  if(logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+
+  const eventBtn = document.getElementById('event-form-btn');
+  if(eventBtn) eventBtn.addEventListener('click', addEvent);
+
+  // calendar month navigation
+  const calPrev = document.getElementById('cal-prev');
+  if(calPrev) calPrev.addEventListener('click', ()=>{
+    let m = state.calendarMonth - 1, y = state.calendarYear;
+    if(m<0){ m=11; y--; }
+    state.calendarMonth = m; state.calendarYear = y; render();
+  });
+  const calNext = document.getElementById('cal-next');
+  if(calNext) calNext.addEventListener('click', ()=>{
+    let m = state.calendarMonth + 1, y = state.calendarYear;
+    if(m>11){ m=0; y++; }
+    state.calendarMonth = m; state.calendarYear = y; render();
+  });
+  const calToday = document.getElementById('cal-today');
+  if(calToday) calToday.addEventListener('click', ()=>{
+    const d = new Date();
+    state.calendarYear = d.getFullYear(); state.calendarMonth = d.getMonth(); render();
+  });
+  const calAddEvent = document.getElementById('cal-add-event');
+  if(calAddEvent) calAddEvent.addEventListener('click', ()=>{ state.modal = {type:'add-event', date:''}; render(); });
+  document.querySelectorAll('[data-adddate]').forEach(b=>b.addEventListener('click', (ev)=>{
+    ev.stopPropagation();
+    state.modal = {type:'add-event', date:b.dataset.adddate}; render();
+  }));
+  document.querySelectorAll('[data-open-event]').forEach(b=>b.addEventListener('click', ()=>{
+    state.modal = {type:'event-detail', eventId:b.dataset.openEvent}; render();
+  }));
+
+  // modal close (X button or backdrop click)
+  const modalClose = document.getElementById('modal-close');
+  if(modalClose) modalClose.addEventListener('click', ()=>{ state.modal=null; render(); });
+  const backdrop = document.getElementById('modal-backdrop');
+  if(backdrop) backdrop.addEventListener('click', (ev)=>{ if(ev.target.id==='modal-backdrop'){ state.modal=null; render(); } });
+
+  // rsvp / delete from within the event-detail modal
+  document.querySelectorAll('[data-modal-rsvp]').forEach(b=>b.addEventListener('click', ()=>{
+    if(state.modal && state.modal.type==='event-detail') setRsvp(state.modal.eventId, b.dataset.modalRsvp);
+  }));
+  const modalDelBtn = document.querySelector('[data-modal-delete-event]');
+  if(modalDelBtn) modalDelBtn.addEventListener('click', ()=>deleteEvent(modalDelBtn.dataset.modalDeleteEvent));
+
+  // boss strategies: raid > boss tree navigation
+  document.querySelectorAll('[data-open-raid]').forEach(el=>el.addEventListener('click', ()=>{
+    state.stratNav = { raidId: el.dataset.openRaid, bossId: null };
+    render();
+  }));
+  document.querySelectorAll('[data-open-boss]').forEach(el=>el.addEventListener('click', ()=>{
+    const bossId = el.dataset.openBoss;
+    state.stratNav.bossId = bossId;
+    render();
+    loadBossDetail(bossId);
+  }));
+  document.querySelectorAll('[data-crumb-raids]').forEach(el=>el.addEventListener('click', ()=>{
+    state.stratNav = { raidId:null, bossId:null };
+    render();
+  }));
+  document.querySelectorAll('[data-crumb-raid]').forEach(el=>el.addEventListener('click', ()=>{
+    state.stratNav = { raidId: el.dataset.crumbRaid, bossId:null };
+    render();
+  }));
+
+  const raidAddBtn = document.getElementById('raid-add-btn');
+  if(raidAddBtn) raidAddBtn.addEventListener('click', addRaidInstance);
+  document.querySelectorAll('[data-del-raid]').forEach(b=>b.addEventListener('click', (ev)=>{
+    ev.stopPropagation();
+    deleteRaidInstance(b.dataset.delRaid);
+  }));
+
+  const bossAddBtn = document.getElementById('boss-add-btn');
+  if(bossAddBtn) bossAddBtn.addEventListener('click', ()=>addBoss(state.stratNav.raidId));
+  document.querySelectorAll('[data-del-boss]').forEach(b=>b.addEventListener('click', (ev)=>{
+    ev.stopPropagation();
+    deleteBoss(b.dataset.delBoss);
+  }));
+
+  const bossNotesSaveBtn = document.getElementById('boss-notes-save-btn');
+  if(bossNotesSaveBtn) bossNotesSaveBtn.addEventListener('click', saveBossNotes);
+  const screenshotInput = document.getElementById('boss-screenshot-input');
+  if(screenshotInput) screenshotInput.addEventListener('change', (ev)=>{
+    handleScreenshotFile(state.stratNav.bossId, ev.target.files[0]);
+  });
+  const screenshotRemoveBtn = document.getElementById('boss-screenshot-remove-btn');
+  if(screenshotRemoveBtn) screenshotRemoveBtn.addEventListener('click', ()=>removeBossScreenshot(state.stratNav.bossId));
+
+  const raidplanBtn = document.getElementById('raidplan-form-btn');
+  if(raidplanBtn) raidplanBtn.addEventListener('click', addRaidplan);
+  document.querySelectorAll('[data-del-raidplan]').forEach(b=>b.addEventListener('click', ()=>deleteRaidplan(b.dataset.delRaidplan)));
+
+  const softresBtn = document.getElementById('softres-form-btn');
+  if(softresBtn) softresBtn.addEventListener('click', addSoftres);
+  document.querySelectorAll('[data-del-softres]').forEach(b=>b.addEventListener('click', ()=>deleteSoftres(b.dataset.delSoftres)));
+
+  document.querySelectorAll('.spec-btn').forEach(b=>b.addEventListener('click', ()=>selectSpec(b.dataset.class, b.dataset.spec)));
+  document.querySelectorAll('[data-slot-click]').forEach(el=>el.addEventListener('click', ()=>{
+    const [gi,si] = el.dataset.slotClick.split('|').map(Number);
+    openCompSlotModal(gi,si);
+  }));
+  document.querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click', (ev)=>{
+    ev.stopPropagation();
+    const [gi,si] = b.dataset.remove.split('|').map(Number);
+    removeCompSlot(gi,si);
+  }));
+  const assignSaveBtn = document.getElementById('assign-slot-save');
+  if(assignSaveBtn){
+    assignSaveBtn.addEventListener('click', saveCompSlot);
+    const nameInput = document.getElementById('assign-slot-name');
+    if(nameInput) nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') saveCompSlot(); });
+  }
+  const assignClearBtn = document.getElementById('assign-slot-clear');
+  if(assignClearBtn && state.modal && state.modal.type==='assign-slot'){
+    const { groupIdx, slotIdx } = state.modal;
+    assignClearBtn.addEventListener('click', ()=>removeCompSlot(groupIdx, slotIdx));
+  }
+
+  const lootBtn = document.getElementById('loot-form-btn');
+  if(lootBtn) lootBtn.addEventListener('click', addLoot);
+  document.querySelectorAll('[data-del-loot]').forEach(b=>b.addEventListener('click', ()=>deleteLoot(b.dataset.delLoot)));
+
+  const newsBtn = document.getElementById('news-form-btn');
+  if(newsBtn) newsBtn.addEventListener('click', addNews);
+  document.querySelectorAll('[data-del-news]').forEach(b=>b.addEventListener('click', ()=>deleteNews(b.dataset.delNews)));
+
+  const newsBodyInput = document.getElementById('news-body-input');
+  const newsPreview = document.getElementById('news-preview');
+  function updateNewsPreview(){
+    if(!newsBodyInput || !newsPreview) return;
+    const val = newsBodyInput.value.trim();
+    newsPreview.innerHTML = val ? renderRichText(val) : '<span class="muted">Nothing to preview yet.</span>';
+  }
+  if(newsBodyInput){
+    newsBodyInput.addEventListener('input', updateNewsPreview);
+    document.querySelectorAll('[data-rte]').forEach(b=>b.addEventListener('click', ()=>{
+      rteApply('news-body-input', b.dataset.rte, '#cf9a44');
+      updateNewsPreview();
+    }));
+    document.querySelectorAll('.rte-swatch').forEach(sw=>sw.addEventListener('click', ()=>{
+      rteApply('news-body-input', 'color', sw.dataset.color);
+      updateNewsPreview();
+    }));
+  }
+
+  const recBtn = document.getElementById('rec-form-btn');
+  if(recBtn) recBtn.addEventListener('click', saveRecruitment);
+}
+
+loadAll();
+})();
+</script>
+</body>
+</html>
