@@ -11,6 +11,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const DISCORD_GUILD_ID = '230867986964021249';
 const OFFICER_ROLE_ID = '417906974420893707';
 const MEMBER_ROLE_ID = '417907393020559362';
+const RAID_LEADER_ROLE_ID = '417891066948091914';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -76,11 +77,15 @@ Deno.serve(async (req) => {
     );
 
     let newRole = 'member'; // default: signed in, but not confirmed officer
+    let isProtected = false;
 
     if (discordRes.status === 200) {
       const member = await discordRes.json();
       const roles: string[] = member.roles || [];
-      if (roles.includes(OFFICER_ROLE_ID)) {
+      if (roles.includes(RAID_LEADER_ROLE_ID)) {
+        newRole = 'officer';
+        isProtected = true; // Raid Leader: cannot be demoted by anyone but this sync process
+      } else if (roles.includes(OFFICER_ROLE_ID)) {
         newRole = 'officer';
       } else if (roles.includes(MEMBER_ROLE_ID)) {
         newRole = 'member';
@@ -118,7 +123,7 @@ Deno.serve(async (req) => {
 
     const { data: updated, error: updateErr } = await admin
       .from('profiles')
-      .update({ role: newRole })
+      .update({ role: newRole, protected: isProtected })
       .eq('id', user.id)
       .select()
       .single();
@@ -127,7 +132,7 @@ Deno.serve(async (req) => {
       return json({ error: 'Failed to save role', detail: updateErr.message }, 500);
     }
 
-    return json({ role: newRole, profile: updated }, 200);
+    return json({ role: newRole, protected: isProtected, profile: updated }, 200);
   } catch (e) {
     return json({ error: 'Unexpected error', detail: String(e) }, 500);
   }

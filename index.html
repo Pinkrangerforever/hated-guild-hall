@@ -141,6 +141,7 @@
   .badge.maybe{ background:var(--yellow-bg); color:var(--yellow); border-color:rgba(207,154,68,0.35); }
   .badge.out{ background:var(--red-bg); color:var(--red); border-color:rgba(176,82,79,0.35); }
   .badge.role-officer{ background:rgba(207,154,68,0.16); color:#e0c07f; border-color:rgba(207,154,68,0.35); }
+  .badge.role-raidlead{ background:rgba(207,154,68,0.28); color:#fff3d6; border-color:rgba(207,154,68,0.7); font-weight:800; }
   .badge.role-member{ background:rgba(255,255,255,0.05); color:var(--text-muted); border-color:var(--divider-strong); }
 
   table{ width:100%; border-collapse:collapse; font-size:14px; }
@@ -866,10 +867,13 @@ async function syncDiscordRole(showFeedback){
       if(showFeedback) showToast("Couldn't check Discord roles right now");
       return;
     }
-    if(data && data.role && state.profile && data.role !== state.profile.role){
+    const roleChanged = data && data.role && state.profile && data.role !== state.profile.role;
+    const protectedChanged = data && state.profile && !!data.protected !== !!state.profile.protected;
+    if((roleChanged || protectedChanged) && state.profile){
       state.profile.role = data.role;
+      state.profile.protected = !!data.protected;
       state.profilesById[state.profile.id] = state.profile;
-      if(showFeedback) showToast('Synced — you are now ' + (data.role === 'officer' ? 'an Officer' : 'a Member'));
+      if(showFeedback) showToast('Synced — you are now ' + (data.protected ? 'Raid Leader' : (data.role === 'officer' ? 'an Officer' : 'a Member')));
       render();
     } else if(showFeedback){
       showToast('Discord roles are already up to date');
@@ -1311,7 +1315,7 @@ function renderApp(){
           `).join('')}
         </div>
         <div class="nav-cta-group">
-          <span class="nav-user sans">${esc(myName())} <span class="badge ${officer?'role-officer':'role-member'}">${officer?'Officer':'Member'}</span></span>
+          <span class="nav-user sans">${esc(myName())} <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span></span>
           <button class="btn-nav-outline" id="logout-btn" type="button">Sign Out</button>
         </div>
       </div>
@@ -1709,8 +1713,8 @@ function renderRoster(){
       ${ allProfiles.length ? allProfiles.map(p=>`
         <div class="list-item">
           <div style="flex:1; font-weight:600;">${esc(p.character_name||p.discord_username||'Member')}</div>
-          <span class="badge ${p.role==='officer'?'role-officer':'role-member'}" style="margin-right:10px;">${p.role==='officer'?'Officer':'Member'}</span>
-          ${ officer ? `<button class="btn secondary" data-toggle-officer="${p.id}">${p.role==='officer'?'Demote':'Promote'}</button>` : '' }
+          <span class="badge ${p.protected ? 'role-raidlead' : (p.role==='officer'?'role-officer':'role-member')}" style="margin-right:10px;">${p.protected ? '&#9819; Raid Leader' : (p.role==='officer'?'Officer':'Member')}</span>
+          ${ officer && !p.protected ? `<button class="btn secondary" data-toggle-officer="${p.id}">${p.role==='officer'?'Demote':'Promote'}</button>` : '' }
         </div>
       `).join('') : '<div class="empty sans">No members yet.</div>' }
     </div>
