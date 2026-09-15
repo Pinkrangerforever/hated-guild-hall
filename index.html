@@ -821,6 +821,7 @@ async function onAuthResolved(){
         if(window.location.hash){
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
+        syncDiscordRole(); // fire-and-forget: re-renders itself once it resolves
       } else {
         state.view = 'landing';
       }
@@ -853,6 +854,31 @@ async function signOut(){
   state.view = 'landing';
   state.tab = 'news';
   render();
+}
+
+let __syncInFlight = false;
+async function syncDiscordRole(showFeedback){
+  if(__syncInFlight) return;
+  __syncInFlight = true;
+  try{
+    const { data, error } = await sb.functions.invoke('sync-discord-role');
+    if(error){
+      if(showFeedback) showToast("Couldn't check Discord roles right now");
+      return;
+    }
+    if(data && data.role && state.profile && data.role !== state.profile.role){
+      state.profile.role = data.role;
+      state.profilesById[state.profile.id] = state.profile;
+      if(showFeedback) showToast('Synced — you are now ' + (data.role === 'officer' ? 'an Officer' : 'a Member'));
+      render();
+    } else if(showFeedback){
+      showToast('Discord roles are already up to date');
+    }
+  } catch(e){
+    if(showFeedback) showToast("Couldn't check Discord roles right now");
+  } finally {
+    __syncInFlight = false;
+  }
 }
 
 /* ---------------- data loading ---------------- */
@@ -1670,7 +1696,7 @@ function renderRoster(){
 
     <div class="panel">
       <h3 style="margin-bottom:4px;">Guild Members</h3>
-      <p class="muted sans" style="margin-bottom:14px;">${ officer ? "Promote or demote officers here. You can't lock yourself out — another officer can always re-promote you from their own account." : "Everyone who has signed in." }</p>
+      <p class="muted sans" style="margin-bottom:14px;">Officer/Member status is synced from your Discord roles automatically each time you sign in.</p>
       <div class="field" style="max-width:320px;">
         <label>Your character name</label>
         <div style="display:flex; gap:8px;">
@@ -1678,6 +1704,7 @@ function renderRoster(){
           <button class="btn secondary" type="button" id="my-name-save-btn">Save</button>
         </div>
       </div>
+      <button class="btn secondary" type="button" id="sync-discord-role-btn" style="margin-top:4px;">Re-check my Discord roles now</button>
       <div class="rule"></div>
       ${ allProfiles.length ? allProfiles.map(p=>`
         <div class="list-item">
@@ -1976,6 +2003,8 @@ function bindApp(){
   // roster: members + comp planner
   const myNameSaveBtn = document.getElementById('my-name-save-btn');
   if(myNameSaveBtn) myNameSaveBtn.addEventListener('click', saveMyName);
+  const syncRoleBtn = document.getElementById('sync-discord-role-btn');
+  if(syncRoleBtn) syncRoleBtn.addEventListener('click', ()=>syncDiscordRole(true));
   document.querySelectorAll('[data-toggle-officer]').forEach(b=>b.addEventListener('click', ()=>toggleOfficer(b.dataset.toggleOfficer)));
   document.querySelectorAll('.spec-btn').forEach(b=>b.addEventListener('click', ()=>selectSpec(b.dataset.class, b.dataset.spec)));
   document.querySelectorAll('[data-slot-click]').forEach(el=>el.addEventListener('click', ()=>{
