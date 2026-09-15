@@ -780,49 +780,64 @@ function showToast(msg){
 }
 
 /* ---------------- auth ---------------- */
+let __authResolveInFlight = false;
+let __booted = false;
+
 async function boot(){
   try{
     const { data } = await sb.from('guild_settings').select('*').eq('id',1).single();
     if(data) state.settings = data;
   }catch(e){ console.error('settings load failed', e); }
 
-  const { data: { session } } = await sb.auth.getSession();
-  state.session = session;
-
+  // Register the listener FIRST — if we call getSession() before this,
+  // we can miss the SIGNED_IN event that fires right after an OAuth redirect.
   sb.auth.onAuthStateChange((_event, newSession)=>{
     state.session = newSession;
     onAuthResolved();
   });
 
+  const { data: { session } } = await sb.auth.getSession();
+  state.session = session;
   await onAuthResolved();
+  __booted = true;
 }
+
+async function onAuthResolved(){
+  if(__authResolveInFlight) return; // avoid overlapping runs if multiple events fire in quick succession
+  __authResolveInFlight = true;
+  try{
+    if(state.session){
+      await loadProfile();
+      if(!state.profile){
+        // the DB trigger that creates a profile row can lag a beat right after first sign-in
+        state.view = 'loading';
+        render();
+        await new Promise(r=>setTimeout(r, 1200));
+        await loadProfile();
+      }
+      if(state.profile){
+        state.view = 'app';
+        await loadGuildData();
+        if(window.location.hash){
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      } else {
+        state.view = 'landing';
+      }
+    } else {
+      state.view = 'landing';
+    }
+    render();
+  } finally {
+    __authResolveInFlight = false;
+  }
+}
+
 
 async function loadProfile(){
   if(!state.session){ state.profile = null; return; }
   const { data } = await sb.from('profiles').select('*').eq('id', state.session.user.id).maybeSingle();
   state.profile = data || null;
-}
-
-async function onAuthResolved(){
-  if(state.session){
-    await loadProfile();
-    if(!state.profile){
-      // the DB trigger that creates a profile row can lag a beat right after first sign-in
-      state.view = 'loading';
-      render();
-      await new Promise(r=>setTimeout(r, 1200));
-      await loadProfile();
-    }
-    if(state.profile){
-      state.view = 'app';
-      await loadGuildData();
-    } else {
-      state.view = 'landing';
-    }
-  } else {
-    state.view = 'landing';
-  }
-  render();
 }
 
 async function signInWithDiscord(){
