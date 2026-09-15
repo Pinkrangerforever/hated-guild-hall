@@ -1206,6 +1206,7 @@ function heroLandscapeSvg(){
 
 function topNavBar(navLinks, opts){
   opts = opts || {};
+  const showSignIn = opts.showSignIn !== false;
   return `
   <nav class="site-nav">
     <div class="site-nav-inner">
@@ -1218,7 +1219,7 @@ function topNavBar(navLinks, opts){
       </div>
       <div class="nav-cta-group">
         ${ opts.showRecruit ? `<a href="#recruiting" class="btn-nav-outline">Recruiting</a>` : '' }
-        <a href="#signin" class="btn-nav-solid">Sign In</a>
+        ${ showSignIn ? `<a href="#signin" class="btn-nav-solid">Sign In</a>` : '' }
       </div>
     </div>
   </nav>`;
@@ -1226,41 +1227,45 @@ function topNavBar(navLinks, opts){
 
 function renderSetup(){
   return `
-  <div class="wow-hero">
-    ${heroBackdrop()}
-    <div class="hero-content" style="max-width:560px;">
-      ${crestSvg('setup',64)}
-      <div class="eyebrow gold-text" style="margin-top:18px;">First time here</div>
-      <h1 class="hero-title gold-text">Found Your Guild Hall</h1>
-      <p class="hero-sub sans">Set a member passphrase for your raiders and an officer passphrase for leadership. Share these however you like &mdash; Discord, in-game mail, carrier pigeon.</p>
+  ${topNavBar([], {guildName:'Guild Hall', showRecruit:false, showSignIn:false})}
+  <div class="marketing-hero" style="padding-bottom:70px;">
+    <div class="hero-split" style="grid-template-columns:1fr; justify-items:center; text-align:center;">
+      <div style="max-width:520px;">
+        ${crestSvg('setup',64)}
+        <div class="eyebrow gold-text" style="margin-top:18px; -webkit-text-fill-color:initial; background:none; color:#f0dfb4;">First time here</div>
+        <h1 class="hero-title2 gold-text" style="margin-top:6px;">Found Your Guild Hall</h1>
+        <p class="hero-split-sub sans" style="margin:0 auto 28px auto; text-align:center;">Set a member passphrase for your raiders and an officer passphrase for leadership. Share these however you like &mdash; Discord, in-game mail, carrier pigeon.</p>
 
-      <div class="panel hero-panel">
-        <div id="setup-form">
-          <div class="field">
-            <label>Guild name</label>
-            <input name="guildName" placeholder="e.g. Ashes of Hyjal" required>
-          </div>
-          <div class="row">
+        <div class="panel hero-panel" style="text-align:left;">
+          <div id="setup-form">
             <div class="field">
-              <label>Member passphrase</label>
-              <input name="memberPass" placeholder="Passphrase for raiders" required>
+              <label>Guild name</label>
+              <input name="guildName" placeholder="e.g. Ashes of Hyjal" required>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label>Member passphrase</label>
+                <input name="memberPass" placeholder="Passphrase for raiders" required>
+              </div>
+              <div class="field">
+                <label>Officer passphrase</label>
+                <input name="officerPass" placeholder="Passphrase for officers" required>
+              </div>
             </div>
             <div class="field">
-              <label>Officer passphrase</label>
-              <input name="officerPass" placeholder="Passphrase for officers" required>
+              <label>Your character name</label>
+              <input name="officerName" placeholder="You'll be logged in as an officer" required>
             </div>
+            <div id="setup-error" class="field-error" style="display:none;"></div>
+            <button class="btn-epic" type="button" id="setup-form-btn">Create Guild Hall</button>
           </div>
-          <div class="field">
-            <label>Your character name</label>
-            <input name="officerName" placeholder="You'll be logged in as an officer" required>
-          </div>
-          <div id="setup-error" class="field-error" style="display:none;"></div>
-          <button class="btn-epic" type="button" id="setup-form-btn">Create Guild Hall</button>
         </div>
+        <p class="sans muted" style="text-align:center; margin-top:16px;">Two different passphrases, please &mdash; that's what separates raiders from officers.</p>
       </div>
-      <p class="sans muted" style="text-align:center; margin-top:16px;">Two different passphrases, please &mdash; that's what separates raiders from officers.</p>
     </div>
-  </div>`;
+  </div>
+  <footer class="site-footer sans">Guild Hall</footer>
+  `;
 }
 function bindSetup(){
   const c = document.getElementById('setup-form');
