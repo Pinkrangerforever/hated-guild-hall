@@ -121,16 +121,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: updated, error: updateErr } = await admin
-      .from('profiles')
-      .update({ role: newRole, protected: isProtected })
-      .eq('id', user.id)
-      .select()
-      .single();
+    const { error: updateErr } = await admin.rpc('set_profile_role_from_sync', {
+      p_user_id: user.id,
+      p_role: newRole,
+      p_protected: isProtected,
+    });
 
     if (updateErr) {
       return json({ error: 'Failed to save role', detail: updateErr.message }, 500);
     }
+
+    const { data: updated } = await admin.from('profiles').select('*').eq('id', user.id).single();
 
     return json({ role: newRole, protected: isProtected, profile: updated }, 200);
   } catch (e) {
