@@ -571,7 +571,15 @@
   .slot-label{ font-weight:700; font-size:14px; }
   .slot-actions{ display:flex; gap:8px; flex-shrink:0; }
   .slot-spec-grid{ display:flex; flex-wrap:wrap; gap:8px; }
+  .slot-spec-wrap{ position:relative; }
   .slot-spec-btn{ cursor:pointer; }
+  .slot-spec-clear{
+    position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%;
+    background:var(--red); border:2px solid var(--bg-card); color:#fff;
+    font-size:12px; line-height:1; display:flex; align-items:center; justify-content:center;
+    padding:0; cursor:pointer;
+  }
+  .slot-spec-clear:hover{ background:#c94a47; }
 
   .gallery-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:12px; }
   .gallery-grid-item{
@@ -1422,7 +1430,7 @@ async function deleteGalleryImage(id){
   render();
 }
 async function assignSiteImage(slotKey, url){
-  const { error } = await sb.from('site_images').upsert({ slot_key: slotKey, image_url: url, updated_at: new Date().toISOString() });
+  const { error } = await sb.from('site_images').upsert({ slot_key: slotKey, image_url: url, updated_at: new Date().toISOString() }, { onConflict: 'slot_key' });
   if(error){ showToast("Couldn't save — try again", true); return; }
   state.siteImages[slotKey] = url;
   applySiteBackground();
@@ -1431,7 +1439,7 @@ async function assignSiteImage(slotKey, url){
   render();
 }
 async function clearSiteImage(slotKey){
-  const { error } = await sb.from('site_images').upsert({ slot_key: slotKey, image_url: null, updated_at: new Date().toISOString() });
+  const { error } = await sb.from('site_images').upsert({ slot_key: slotKey, image_url: null, updated_at: new Date().toISOString() }, { onConflict: 'slot_key' });
   if(error){ showToast("Couldn't save — try again", true); return; }
   delete state.siteImages[slotKey];
   applySiteBackground();
@@ -2262,9 +2270,13 @@ function renderGallery(){
           <div class="class-block" style="border-color:${cls.color}55;">
             ${ cls.specs.map(s=>{
               const slotKey = 'spec_icon:'+classKey+':'+s.key;
+              const hasCustom = !!state.siteImages[slotKey];
               return `
-              <button type="button" class="spec-btn slot-spec-btn" data-choose-slot="${slotKey}"
-                style="${specIconStyle(classKey)}" title="${esc(cls.label)} — ${esc(s.label)} (click to change)">${specIconHtml(classKey, s.key)}</button>
+              <div class="slot-spec-wrap">
+                <button type="button" class="spec-btn slot-spec-btn" data-choose-slot="${slotKey}"
+                  style="${specIconStyle(classKey)}" title="${esc(cls.label)} — ${esc(s.label)} (click to change)">${specIconHtml(classKey, s.key)}</button>
+                ${ hasCustom ? `<button type="button" class="slot-spec-clear" data-clear-slot="${slotKey}" title="Revert to default icon">&times;</button>` : '' }
+              </div>
             `;}).join('') }
           </div>
         `).join('') }
