@@ -883,8 +883,7 @@ function topNavBar(navLinks, opts){
   <nav class="site-nav">
     <div class="site-nav-inner">
       <div class="nav-brand">
-        ${guildIconHtml(64, 'nav')}
-        <span class="nav-brand-name">${esc(opts.guildName||'')}</span>
+        ${guildIconHtml(128, 'nav')}
       </div>
       <div class="nav-links">
         ${ navLinks.map(l=>`<a href="#${l.id}" class="nav-link">${esc(l.label)}</a>`).join('') }
@@ -1581,8 +1580,7 @@ function renderApp(){
     <nav class="site-nav">
       <div class="site-nav-inner">
         <div class="nav-brand">
-          ${guildIconHtml(64, 'appnav')}
-          <span class="nav-brand-name">${esc(state.settings.guild_name)}</span>
+          ${guildIconHtml(128, 'appnav')}
         </div>
         <div class="nav-links app-nav-links">
           ${navItems.map(([key,label])=>`
