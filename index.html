@@ -857,6 +857,13 @@ function guildIconHtml(size, id){
   }
   return crestSvg(id || 'guildicon', size);
 }
+function pageBannerIconHtml(size){
+  const custom = state.siteImages && state.siteImages['page_banner_icon'];
+  if(custom){
+    return `<img src="${esc(custom)}" alt="" style="width:${size}px; height:${size}px; object-fit:contain; border-radius:3px; flex-shrink:0;">`;
+  }
+  return crestSvg('banner'+(__bannerUid++), size);
+}
 function specIconHtml(classKey, specKey){
   const slotKey = 'spec_icon:' + classKey + ':' + specKey;
   const custom = state.siteImages && state.siteImages[slotKey];
@@ -892,7 +899,7 @@ function pageBanner(heading, sub){
     <div class="page-banner">
       <div class="starfield"></div>
       <div style="position:relative; z-index:2; display:flex; align-items:center; gap:16px;">
-        ${crestSvg('banner'+(__bannerUid++), 36)}
+        ${pageBannerIconHtml(36)}
         <div>
           <div class="eyebrow gold-text">${esc(state.settings.guild_name)}</div>
           <h2 class="gold-text" style="font-size:22px; font-weight:800;">${esc(heading)}</h2>
@@ -2341,6 +2348,18 @@ function renderGallery(){
         <div class="slot-actions">
           <button class="btn secondary" type="button" data-choose-slot="guild_icon">Choose</button>
           ${ state.siteImages['guild_icon'] ? `<button class="btn danger" type="button" data-clear-slot="guild_icon">Clear</button>` : '' }
+        </div>
+      </div>
+
+      <div class="slot-row">
+        <div class="slot-preview">${pageBannerIconHtml(48)}</div>
+        <div class="slot-info">
+          <div class="slot-label">Page Banner Icon</div>
+          <div class="muted sans" style="font-size:12px;">Shown next to the heading at the top of every page</div>
+        </div>
+        <div class="slot-actions">
+          <button class="btn secondary" type="button" data-choose-slot="page_banner_icon">Choose</button>
+          ${ state.siteImages['page_banner_icon'] ? `<button class="btn danger" type="button" data-clear-slot="page_banner_icon">Clear</button>` : '' }
         </div>
       </div>
 
