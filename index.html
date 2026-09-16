@@ -1374,26 +1374,46 @@ async function saveRecruitment(){
 
 /* ---------------- gallery + site image slots ---------------- */
 const GALLERY_BUCKET = 'gallery-images';
+const GALLERY_MAX_BATCH = 20;
 
-function handleGalleryFile(file){
-  if(!file) return;
-  if(!file.type.startsWith('image/')){ showToast('Please choose an image file', true); return; }
-  const MAX_BYTES = 8 * 1024 * 1024;
-  if(file.size > MAX_BYTES){ showToast('That image is too large (max ~8MB)', true); return; }
-  uploadGalleryImage(file);
+function handleGalleryFiles(fileList){
+  const files = Array.from(fileList || []);
+  if(!files.length) return;
+  if(files.length > GALLERY_MAX_BATCH){
+    showToast(`Please select ${GALLERY_MAX_BATCH} or fewer images at a time`, true);
+    return;
+  }
+  uploadGalleryImages(files);
 }
-async function uploadGalleryImage(file){
+async function uploadGalleryImages(files){
+  let succeeded = 0, failed = 0;
+  for(const file of files){
+    const ok = await uploadOneGalleryImage(file);
+    if(ok) succeeded++; else failed++;
+  }
+  if(succeeded && !failed){
+    showToast(`Uploaded ${succeeded} image${succeeded===1?'':'s'}`);
+  } else if(succeeded && failed){
+    showToast(`Uploaded ${succeeded}, ${failed} skipped (bad file type or too large)`, true);
+  } else {
+    showToast("Couldn't upload — check file types and sizes (max ~8MB each)", true);
+  }
+  render();
+}
+async function uploadOneGalleryImage(file){
+  if(!file || !file.type.startsWith('image/')) return false;
+  const MAX_BYTES = 8 * 1024 * 1024;
+  if(file.size > MAX_BYTES) return false;
   const ext = (file.name.split('.').pop() || 'png').toLowerCase();
   const path = uid() + '.' + ext;
   const { error: uploadError } = await sb.storage.from(GALLERY_BUCKET).upload(path, file, { upsert: true });
-  if(uploadError){ showToast("Couldn't upload — try again", true); return; }
+  if(uploadError) return false;
   const { data: pub } = sb.storage.from(GALLERY_BUCKET).getPublicUrl(path);
   const url = pub.publicUrl;
   const { data, error } = await sb.from('gallery_images').insert({ url, caption: file.name, uploaded_by: myName() }).select().single();
-  if(error){ showToast("Couldn't save — try again", true); return; }
+  if(error) return false;
   state.galleryImages = [data, ...state.galleryImages];
-  showToast('Image uploaded');
-  render();
+  return true;
 }
 async function deleteGalleryImage(id){
   const { error } = await sb.from('gallery_images').delete().eq('id', id);
@@ -2203,7 +2223,8 @@ function renderGallery(){
     ${ officer ? `
     <div class="panel">
       <h3 style="margin-bottom:14px;">Upload an image</h3>
-      <label class="btn" style="cursor:pointer; display:inline-block;">Choose file<input type="file" accept="image/*" id="gallery-upload-input" style="display:none;"></label>
+      <label class="btn" style="cursor:pointer; display:inline-block;">Choose files<input type="file" accept="image/*" id="gallery-upload-input" multiple style="display:none;"></label>
+      <p class="muted sans" style="margin-top:8px; font-size:12px;">You can select multiple images at once (up to 20).</p>
     </div>
 
     <div class="panel">
@@ -2433,7 +2454,7 @@ function bindApp(){
   if(recBtn) recBtn.addEventListener('click', saveRecruitment);
 
   const galleryInput = document.getElementById('gallery-upload-input');
-  if(galleryInput) galleryInput.addEventListener('change', (ev)=>{ handleGalleryFile(ev.target.files[0]); });
+  if(galleryInput) galleryInput.addEventListener('change', (ev)=>{ handleGalleryFiles(ev.target.files); });
   document.querySelectorAll('[data-del-gallery]').forEach(b=>b.addEventListener('click', ()=>deleteGalleryImage(b.dataset.delGallery)));
   document.querySelectorAll('[data-choose-slot]').forEach(b=>b.addEventListener('click', ()=>openImagePicker(b.dataset.chooseSlot)));
   document.querySelectorAll('[data-clear-slot]').forEach(b=>b.addEventListener('click', ()=>clearSiteImage(b.dataset.clearSlot)));
