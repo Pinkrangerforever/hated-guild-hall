@@ -365,6 +365,13 @@
     color:#cfe3e6; background:transparent; border:1px solid rgba(207,227,230,0.4); border-radius:2px; padding:8px 14px;
   }
   .btn-nav-outline:hover{ background:rgba(255,255,255,0.08); text-decoration:none; }
+  .btn-nav-admin{
+    font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    color:#f0dfb4; background:rgba(207,154,68,0.14); border:1px solid rgba(207,154,68,0.5); border-radius:2px; padding:8px 14px;
+    transition:background 0.15s ease;
+  }
+  .btn-nav-admin:hover{ background:rgba(207,154,68,0.26); }
+  .btn-nav-admin.active{ background:rgba(207,154,68,0.32); border-color:#f0dfb4; }
   .btn-nav-solid{
     font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
     color:#1b130a; background:linear-gradient(180deg, #cf9a44 0%, #9c6a28 100%);
@@ -1616,9 +1623,6 @@ function renderApp(){
     ['gallery','Gallery'],
     ['recruitment','Recruitment'],
   ];
-  if(state.profile && state.profile.protected){
-    navItems.push(['admin','Admin']);
-  }
   return `
     <nav class="site-nav">
       <div class="site-nav-inner">
@@ -1632,6 +1636,7 @@ function renderApp(){
         </div>
         <div class="nav-cta-group">
           <span class="nav-user sans">${esc(myName())} <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span></span>
+          ${ state.profile && state.profile.protected ? `<button type="button" class="btn-nav-admin ${state.tab==='admin'?'active':''}" data-tab="admin">Admin</button>` : '' }
           <button class="btn-nav-outline" id="logout-btn" type="button">Sign Out</button>
           <button type="button" class="nav-hamburger" id="nav-hamburger-btn" aria-label="Menu">&#9776;</button>
         </div>
@@ -1640,6 +1645,7 @@ function renderApp(){
         ${navItems.map(([key,label])=>`
           <button type="button" class="mobile-nav-link ${state.tab===key?'active':''}" data-tab="${key}">${esc(label)}</button>
         `).join('')}
+        ${ state.profile && state.profile.protected ? `<button type="button" class="mobile-nav-link ${state.tab==='admin'?'active':''}" data-tab="admin">Admin</button>` : '' }
       </div>
     </nav>
     <div class="main">
@@ -2434,7 +2440,7 @@ function renderAdmin(){
 }
 /* ---------------- bindings ---------------- */
 function bindApp(){
-  document.querySelectorAll('.nav-tab-btn, .mobile-nav-link[data-tab]').forEach(btn=>{
+  document.querySelectorAll('.nav-tab-btn, .mobile-nav-link[data-tab], .btn-nav-admin').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       state.tab = btn.dataset.tab;
       state.modal = null;
