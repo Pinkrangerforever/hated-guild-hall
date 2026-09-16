@@ -343,10 +343,11 @@
     box-shadow: 0 10px 30px rgba(0,0,0,0.45);
   }
   .site-nav-inner{
-    max-width:1440px; margin:0 auto; padding:14px 20px;
+    max-width:1440px; margin:0 auto; padding:0 20px; height:56px;
     display:flex; align-items:center; gap:28px;
   }
-  .nav-brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .nav-brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; position:relative; }
+  .nav-brand-icon{ display:flex; filter:drop-shadow(0 6px 14px rgba(0,0,0,0.55)); }
   .nav-brand-name{ font-family: Georgia, "Iowan Old Style", serif; font-weight:700; color:#f0dfb4; font-size:20px; letter-spacing:0.02em; }
   .nav-links{ display:flex; gap:0; flex:1; flex-wrap:wrap; align-items:center; }
   .nav-link{
@@ -883,7 +884,7 @@ function topNavBar(navLinks, opts){
   <nav class="site-nav">
     <div class="site-nav-inner">
       <div class="nav-brand">
-        ${guildIconHtml(128, 'nav')}
+        <span class="nav-brand-icon">${guildIconHtml(128, 'nav')}</span>
       </div>
       <div class="nav-links">
         ${ navLinks.map(l=>`<a href="#${l.id}" class="nav-link">${esc(l.label)}</a>`).join('') }
@@ -1580,7 +1581,7 @@ function renderApp(){
     <nav class="site-nav">
       <div class="site-nav-inner">
         <div class="nav-brand">
-          ${guildIconHtml(128, 'appnav')}
+          <span class="nav-brand-icon">${guildIconHtml(128, 'appnav')}</span>
         </div>
         <div class="nav-links app-nav-links">
           ${navItems.map(([key,label])=>`
