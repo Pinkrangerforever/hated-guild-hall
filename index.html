@@ -1616,6 +1616,9 @@ function renderApp(){
     ['gallery','Gallery'],
     ['recruitment','Recruitment'],
   ];
+  if(state.profile && state.profile.protected){
+    navItems.push(['admin','Admin']);
+  }
   return `
     <nav class="site-nav">
       <div class="site-nav-inner">
@@ -1658,6 +1661,7 @@ function renderTab(){
     case 'gallery': return renderGallery();
     case 'guildbank': return renderGuildBank();
     case 'raidlogs': return renderRaidLogs();
+    case 'admin': return renderAdmin();
     default: return '';
   }
 }
@@ -2406,6 +2410,25 @@ function renderRaidLogs(){
     <p class="page-sub sans">A place for raid log links or reports — this page is a placeholder for now.</p>
     <div class="panel">
       ${emptyState("This page isn't built out yet. Let me know what you'd like here — links to WarcraftLogs reports, an embedded log viewer, parse tracking — and I'll build it out.")}
+    </div>
+  `;
+}
+
+function renderAdmin(){
+  // Defense in depth: even if someone forces state.tab='admin' directly (e.g. via
+  // devtools), this still refuses to render admin content for anyone but the
+  // protected Raid Leader account.
+  if(!state.profile || !state.profile.protected){
+    state.tab = 'news';
+    return renderNews();
+  }
+  return `
+    ${pageBanner('Admin')}
+    <div class="eyebrow sans">Raid Leader Only</div>
+    <h2 class="page-title">Admin</h2>
+    <p class="page-sub sans">Visible only to the protected Raid Leader account — not even other officers can see this tab.</p>
+    <div class="panel">
+      ${emptyState("Nothing built out here yet. Tell me what you'd like to manage from this page — guild settings, dangerous actions, whatever needs the extra lockdown — and I'll build it out with the matching database protections.")}
     </div>
   `;
 }
