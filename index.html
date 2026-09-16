@@ -349,7 +349,11 @@
   .nav-brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
   .nav-brand-name{ font-family: Georgia, "Iowan Old Style", serif; font-weight:700; color:#f0dfb4; font-size:16px; letter-spacing:0.02em; }
   .nav-links{ display:flex; gap:2px; flex:1; flex-wrap:wrap; align-items:center; }
-  .nav-link{ font-size:13px; font-weight:600; color:#cfe3e6; letter-spacing:0.01em; padding:8px 12px; border-radius:4px; transition:background 0.12s ease; }
+  .nav-link{
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size:16px; font-weight:800; color:#ffffff; letter-spacing:0.01em;
+    padding:8px 14px; border-radius:4px; transition:background 0.12s ease;
+  }
   .nav-link:hover{ color:#fff; text-decoration:none; background:rgba(255,255,255,0.12); }
   .nav-cta-group{ display:flex; gap:10px; align-items:center; flex-shrink:0; }
   .btn-nav-outline{
@@ -368,8 +372,10 @@
   .app-nav-links{ display:flex; gap:2px; flex-wrap:wrap; align-items:center; }
   .nav-tab-btn{
     background:none; border:none;
-    padding:8px 12px; border-radius:4px; font-size:13px; font-weight:600; color:#cfe3e6;
-    font-family: inherit; letter-spacing:0.01em; transition:background 0.12s ease;
+    padding:8px 14px; border-radius:4px;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size:16px; font-weight:800; color:#ffffff;
+    letter-spacing:0.01em; transition:background 0.12s ease;
   }
   .nav-tab-btn:hover{ color:#fff; background:rgba(255,255,255,0.12); }
   .nav-tab-btn.active{ color:#f0dfb4; background:rgba(207,154,68,0.18); }
@@ -1320,10 +1326,7 @@ function renderLanding(){
           <div class="ornate-corner tr"></div>
           <div class="ornate-corner bl"></div>
           <div class="ornate-corner br"></div>
-          <a class="hero-video-thumb" href="https://www.youtube.com/watch?v=D30zXcEjg_Y" target="_blank" rel="noopener">
-            <img src="https://img.youtube.com/vi/D30zXcEjg_Y/hqdefault.jpg" alt="Guild video">
-            <span class="play-badge">&#9654;</span>
-          </a>
+          <iframe class="hero-video-embed" src="https://www.youtube.com/embed/D30zXcEjg_Y" title="Guild video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
         </div>
       </div>
     </div>
