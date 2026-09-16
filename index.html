@@ -790,7 +790,7 @@ function specIconSvg(classKey, specKey){
   const light = shadeColor(c, 42);
   const dark = shadeColor(c, -62);
   const id = 'pi' + (__iconUid++);
-  return `<svg viewBox="0 0 24 24" class="painted-icon">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="painted-icon">
     <defs>
       <linearGradient id="${id}" x1="0" y1="0" x2="0.35" y2="1">
         <stop offset="0%" stop-color="${light}"/>
@@ -831,7 +831,7 @@ function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
 function firstWeekdayOfMonth(y,m){ return new Date(y, m, 1).getDay(); }
 
 function crestSvg(id, size){
-  return `<svg viewBox="0 0 100 120" width="${size}" height="${size*1.2}" class="crest-svg">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" width="${size}" height="${size*1.2}" class="crest-svg">
     <defs>
       <linearGradient id="goldGrad${id}" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#f5d78e"/>
