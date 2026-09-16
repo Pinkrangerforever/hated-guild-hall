@@ -585,21 +585,43 @@
 
   /* ---- sparkle gold system ---- */
   #sparkle-layer{ position:fixed; inset:0; pointer-events:none; z-index:45; }
-  @keyframes sparklePulse{
-    0%{ transform:scale(0.6); opacity:0; }
-    15%{ transform:scale(1.15); opacity:1; }
-    30%{ transform:scale(1); opacity:1; }
-    85%{ transform:scale(1); opacity:1; }
-    100%{ transform:scale(0.7); opacity:0; }
+  @keyframes sparkleTwinkle{
+    0%{ transform:scale(0.2) rotate(-20deg); opacity:0; }
+    10%{ transform:scale(1.3) rotate(18deg); opacity:1; }
+    18%{ transform:scale(0.85) rotate(-10deg); opacity:1; }
+    26%{ transform:scale(1.08) rotate(5deg); opacity:1; }
+    34%{ transform:scale(1) rotate(0deg); opacity:1; }
+    88%{ transform:scale(1) rotate(0deg); opacity:1; }
+    100%{ transform:scale(0.3) rotate(25deg); opacity:0; }
+  }
+  @keyframes sparkleGlowPulse{
+    0%,100%{ opacity:0.25; transform:scale(0.8); }
+    50%{ opacity:0.65; transform:scale(1.25); }
+  }
+  @keyframes sparkleDotTwinkle{
+    0%,100%{ opacity:0; transform:scale(0.2) rotate(0deg); }
+    50%{ opacity:1; transform:scale(1) rotate(25deg); }
   }
   .sparkle{
-    position:absolute; width:34px; height:34px; pointer-events:auto; cursor:pointer;
+    position:absolute; width:38px; height:38px; pointer-events:auto; cursor:pointer;
     background:none; border:none; padding:0;
-    animation:sparklePulse 8s ease-in-out forwards;
-    filter:drop-shadow(0 0 8px rgba(255,224,153,0.8));
+    animation:sparkleTwinkle 8s cubic-bezier(.25,1.6,.4,1) forwards;
   }
-  .sparkle svg{ width:100%; height:100%; }
-  .sparkle:hover{ filter:drop-shadow(0 0 14px rgba(255,224,153,1)); }
+  .sparkle-glow{
+    position:absolute; inset:-8px; border-radius:50%; pointer-events:none;
+    background:radial-gradient(circle, rgba(255,224,153,0.6) 0%, rgba(255,224,153,0) 72%);
+    animation:sparkleGlowPulse 1.7s ease-in-out infinite;
+  }
+  .sparkle-main{
+    position:relative; width:100%; height:100%;
+    filter:drop-shadow(0 0 7px rgba(255,224,153,0.9));
+  }
+  .sparkle-main svg{ width:100%; height:100%; display:block; }
+  .sparkle:hover .sparkle-main{ filter:drop-shadow(0 0 13px rgba(255,224,153,1)); }
+  .sparkle-dot{ position:absolute; width:9px; height:9px; pointer-events:none; animation:sparkleDotTwinkle 1.4s ease-in-out infinite; }
+  .sparkle-dot svg{ width:100%; height:100%; display:block; filter:drop-shadow(0 0 4px rgba(255,224,153,0.9)); }
+  .sparkle-dot.d1{ top:-6px; right:0; animation-delay:0.25s; }
+  .sparkle-dot.d2{ bottom:-2px; left:-8px; animation-delay:0.75s; }
   @keyframes goldFloatUp{
     0%{ transform:translateY(0); opacity:1; }
     100%{ transform:translateY(-60px); opacity:0; }
@@ -1568,7 +1590,13 @@ function spawnSparkle(){
   el.className = 'sparkle';
   el.style.top = (8 + Math.random()*78) + 'vh';
   el.style.left = (6 + Math.random()*84) + 'vw';
-  el.innerHTML = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1 L14.5 9.5 L23 12 L14.5 14.5 L12 23 L9.5 14.5 L1 12 L9.5 9.5 Z" fill="#f0dfb4" stroke="#cf9a44" stroke-width="1"/></svg>';
+  const mainStar = '<path d="M12 1 L14.5 9.5 L23 12 L14.5 14.5 L12 23 L9.5 14.5 L1 12 L9.5 9.5 Z" fill="#f0dfb4" stroke="#cf9a44" stroke-width="1"/>';
+  const dotStar = '<path d="M12 0 C12 6 14 10 18 12 C14 14 12 18 12 24 C12 18 10 14 6 12 C10 10 12 6 12 0 Z" fill="#fff3d6"/>';
+  el.innerHTML =
+    '<span class="sparkle-glow"></span>' +
+    '<span class="sparkle-main"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + mainStar + '</svg></span>' +
+    '<span class="sparkle-dot d1"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + dotStar + '</svg></span>' +
+    '<span class="sparkle-dot d2"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + dotStar + '</svg></span>';
   el.addEventListener('click', ()=>claimSparkle(el));
   layer.appendChild(el);
   setTimeout(()=>{ if(el.parentNode) el.remove(); }, SPARKLE_LIFETIME_MS);
