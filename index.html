@@ -90,7 +90,7 @@
   .logout-link{ color:#dcb570; cursor:pointer; text-decoration:none; background:none; border:none; padding:0; font-size:12px; font-family:inherit; }
   .logout-link:hover{ text-decoration:underline; }
 
-  .main{ max-width:1100px; margin:0 auto; padding:110px 40px 32px 40px; }
+  .main{ max-width:1100px; margin:0 auto; padding:140px 40px 32px 40px; }
   .eyebrow{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--blurple); margin-bottom:8px; }
   .page-title{ font-size:26px; margin-bottom:6px; font-weight:700; }
   .page-sub{ font-size:14px; color:var(--text-muted); margin-bottom:24px; line-height:1.5; }
@@ -336,7 +336,7 @@
   /* ---- marketing page (login screen) ---- */
   html{ scroll-behavior:smooth; }
   .site-nav{
-    position:fixed; top:16px; left:16px; right:16px; z-index:40;
+    position:fixed; top:44px; left:16px; right:16px; z-index:40;
     background:linear-gradient(90deg, #0b2027 0%, #123641 60%, #17424e 100%);
     border:1px solid #c6af8d;
     border-radius:14px;
@@ -386,19 +386,19 @@
   .marketing-hero{
     position:relative; overflow:hidden;
     background:linear-gradient(180deg, #2f2619 0%, #4a3c29 12%, #5d4d38 24%, #6c5a3e 42%, var(--bg-primary) 85%, var(--bg-primary) 100%);
-    padding:110px 24px 0 24px;
+    padding:140px 24px 0 24px;
   }
   .marketing-hero.custom-bg{ background:none; }
-  .hero-split{
-    max-width:1200px; margin:0 auto; padding-bottom:60px;
-    display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center;
+  .hero-centered{
+    max-width:900px; margin:0 auto; padding-bottom:60px;
+    display:flex; flex-direction:column; align-items:center; text-align:center;
   }
   .hero-split-text .eyebrow{ color:#f0dfb4; -webkit-text-fill-color:initial; background:none; }
   .hero-title2{ font-family: Georgia, "Iowan Old Style", serif; font-size:44px; font-weight:700; margin-bottom:18px; line-height:1.1; }
-  .hero-split-sub{ font-size:15px; line-height:1.65; color:rgba(255,255,255,0.85); max-width:480px; }
-  .hero-split-media{ display:flex; justify-content:center; }
+  .hero-split-sub{ font-size:15px; line-height:1.65; color:rgba(255,255,255,0.85); max-width:560px; margin:0 auto; }
+  .hero-split-media{ display:flex; justify-content:center; margin-top:44px; width:100%; }
   .ornate-frame{
-    position:relative; width:100%; max-width:520px; aspect-ratio:16/9;
+    position:relative; width:100%; max-width:780px; aspect-ratio:16/9;
     border:2px solid #dcb877; border-radius:2px;
     box-shadow:0 20px 50px rgba(0,0,0,0.45);
     overflow:hidden;
@@ -422,7 +422,6 @@
   .ornate-corner.br{ bottom:-2px; right:-2px; border-left:none; border-top:none; }
   .section-mountain-divider{ display:block; width:100%; height:90px; }
   @media (max-width:860px){
-    .hero-split{ grid-template-columns:1fr; }
     .hero-title2{ font-size:32px; }
   }
 
@@ -558,6 +557,16 @@
     background:none; border:none; color:var(--text-muted); font-size:16px; line-height:1; padding:2px 4px; flex-shrink:0;
   }
   .comp-slot-remove:hover{ color:var(--red); }
+
+  .comp-slot-extras{ display:flex; gap:4px; flex-shrink:0; margin-left:6px; }
+  .comp-extra-icon{
+    width:29px; height:29px; border-radius:4px; flex-shrink:0;
+    background:var(--bg-input); border:1px solid var(--divider-strong);
+    padding:0; overflow:hidden; cursor:pointer;
+  }
+  .comp-extra-icon.readonly{ cursor:default; }
+  .comp-extra-icon:not(.readonly):hover{ border-color:var(--blurple); }
+  .comp-extra-icon img{ width:100%; height:100%; object-fit:cover; display:block; }
 
   /* ---- gallery + site image slots ---- */
   .slot-row{
@@ -1483,12 +1492,10 @@ function renderLanding(){
   ${topNavBar(navLinks, {guildName: state.settings.guild_name, showRecruit:true})}
 
   <div class="marketing-hero ${state.siteImages['site_background'] ? 'custom-bg' : ''}" id="about">
-    <div class="hero-split">
-      <div class="hero-split-text">
-        <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
-        <h1 class="hero-title2 gold-text">Adventure Is Forever</h1>
-        <p class="hero-split-sub sans">The guild hall is an invitation to take your first steps into raid nights, boss strategy, and the loot log &mdash; built for ${esc(state.settings.guild_name)} as we carry on into Warcraft Forever.</p>
-      </div>
+    <div class="hero-centered">
+      <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
+      <h1 class="hero-title2 gold-text">Adventure Is Forever</h1>
+      <p class="hero-split-sub sans">The guild hall is an invitation to take your first steps into raid nights, boss strategy, and the loot log &mdash; built for ${esc(state.settings.guild_name)} as we carry on into Warcraft Forever.</p>
       <div class="hero-split-media">
         <div class="ornate-frame">
           <div class="ornate-corner tl"></div>
@@ -1567,7 +1574,7 @@ function bindMobileNav(){
 function renderApp(){
   const officer = isOfficer();
   const navItems = [
-    ['news','News'],
+    ['news','Home'],
     ['calendar','Raid Calendar'],
     ['roster','Roster'],
     ['strategies','Boss Strategies'],
@@ -1575,6 +1582,7 @@ function renderApp(){
     ['loot','Loot Log'],
     ['gallery','Gallery'],
     ['guildbank','Guild Bank'],
+    ['raidlogs','Raid Logs'],
     ['recruitment','Recruitment'],
   ];
   return `
@@ -1618,6 +1626,7 @@ function renderTab(){
     case 'recruitment': return renderRecruitmentTab();
     case 'gallery': return renderGallery();
     case 'guildbank': return renderGuildBank();
+    case 'raidlogs': return renderRaidLogs();
     default: return '';
   }
 }
@@ -2067,6 +2076,15 @@ function renderRoster(){
                   </span>
                   ${ officer ? `<button type="button" class="comp-slot-remove" data-remove="${gi}|${si}" title="Remove">&times;</button>` : '' }
                 ` : `<span class="comp-slot-empty muted">Empty</span>` }
+                <span class="comp-slot-extras">
+                  ${ [1,2].map(n=>{
+                    const extraKey = `comp_extra:${gi}:${si}:${n}`;
+                    const url = state.siteImages[extraKey];
+                    return `<button type="button" class="comp-extra-icon ${url?'filled':''} ${officer?'':'readonly'}" ${officer?`data-choose-slot="${extraKey}"`:''} title="${officer?'Click to set an icon':''}">
+                      ${ url ? `<img src="${esc(url)}" alt="">` : '' }
+                    </button>`;
+                  }).join('') }
+                </span>
               </div>`;
             }).join('') }
           </div>
@@ -2129,6 +2147,22 @@ function renderNews(){
   const officer = isOfficer();
   return `
     ${pageBanner('Welcome Back, ' + myName())}
+
+    <div class="panel" style="text-align:center;">
+      <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
+      <h2 class="hero-title2 gold-text" style="font-size:32px;">Adventure Is Forever</h2>
+      <p class="hero-split-sub sans" style="margin:0 auto 28px auto;">The guild hall is an invitation to take your first steps into raid nights, boss strategy, and the loot log &mdash; built for ${esc(state.settings.guild_name)} as we carry on into Warcraft Forever.</p>
+      <div class="hero-split-media" style="margin-top:0;">
+        <div class="ornate-frame" style="max-width:640px;">
+          <div class="ornate-corner tl"></div>
+          <div class="ornate-corner tr"></div>
+          <div class="ornate-corner bl"></div>
+          <div class="ornate-corner br"></div>
+          <iframe class="hero-video-embed" src="https://www.youtube.com/embed/D30zXcEjg_Y" title="Guild video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>
+
     <div class="eyebrow sans">Announcements</div>
     <h2 class="page-title">News</h2>
     <p class="page-sub sans">Officer posts for lockout changes, loot rule updates, and anything else worth pinning.</p>
@@ -2314,6 +2348,18 @@ function renderGuildBank(){
     </div>
   `;
 }
+
+function renderRaidLogs(){
+  return `
+    ${pageBanner('Raid Logs')}
+    <div class="eyebrow sans">Coming Soon</div>
+    <h2 class="page-title">Raid Logs</h2>
+    <p class="page-sub sans">A place for raid log links or reports — this page is a placeholder for now.</p>
+    <div class="panel">
+      ${emptyState("This page isn't built out yet. Let me know what you'd like here — links to WarcraftLogs reports, an embedded log viewer, parse tracking — and I'll build it out.")}
+    </div>
+  `;
+}
 /* ---------------- bindings ---------------- */
 function bindApp(){
   document.querySelectorAll('.nav-tab-btn, .mobile-nav-link[data-tab]').forEach(btn=>{
@@ -2468,7 +2514,7 @@ function bindApp(){
   const galleryInput = document.getElementById('gallery-upload-input');
   if(galleryInput) galleryInput.addEventListener('change', (ev)=>{ handleGalleryFiles(ev.target.files); });
   document.querySelectorAll('[data-del-gallery]').forEach(b=>b.addEventListener('click', ()=>deleteGalleryImage(b.dataset.delGallery)));
-  document.querySelectorAll('[data-choose-slot]').forEach(b=>b.addEventListener('click', ()=>openImagePicker(b.dataset.chooseSlot)));
+  document.querySelectorAll('[data-choose-slot]').forEach(b=>b.addEventListener('click', (ev)=>{ ev.stopPropagation(); openImagePicker(b.dataset.chooseSlot); }));
   document.querySelectorAll('[data-clear-slot]').forEach(b=>b.addEventListener('click', ()=>clearSiteImage(b.dataset.clearSlot)));
   document.querySelectorAll('[data-pick-image]').forEach(b=>b.addEventListener('click', ()=>{
     if(state.modal && state.modal.type==='pick-image'){
