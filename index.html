@@ -343,8 +343,8 @@
     box-shadow: 0 10px 30px rgba(0,0,0,0.45);
   }
   .site-nav-inner{
-    max-width:1440px; margin:0 auto; padding:0 20px; height:56px;
-    display:flex; align-items:center; gap:28px;
+    max-width:none; margin:0 auto; padding:0 24px; height:56px;
+    display:flex; align-items:center; gap:24px;
   }
   .nav-brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; position:relative; }
   .nav-brand-icon{ display:flex; filter:drop-shadow(0 6px 14px rgba(0,0,0,0.55)); }
@@ -430,7 +430,11 @@
   .feature-card{
     background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong);
     border-radius:2px; padding:26px 22px; text-align:center;
+    width:100%; font-family:inherit; cursor:default; transition:border-color 0.15s ease, transform 0.1s ease;
   }
+  button.feature-card{ cursor:pointer; }
+  button.feature-card:hover{ border-color:var(--blurple); }
+  button.feature-card:active{ transform:translateY(1px); }
   .feature-card h3{ font-size:17px; margin:14px 0 8px 0; }
   .feature-card p{ font-size:13px; color:var(--text-muted); line-height:1.6; margin:0; }
   .feature-icon{ display:flex; justify-content:center; }
@@ -1481,11 +1485,15 @@ function render(){
 
 function renderLanding(){
   const navLinks = [
-    {id:'about', label:'About'},
+    {id:'about', label:'Home'},
     {id:'feature-calendar', label:'Raid Calendar'},
+    {id:'signin', label:'Roster'},
+    {id:'signin', label:'Raid Logs'},
     {id:'feature-strategies', label:'Boss Strategies'},
+    {id:'signin', label:'Guild Bank'},
     {id:'feature-loot', label:'Loot Log'},
-    {id:'recruiting', label:'Recruiting'},
+    {id:'signin', label:'Soft Res Links'},
+    {id:'signin', label:'Gallery'},
   ];
   const rec = state.settings;
   return `
@@ -1577,12 +1585,12 @@ function renderApp(){
     ['news','Home'],
     ['calendar','Raid Calendar'],
     ['roster','Roster'],
-    ['strategies','Boss Strategies'],
-    ['softres','Soft Res Links'],
-    ['loot','Loot Log'],
-    ['gallery','Gallery'],
-    ['guildbank','Guild Bank'],
     ['raidlogs','Raid Logs'],
+    ['strategies','Boss Strategies'],
+    ['guildbank','Guild Bank'],
+    ['loot','Loot Log'],
+    ['softres','Soft Res Links'],
+    ['gallery','Gallery'],
     ['recruitment','Recruitment'],
   ];
   return `
@@ -2163,6 +2171,24 @@ function renderNews(){
       </div>
     </div>
 
+    <div class="feature-cards">
+      <button type="button" class="feature-card" data-home-card="calendar">
+        <div class="feature-icon">${crestSvg('hc1',34)}</div>
+        <h3>Raid Calendar</h3>
+        <p class="sans">A month-by-month view of every raid night. Click any event to mark yourself Going, Maybe, or Can't Make It.</p>
+      </button>
+      <button type="button" class="feature-card" data-home-card="strategies">
+        <div class="feature-icon">${crestSvg('hc2',34)}</div>
+        <h3>Boss Strategies</h3>
+        <p class="sans">Positioning, cooldowns, and wipe triggers for every fight, organized by raid instance.</p>
+      </button>
+      <button type="button" class="feature-card" data-home-card="loot">
+        <div class="feature-icon">${crestSvg('hc3',34)}</div>
+        <h3>Loot Log</h3>
+        <p class="sans">A running record of what's dropped and who won it, plus soft-res sheets for upcoming raids.</p>
+      </button>
+    </div>
+
     <div class="eyebrow sans">Announcements</div>
     <h2 class="page-title">News</h2>
     <p class="page-sub sans">Officer posts for lockout changes, loot rule updates, and anything else worth pinning.</p>
@@ -2371,6 +2397,11 @@ function bindApp(){
     });
   });
   bindMobileNav();
+  document.querySelectorAll('[data-home-card]').forEach(b=>b.addEventListener('click', ()=>{
+    state.tab = b.dataset.homeCard;
+    state.modal = null;
+    render();
+  }));
   const logoutBtn = document.getElementById('logout-btn');
   if(logoutBtn) logoutBtn.addEventListener('click', signOut);
 
