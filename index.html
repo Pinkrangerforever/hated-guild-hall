@@ -614,6 +614,16 @@
     background:rgba(207,154,68,0.14); border:1px solid rgba(207,154,68,0.4); border-radius:12px; padding:4px 10px;
   }
 
+  .shop-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:14px; max-height:60vh; overflow-y:auto; }
+  .shop-card{
+    background:var(--bg-input); border:1px solid var(--divider-strong); border-radius:4px; padding:16px;
+    display:flex; flex-direction:column;
+  }
+  .shop-card.inactive{ opacity:0.5; }
+  .shop-card-name{ font-weight:700; font-size:15px; margin-bottom:6px; }
+  .shop-card-desc{ font-size:13px; line-height:1.5; flex:1; margin-bottom:12px; }
+  .shop-card-footer{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+
   /* ---- gallery + site image slots ---- */
   .slot-row{
     display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--divider);
@@ -992,6 +1002,8 @@ let state = {
   mobileNavOpen: false,
   galleryImages: [],
   siteImages: {},       // slot_key -> image_url
+  shopItems: [],
+  editingShopItemId: null,
   selectedSpec: null,
   modal: null,
   toast: null,
@@ -1141,7 +1153,7 @@ async function syncDiscordRole(showFeedback){
 
 /* ---------------- data loading ---------------- */
 async function loadGuildData(){
-  const [settingsRes, eventsRes, rsvpsRes, raidsRes, bossesRes, softresRes, raidplanRes, compRes, lootRes, newsRes, profilesRes, galleryRes, siteImagesRes] = await Promise.all([
+  const [settingsRes, eventsRes, rsvpsRes, raidsRes, bossesRes, softresRes, raidplanRes, compRes, lootRes, newsRes, profilesRes, galleryRes, siteImagesRes, shopRes] = await Promise.all([
     sb.from('guild_settings').select('*').eq('id',1).single(),
     sb.from('events').select('*').order('date'),
     sb.from('rsvps').select('*'),
@@ -1155,6 +1167,7 @@ async function loadGuildData(){
     sb.from('profiles').select('*').order('character_name'),
     sb.from('gallery_images').select('*').order('created_at', { ascending:false }),
     sb.from('site_images').select('*'),
+    sb.from('shop_items').select('*').order('cost'),
   ]);
   if(settingsRes.data) state.settings = settingsRes.data;
   state.events = eventsRes.data || [];
@@ -1173,6 +1186,7 @@ async function loadGuildData(){
   const imgMap = {};
   (siteImagesRes.data||[]).forEach(row=>{ if(row.image_url) imgMap[row.slot_key] = row.image_url; });
   state.siteImages = imgMap;
+  state.shopItems = shopRes.data || [];
   applySiteBackground();
 }
 
@@ -1590,6 +1604,51 @@ function showGoldFloat(x, y, amount){
 // sparkle grants nothing by itself; only a server-verified claim does.
 window.spawnSparkle = spawnSparkle;
 
+/* ---------------- reward shop ---------------- */
+function openShop(){
+  state.modal = { type:'shop' };
+  render();
+}
+async function purchaseShopItem(itemId){
+  const { data, error } = await sb.rpc('purchase_shop_item', { p_item_id: itemId });
+  if(error || !data){ showToast("Couldn't complete purchase — try again", true); return; }
+  if(!data.success){
+    const reasons = {
+      insufficient_gold: "You don't have enough gold for that yet",
+      item_unavailable: 'That reward is no longer available',
+      item_not_found: 'That reward no longer exists',
+      not_authenticated: 'Please sign in again',
+    };
+    showToast(reasons[data.reason] || "Couldn't complete purchase", true);
+    return;
+  }
+  if(state.profile){ state.profile.gold = data.new_gold; }
+  showToast('Redeemed: ' + data.item_name);
+  render();
+}
+function startEditShopItem(itemId){
+  state.editingShopItemId = itemId;
+  render();
+}
+function cancelEditShopItem(){
+  state.editingShopItemId = null;
+  render();
+}
+async function saveShopItem(itemId){
+  const c = document.getElementById('shop-edit-form-'+itemId);
+  const name = (c.querySelector('[name=name]').value||'').trim();
+  const description = (c.querySelector('[name=description]').value||'').trim();
+  const cost = parseInt(c.querySelector('[name=cost]').value, 10);
+  if(!name || isNaN(cost) || cost < 0){ showToast('Enter a valid name and cost', true); return; }
+  const { data, error } = await sb.from('shop_items').update({ name, description, cost }).eq('id', itemId).select().single();
+  if(error){ showToast("Couldn't save — try again", true); return; }
+  const idx = state.shopItems.findIndex(i=>i.id===itemId);
+  if(idx>=0) state.shopItems[idx] = data;
+  state.editingShopItemId = null;
+  showToast('Reward updated');
+  render();
+}
+
 /* ---------------- top-level render ---------------- */
 function render(){
   const app = document.getElementById('app');
@@ -1743,6 +1802,7 @@ function renderApp(){
         <div class="nav-cta-group">
           <span class="nav-user sans">${esc(myName())} <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span></span>
           <span class="nav-gold-badge">&#10022; ${state.profile ? (state.profile.gold||0) : 0}</span>
+          <button type="button" class="btn-nav-outline" id="open-shop-btn">Shop</button>
           ${ state.profile && state.profile.protected ? `<button type="button" class="btn-nav-admin ${state.tab==='admin'?'active':''}" data-tab="admin">Admin</button>` : '' }
           <button class="btn-nav-outline" id="logout-btn" type="button">Sign Out</button>
           <button type="button" class="nav-hamburger" id="nav-hamburger-btn" aria-label="Menu">&#9776;</button>
@@ -1758,6 +1818,7 @@ function renderApp(){
     <div class="main">
       ${ state.toast ? `<div class="toast ${state.toastError?'toast-error':'toast-success'} sans">${esc(state.toast)}</div>` : '' }
       ${ renderTab() }
+      ${ renderModal() }
     </div>
   `;
 }
@@ -1841,8 +1902,6 @@ function renderCalendar(){
         </div>`;
       }).join('') }
     </div>
-
-    ${ renderModal() }
   `;
 }
 
@@ -1852,9 +1911,58 @@ function renderModal(){
   if(state.modal.type === 'event-detail') return renderEventDetailModal(state.modal.eventId);
   if(state.modal.type === 'assign-slot') return renderAssignSlotModal(state.modal.groupIdx, state.modal.slotIdx);
   if(state.modal.type === 'pick-image') return renderPickImageModal(state.modal.slotKey);
+  if(state.modal.type === 'shop') return renderShopModal();
   return '';
 }
 
+function renderShopModal(){
+  const officer = isOfficer();
+  const gold = state.profile ? (state.profile.gold||0) : 0;
+  return `
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-panel" id="modal-panel" style="max-width:720px;">
+      <div class="modal-header">
+        <h3>Reward Shop</h3>
+        <button class="modal-x" id="modal-close">&times;</button>
+      </div>
+      <div class="nav-gold-badge" style="margin-bottom:16px;">&#10022; ${gold} gold available</div>
+      ${ state.shopItems.length ? `
+        <div class="shop-grid">
+          ${ state.shopItems.map(item=>{
+            const editing = state.editingShopItemId === item.id;
+            const canAfford = gold >= item.cost;
+            if(editing){
+              return `
+              <div class="shop-card">
+                <div id="shop-edit-form-${item.id}">
+                  <div class="field"><label>Name</label><input name="name" value="${esc(item.name)}"></div>
+                  <div class="field"><label>Description</label><textarea name="description">${esc(item.description||'')}</textarea></div>
+                  <div class="field"><label>Cost (gold)</label><input name="cost" type="number" min="0" value="${item.cost}"></div>
+                  <div style="display:flex; gap:8px;">
+                    <button class="btn secondary" type="button" data-save-shop-item="${item.id}">Save</button>
+                    <button class="btn secondary" type="button" data-cancel-shop-edit>Cancel</button>
+                  </div>
+                </div>
+              </div>`;
+            }
+            return `
+            <div class="shop-card ${item.active===false?'inactive':''}">
+              <div class="shop-card-name">${esc(item.name)}</div>
+              <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
+              <div class="shop-card-footer">
+                <span class="nav-gold-badge">&#10022; ${item.cost}</span>
+                ${ officer ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
+              </div>
+              <button class="btn" type="button" data-buy-shop-item="${item.id}" ${ (!canAfford || item.active===false) ? 'disabled' : '' } style="width:100%; margin-top:10px;">
+                ${ item.active===false ? 'Unavailable' : (canAfford ? 'Redeem' : 'Not enough gold') }
+              </button>
+            </div>`;
+          }).join('') }
+        </div>
+      ` : emptyState('No rewards set up yet.') }
+    </div>
+  </div>`;
+}
 function renderPickImageModal(slotKey){
   return `
   <div class="modal-backdrop" id="modal-backdrop">
@@ -2240,7 +2348,6 @@ function renderRoster(){
       </div>
     </div>
 
-    ${ renderModal() }
   `;
 }
 
@@ -2510,7 +2617,6 @@ function renderGallery(){
       ` : emptyState('No images uploaded yet.') }
     </div>
 
-    ${ renderModal() }
   `;
 }
 
@@ -2723,6 +2829,13 @@ function bindApp(){
       assignSiteImage(state.modal.slotKey, b.dataset.pickUrl);
     }
   }));
+
+  const shopBtn = document.getElementById('open-shop-btn');
+  if(shopBtn) shopBtn.addEventListener('click', openShop);
+  document.querySelectorAll('[data-buy-shop-item]').forEach(b=>b.addEventListener('click', ()=>purchaseShopItem(b.dataset.buyShopItem)));
+  document.querySelectorAll('[data-edit-shop-item]').forEach(b=>b.addEventListener('click', ()=>startEditShopItem(b.dataset.editShopItem)));
+  document.querySelectorAll('[data-save-shop-item]').forEach(b=>b.addEventListener('click', ()=>saveShopItem(b.dataset.saveShopItem)));
+  document.querySelectorAll('[data-cancel-shop-edit]').forEach(b=>b.addEventListener('click', cancelEditShopItem));
 }
 
 boot();
