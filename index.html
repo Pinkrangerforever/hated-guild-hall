@@ -583,6 +583,37 @@
   .comp-extra-icon:not(.readonly):hover{ border-color:var(--blurple); }
   .comp-extra-icon img{ width:100%; height:100%; object-fit:cover; display:block; }
 
+  /* ---- sparkle gold system ---- */
+  #sparkle-layer{ position:fixed; inset:0; pointer-events:none; z-index:45; }
+  @keyframes sparklePulse{
+    0%{ transform:scale(0.6); opacity:0; }
+    15%{ transform:scale(1.15); opacity:1; }
+    30%{ transform:scale(1); opacity:1; }
+    85%{ transform:scale(1); opacity:1; }
+    100%{ transform:scale(0.7); opacity:0; }
+  }
+  .sparkle{
+    position:absolute; width:34px; height:34px; pointer-events:auto; cursor:pointer;
+    background:none; border:none; padding:0;
+    animation:sparklePulse 8s ease-in-out forwards;
+    filter:drop-shadow(0 0 8px rgba(255,224,153,0.8));
+  }
+  .sparkle svg{ width:100%; height:100%; }
+  .sparkle:hover{ filter:drop-shadow(0 0 14px rgba(255,224,153,1)); }
+  @keyframes goldFloatUp{
+    0%{ transform:translateY(0); opacity:1; }
+    100%{ transform:translateY(-60px); opacity:0; }
+  }
+  .gold-float{
+    position:absolute; pointer-events:none; font-weight:800; font-size:18px; color:#f0dfb4;
+    text-shadow:0 2px 6px rgba(0,0,0,0.7);
+    animation:goldFloatUp 1.1s ease-out forwards;
+  }
+  .nav-gold-badge{
+    display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:700; color:#f0dfb4;
+    background:rgba(207,154,68,0.14); border:1px solid rgba(207,154,68,0.4); border-radius:12px; padding:4px 10px;
+  }
+
   /* ---- gallery + site image slots ---- */
   .slot-row{
     display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--divider);
@@ -651,6 +682,7 @@
 </head>
 <body>
 <div id="app"></div>
+<div id="sparkle-layer"></div>
 <script>
 (function(){
 /* ============================================================
@@ -1043,6 +1075,7 @@ async function onAuthResolved(){
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
         syncDiscordRole(); // fire-and-forget: re-renders itself once it resolves
+        startSparkleSystem();
       } else {
         state.view = 'landing';
       }
@@ -1070,6 +1103,7 @@ async function signInWithDiscord(){
 }
 async function signOut(){
   await sb.auth.signOut();
+  stopSparkleSystem();
   state.session = null;
   state.profile = null;
   state.view = 'landing';
@@ -1491,6 +1525,71 @@ function openImagePicker(slotKey){
   state.modal = { type:'pick-image', slotKey };
   render();
 }
+
+/* ---------------- sparkle gold system ---------------- */
+let __sparkleInterval = null;
+const SPARKLE_MIN_MS = 20000, SPARKLE_MAX_MS = 45000, SPARKLE_LIFETIME_MS = 8000;
+
+function startSparkleSystem(){
+  if(__sparkleInterval) return; // already running
+  scheduleSparkle();
+}
+function stopSparkleSystem(){
+  if(__sparkleInterval){ clearTimeout(__sparkleInterval); __sparkleInterval = null; }
+  const layer = document.getElementById('sparkle-layer');
+  if(layer) layer.innerHTML = '';
+}
+function scheduleSparkle(){
+  const delay = SPARKLE_MIN_MS + Math.random() * (SPARKLE_MAX_MS - SPARKLE_MIN_MS);
+  __sparkleInterval = setTimeout(()=>{
+    spawnSparkle();
+    scheduleSparkle();
+  }, delay);
+}
+function spawnSparkle(){
+  const layer = document.getElementById('sparkle-layer');
+  if(!layer) return;
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.className = 'sparkle';
+  el.style.top = (8 + Math.random()*78) + 'vh';
+  el.style.left = (6 + Math.random()*84) + 'vw';
+  el.innerHTML = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1 L14.5 9.5 L23 12 L14.5 14.5 L12 23 L9.5 14.5 L1 12 L9.5 9.5 Z" fill="#f0dfb4" stroke="#cf9a44" stroke-width="1"/></svg>';
+  el.addEventListener('click', ()=>claimSparkle(el));
+  layer.appendChild(el);
+  setTimeout(()=>{ if(el.parentNode) el.remove(); }, SPARKLE_LIFETIME_MS);
+}
+async function claimSparkle(el){
+  if(el.dataset.claiming) return;
+  el.dataset.claiming = 'true';
+  const rect = el.getBoundingClientRect();
+  el.remove();
+  try{
+    const { data, error } = await sb.rpc('claim_sparkle_gold');
+    if(error || !data || !data.success) return; // cooldown or not logged in — just no visible reward
+    if(state.profile){
+      state.profile.gold = data.total;
+      render();
+    }
+    showGoldFloat(rect.left + rect.width/2, rect.top, data.awarded);
+  }catch(e){ /* silent — sparkles are low-stakes fun, not worth erroring the UI over */ }
+}
+function showGoldFloat(x, y, amount){
+  const layer = document.getElementById('sparkle-layer');
+  if(!layer) return;
+  const el = document.createElement('div');
+  el.className = 'gold-float';
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  el.textContent = '+' + amount + ' Gold';
+  layer.appendChild(el);
+  setTimeout(()=>{ if(el.parentNode) el.remove(); }, 1200);
+}
+// Exposed as a debug/test hook: triggers a sparkle immediately instead of
+// waiting for the real randomized interval. Harmless to expose — spawning a
+// sparkle grants nothing by itself; only a server-verified claim does.
+window.spawnSparkle = spawnSparkle;
+
 /* ---------------- top-level render ---------------- */
 function render(){
   const app = document.getElementById('app');
@@ -1643,6 +1742,7 @@ function renderApp(){
         </div>
         <div class="nav-cta-group">
           <span class="nav-user sans">${esc(myName())} <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span></span>
+          <span class="nav-gold-badge">&#10022; ${state.profile ? (state.profile.gold||0) : 0}</span>
           ${ state.profile && state.profile.protected ? `<button type="button" class="btn-nav-admin ${state.tab==='admin'?'active':''}" data-tab="admin">Admin</button>` : '' }
           <button class="btn-nav-outline" id="logout-btn" type="button">Sign Out</button>
           <button type="button" class="nav-hamburger" id="nav-hamburger-btn" aria-label="Menu">&#9776;</button>
