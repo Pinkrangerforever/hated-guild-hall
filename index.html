@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Guild hall for HATED — raid calendar, boss strategies, roster, loot log, and news.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120'%3E%3Cpath d='M50 4 L92 20 L92 55 C92 85 74 106 50 116 C26 106 8 85 8 55 L8 20 Z' fill='%231c170f' stroke='%23cf9a44' stroke-width='6'/%3E%3Cpath d='M50 40 L54.5 51.5 L67 52 L57 59.5 L60.5 71.5 L50 64 L39.5 71.5 L43 59.5 L33 52 L45.5 51.5 Z' fill='%23cf9a44'/%3E%3C/svg%3E">
 <title>Guild Hall</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
@@ -111,27 +113,37 @@
     border:1px solid rgba(255,224,153,0.35);
     background:linear-gradient(180deg, #cf9a44 0%, #9c6a28 100%);
     color:#1b130a;
+    transition:background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
   }
   .btn:hover{ background:linear-gradient(180deg, #e0b264 0%, #b17c34 100%); }
-  .btn.secondary{ background:var(--bg-hover); color:var(--text-normal); border:1px solid var(--divider-strong); text-transform:none; font-weight:500; letter-spacing:0; }
-  .btn.secondary:hover{ background:rgba(207,154,68,0.16); }
-  .btn.danger{ background:transparent; color:var(--red); border:1px solid rgba(176,82,79,0.4); text-transform:none; font-weight:500; letter-spacing:0; }
+  .btn:active{ transform:translateY(1px); }
+  .btn.secondary{ background:var(--bg-hover); color:var(--text-normal); border:1px solid var(--divider-strong); text-transform:none; font-weight:500; letter-spacing:0; transition:background 0.15s ease, border-color 0.15s ease; }
+  .btn.secondary:hover{ background:rgba(207,154,68,0.16); border-color:rgba(207,154,68,0.4); }
+  .btn.danger{ background:transparent; color:var(--red); border:1px solid rgba(176,82,79,0.4); text-transform:none; font-weight:500; letter-spacing:0; transition:background 0.15s ease, color 0.15s ease; }
   .btn.danger:hover{ background:var(--red); color:#fff; border-color:var(--red); }
   .btn:disabled{ opacity:0.5; cursor:not-allowed; }
+  .btn:focus-visible, .btn-nav-outline:focus-visible, .btn-nav-solid:focus-visible, .btn-epic:focus-visible{
+    outline:2px solid #f0dfb4; outline-offset:2px;
+  }
 
   .field{ margin-bottom:14px; }
   .field label{ display:block; font-size:11px; color:var(--text-muted); margin-bottom:6px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; }
   .field input, .field select, .field textarea{
     width:100%; padding:10px 11px; font-size:14px;
     border:1px solid var(--divider-strong); border-radius:2px; background:var(--bg-input); color:var(--text-normal);
-    outline:none;
+    outline:none; transition:border-color 0.15s ease, box-shadow 0.15s ease;
   }
   .field input::placeholder, .field textarea::placeholder{ color:var(--text-faint); }
-  .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--blurple); }
+  .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--blurple); box-shadow:0 0 0 2px rgba(169,120,50,0.18); }
   .field textarea{ min-height:90px; resize:vertical; }
   .field-error{ color:var(--red); font-size:13px; margin-top:2px; margin-bottom:10px; }
   .row{ display:flex; gap:14px; flex-wrap:wrap; }
   .row > *{ flex:1; min-width:160px; }
+  .mono{ font-family:'SF Mono','Fira Code','Cascadia Code',Consolas,monospace; font-variant-numeric:tabular-nums; letter-spacing:-0.01em; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible{
+    outline:2px solid #f0dfb4; outline-offset:2px; border-radius:2px;
+  }
 
   .badge{
     display:inline-block; font-size:11px; font-weight:700; padding:3px 8px; border-radius:2px;
@@ -150,6 +162,7 @@
   tr:last-child td{ border-bottom:none; }
 
   .empty{ text-align:center; padding:36px 20px; color:var(--text-muted); font-size:14px; }
+  .empty-icon{ display:flex; justify-content:center; margin-bottom:10px; opacity:0.5; }
 
   .landing{ min-height:100vh; width:100%; display:flex; align-items:flex-start; justify-content:center; padding:56px 24px; background:var(--bg-primary); }
   .landing-wrap{ max-width:920px; width:100%; }
@@ -173,16 +186,28 @@
   .rsvp-btns{ display:flex; gap:6px; flex-wrap:wrap; }
   .rsvp-btn{
     font-size:12px; font-weight:600; padding:6px 11px; border-radius:2px; border:1px solid var(--divider-strong); background:var(--bg-input); color:var(--text-muted);
+    transition:background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   }
+  .rsvp-btn:hover{ border-color:var(--blurple); }
   .rsvp-btn.sel-going{ background:var(--green-bg); border-color:var(--green); color:var(--green); }
   .rsvp-btn.sel-maybe{ background:var(--yellow-bg); border-color:var(--yellow); color:var(--yellow); }
   .rsvp-btn.sel-out{ background:var(--red-bg); border-color:var(--red); color:var(--red); }
 
+  @keyframes toastSlideIn{
+    from{ transform:translateY(-10px); opacity:0; }
+    to{ transform:translateY(0); opacity:1; }
+  }
   .toast{
     position:absolute; top:18px; right:18px; background:#100d09; color:var(--text-normal);
-    padding:10px 16px; border-radius:2px; font-size:13px;
+    padding:10px 16px 10px 14px; border-radius:2px; font-size:13px;
     box-shadow:0 8px 20px rgba(0,0,0,0.5); z-index:50; border:1px solid var(--divider-strong);
+    display:flex; align-items:center; gap:8px;
+    animation:toastSlideIn 0.25s ease-out;
   }
+  .toast::before{ content:''; width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .toast-success::before{ background:var(--green); box-shadow:0 0 6px var(--green); }
+  .toast-error::before{ background:var(--red); box-shadow:0 0 6px var(--red); }
+  .toast-error{ border-color:rgba(176,82,79,0.5); }
   .icon{ font-family: inherit; }
   .link-row a{ word-break:break-all; }
 
@@ -307,17 +332,6 @@
     100%{ transform:translateY(-360px) translateX(var(--drift,20px)); opacity:0; }
   }
 
-  .news-banner{
-    position:relative; overflow:hidden;
-    background:
-      radial-gradient(ellipse 500px 200px at 20% 0%, rgba(207,154,68,0.18), transparent 70%),
-      linear-gradient(135deg, #14172a 0%, #1b1e30 100%);
-    border:1px solid rgba(207,154,68,0.18);
-    border-radius:8px;
-    padding:22px 24px;
-    margin-bottom:24px;
-  }
-  .news-banner .starfield{ opacity:0.25; }
 
   /* ---- marketing page (login screen) ---- */
   html{ scroll-behavior:smooth; }
@@ -453,7 +467,44 @@
   .strat-breadcrumb button{ background:none; border:none; color:var(--text-muted); font-size:12px; padding:2px 0; text-decoration:underline; }
   .strat-breadcrumb button:hover{ color:var(--blurple); }
   .strat-breadcrumb .crumb-current{ color:var(--text-normal); font-weight:600; }
-  .tree-row{ cursor:pointer; }
+  .tree-row{ cursor:pointer; transition:background 0.15s ease, border-left-color 0.15s ease; border-left:3px solid transparent; margin-left:-3px; padding-left:3px; }
+  .tree-row:hover{ background:rgba(207,154,68,0.12); border-left-color:var(--blurple); }
+
+  /* ---- mobile nav ---- */
+  .nav-hamburger{
+    display:none; background:none; border:1px solid rgba(207,227,230,0.35); border-radius:2px;
+    color:#cfe3e6; font-size:18px; padding:5px 10px; line-height:1;
+  }
+  .nav-hamburger:hover{ background:rgba(255,255,255,0.08); }
+  @media (max-width:900px){ .nav-hamburger{ display:block; } }
+  .mobile-nav-menu{
+    display:none; flex-direction:column;
+    background:#0b2027; border-top:1px solid rgba(207,154,68,0.25);
+    border-radius:0 0 12px 12px; overflow:hidden;
+  }
+  .mobile-nav-menu.open{ display:flex; }
+  .mobile-nav-menu a, .mobile-nav-menu button{
+    background:none; border:none; text-align:left; padding:13px 20px;
+    color:#cfe3e6; font-size:14px; font-weight:600; font-family:inherit;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+  }
+  .mobile-nav-menu a:hover, .mobile-nav-menu button:hover{ background:rgba(255,255,255,0.08); color:#fff; }
+  .mobile-nav-menu button.active{ color:#f0dfb4; background:rgba(207,154,68,0.14); }
+  .mobile-nav-menu a:last-child, .mobile-nav-menu button:last-child{ border-bottom:none; }
+
+  /* ---- generic page banner (reused across every tab) ---- */
+  .page-banner{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(ellipse 500px 200px at 20% 0%, rgba(207,154,68,0.18), transparent 70%),
+      linear-gradient(135deg, #14172a 0%, #1b1e30 100%);
+    border:1px solid rgba(207,154,68,0.18);
+    border-radius:8px;
+    padding:20px 24px;
+    margin-bottom:24px;
+  }
+  .page-banner .starfield{ opacity:0.25; }
+  .loading-crest{ filter:drop-shadow(0 0 16px rgba(207,154,68,0.35)); }
   .tree-row:hover{ background:rgba(207,154,68,0.08); }
   .boss-screenshot{ display:block; max-width:100%; border-radius:2px; border:1px solid var(--divider-strong); }
 
@@ -728,6 +779,28 @@ function crestSvg(id, size){
   </svg>`;
 }
 
+let __bannerUid = 0;
+function pageBanner(heading, sub){
+  return `
+    <div class="page-banner">
+      <div class="starfield"></div>
+      <div style="position:relative; z-index:2; display:flex; align-items:center; gap:16px;">
+        ${crestSvg('banner'+(__bannerUid++), 36)}
+        <div>
+          <div class="eyebrow gold-text">${esc(state.settings.guild_name)}</div>
+          <h2 class="gold-text" style="font-size:22px; font-weight:800;">${esc(heading)}</h2>
+          ${ sub ? `<div class="muted sans" style="margin-top:2px;">${esc(sub)}</div>` : '' }
+        </div>
+      </div>
+    </div>`;
+}
+function emptyState(msg){
+  return `<div class="empty sans">
+    <div class="empty-icon">${crestSvg('empty'+(__bannerUid++), 28)}</div>
+    ${esc(msg)}
+  </div>`;
+}
+
 function topNavBar(navLinks, opts){
   opts = opts || {};
   const showSignIn = opts.showSignIn !== false;
@@ -744,10 +817,15 @@ function topNavBar(navLinks, opts){
       <div class="nav-cta-group">
         ${ opts.showRecruit ? `<a href="#recruiting" class="btn-nav-outline">Recruiting</a>` : '' }
         ${ showSignIn ? `<a href="#signin" class="btn-nav-solid">Sign In</a>` : '' }
+        <button type="button" class="nav-hamburger" id="nav-hamburger-btn" aria-label="Menu">&#9776;</button>
       </div>
     </div>
+    <div class="mobile-nav-menu ${state.mobileNavOpen ? 'open' : ''}">
+      ${ navLinks.map(l=>`<a href="#${l.id}" class="mobile-nav-link" data-close-mobile-nav>${esc(l.label)}</a>`).join('') }
+      ${ opts.showRecruit ? `<a href="#recruiting" class="mobile-nav-link" data-close-mobile-nav>Recruiting</a>` : '' }
+      ${ showSignIn ? `<a href="#signin" class="mobile-nav-link" data-close-mobile-nav>Sign In</a>` : '' }
+    </div>
   </nav>`;
-
 }
 /* ---- state ---- */
 let state = {
@@ -763,6 +841,7 @@ let state = {
   compSlots: [],          // raw rows {group_index, slot_index, class_key, spec_key, character_name}
   loot: [], news: [],
   stratNav: { raidId: null, bossId: null },
+  mobileNavOpen: false,
   selectedSpec: null,
   modal: null,
   toast: null,
@@ -774,8 +853,9 @@ function isOfficer(){ return !!(state.profile && state.profile.role === 'officer
 function myName(){ return state.profile ? (state.profile.character_name || state.profile.discord_username || 'Member') : ''; }
 function nameFor(userId){ const p = state.profilesById[userId]; return p ? (p.character_name || p.discord_username || 'Member') : 'Member'; }
 
-function showToast(msg){
+function showToast(msg, isError){
   state.toast = msg;
+  state.toastError = !!isError;
   render();
   setTimeout(()=>{ state.toast=null; render(); }, 2200);
 }
@@ -864,7 +944,7 @@ async function syncDiscordRole(showFeedback){
   try{
     const { data, error } = await sb.functions.invoke('sync-discord-role');
     if(error){
-      if(showFeedback) showToast("Couldn't check Discord roles right now");
+      if(showFeedback) showToast("Couldn't check Discord roles right now", true);
       return;
     }
     const roleChanged = data && data.role && state.profile && data.role !== state.profile.role;
@@ -879,7 +959,7 @@ async function syncDiscordRole(showFeedback){
       showToast('Discord roles are already up to date');
     }
   } catch(e){
-    if(showFeedback) showToast("Couldn't check Discord roles right now");
+    if(showFeedback) showToast("Couldn't check Discord roles right now", true);
   } finally {
     __syncInFlight = false;
   }
@@ -928,7 +1008,7 @@ async function addEvent(){
   const errEl = document.getElementById('event-error');
   if(!title || !date){ errEl.textContent = 'Title and date are required.'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('events').insert({ title, date, time, instance, notes }).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   state.events = [...state.events, data].sort((a,b)=>a.date.localeCompare(b.date));
   state.modal = null;
   state.calendarYear = parseInt(date.slice(0,4),10);
@@ -938,7 +1018,7 @@ async function addEvent(){
 }
 async function deleteEvent(id){
   const { error } = await sb.from('events').delete().eq('id', id);
-  if(error){ showToast("Couldn't remove — try again"); return; }
+  if(error){ showToast("Couldn't remove — try again", true); return; }
   state.events = state.events.filter(e=>e.id!==id);
   state.rsvps = state.rsvps.filter(r=>r.event_id!==id);
   state.modal = null;
@@ -948,7 +1028,7 @@ async function deleteEvent(id){
 async function setRsvp(eventId, status){
   const userId = state.session.user.id;
   const { error } = await sb.from('rsvps').upsert({ event_id: eventId, user_id: userId, status, updated_at: new Date().toISOString() });
-  if(error){ showToast("Couldn't save your RSVP — try again"); return; }
+  if(error){ showToast("Couldn't save your RSVP — try again", true); return; }
   const idx = state.rsvps.findIndex(r=>r.event_id===eventId && r.user_id===userId);
   const row = { event_id: eventId, user_id: userId, status };
   if(idx>=0) state.rsvps[idx] = row; else state.rsvps.push(row);
@@ -962,14 +1042,14 @@ async function addRaidInstance(){
   const errEl = document.getElementById('raid-add-error');
   if(!name){ errEl.textContent = 'Enter a raid name.'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('raids').insert({ name }).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   state.raids = [...state.raids, data].sort((a,b)=>a.name.localeCompare(b.name));
   showToast('Raid added');
   render();
 }
 async function deleteRaidInstance(raidId){
   const { error } = await sb.from('raids').delete().eq('id', raidId);
-  if(error){ showToast("Couldn't remove — try again"); return; }
+  if(error){ showToast("Couldn't remove — try again", true); return; }
   state.raids = state.raids.filter(r=>r.id!==raidId);
   state.bosses = state.bosses.filter(b=>b.raid_id!==raidId);
   state.stratNav = { raidId:null, bossId:null };
@@ -982,14 +1062,14 @@ async function addBoss(raidId){
   const errEl = document.getElementById('boss-add-error');
   if(!name){ errEl.textContent = 'Enter a boss name.'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('bosses').insert({ raid_id: raidId, name, notes:'' }).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   state.bosses = [...state.bosses, data];
   showToast('Boss added');
   render();
 }
 async function deleteBoss(bossId){
   const { error } = await sb.from('bosses').delete().eq('id', bossId);
-  if(error){ showToast("Couldn't remove — try again"); return; }
+  if(error){ showToast("Couldn't remove — try again", true); return; }
   state.bosses = state.bosses.filter(b=>b.id!==bossId);
   state.stratNav.bossId = null;
   showToast('Boss removed');
@@ -999,7 +1079,7 @@ async function saveBossNotes(){
   const bossId = state.stratNav.bossId;
   const notes = (document.getElementById('boss-notes-input').value||'').trim();
   const { data, error } = await sb.from('bosses').update({ notes }).eq('id', bossId).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   const idx = state.bosses.findIndex(b=>b.id===bossId);
   if(idx>=0) state.bosses[idx] = data;
   showToast('Notes saved');
@@ -1007,20 +1087,20 @@ async function saveBossNotes(){
 }
 function handleScreenshotFile(bossId, file){
   if(!file) return;
-  if(!file.type.startsWith('image/')){ showToast('Please choose an image file'); return; }
+  if(!file.type.startsWith('image/')){ showToast('Please choose an image file', true); return; }
   const MAX_BYTES = 8 * 1024 * 1024;
-  if(file.size > MAX_BYTES){ showToast('That image is too large (max ~8MB)'); return; }
+  if(file.size > MAX_BYTES){ showToast('That image is too large (max ~8MB)', true); return; }
   uploadBossScreenshot(bossId, file);
 }
 async function uploadBossScreenshot(bossId, file){
   const ext = (file.name.split('.').pop() || 'png').toLowerCase();
   const path = `${bossId}.${ext}`;
   const { error: uploadError } = await sb.storage.from(BOSS_SCREENSHOT_BUCKET).upload(path, file, { upsert: true });
-  if(uploadError){ showToast("Couldn't upload — try again"); return; }
+  if(uploadError){ showToast("Couldn't upload — try again", true); return; }
   const { data: pub } = sb.storage.from(BOSS_SCREENSHOT_BUCKET).getPublicUrl(path);
   const url = pub.publicUrl + '?t=' + Date.now();
   const { data, error } = await sb.from('bosses').update({ screenshot_url: url }).eq('id', bossId).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   const idx = state.bosses.findIndex(b=>b.id===bossId);
   if(idx>=0) state.bosses[idx] = data;
   showToast('Screenshot uploaded');
@@ -1028,7 +1108,7 @@ async function uploadBossScreenshot(bossId, file){
 }
 async function removeBossScreenshot(bossId){
   const { data, error } = await sb.from('bosses').update({ screenshot_url: null }).eq('id', bossId).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   const idx = state.bosses.findIndex(b=>b.id===bossId);
   if(idx>=0) state.bosses[idx] = data;
   render();
@@ -1043,14 +1123,14 @@ async function addSoftres(){
   if(!label || !url){ errEl.textContent = 'Label and link are both required.'; errEl.style.display='block'; return; }
   if(!/^https?:\/\//i.test(url)){ errEl.textContent = 'Link must start with http:// or https://'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('softres_links').insert({ label, url }).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   state.softresLinks = [data, ...state.softresLinks];
   showToast('Link added');
   render();
 }
 async function deleteSoftres(id){
   const { error } = await sb.from('softres_links').delete().eq('id', id);
-  if(error){ showToast("Couldn't remove — try again"); return; }
+  if(error){ showToast("Couldn't remove — try again", true); return; }
   state.softresLinks = state.softresLinks.filter(s=>s.id!==id);
   render();
 }
@@ -1062,14 +1142,14 @@ async function addRaidplan(){
   if(!label || !url){ errEl.textContent = 'Label and link are both required.'; errEl.style.display='block'; return; }
   if(!/^https?:\/\//i.test(url)){ errEl.textContent = 'Link must start with http:// or https://'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('raidplan_links').insert({ label, url }).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   state.raidplanLinks = [data, ...state.raidplanLinks];
   showToast('Plan link added');
   render();
 }
 async function deleteRaidplan(id){
   const { error } = await sb.from('raidplan_links').delete().eq('id', id);
-  if(error){ showToast("Couldn't remove — try again"); return; }
+  if(error){ showToast("Couldn't remove — try again", true); return; }
   state.raidplanLinks = state.raidplanLinks.filter(r=>r.id!==id);
   render();
 }
@@ -1086,21 +1166,21 @@ function selectSpec(classKey, specKey){
 }
 function openCompSlotModal(groupIdx, slotIdx){
   if(!isOfficer()) return;
-  if(!state.selectedSpec){ showToast('Pick a class/spec above first'); return; }
+  if(!state.selectedSpec){ showToast('Pick a class/spec above first', true); return; }
   state.modal = { type:'assign-slot', groupIdx, slotIdx };
   render();
 }
 async function saveCompSlot(){
   if(!state.modal || state.modal.type !== 'assign-slot') return;
   const { groupIdx, slotIdx } = state.modal;
-  if(!state.selectedSpec){ showToast('Pick a class/spec above first'); state.modal=null; render(); return; }
+  if(!state.selectedSpec){ showToast('Pick a class/spec above first', true); state.modal=null; render(); return; }
   const nameInput = document.getElementById('assign-slot-name');
   const name = (nameInput.value||'').trim();
   const errEl = document.getElementById('assign-slot-error');
   if(!name){ errEl.textContent = 'Enter a raider name.'; errEl.style.display = 'block'; return; }
   const row = { group_index: groupIdx, slot_index: slotIdx, class_key: state.selectedSpec.classKey, spec_key: state.selectedSpec.specKey, character_name: name };
   const { data, error } = await sb.from('comp_slots').upsert(row, { onConflict: 'group_index,slot_index' }).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   const idx = state.compSlots.findIndex(s=>s.group_index===groupIdx && s.slot_index===slotIdx);
   if(idx>=0) state.compSlots[idx] = data; else state.compSlots.push(data);
   state.modal = null;
@@ -1108,9 +1188,9 @@ async function saveCompSlot(){
   render();
 }
 async function removeCompSlot(groupIdx, slotIdx){
-  if(!isOfficer()){ showToast('Only officers can edit the roster'); return; }
+  if(!isOfficer()){ showToast('Only officers can edit the roster', true); return; }
   const { error } = await sb.from('comp_slots').delete().eq('group_index', groupIdx).eq('slot_index', slotIdx);
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   state.compSlots = state.compSlots.filter(s=>!(s.group_index===groupIdx && s.slot_index===slotIdx));
   state.modal = null;
   render();
@@ -1120,7 +1200,7 @@ async function toggleOfficer(profileId){
   if(!p) return;
   const newRole = p.role === 'officer' ? 'member' : 'officer';
   const { data, error } = await sb.from('profiles').update({ role: newRole }).eq('id', profileId).select().single();
-  if(error){ showToast("Couldn't update — try again"); return; }
+  if(error){ showToast("Couldn't update — try again", true); return; }
   state.profilesById[profileId] = data;
   if(state.profile && state.profile.id === profileId) state.profile = data;
   showToast(data.character_name + ' is now ' + newRole);
@@ -1131,7 +1211,7 @@ async function saveMyName(){
   const name = (input.value||'').trim();
   if(!name) return;
   const { data, error } = await sb.from('profiles').update({ character_name: name }).eq('id', state.profile.id).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   state.profile = data;
   state.profilesById[data.id] = data;
   showToast('Name updated');
@@ -1148,14 +1228,14 @@ async function addLoot(){
   const errEl = document.getElementById('loot-error');
   if(!item || !winner){ errEl.textContent = 'Item and winner are both required.'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('loot_log').insert({ item, winner, boss, date }).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   state.loot = [data, ...state.loot];
   showToast('Loot logged');
   render();
 }
 async function deleteLoot(id){
   const { error } = await sb.from('loot_log').delete().eq('id', id);
-  if(error){ showToast("Couldn't remove — try again"); return; }
+  if(error){ showToast("Couldn't remove — try again", true); return; }
   state.loot = state.loot.filter(l=>l.id!==id);
   render();
 }
@@ -1168,14 +1248,14 @@ async function addNews(){
   const errEl = document.getElementById('news-error');
   if(!title || !body){ errEl.textContent = 'Title and message are both required.'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('news').insert({ title, body, author: myName() }).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   state.news = [data, ...state.news];
   showToast('Posted');
   render();
 }
 async function deleteNews(id){
   const { error } = await sb.from('news').delete().eq('id', id);
-  if(error){ showToast("Couldn't remove — try again"); return; }
+  if(error){ showToast("Couldn't remove — try again", true); return; }
   state.news = state.news.filter(n=>n.id!==id);
   render();
 }
@@ -1189,7 +1269,7 @@ async function saveRecruitment(){
   const patch = { recruitment_body, recruitment_roles };
   if(guild_name) patch.guild_name = guild_name;
   const { data, error } = await sb.from('guild_settings').update(patch).eq('id',1).select().single();
-  if(error){ showToast("Couldn't save — try again"); return; }
+  if(error){ showToast("Couldn't save — try again", true); return; }
   state.settings = data;
   showToast('Recruitment page updated');
   render();
@@ -1199,7 +1279,15 @@ async function saveRecruitment(){
 function render(){
   const app = document.getElementById('app');
   if(state.view === 'loading'){
-    app.innerHTML = '<div class="landing"><p class="sans muted">Opening the guild hall...</p></div>';
+    app.innerHTML = `
+      <div class="wow-hero" style="min-height:100vh;">
+        <div class="starfield"></div>
+        <div class="hero-glow"></div>
+        <div class="hero-content">
+          <div class="loading-crest">${crestSvg('loading',56)}</div>
+          <p class="sans muted" style="margin-top:20px; font-size:14px; letter-spacing:0.02em;">Opening the guild hall&hellip;</p>
+        </div>
+      </div>`;
     return;
   }
   if(state.view === 'landing'){ app.innerHTML = renderLanding(); bindLanding(); return; }
@@ -1289,6 +1377,19 @@ function renderLanding(){
 function bindLanding(){
   const btn = document.getElementById('discord-signin-btn');
   if(btn) btn.addEventListener('click', signInWithDiscord);
+  bindMobileNav();
+}
+
+function bindMobileNav(){
+  const hamburger = document.getElementById('nav-hamburger-btn');
+  if(hamburger) hamburger.addEventListener('click', ()=>{
+    state.mobileNavOpen = !state.mobileNavOpen;
+    render();
+  });
+  document.querySelectorAll('[data-close-mobile-nav]').forEach(el=>el.addEventListener('click', ()=>{
+    state.mobileNavOpen = false;
+    render();
+  }));
 }
 
 function renderApp(){
@@ -1317,11 +1418,17 @@ function renderApp(){
         <div class="nav-cta-group">
           <span class="nav-user sans">${esc(myName())} <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span></span>
           <button class="btn-nav-outline" id="logout-btn" type="button">Sign Out</button>
+          <button type="button" class="nav-hamburger" id="nav-hamburger-btn" aria-label="Menu">&#9776;</button>
         </div>
+      </div>
+      <div class="mobile-nav-menu ${state.mobileNavOpen ? 'open' : ''}">
+        ${navItems.map(([key,label])=>`
+          <button type="button" class="mobile-nav-link ${state.tab===key?'active':''}" data-tab="${key}">${esc(label)}</button>
+        `).join('')}
       </div>
     </nav>
     <div class="main">
-      ${ state.toast ? `<div class="toast sans">${esc(state.toast)}</div>` : '' }
+      ${ state.toast ? `<div class="toast ${state.toastError?'toast-error':'toast-success'} sans">${esc(state.toast)}</div>` : '' }
       ${ renderTab() }
     </div>
   `;
@@ -1373,6 +1480,7 @@ function renderCalendar(){
   state.events.forEach(ev=>{ (eventsByDate[ev.date] = eventsByDate[ev.date] || []).push(ev); });
 
   return `
+    ${pageBanner('Raid Calendar')}
     <div class="eyebrow sans">Schedule</div>
     <h2 class="page-title">Raid calendar</h2>
     <p class="page-sub sans">Click any event to see details and mark yourself down for the night.</p>
@@ -1453,7 +1561,7 @@ function renderEventDetailModal(eventId){
         <h3>${esc(ev.title)}</h3>
         <button class="modal-x" id="modal-close">&times;</button>
       </div>
-      <div class="muted" style="margin-bottom:14px;">${fmtDate(ev.date)}${ev.time?' &middot; '+esc(ev.time):''}${ev.instance?' &middot; '+esc(ev.instance):''}</div>
+      <div class="muted" style="margin-bottom:14px;"><span class="mono">${fmtDate(ev.date)}${ev.time?' &middot; '+esc(ev.time):''}</span>${ev.instance?' &middot; '+esc(ev.instance):''}</div>
       ${ ev.notes ? `<div style="margin-bottom:16px; line-height:1.6; white-space:pre-wrap;">${esc(ev.notes)}</div>` : '' }
 
       <div class="rule"></div>
@@ -1466,9 +1574,9 @@ function renderEventDetailModal(eventId){
 
       <div class="rule"></div>
       <div style="margin-top:14px;">
-        <div style="margin-bottom:8px;"><span class="badge going">${groups.going.length} going</span> ${nameList(groups.going)}</div>
-        <div style="margin-bottom:8px;"><span class="badge maybe">${groups.maybe.length} maybe</span> ${nameList(groups.maybe)}</div>
-        <div style="margin-bottom:8px;"><span class="badge out">${groups.out.length} out</span> ${nameList(groups.out)}</div>
+        <div style="margin-bottom:8px;"><span class="badge going"><span class="mono">${groups.going.length}</span> going</span> ${nameList(groups.going)}</div>
+        <div style="margin-bottom:8px;"><span class="badge maybe"><span class="mono">${groups.maybe.length}</span> maybe</span> ${nameList(groups.maybe)}</div>
+        <div style="margin-bottom:8px;"><span class="badge out"><span class="mono">${groups.out.length}</span> out</span> ${nameList(groups.out)}</div>
       </div>
 
       ${ officer ? `
@@ -1530,7 +1638,7 @@ function renderStrategies(){
         ${ officer ? `
           <div class="field"><textarea id="boss-notes-input" placeholder="Positioning, cooldown order, who tanks what, wipe triggers...">${esc(boss.notes||'')}</textarea></div>
           <button class="btn" type="button" id="boss-notes-save-btn" style="margin-top:10px;">Save notes</button>
-        ` : (boss.notes ? `<div class="muted" style="white-space:pre-wrap; line-height:1.6;">${esc(boss.notes)}</div>` : `<div class="empty sans">No notes yet.</div>`) }
+        ` : (boss.notes ? `<div class="muted" style="white-space:pre-wrap; line-height:1.6;">${esc(boss.notes)}</div>` : emptyState('No notes yet.')) }
       </div>
 
       <div class="panel">
@@ -1544,7 +1652,7 @@ function renderStrategies(){
         ` : ( officer ? `
           <p class="muted sans" style="margin-bottom:12px;">Build the plan on <a href="https://raidplan.io/classic" target="_blank" rel="noopener">raidplan.io</a>, screenshot it, and upload it here.</p>
           <label class="btn" style="cursor:pointer; display:inline-block;">Upload screenshot<input type="file" accept="image/*" id="boss-screenshot-input" style="display:none;"></label>
-        ` : `<div class="empty sans">No screenshot posted yet.</div>` ) }
+        ` : emptyState('No screenshot posted yet.') ) }
       </div>
     `;
   }
@@ -1574,12 +1682,13 @@ function renderStrategies(){
             <div style="flex:1; font-weight:600;">${esc(b.name)}</div>
             ${ officer ? `<button class="btn danger" data-del-boss="${b.id}" style="flex-shrink:0;">Remove</button>` : '' }
           </div>
-        `).join('') : '<div class="empty sans">No bosses added yet.</div>' }
+        `).join('') : emptyState('No bosses added yet.') }
       </div>
     `;
   }
 
   return `
+    ${pageBanner('Boss Strategies')}
     <div class="eyebrow sans">Strategy</div>
     <h2 class="page-title">Boss Strategies</h2>
     <p class="page-sub sans">Pick a raid instance, then a boss, to see notes and the RaidPlan screenshot.</p>
@@ -1601,11 +1710,11 @@ function renderStrategies(){
         <div class="list-item tree-row" data-open-raid="${r.id}">
           <div style="flex:1;">
             <div style="font-weight:600;">${esc(r.name)}</div>
-            <div class="muted" style="font-size:12px; margin-top:2px;">${count} boss${count===1?'':'es'}</div>
+            <div class="muted" style="font-size:12px; margin-top:2px;"><span class="mono">${count}</span> boss${count===1?'':'es'}</div>
           </div>
           ${ officer ? `<button class="btn danger" data-del-raid="${r.id}" style="flex-shrink:0;">Remove</button>` : '' }
         </div>`;
-      }).join('') : '<div class="empty sans">No raid instances yet.</div>' }
+      }).join('') : emptyState('No raid instances yet.') }
     </div>
 
     <div class="eyebrow sans" style="margin-top:8px;">Visual planning</div>
@@ -1634,7 +1743,7 @@ function renderStrategies(){
           </div>
           ${ officer ? `<button class="btn danger" data-del-raidplan="${r.id}" style="flex-shrink:0;">Remove</button>` : '' }
         </div>
-      `).join('') : '<div class="empty sans">No RaidPlan links yet.</div>' }
+      `).join('') : emptyState('No RaidPlan links yet.') }
     </div>
   `;
 }
@@ -1654,6 +1763,7 @@ function renderStratBreadcrumb(raid, boss){
 function renderSoftres(){
   const officer = isOfficer();
   return `
+    ${pageBanner('Soft Res Links')}
     <div class="eyebrow sans">Loot rules</div>
     <h2 class="page-title">Soft-res links</h2>
     <p class="page-sub sans">Links to soft-reserve sheets for upcoming raids. Newest first.</p>
@@ -1680,7 +1790,7 @@ function renderSoftres(){
           </div>
           ${ officer ? `<button class="btn danger" data-del-softres="${s.id}" style="flex-shrink:0;">Remove</button>` : '' }
         </div>
-      `).join('') : '<div class="empty sans">No soft-res sheets linked yet.</div>' }
+      `).join('') : emptyState('No soft-res sheets linked yet.') }
     </div>
   `;
 }
@@ -1694,6 +1804,7 @@ function renderRoster(){
   function slotAt(g,s){ return state.compSlots.find(row=>row.group_index===g && row.slot_index===s) || null; }
 
   return `
+    ${pageBanner('Roster')}
     <div class="eyebrow sans">Members</div>
     <h2 class="page-title">Roster</h2>
     <p class="page-sub sans">Who's in the guild, and the current raid composition.</p>
@@ -1716,7 +1827,7 @@ function renderRoster(){
           <span class="badge ${p.protected ? 'role-raidlead' : (p.role==='officer'?'role-officer':'role-member')}" style="margin-right:10px;">${p.protected ? '&#9819; Raid Leader' : (p.role==='officer'?'Officer':'Member')}</span>
           ${ officer && !p.protected ? `<button class="btn secondary" data-toggle-officer="${p.id}">${p.role==='officer'?'Demote':'Promote'}</button>` : '' }
         </div>
-      `).join('') : '<div class="empty sans">No members yet.</div>' }
+      `).join('') : emptyState('No members yet.') }
     </div>
 
     <div class="panel">
@@ -1773,6 +1884,7 @@ function renderRoster(){
 function renderLoot(){
   const officer = isOfficer();
   return `
+    ${pageBanner('Loot Log')}
     <div class="eyebrow sans">History</div>
     <h2 class="page-title">Loot log</h2>
     <p class="page-sub sans">A running record of what's dropped and who won it.</p>
@@ -1801,7 +1913,7 @@ function renderLoot(){
         <tbody>
         ${ state.loot.map(l=>`
           <tr>
-            <td class="muted">${fmtDate(l.date)}</td>
+            <td class="muted mono">${fmtDate(l.date)}</td>
             <td style="font-weight:600;">${esc(l.item)}</td>
             <td>${esc(l.winner)}</td>
             <td class="muted">${esc(l.boss)||'&mdash;'}</td>
@@ -1809,7 +1921,7 @@ function renderLoot(){
           </tr>
         `).join('') }
         </tbody>
-      </table>` : '<div class="empty sans">No loot logged yet.</div>' }
+      </table>` : emptyState('No loot logged yet.') }
     </div>
   `;
 }
@@ -1818,16 +1930,7 @@ function renderLoot(){
 function renderNews(){
   const officer = isOfficer();
   return `
-    <div class="news-banner">
-      <div class="starfield"></div>
-      <div style="position:relative; z-index:2; display:flex; align-items:center; gap:16px;">
-        ${crestSvg('newsbanner',40)}
-        <div>
-          <div class="eyebrow gold-text">${esc(state.settings.guild_name)}</div>
-          <h2 class="gold-text" style="font-size:26px; font-weight:800;">Welcome Back, ${esc(myName())}</h2>
-        </div>
-      </div>
-    </div>
+    ${pageBanner('Welcome Back, ' + myName())}
     <div class="eyebrow sans">Announcements</div>
     <h2 class="page-title">News</h2>
     <p class="page-sub sans">Officer posts for lockout changes, loot rule updates, and anything else worth pinning.</p>
@@ -1881,12 +1984,12 @@ function renderNews(){
         <div class="list-item">
           <div style="flex:1;">
             <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
-            <div class="muted">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')} &middot; ${esc(n.author||'')}</div>
+            <div class="muted"><span class="mono">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')}</span> &middot; ${esc(n.author||'')}</div>
             <div style="margin-top:8px;">${renderRichText(n.body)}</div>
           </div>
           ${ officer ? `<button class="btn danger" data-del-news="${n.id}" style="flex-shrink:0;">Remove</button>` : '' }
         </div>
-      `).join('') : '<div class="empty sans">No announcements yet.</div>' }
+      `).join('') : emptyState('No announcements yet.') }
     </div>
   `;
 }
@@ -1896,6 +1999,7 @@ function renderRecruitmentTab(){
   const officer = isOfficer();
   const rec = state.settings;
   return `
+    ${pageBanner('Recruitment')}
     <div class="eyebrow sans">Public notice</div>
     <h2 class="page-title">Recruitment</h2>
     <p class="page-sub sans">This message is shown to anyone who visits before signing in.</p>
@@ -1919,9 +2023,15 @@ function renderRecruitmentTab(){
 
 /* ---------------- bindings ---------------- */
 function bindApp(){
-  document.querySelectorAll('.nav-tab-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{ state.tab = btn.dataset.tab; state.modal = null; render(); });
+  document.querySelectorAll('.nav-tab-btn, .mobile-nav-link[data-tab]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      state.tab = btn.dataset.tab;
+      state.modal = null;
+      state.mobileNavOpen = false;
+      render();
+    });
   });
+  bindMobileNav();
   const logoutBtn = document.getElementById('logout-btn');
   if(logoutBtn) logoutBtn.addEventListener('click', signOut);
 
