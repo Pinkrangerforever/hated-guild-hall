@@ -387,6 +387,7 @@
     background:linear-gradient(180deg, #2f2619 0%, #4a3c29 12%, #5d4d38 24%, #6c5a3e 42%, var(--bg-primary) 85%, var(--bg-primary) 100%);
     padding:110px 24px 0 24px;
   }
+  .marketing-hero.custom-bg{ background:none; }
   .hero-split{
     max-width:1200px; margin:0 auto; padding-bottom:60px;
     display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center;
@@ -1481,7 +1482,7 @@ function renderLanding(){
   return `
   ${topNavBar(navLinks, {guildName: state.settings.guild_name, showRecruit:true})}
 
-  <div class="marketing-hero" id="about">
+  <div class="marketing-hero ${state.siteImages['site_background'] ? 'custom-bg' : ''}" id="about">
     <div class="hero-split">
       <div class="hero-split-text">
         <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
