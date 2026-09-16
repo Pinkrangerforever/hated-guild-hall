@@ -633,6 +633,13 @@
     padding:13px 20px; font-size:14px; font-weight:700;
   }
   .btn-discord:hover{ background:#4752c4; }
+  .btn-discord-nav{
+    display:inline-flex; align-items:center; gap:8px;
+    background:#5865F2; color:#fff; border:1px solid rgba(255,255,255,0.25); border-radius:2px;
+    padding:8px 16px; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    transition:background 0.15s ease;
+  }
+  .btn-discord-nav:hover{ background:#4752c4; }
 </style>
 </head>
 <body>
@@ -908,7 +915,10 @@ function topNavBar(navLinks, opts){
       </div>
       <div class="nav-cta-group">
         ${ opts.showRecruit ? `<a href="#recruiting" class="btn-nav-outline">Recruiting</a>` : '' }
-        ${ showSignIn ? `<a href="#signin" class="btn-nav-solid">Sign In</a>` : '' }
+        ${ showSignIn ? `<button type="button" id="nav-discord-signin-btn" class="btn-discord-nav">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20.3 5.3A17.6 17.6 0 0 0 15.8 4l-.3.5c1.8.5 2.7 1.2 3.6 1.9-1.6-.8-3.2-1.4-5.1-1.4s-3.5.6-5.1 1.4c.9-.7 2-1.4 3.6-1.9L12.2 4a17.6 17.6 0 0 0-4.5 1.3C4.9 8.9 4.1 12.4 4.4 15.8c1.9 1.4 3.7 2.2 5.5 2.7l.7-1.1c-.9-.3-1.7-.7-2.5-1.3.2.1.4.3.6.4 2.7 1.4 5.9 1.4 8.6 0 .2-.1.4-.3.6-.4-.8.6-1.6 1-2.5 1.3l.7 1.1c1.8-.5 3.6-1.3 5.5-2.7.4-4 -.7-7.5-2.7-10.5ZM9.7 13.9c-.8 0-1.5-.8-1.5-1.7s.6-1.7 1.5-1.7 1.5.8 1.5 1.7-.7 1.7-1.5 1.7Zm4.6 0c-.8 0-1.5-.8-1.5-1.7s.6-1.7 1.5-1.7 1.5.8 1.5 1.7-.6 1.7-1.5 1.7Z"/></svg>
+          Sign In
+        </button>` : '' }
         <button type="button" class="nav-hamburger" id="nav-hamburger-btn" aria-label="Menu">&#9776;</button>
       </div>
     </div>
@@ -1489,13 +1499,13 @@ function render(){
 
 function renderLanding(){
   const navLinks = [
-    {id:'about', label:'Home'},
-    {id:'feature-calendar', label:'Raid Calendar'},
+    {id:'signin', label:'Home'},
+    {id:'signin', label:'Raid Calendar'},
     {id:'signin', label:'Roster'},
     {id:'signin', label:'Raid Logs'},
-    {id:'feature-strategies', label:'Boss Strategies'},
+    {id:'signin', label:'Boss Strategies'},
     {id:'signin', label:'Guild Bank'},
-    {id:'feature-loot', label:'Loot Log'},
+    {id:'signin', label:'Loot Log'},
     {id:'signin', label:'Soft Res Links'},
     {id:'signin', label:'Gallery'},
   ];
@@ -1568,6 +1578,15 @@ function renderLanding(){
 function bindLanding(){
   const btn = document.getElementById('discord-signin-btn');
   if(btn) btn.addEventListener('click', signInWithDiscord);
+  const navBtn = document.getElementById('nav-discord-signin-btn');
+  if(navBtn) navBtn.addEventListener('click', signInWithDiscord);
+  document.querySelectorAll('a[href="#signin"]').forEach(a=>{
+    a.addEventListener('click', (ev)=>{
+      ev.preventDefault();
+      const el = document.getElementById('signin');
+      if(el && typeof el.scrollIntoView === 'function') el.scrollIntoView({behavior:'smooth', block:'center'});
+    });
+  });
   bindMobileNav();
 }
 
