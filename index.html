@@ -636,6 +636,109 @@
     background:rgba(207,154,68,0.14); border:1px solid rgba(207,154,68,0.4); border-radius:12px; padding:4px 10px;
   }
 
+  /* ---- goblin ambush sub-event ---- */
+  @keyframes goblinPopIn{
+    0%{ transform:scale(0) translateY(20px); opacity:0; }
+    60%{ transform:scale(1.15) translateY(-4px); opacity:1; }
+    100%{ transform:scale(1) translateY(0); opacity:1; }
+  }
+  @keyframes goblinHitReaction{
+    0%{ transform:scale(1) rotate(0deg); opacity:1; }
+    30%{ transform:scale(1.2) rotate(-15deg); opacity:1; }
+    100%{ transform:scale(0.3) rotate(35deg) translateY(20px); opacity:0; }
+  }
+  @keyframes goblinFlee{
+    0%{ transform:translateX(0) scale(1); opacity:1; }
+    100%{ transform:translateX(-120px) scale(0.6); opacity:0; }
+  }
+  @keyframes arrowFly{
+    0%{ transform:translate(-40px, 60px) rotate(-40deg) scale(0.6); opacity:1; }
+    100%{ transform:translate(0,0) rotate(-40deg) scale(1); opacity:0; }
+  }
+  @keyframes timerShrink{ from{ width:100%; } to{ width:0%; } }
+  .goblin-event{
+    position:absolute; width:190px; pointer-events:auto; text-align:center;
+    animation:goblinPopIn 0.35s cubic-bezier(.3,1.5,.4,1) both;
+  }
+  .goblin-label{
+    font-size:11px; font-weight:700; color:#fff3d6; text-shadow:0 2px 4px rgba(0,0,0,0.8);
+    margin-bottom:4px; white-space:nowrap;
+  }
+  .goblin-timer-bar{ width:100%; height:5px; background:rgba(0,0,0,0.5); border-radius:3px; overflow:hidden; margin-bottom:6px; }
+  .goblin-timer-fill{ height:100%; background:linear-gradient(90deg,#e05a4f,#f0dfb4); animation-name:timerShrink; animation-timing-function:linear; animation-fill-mode:forwards; }
+  .goblin-stage{ display:flex; justify-content:center; gap:26px; position:relative; }
+  .goblin{
+    width:52px; height:52px; background:none; border:none; padding:0; cursor:pointer;
+    filter:drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+  }
+  .goblin svg{ width:100%; height:100%; }
+  .goblin.hit{ animation:goblinHitReaction 0.4s ease-in forwards; pointer-events:none; }
+  .goblin.flee{ animation:goblinFlee 0.5s ease-in forwards; }
+  .goblin-arrow{
+    position:absolute; width:26px; height:4px; margin-left:-13px; margin-top:-2px;
+    background:linear-gradient(90deg,#8a6a3a,#d9c79a); border-radius:2px;
+    animation:arrowFly 0.22s ease-out forwards;
+  }
+  .goblin-arrow::after{
+    content:''; position:absolute; right:-6px; top:-3px; border:5px solid transparent; border-left-color:#d9c79a;
+  }
+
+  /* ---- fishing pool sub-event ---- */
+  @keyframes poolAppear{
+    0%{ transform:scale(0); opacity:0; }
+    70%{ transform:scale(1.1); opacity:1; }
+    100%{ transform:scale(1); opacity:1; }
+  }
+  @keyframes poolRipple{
+    0%{ transform:scale(0.6); opacity:0.7; }
+    100%{ transform:scale(1.6); opacity:0; }
+  }
+  @keyframes fishBob{
+    0%,100%{ transform:translateY(-3px) rotate(-6deg); }
+    50%{ transform:translateY(3px) rotate(6deg); }
+  }
+  @keyframes ringShrink{
+    from{ transform:scale(1); opacity:1; }
+    to{ transform:scale(0.15); opacity:0.4; }
+  }
+  @keyframes reelSuccessPop{
+    0%{ transform:scale(1); }
+    40%{ transform:scale(1.3) translateY(-10px); }
+    100%{ transform:scale(0) translateY(-40px); opacity:0; }
+  }
+  @keyframes fishEscapeSplash{
+    0%{ transform:scale(1); opacity:1; }
+    100%{ transform:scale(1.4); opacity:0; }
+  }
+  .fishing-pool{
+    position:absolute; width:80px; height:80px; border:none; background:none; padding:0; cursor:pointer;
+    animation:poolAppear 0.4s cubic-bezier(.3,1.5,.4,1) both;
+  }
+  .pool-water{
+    position:absolute; inset:8px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #4a90c9, #14456e 75%);
+    border:2px solid rgba(255,255,255,0.35);
+  }
+  .pool-ripple{
+    position:absolute; inset:0; border-radius:50%; border:2px solid rgba(140,200,255,0.6);
+    animation:poolRipple 1.8s ease-out infinite;
+  }
+  .pool-fish{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:22px; color:#f0dfb4; text-shadow:0 0 6px rgba(255,224,153,0.8);
+    animation:fishBob 1.2s ease-in-out infinite;
+  }
+  .fishing-ring-target{
+    position:absolute; inset:8px; border-radius:50%; border:3px solid #f0dfb4;
+    box-shadow:0 0 10px rgba(240,223,180,0.7);
+  }
+  .fishing-ring-shrink{
+    position:absolute; inset:0; border-radius:50%; border:4px solid #6fd0ff;
+    animation-name:ringShrink; animation-timing-function:linear; animation-fill-mode:forwards;
+  }
+  .fishing-pool.reel-success .pool-fish{ animation:reelSuccessPop 0.5s ease-out forwards; }
+  .fishing-pool.fish-escape .pool-water{ animation:fishEscapeSplash 0.5s ease-out forwards; }
+
   .shop-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:14px; max-height:60vh; overflow-y:auto; }
   .shop-card{
     background:var(--bg-input); border:1px solid var(--divider-strong); border-radius:4px; padding:16px;
@@ -1609,6 +1712,9 @@ async function claimSparkle(el){
   try{
     const { data, error } = await sb.rpc('claim_sparkle_gold');
     if(error || !data || !data.success) return; // cooldown or not logged in — just no visible reward
+    if(data.event === 'goblin') return startGoblinEvent(rect, data.pending_id);
+    if(data.event === 'fishing') return startFishingEvent(rect, data.pending_id);
+    // normal claim: gold is already awarded by the server
     if(state.profile){
       state.profile.gold = data.total;
       render();
@@ -1616,6 +1722,158 @@ async function claimSparkle(el){
     showGoldFloat(rect.left + rect.width/2, rect.top, data.awarded);
   }catch(e){ /* silent — sparkles are low-stakes fun, not worth erroring the UI over */ }
 }
+async function resolveSparkleEvent(pendingId, won, x, y){
+  try{
+    const { data, error } = await sb.rpc('resolve_sparkle_event', { p_pending_id: pendingId, p_won: won });
+    if(error || !data || !data.success) return;
+    if(data.won){
+      if(state.profile){ state.profile.gold = data.total; render(); }
+      showGoldFloat(x, y, data.awarded);
+    }
+    // loss: nothing to award — the calling minigame already shows its own "got away" message
+  }catch(e){ /* silent */ }
+}
+
+/* ---------------- goblin ambush sub-event ---------------- */
+window.__GOBLIN_DURATION_MS = 4000; // overridable by tests
+const GOBLIN_SVG = `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="30" cy="43" rx="15" ry="13" fill="#4f8a34"/>
+  <path d="M14 19 L3 9 L15 27 Z" fill="#4f8a34"/>
+  <path d="M46 19 L57 9 L45 27 Z" fill="#4f8a34"/>
+  <circle cx="30" cy="23" r="16" fill="#6fae4a"/>
+  <circle cx="24" cy="21" r="4.5" fill="#fff"/>
+  <circle cx="36" cy="21" r="4.5" fill="#fff"/>
+  <circle cx="25" cy="22" r="2.2" fill="#141"/>
+  <circle cx="35" cy="22" r="2.2" fill="#141"/>
+  <path d="M20 29 Q30 37 40 29" stroke="#1a3d0f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M25 30 L24 34 M35 30 L36 34" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+</svg>`;
+
+function startGoblinEvent(rect, pendingId){
+  const layer = document.getElementById('sparkle-layer');
+  if(!layer) return;
+  const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+  const container = document.createElement('div');
+  container.className = 'goblin-event';
+  container.style.left = (cx - 95) + 'px';
+  container.style.top = (cy - 55) + 'px';
+  container.innerHTML =
+    '<div class="goblin-label">Shoot them before they steal the gold!</div>' +
+    '<div class="goblin-timer-bar"><div class="goblin-timer-fill" style="animation-duration:' + window.__GOBLIN_DURATION_MS + 'ms;"></div></div>' +
+    '<div class="goblin-stage">' +
+    '<button type="button" class="goblin" data-goblin="1">' + GOBLIN_SVG + '</button>' +
+    '<button type="button" class="goblin" data-goblin="2">' + GOBLIN_SVG + '</button>' +
+    '</div>';
+  layer.appendChild(container);
+
+  let hits = 0, resolved = false;
+
+  function spawnArrow(goblinEl){
+    const arrow = document.createElement('div');
+    arrow.className = 'goblin-arrow';
+    const gr = goblinEl.getBoundingClientRect();
+    const cr = container.getBoundingClientRect();
+    arrow.style.left = (gr.left - cr.left + gr.width/2) + 'px';
+    arrow.style.top = (gr.top - cr.top + gr.height/2) + 'px';
+    container.appendChild(arrow);
+    setTimeout(()=>{ if(arrow.parentNode) arrow.remove(); }, 400);
+  }
+
+  function finish(success){
+    if(resolved) return;
+    resolved = true;
+    clearTimeout(timeoutId);
+    resolveSparkleEvent(pendingId, success, cx, cy);
+    if(success){
+      container.remove();
+    } else {
+      container.querySelectorAll('.goblin:not(.hit)').forEach(g=>{ g.classList.add('flee'); g.disabled = true; });
+      showToast('The goblins got away with the gold!', true);
+      setTimeout(()=>{ if(container.parentNode) container.remove(); }, 500);
+    }
+  }
+
+  container.querySelectorAll('.goblin').forEach(g=>{
+    g.addEventListener('click', ()=>{
+      if(resolved || g.classList.contains('hit')) return;
+      g.classList.add('hit');
+      spawnArrow(g);
+      hits++;
+      if(hits >= 2) finish(true);
+    });
+  });
+
+  const timeoutId = setTimeout(()=>finish(false), window.__GOBLIN_DURATION_MS);
+}
+
+/* ---------------- fishing pool sub-event ---------------- */
+window.__FISHING_DURATION_MS = 1500;
+const FISHING_START_R = 68, FISHING_END_R = 10, FISHING_TARGET_R = 32, FISHING_TOLERANCE = 11;
+
+function checkFishingTiming(elapsedMs, durationMs){
+  const t = Math.min(1, Math.max(0, elapsedMs / durationMs));
+  const currentR = FISHING_START_R - (FISHING_START_R - FISHING_END_R) * t;
+  return Math.abs(currentR - FISHING_TARGET_R) <= FISHING_TOLERANCE;
+}
+
+function startFishingEvent(rect, pendingId){
+  const layer = document.getElementById('sparkle-layer');
+  if(!layer) return;
+  const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+  const pool = document.createElement('button');
+  pool.type = 'button';
+  pool.className = 'fishing-pool';
+  pool.style.left = (cx - 40) + 'px';
+  pool.style.top = (cy - 40) + 'px';
+  pool.innerHTML =
+    '<span class="pool-ripple"></span>' +
+    '<span class="pool-water"></span>' +
+    '<span class="pool-fish">&#10022;</span>';
+  layer.appendChild(pool);
+
+  let resolved = false;
+  const poolTimeout = setTimeout(()=>{
+    if(!resolved){
+      resolved = true;
+      resolveSparkleEvent(pendingId, false, cx, cy);
+      pool.remove();
+    }
+  }, 6000);
+
+  pool.addEventListener('click', function startReel(){
+    if(resolved) return;
+    clearTimeout(poolTimeout);
+    pool.removeEventListener('click', startReel);
+    pool.innerHTML =
+      '<span class="fishing-ring-target"></span>' +
+      '<span class="fishing-ring-shrink" style="animation-duration:' + window.__FISHING_DURATION_MS + 'ms;"></span>';
+    const startTime = performance.now();
+    let ringResolved = false;
+    const ringTimeout = setTimeout(()=>{ finishFishing(false); }, window.__FISHING_DURATION_MS + 150);
+
+    function finishFishing(success){
+      if(ringResolved) return;
+      ringResolved = true;
+      resolved = true;
+      clearTimeout(ringTimeout);
+      resolveSparkleEvent(pendingId, success, cx, cy);
+      if(success){
+        pool.classList.add('reel-success');
+      } else {
+        showToast('The fish got away!', true);
+        pool.classList.add('fish-escape');
+      }
+      setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 500);
+    }
+
+    pool.addEventListener('click', function tryReel(){
+      if(ringResolved) return;
+      const elapsed = performance.now() - startTime;
+      finishFishing(checkFishingTiming(elapsed, window.__FISHING_DURATION_MS));
+    }, { once:true });
+  }, { once:true });
+}
+
 function showGoldFloat(x, y, amount){
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
@@ -1631,6 +1889,7 @@ function showGoldFloat(x, y, amount){
 // waiting for the real randomized interval. Harmless to expose — spawning a
 // sparkle grants nothing by itself; only a server-verified claim does.
 window.spawnSparkle = spawnSparkle;
+window.checkFishingTiming = checkFishingTiming;
 
 /* ---------------- reward shop ---------------- */
 function openShop(){
