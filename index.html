@@ -583,6 +583,15 @@
   .comp-extra-icon:not(.readonly):hover{ border-color:var(--blurple); }
   .comp-extra-icon img{ width:100%; height:100%; object-fit:cover; display:block; }
 
+  /* ---- layered site background ---- */
+  #bg-layer-texture, #bg-layer-image{
+    position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background-position:center; background-attachment:fixed;
+    transition:opacity 0.15s ease;
+  }
+  #bg-layer-texture{ background-repeat:repeat; }
+  #bg-layer-image{ background-repeat:no-repeat; background-size:cover; }
+
   /* ---- sparkle gold system ---- */
   #sparkle-layer{ position:fixed; inset:0; pointer-events:none; z-index:45; }
   @keyframes sparkleTwinkle{
@@ -750,6 +759,10 @@
     display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--divider);
   }
   .slot-row:last-of-type{ border-bottom:none; }
+  .slot-opacity-row{
+    display:flex; align-items:center; gap:10px; padding:0 0 12px 62px; margin-top:-4px; border-bottom:1px solid var(--divider);
+  }
+  .slot-opacity-row input[type="range"]{ flex:1; accent-color: var(--blurple); }
   .slot-preview{
     width:48px; height:48px; border-radius:4px; background:var(--bg-input);
     border:1px solid var(--divider-strong); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden;
@@ -812,6 +825,8 @@
 </style>
 </head>
 <body>
+<div id="bg-layer-texture"></div>
+<div id="bg-layer-image"></div>
 <div id="app"></div>
 <div id="sparkle-layer"></div>
 <script>
@@ -1146,25 +1161,22 @@ function applySiteBackground(){
   const fgUrl = state.siteImages['site_background'];
   const textureUrl = state.siteImages['site_background_texture'];
   const color = state.siteImages['site_background_color'] || '#3a2e1d';
+  const fgOpacity = state.siteImages['site_background_opacity'] != null ? state.siteImages['site_background_opacity'] : '100';
+  const textureOpacity = state.siteImages['site_background_texture_opacity'] != null ? state.siteImages['site_background_texture_opacity'] : '100';
 
   document.body.style.backgroundColor = color;
 
-  const layers = [];
-  if(fgUrl) layers.push({ url: fgUrl, size: 'cover', repeat: 'no-repeat', position: 'center' });
-  if(textureUrl) layers.push({ url: textureUrl, size: 'auto', repeat: 'repeat', position: 'top left' });
+  const imageLayer = document.getElementById('bg-layer-image');
+  if(imageLayer){
+    imageLayer.style.backgroundImage = fgUrl ? `url('${fgUrl}')` : '';
+    imageLayer.style.opacity = String(Number(fgOpacity) / 100);
+  }
 
-  if(layers.length){
-    document.body.style.backgroundImage = layers.map(l=>`url('${l.url}')`).join(', ');
-    document.body.style.backgroundSize = layers.map(l=>l.size).join(', ');
-    document.body.style.backgroundRepeat = layers.map(l=>l.repeat).join(', ');
-    document.body.style.backgroundPosition = layers.map(l=>l.position).join(', ');
-    document.body.style.backgroundAttachment = 'fixed';
-  } else {
-    document.body.style.backgroundImage = '';
-    document.body.style.backgroundSize = '';
-    document.body.style.backgroundRepeat = '';
-    document.body.style.backgroundPosition = '';
-    document.body.style.backgroundAttachment = '';
+  const textureLayer = document.getElementById('bg-layer-texture');
+  if(textureLayer){
+    textureLayer.style.backgroundImage = textureUrl ? `url('${textureUrl}')` : '';
+    textureLayer.style.backgroundSize = '110px 110px'; // smaller tile = more visible detail/repetition
+    textureLayer.style.opacity = String(Number(textureOpacity) / 100);
   }
 }
 
@@ -2976,6 +2988,10 @@ function renderGallery(){
           ${ state.siteImages['site_background'] ? `<button class="btn danger" type="button" data-clear-slot="site_background">Clear</button>` : '' }
         </div>
       </div>
+      <div class="slot-opacity-row">
+        <label class="muted sans" style="font-size:12px; min-width:70px;">Opacity: <span id="site-bg-opacity-value">${esc(state.siteImages['site_background_opacity'] || '100')}</span>%</label>
+        <input type="range" id="site-bg-opacity-input" min="0" max="100" value="${esc(state.siteImages['site_background_opacity'] || '100')}">
+      </div>
 
       <div class="slot-row">
         <div class="slot-preview" style="background:${esc(state.siteImages['site_background_color'] || '#3a2e1d')};"></div>
@@ -2998,6 +3014,10 @@ function renderGallery(){
           <button class="btn secondary" type="button" data-choose-slot="site_background_texture">Choose</button>
           ${ state.siteImages['site_background_texture'] ? `<button class="btn danger" type="button" data-clear-slot="site_background_texture">Clear</button>` : '' }
         </div>
+      </div>
+      <div class="slot-opacity-row">
+        <label class="muted sans" style="font-size:12px; min-width:70px;">Opacity: <span id="site-bg-texture-opacity-value">${esc(state.siteImages['site_background_texture_opacity'] || '100')}</span>%</label>
+        <input type="range" id="site-bg-texture-opacity-input" min="0" max="100" value="${esc(state.siteImages['site_background_texture_opacity'] || '100')}">
       </div>
 
       <div class="rule"></div>
@@ -3244,6 +3264,27 @@ function bindApp(){
   document.querySelectorAll('[data-clear-slot]').forEach(b=>b.addEventListener('click', ()=>clearSiteImage(b.dataset.clearSlot)));
   const bgColorInput = document.getElementById('site-bg-color-input');
   if(bgColorInput) bgColorInput.addEventListener('change', ()=>assignSiteImage('site_background_color', bgColorInput.value));
+
+  const bgOpacityInput = document.getElementById('site-bg-opacity-input');
+  if(bgOpacityInput){
+    bgOpacityInput.addEventListener('input', ()=>{
+      const valEl = document.getElementById('site-bg-opacity-value');
+      if(valEl) valEl.textContent = bgOpacityInput.value;
+      const layer = document.getElementById('bg-layer-image');
+      if(layer) layer.style.opacity = String(Number(bgOpacityInput.value)/100);
+    });
+    bgOpacityInput.addEventListener('change', ()=>assignSiteImage('site_background_opacity', bgOpacityInput.value));
+  }
+  const textureOpacityInput = document.getElementById('site-bg-texture-opacity-input');
+  if(textureOpacityInput){
+    textureOpacityInput.addEventListener('input', ()=>{
+      const valEl = document.getElementById('site-bg-texture-opacity-value');
+      if(valEl) valEl.textContent = textureOpacityInput.value;
+      const layer = document.getElementById('bg-layer-texture');
+      if(layer) layer.style.opacity = String(Number(textureOpacityInput.value)/100);
+    });
+    textureOpacityInput.addEventListener('change', ()=>assignSiteImage('site_background_texture_opacity', textureOpacityInput.value));
+  }
   document.querySelectorAll('[data-pick-image]').forEach(b=>b.addEventListener('click', ()=>{
     if(state.modal && state.modal.type==='pick-image'){
       assignSiteImage(state.modal.slotKey, b.dataset.pickUrl);
