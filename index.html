@@ -1143,19 +1143,28 @@ function showToast(msg, isError){
   setTimeout(()=>{ state.toast=null; render(); }, 2200);
 }
 function applySiteBackground(){
-  const url = state.siteImages['site_background'];
+  const fgUrl = state.siteImages['site_background'];
+  const textureUrl = state.siteImages['site_background_texture'];
   const color = state.siteImages['site_background_color'] || '#3a2e1d';
+
   document.body.style.backgroundColor = color;
-  if(url){
-    document.body.style.backgroundImage = `url('${url}')`;
-    document.body.style.backgroundSize = 'cover';
+
+  const layers = [];
+  if(fgUrl) layers.push({ url: fgUrl, size: 'cover', repeat: 'no-repeat', position: 'center' });
+  if(textureUrl) layers.push({ url: textureUrl, size: 'auto', repeat: 'repeat', position: 'top left' });
+
+  if(layers.length){
+    document.body.style.backgroundImage = layers.map(l=>`url('${l.url}')`).join(', ');
+    document.body.style.backgroundSize = layers.map(l=>l.size).join(', ');
+    document.body.style.backgroundRepeat = layers.map(l=>l.repeat).join(', ');
+    document.body.style.backgroundPosition = layers.map(l=>l.position).join(', ');
     document.body.style.backgroundAttachment = 'fixed';
-    document.body.style.backgroundPosition = 'center';
   } else {
     document.body.style.backgroundImage = '';
     document.body.style.backgroundSize = '';
-    document.body.style.backgroundAttachment = '';
+    document.body.style.backgroundRepeat = '';
     document.body.style.backgroundPosition = '';
+    document.body.style.backgroundAttachment = '';
   }
 }
 
@@ -2071,7 +2080,7 @@ function renderLanding(){
   return `
   ${topNavBar(navLinks, {guildName: state.settings.guild_name, showRecruit:true})}
 
-  <div class="marketing-hero ${(state.siteImages['site_background'] || state.siteImages['site_background_color']) ? 'custom-bg' : ''}" id="about">
+  <div class="marketing-hero ${(state.siteImages['site_background'] || state.siteImages['site_background_texture'] || state.siteImages['site_background_color']) ? 'custom-bg' : ''}" id="about">
     <div class="hero-centered">
       <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
       <h1 class="hero-title2 gold-text">Adventure Is Forever</h1>
@@ -2972,10 +2981,22 @@ function renderGallery(){
         <div class="slot-preview" style="background:${esc(state.siteImages['site_background_color'] || '#3a2e1d')};"></div>
         <div class="slot-info">
           <div class="slot-label">Site Background Color</div>
-          <div class="muted sans" style="font-size:12px;">Shows through any transparent areas of the background image above</div>
+          <div class="muted sans" style="font-size:12px;">Flat fallback color, used if no texture below is set</div>
         </div>
         <div class="slot-actions">
           <input type="color" id="site-bg-color-input" value="${esc(state.siteImages['site_background_color'] || '#3a2e1d')}" style="width:44px; height:36px; padding:2px; border-radius:4px; border:1px solid var(--divider-strong); background:var(--bg-input); cursor:pointer;">
+        </div>
+      </div>
+
+      <div class="slot-row">
+        <div class="slot-preview slot-preview-bg" style="${state.siteImages['site_background_texture']?`background-image:url('${esc(state.siteImages['site_background_texture'])}'); background-size:64px 64px;`:''}"></div>
+        <div class="slot-info">
+          <div class="slot-label">Site Background Texture</div>
+          <div class="muted sans" style="font-size:12px;">A tiled textured backdrop, sitting behind the background image above (and in front of the flat color)</div>
+        </div>
+        <div class="slot-actions">
+          <button class="btn secondary" type="button" data-choose-slot="site_background_texture">Choose</button>
+          ${ state.siteImages['site_background_texture'] ? `<button class="btn danger" type="button" data-clear-slot="site_background_texture">Clear</button>` : '' }
         </div>
       </div>
 
