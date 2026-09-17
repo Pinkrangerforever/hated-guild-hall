@@ -695,51 +695,45 @@
     0%{ transform:scale(0.6); opacity:0.7; }
     100%{ transform:scale(1.6); opacity:0; }
   }
-  @keyframes fishBob{
-    0%,100%{ transform:translateY(-3px) rotate(-6deg); }
-    50%{ transform:translateY(3px) rotate(6deg); }
+  @keyframes needleSweep{
+    0%{ transform:rotate(-90deg); }
+    50%{ transform:rotate(90deg); }
+    100%{ transform:rotate(-90deg); }
   }
-  @keyframes ringShrink{
-    from{ transform:scale(1); opacity:1; }
-    to{ transform:scale(0.15); opacity:0.4; }
-  }
-  @keyframes reelSuccessPop{
-    0%{ transform:scale(1); }
-    40%{ transform:scale(1.3) translateY(-10px); }
-    100%{ transform:scale(0) translateY(-40px); opacity:0; }
-  }
-  @keyframes fishEscapeSplash{
-    0%{ transform:scale(1); opacity:1; }
-    100%{ transform:scale(1.4); opacity:0; }
+  @keyframes fishJump{
+    0%{ transform:translate(-50%,-50%) translateY(10px) scale(0.5) rotate(0deg); opacity:0; }
+    12%{ opacity:1; }
+    45%{ transform:translate(-50%,-50%) translateY(-48px) scale(1) rotate(-18deg); opacity:1; }
+    75%{ transform:translate(-50%,-50%) translateY(-48px) scale(1) rotate(12deg); opacity:1; }
+    100%{ transform:translate(-50%,-50%) translateY(6px) scale(0.55) rotate(24deg); opacity:0; }
   }
   .fishing-pool{
-    position:absolute; width:80px; height:80px; border:none; background:none; padding:0; cursor:pointer;
+    position:absolute; width:120px; height:120px; pointer-events:auto;
     animation:poolAppear 0.4s cubic-bezier(.3,1.5,.4,1) both;
   }
-  .pool-water{
-    position:absolute; inset:8px; border-radius:50%;
-    background:radial-gradient(circle at 35% 30%, #4a90c9, #14456e 75%);
-    border:2px solid rgba(255,255,255,0.35);
-  }
+  .pond-svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
   .pool-ripple{
-    position:absolute; inset:0; border-radius:50%; border:2px solid rgba(140,200,255,0.6);
+    position:absolute; inset:6px; border-radius:50%; border:2px solid rgba(140,200,255,0.6);
     animation:poolRipple 1.8s ease-out infinite;
   }
-  .pool-fish{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-size:22px; color:#f0dfb4; text-shadow:0 0 6px rgba(255,224,153,0.8);
-    animation:fishBob 1.2s ease-in-out infinite;
+  .pool-click-hint{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    background:rgba(0,0,0,0.55); color:#fff3d6; border:2px solid #f0dfb4; border-radius:20px;
+    padding:8px 16px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;
   }
-  .fishing-ring-target{
-    position:absolute; inset:8px; border-radius:50%; border:3px solid #f0dfb4;
-    box-shadow:0 0 10px rgba(240,223,180,0.7);
+  .pool-click-hint:hover{ background:rgba(0,0,0,0.75); }
+  .fish-gauge-wrap{ position:absolute; left:50%; bottom:-10px; transform:translateX(-50%); width:160px; }
+  .fish-gauge-btn{ background:none; border:none; padding:0; cursor:pointer; width:100%; display:block; }
+  .fish-gauge-btn svg{ width:100%; height:auto; display:block; }
+  .fish-needle{ transform-origin:80px 76px; animation-name:needleSweep; animation-timing-function:linear; animation-iteration-count:infinite; }
+  .fish-gauge-hint{
+    display:block; text-align:center; font-size:10px; font-weight:700; color:#fff3d6;
+    text-shadow:0 2px 4px rgba(0,0,0,0.8); margin-top:-6px;
   }
-  .fishing-ring-shrink{
-    position:absolute; inset:0; border-radius:50%; border:4px solid #6fd0ff;
-    animation-name:ringShrink; animation-timing-function:linear; animation-fill-mode:forwards;
+  .fish-jump{
+    position:absolute; left:50%; top:38%; width:60px; height:40px;
+    animation:fishJump 0.85s ease-out forwards;
   }
-  .fishing-pool.reel-success .pool-fish{ animation:reelSuccessPop 0.5s ease-out forwards; }
-  .fishing-pool.fish-escape .pool-water{ animation:fishEscapeSplash 0.5s ease-out forwards; }
 
   .shop-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:14px; max-height:60vh; overflow-y:auto; }
   .shop-card{
@@ -1839,70 +1833,142 @@ function startMurlocEvent(rect, pendingId){
 }
 
 /* ---------------- fishing pool sub-event ---------------- */
-window.__FISHING_DURATION_MS = 1500;
-const FISHING_START_R = 68, FISHING_END_R = 10, FISHING_TARGET_R = 32, FISHING_TOLERANCE = 11;
+window.__FISHING_SWEEP_MS = 1400; // one full needle sweep, left-to-right-to-left
+window.__FISHING_GAME_MS = 6000;  // total time allowed once the gauge starts
+const FISHING_ZONE_WIDTH_DEG = 26;
+const FISHING_IDLE_TIMEOUT_MS = 6000; // time allowed before clicking the pond itself
 
-function checkFishingTiming(elapsedMs, durationMs){
-  const t = Math.min(1, Math.max(0, elapsedMs / durationMs));
-  const currentR = FISHING_START_R - (FISHING_START_R - FISHING_END_R) * t;
-  return Math.abs(currentR - FISHING_TARGET_R) <= FISHING_TOLERANCE;
+const POND_SVG = `<svg class="pond-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="pondWaterGrad" cx="38%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#6fc7e0"/>
+      <stop offset="55%" stop-color="#2a7a9e"/>
+      <stop offset="100%" stop-color="#154a63"/>
+    </radialGradient>
+  </defs>
+  <g fill="#8a8175" stroke="#54503f" stroke-width="1.5">
+    <ellipse cx="60" cy="10" rx="12" ry="7"/>
+    <ellipse cx="84" cy="16" rx="10" ry="7"/>
+    <ellipse cx="102" cy="34" rx="11" ry="7" transform="rotate(30 102 34)"/>
+    <ellipse cx="110" cy="60" rx="10" ry="7"/>
+    <ellipse cx="102" cy="86" rx="11" ry="7" transform="rotate(-30 102 86)"/>
+    <ellipse cx="84" cy="104" rx="10" ry="7"/>
+    <ellipse cx="60" cy="110" rx="12" ry="7"/>
+    <ellipse cx="36" cy="104" rx="10" ry="7"/>
+    <ellipse cx="18" cy="86" rx="11" ry="7" transform="rotate(30 18 86)"/>
+    <ellipse cx="10" cy="60" rx="10" ry="7"/>
+    <ellipse cx="18" cy="34" rx="11" ry="7" transform="rotate(-30 18 34)"/>
+    <ellipse cx="36" cy="16" rx="10" ry="7"/>
+  </g>
+  <circle cx="60" cy="60" r="46" fill="url(#pondWaterGrad)" stroke="#0d3245" stroke-width="2"/>
+  <path d="M28 34 Q40 20 28 8" fill="none" stroke="#3fd06b" stroke-width="4" stroke-linecap="round"/>
+  <path d="M20 40 Q28 28 18 18" fill="none" stroke="#3fd06b" stroke-width="4" stroke-linecap="round"/>
+</svg>`;
+
+const FISH_JUMP_SVG = `<svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+  <path d="M6 20 Q18 4 40 10 Q50 12 54 20 Q44 22 40 30 Q18 36 6 20 Z" fill="#e0a94a" stroke="#8a5a20" stroke-width="1.5"/>
+  <path d="M6 20 L0 12 L2 20 L0 28 Z" fill="#e0a94a" stroke="#8a5a20" stroke-width="1.5"/>
+  <circle cx="38" cy="16" r="2.2" fill="#1a1410"/>
+</svg>`;
+
+// Pure math, matches the CSS @keyframes needleSweep exactly (linear,
+// ping-pong -90deg to 90deg to -90deg). Exposed so tests can verify timing.
+window.__fishingNeedleAngleAt = function(elapsedMs, cycleMs){
+  const pos = (elapsedMs % cycleMs) / cycleMs;
+  if(pos < 0.5) return -90 + (pos/0.5)*180;
+  return 90 - ((pos-0.5)/0.5)*180;
+};
+function angleToPoint(cx, cy, r, angleDeg){
+  const rad = angleDeg * Math.PI/180;
+  return { x: cx + r*Math.sin(rad), y: cy - r*Math.cos(rad) };
+}
+function arcPath(cx, cy, r, startAngle, endAngle){
+  const p1 = angleToPoint(cx,cy,r,startAngle);
+  const p2 = angleToPoint(cx,cy,r,endAngle);
+  const largeArc = (endAngle-startAngle) > 180 ? 1 : 0;
+  return 'M' + p1.x.toFixed(2) + ',' + p1.y.toFixed(2) + ' A' + r + ',' + r + ' 0 ' + largeArc + ' 1 ' + p2.x.toFixed(2) + ',' + p2.y.toFixed(2);
+}
+function buildFishGaugeMarkup(zoneStart, zoneEnd){
+  const trackPath = arcPath(80, 76, 64, -90, 90);
+  const zonePath = arcPath(80, 76, 64, zoneStart, zoneEnd);
+  return '<button type="button" class="fish-gauge-btn">' +
+    '<svg viewBox="0 0 160 86" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="' + trackPath + '" fill="none" stroke="#0d2833" stroke-width="13" stroke-linecap="round"/>' +
+      '<path d="' + zonePath + '" fill="none" stroke="#3fd06b" stroke-width="13" stroke-linecap="round"/>' +
+      '<line class="fish-needle" x1="80" y1="76" x2="80" y2="14" stroke="#fff3d6" stroke-width="4" stroke-linecap="round"/>' +
+      '<circle cx="80" cy="76" r="6" fill="#f0dfb4" stroke="#8a6a2e" stroke-width="1.5"/>' +
+    '</svg>' +
+    '<span class="fish-gauge-hint">Click when the line is in the green!</span>' +
+  '</button>';
 }
 
 function startFishingEvent(rect, pendingId){
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
   const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
-  const pool = document.createElement('button');
-  pool.type = 'button';
+  const pool = document.createElement('div');
   pool.className = 'fishing-pool';
-  pool.style.left = (cx - 40) + 'px';
-  pool.style.top = (cy - 40) + 'px';
+  pool.style.left = (cx - 60) + 'px';
+  pool.style.top = (cy - 60) + 'px';
   pool.innerHTML =
     '<span class="pool-ripple"></span>' +
-    '<span class="pool-water"></span>' +
-    '<span class="pool-fish">&#10022;</span>';
+    POND_SVG +
+    '<button type="button" class="pool-click-hint">Click to fish!</button>';
   layer.appendChild(pool);
 
   let resolved = false;
-  const poolTimeout = setTimeout(()=>{
-    if(!resolved){
-      resolved = true;
-      resolveSparkleEvent(pendingId, false, cx, cy);
-      pool.remove();
-    }
-  }, 6000);
-
-  pool.addEventListener('click', function startReel(){
+  const idleTimeout = setTimeout(()=>{
     if(resolved) return;
-    clearTimeout(poolTimeout);
-    pool.removeEventListener('click', startReel);
-    pool.innerHTML =
-      '<span class="fishing-ring-target"></span>' +
-      '<span class="fishing-ring-shrink" style="animation-duration:' + window.__FISHING_DURATION_MS + 'ms;"></span>';
-    const startTime = performance.now();
-    let ringResolved = false;
-    const ringTimeout = setTimeout(()=>{ finishFishing(false); }, window.__FISHING_DURATION_MS + 150);
+    resolved = true;
+    resolveSparkleEvent(pendingId, false, cx, cy);
+    pool.remove();
+  }, FISHING_IDLE_TIMEOUT_MS);
 
-    function finishFishing(success){
-      if(ringResolved) return;
-      ringResolved = true;
+  const hintBtn = pool.querySelector('.pool-click-hint');
+  hintBtn.addEventListener('click', function startGauge(){
+    if(resolved) return;
+    clearTimeout(idleTimeout);
+    hintBtn.remove();
+
+    const zoneStart = -80 + Math.random()*(160-FISHING_ZONE_WIDTH_DEG);
+    const zoneEnd = zoneStart + FISHING_ZONE_WIDTH_DEG;
+
+    const gaugeWrap = document.createElement('div');
+    gaugeWrap.className = 'fish-gauge-wrap';
+    gaugeWrap.innerHTML = buildFishGaugeMarkup(zoneStart, zoneEnd);
+    pool.appendChild(gaugeWrap);
+
+    const needle = gaugeWrap.querySelector('.fish-needle');
+    needle.style.animationDuration = window.__FISHING_SWEEP_MS + 'ms';
+    const startTime = performance.now();
+    let gameResolved = false;
+    const gameTimeout = setTimeout(()=>finishGame(false), window.__FISHING_GAME_MS);
+
+    function finishGame(success){
+      if(gameResolved) return;
+      gameResolved = true;
       resolved = true;
-      clearTimeout(ringTimeout);
+      clearTimeout(gameTimeout);
       resolveSparkleEvent(pendingId, success, cx, cy);
+      gaugeWrap.remove();
       if(success){
-        pool.classList.add('reel-success');
+        const jump = document.createElement('div');
+        jump.className = 'fish-jump';
+        jump.innerHTML = FISH_JUMP_SVG;
+        pool.appendChild(jump);
+        setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 800);
       } else {
         showToast('The fish got away!', true);
-        pool.classList.add('fish-escape');
+        setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 300);
       }
-      setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 500);
     }
 
-    pool.addEventListener('click', function tryReel(){
-      if(ringResolved) return;
+    gaugeWrap.querySelector('.fish-gauge-btn').addEventListener('click', ()=>{
+      if(gameResolved) return;
       const elapsed = performance.now() - startTime;
-      finishFishing(checkFishingTiming(elapsed, window.__FISHING_DURATION_MS));
-    }, { once:true });
+      const angle = window.__fishingNeedleAngleAt(elapsed, window.__FISHING_SWEEP_MS);
+      finishGame(angle >= zoneStart && angle <= zoneEnd);
+    });
   }, { once:true });
 }
 
@@ -1921,7 +1987,6 @@ function showGoldFloat(x, y, amount){
 // waiting for the real randomized interval. Harmless to expose — spawning a
 // sparkle grants nothing by itself; only a server-verified claim does.
 window.spawnSparkle = spawnSparkle;
-window.checkFishingTiming = checkFishingTiming;
 
 /* ---------------- reward shop ---------------- */
 function openShop(){
