@@ -495,10 +495,24 @@
   /* ---- mobile nav ---- */
   .nav-hamburger{
     display:none; background:none; border:1px solid rgba(207,227,230,0.35); border-radius:2px;
-    color:#cfe3e6; font-size:18px; padding:5px 10px; line-height:1;
+    color:#cfe3e6; font-size:18px; padding:5px 10px; line-height:1; flex-shrink:0;
   }
   .nav-hamburger:hover{ background:rgba(255,255,255,0.08); }
   @media (max-width:1150px){ .nav-hamburger{ display:block; } }
+
+  /* Phone-width: the full row (brand + user badge + gold + shop/admin +
+     hamburger) doesn't fit no matter what — shrink the crest and move
+     everything but the essentials into the dropdown menu instead. */
+  @media (max-width:600px){
+    .nav-brand-icon img, .nav-brand-icon svg{ width:44px !important; height:44px !important; }
+    .nav-user, #open-shop-btn, .btn-nav-admin{ display:none; }
+    .site-nav-inner{ gap:8px; padding:0 12px; }
+    .nav-gold-badge{ font-size:12px; padding:3px 7px; }
+  }
+  .mobile-nav-menu-user{
+    padding:12px 20px; color:#cfe3e6; font-size:13px; border-bottom:1px solid rgba(255,255,255,0.06);
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
   .mobile-nav-menu{
     display:none; flex-direction:column;
     background:#0b2027; border-top:1px solid rgba(207,154,68,0.25);
@@ -2216,6 +2230,11 @@ function renderApp(){
         </div>
       </div>
       <div class="mobile-nav-menu ${state.mobileNavOpen ? 'open' : ''}">
+        <div class="mobile-nav-menu-user">
+          <span>${esc(myName())}</span>
+          <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span>
+        </div>
+        <button type="button" class="mobile-nav-link" id="open-shop-btn-mobile">Shop</button>
         ${navItems.map(([key,label])=>`
           <button type="button" class="mobile-nav-link ${state.tab===key?'active':''}" data-tab="${key}">${esc(label)}</button>
         `).join('')}
@@ -3293,6 +3312,8 @@ function bindApp(){
 
   const shopBtn = document.getElementById('open-shop-btn');
   if(shopBtn) shopBtn.addEventListener('click', openShop);
+  const shopBtnMobile = document.getElementById('open-shop-btn-mobile');
+  if(shopBtnMobile) shopBtnMobile.addEventListener('click', ()=>{ state.mobileNavOpen = false; openShop(); });
   document.querySelectorAll('[data-buy-shop-item]').forEach(b=>b.addEventListener('click', ()=>purchaseShopItem(b.dataset.buyShopItem)));
   document.querySelectorAll('[data-edit-shop-item]').forEach(b=>b.addEventListener('click', ()=>startEditShopItem(b.dataset.editShopItem)));
   document.querySelectorAll('[data-save-shop-item]').forEach(b=>b.addEventListener('click', ()=>saveShopItem(b.dataset.saveShopItem)));
