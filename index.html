@@ -636,50 +636,52 @@
     background:rgba(207,154,68,0.14); border:1px solid rgba(207,154,68,0.4); border-radius:12px; padding:4px 10px;
   }
 
-  /* ---- goblin ambush sub-event ---- */
-  @keyframes goblinPopIn{
-    0%{ transform:scale(0) translateY(20px); opacity:0; }
-    60%{ transform:scale(1.15) translateY(-4px); opacity:1; }
-    100%{ transform:scale(1) translateY(0); opacity:1; }
-  }
-  @keyframes goblinHitReaction{
-    0%{ transform:scale(1) rotate(0deg); opacity:1; }
-    30%{ transform:scale(1.2) rotate(-15deg); opacity:1; }
-    100%{ transform:scale(0.3) rotate(35deg) translateY(20px); opacity:0; }
-  }
-  @keyframes goblinFlee{
-    0%{ transform:translateX(0) scale(1); opacity:1; }
-    100%{ transform:translateX(-120px) scale(0.6); opacity:0; }
+  /* ---- murloc ambush sub-event ---- */
+  @keyframes murlocLifecycle{
+    0%{ transform:scale(0) translateX(0) translateY(20px); opacity:0; }
+    8%{ transform:scale(1.12) translateX(0) translateY(-4px); opacity:1; }
+    16%{ transform:scale(1) translateX(0) translateY(0); opacity:1; }
+    30%{ transform:scale(0.9) translateX(-9px) translateY(0); opacity:1; }
+    45%{ transform:scale(0.8) translateX(8px) translateY(0); opacity:1; }
+    60%{ transform:scale(0.7) translateX(-8px) translateY(0); opacity:1; }
+    75%{ transform:scale(0.6) translateX(6px) translateY(0); opacity:1; }
+    90%{ transform:scale(0.5) translateX(-4px) translateY(0); opacity:1; }
+    100%{ transform:scale(0.42) translateX(0) translateY(0); opacity:1; }
   }
   @keyframes arrowFly{
     0%{ transform:translate(-40px, 60px) rotate(-40deg) scale(0.6); opacity:1; }
     100%{ transform:translate(0,0) rotate(-40deg) scale(1); opacity:0; }
   }
   @keyframes timerShrink{ from{ width:100%; } to{ width:0%; } }
-  .goblin-event{
-    position:absolute; width:190px; pointer-events:auto; text-align:center;
-    animation:goblinPopIn 0.35s cubic-bezier(.3,1.5,.4,1) both;
+  .murloc-event{
+    position:absolute; pointer-events:auto; text-align:center;
   }
-  .goblin-label{
+  .murloc-label{
     font-size:11px; font-weight:700; color:#fff3d6; text-shadow:0 2px 4px rgba(0,0,0,0.8);
     margin-bottom:4px; white-space:nowrap;
   }
-  .goblin-timer-bar{ width:100%; height:5px; background:rgba(0,0,0,0.5); border-radius:3px; overflow:hidden; margin-bottom:6px; }
-  .goblin-timer-fill{ height:100%; background:linear-gradient(90deg,#e05a4f,#f0dfb4); animation-name:timerShrink; animation-timing-function:linear; animation-fill-mode:forwards; }
-  .goblin-stage{ display:flex; justify-content:center; gap:26px; position:relative; }
-  .goblin{
-    width:52px; height:52px; background:none; border:none; padding:0; cursor:pointer;
+  .murloc-timer-bar{ width:100%; height:5px; background:rgba(0,0,0,0.5); border-radius:3px; overflow:hidden; margin-bottom:6px; }
+  .murloc-timer-fill{ height:100%; background:linear-gradient(90deg,#e05a4f,#f0dfb4); animation-name:timerShrink; animation-timing-function:linear; animation-fill-mode:forwards; }
+  .murloc-stage{ display:flex; justify-content:center; align-items:flex-end; position:relative; }
+  .murloc{
+    background:none; border:none; padding:0; cursor:pointer;
     filter:drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+    animation-name:murlocLifecycle; animation-timing-function:ease-in-out; animation-fill-mode:forwards;
   }
-  .goblin svg{ width:100%; height:100%; }
-  .goblin.hit{ animation:goblinHitReaction 0.4s ease-in forwards; pointer-events:none; }
-  .goblin.flee{ animation:goblinFlee 0.5s ease-in forwards; }
-  .goblin-arrow{
+  .murloc svg{ width:100%; height:100%; display:block; }
+  .murloc.hit{
+    animation:none; /* frozen at the current flee position by JS just before this class is added */
+    transition:transform 0.35s ease-in, opacity 0.35s ease-in;
+    transform:scale(0.25) rotate(30deg) translateY(20px) !important;
+    opacity:0;
+    pointer-events:none;
+  }
+  .murloc-arrow{
     position:absolute; width:26px; height:4px; margin-left:-13px; margin-top:-2px;
     background:linear-gradient(90deg,#8a6a3a,#d9c79a); border-radius:2px;
     animation:arrowFly 0.22s ease-out forwards;
   }
-  .goblin-arrow::after{
+  .murloc-arrow::after{
     content:''; position:absolute; right:-6px; top:-3px; border:5px solid transparent; border-left-color:#d9c79a;
   }
 
@@ -1712,7 +1714,7 @@ async function claimSparkle(el){
   try{
     const { data, error } = await sb.rpc('claim_sparkle_gold');
     if(error || !data || !data.success) return; // cooldown or not logged in — just no visible reward
-    if(data.event === 'goblin') return startGoblinEvent(rect, data.pending_id);
+    if(data.event === 'murloc') return startMurlocEvent(rect, data.pending_id);
     if(data.event === 'fishing') return startFishingEvent(rect, data.pending_id);
     // normal claim: gold is already awarded by the server
     if(state.profile){
@@ -1734,49 +1736,81 @@ async function resolveSparkleEvent(pendingId, won, x, y){
   }catch(e){ /* silent */ }
 }
 
-/* ---------------- goblin ambush sub-event ---------------- */
-window.__GOBLIN_DURATION_MS = 4000; // overridable by tests
-const GOBLIN_SVG = `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-  <ellipse cx="30" cy="43" rx="15" ry="13" fill="#4f8a34"/>
-  <path d="M14 19 L3 9 L15 27 Z" fill="#4f8a34"/>
-  <path d="M46 19 L57 9 L45 27 Z" fill="#4f8a34"/>
-  <circle cx="30" cy="23" r="16" fill="#6fae4a"/>
-  <circle cx="24" cy="21" r="4.5" fill="#fff"/>
-  <circle cx="36" cy="21" r="4.5" fill="#fff"/>
-  <circle cx="25" cy="22" r="2.2" fill="#141"/>
-  <circle cx="35" cy="22" r="2.2" fill="#141"/>
-  <path d="M20 29 Q30 37 40 29" stroke="#1a3d0f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <path d="M25 30 L24 34 M35 30 L36 34" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+/* ---------------- murloc ambush sub-event ---------------- */
+window.__MURLOC_DURATION_MS = 4500; // overridable by tests
+const MURLOC_SVG = `<svg viewBox="0 0 60 66" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="30" cy="56" rx="13" ry="9" fill="#2f8a95"/>
+  <path d="M18 50 L8 62 L14 62 L22 54 Z" fill="#3fd06b"/>
+  <path d="M42 50 L52 62 L46 62 L38 54 Z" fill="#3fd06b"/>
+  <path d="M14 44 L2 46 L4 40 Z" fill="#3fd06b"/>
+  <path d="M46 44 L58 46 L56 40 Z" fill="#3fd06b"/>
+  <path d="M13 27 L7 6 L18 21 Z" fill="#f0dfb4"/>
+  <path d="M20 20 L18 2 L26 17 Z" fill="#f0dfb4"/>
+  <path d="M30 18 L30 0 L34 18 Z" fill="#f0dfb4"/>
+  <path d="M40 20 L42 2 L34 17 Z" fill="#f0dfb4"/>
+  <path d="M47 27 L53 6 L42 21 Z" fill="#f0dfb4"/>
+  <ellipse cx="30" cy="34" rx="20" ry="18" fill="#4ecbdb"/>
+  <ellipse cx="30" cy="34" rx="20" ry="18" fill="url(#murlocShade)" opacity="0.5"/>
+  <circle cx="21" cy="30" r="7" fill="#fff"/>
+  <circle cx="39" cy="30" r="7" fill="#fff"/>
+  <circle cx="22" cy="31" r="3.4" fill="#0d1a1c"/>
+  <circle cx="38" cy="31" r="3.4" fill="#0d1a1c"/>
+  <path d="M15 42 Q30 58 45 42 Q30 50 15 42 Z" fill="#7a1f24"/>
+  <path d="M17 43 L20 39 L23 43 L26 39 L29 43 L32 39 L35 43 L38 39 L41 43 L44 39" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+  <defs><radialGradient id="murlocShade" cx="35%" cy="25%" r="70%"><stop offset="0%" stop-color="#fff" stop-opacity="0.5"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
 </svg>`;
 
-function startGoblinEvent(rect, pendingId){
+function startMurlocEvent(rect, pendingId){
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
   const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+  const count = 3 + Math.floor(Math.random()*3); // 3, 4, or 5
+  const size = count >= 5 ? 40 : (count === 4 ? 46 : 52);
+  const gap = count >= 5 ? 8 : 14;
+  const stageWidth = count*size + (count-1)*gap;
+
   const container = document.createElement('div');
-  container.className = 'goblin-event';
-  container.style.left = (cx - 95) + 'px';
+  container.className = 'murloc-event';
+  container.style.left = (cx - stageWidth/2 - 10) + 'px';
   container.style.top = (cy - 55) + 'px';
+  container.style.width = (stageWidth + 20) + 'px';
+
+  let murlocButtons = '';
+  for(let i=0;i<count;i++){
+    murlocButtons += '<button type="button" class="murloc" data-murloc="' + i + '" style="width:' + size + 'px; height:' + (size*1.1) + 'px; animation-duration:' + window.__MURLOC_DURATION_MS + 'ms;">' + MURLOC_SVG + '</button>';
+  }
+
   container.innerHTML =
-    '<div class="goblin-label">Shoot them before they steal the gold!</div>' +
-    '<div class="goblin-timer-bar"><div class="goblin-timer-fill" style="animation-duration:' + window.__GOBLIN_DURATION_MS + 'ms;"></div></div>' +
-    '<div class="goblin-stage">' +
-    '<button type="button" class="goblin" data-goblin="1">' + GOBLIN_SVG + '</button>' +
-    '<button type="button" class="goblin" data-goblin="2">' + GOBLIN_SVG + '</button>' +
-    '</div>';
+    '<div class="murloc-label">Shoot them before they escape with the gold!</div>' +
+    '<div class="murloc-timer-bar"><div class="murloc-timer-fill" style="animation-duration:' + window.__MURLOC_DURATION_MS + 'ms;"></div></div>' +
+    '<div class="murloc-stage" style="gap:' + gap + 'px;">' + murlocButtons + '</div>';
   layer.appendChild(container);
 
   let hits = 0, resolved = false;
+  const total = count;
 
-  function spawnArrow(goblinEl){
+  function spawnArrow(murlocEl){
     const arrow = document.createElement('div');
-    arrow.className = 'goblin-arrow';
-    const gr = goblinEl.getBoundingClientRect();
+    arrow.className = 'murloc-arrow';
+    const gr = murlocEl.getBoundingClientRect();
     const cr = container.getBoundingClientRect();
     arrow.style.left = (gr.left - cr.left + gr.width/2) + 'px';
     arrow.style.top = (gr.top - cr.top + gr.height/2) + 'px';
     container.appendChild(arrow);
     setTimeout(()=>{ if(arrow.parentNode) arrow.remove(); }, 400);
+  }
+
+  function hitMurloc(el){
+    // Freeze the ongoing flee animation exactly where it is, then let a CSS
+    // transition (not a keyframe animation) carry it smoothly into the hit
+    // reaction — avoids any visual "snap back" to full size on hit.
+    const computed = window.getComputedStyle(el).transform;
+    el.style.animation = 'none';
+    el.style.transform = computed === 'none' ? '' : computed;
+    void el.offsetWidth; // force reflow so the frozen transform takes effect before adding .hit
+    el.classList.add('hit');
+    el.disabled = true;
+    spawnArrow(el);
   }
 
   function finish(success){
@@ -1787,23 +1821,21 @@ function startGoblinEvent(rect, pendingId){
     if(success){
       container.remove();
     } else {
-      container.querySelectorAll('.goblin:not(.hit)').forEach(g=>{ g.classList.add('flee'); g.disabled = true; });
-      showToast('The goblins got away with the gold!', true);
-      setTimeout(()=>{ if(container.parentNode) container.remove(); }, 500);
+      showToast('The murlocs got away with the gold!', true);
+      setTimeout(()=>{ if(container.parentNode) container.remove(); }, 400);
     }
   }
 
-  container.querySelectorAll('.goblin').forEach(g=>{
-    g.addEventListener('click', ()=>{
-      if(resolved || g.classList.contains('hit')) return;
-      g.classList.add('hit');
-      spawnArrow(g);
+  container.querySelectorAll('.murloc').forEach(m=>{
+    m.addEventListener('click', ()=>{
+      if(resolved || m.classList.contains('hit')) return;
+      hitMurloc(m);
       hits++;
-      if(hits >= 2) finish(true);
+      if(hits >= total) finish(true);
     });
   });
 
-  const timeoutId = setTimeout(()=>finish(false), window.__GOBLIN_DURATION_MS);
+  const timeoutId = setTimeout(()=>finish(false), window.__MURLOC_DURATION_MS);
 }
 
 /* ---------------- fishing pool sub-event ---------------- */
