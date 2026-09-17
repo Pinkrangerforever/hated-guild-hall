@@ -1215,7 +1215,7 @@ function applySiteBackground(){
   const textureLayer = document.getElementById('bg-layer-texture');
   if(textureLayer){
     textureLayer.style.backgroundImage = textureUrl ? `url('${textureUrl}')` : '';
-    textureLayer.style.backgroundSize = '1100px 1100px'; // larger tile = less repetition, more visible per-tile detail
+    textureLayer.style.backgroundSize = '800px 800px'; // larger tile = less repetition, more visible per-tile detail
     textureLayer.style.opacity = String(Number(textureOpacity) / 100);
   }
 }
