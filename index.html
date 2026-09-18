@@ -1013,7 +1013,7 @@
 
 const SUPABASE_URL = 'https://dymlprrudprwyctjqqer.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_JzIAyh2apUIXDkZZutGsHA_6UI0PuKF';
-const sb = window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const BOSS_SCREENSHOT_BUCKET = 'boss-screenshots';
 
 /* ---- reused helpers (icons, dates, rich text, nav) ---- */
@@ -2596,14 +2596,14 @@ const GoldLeaderboard = {
     this.isLoading = true;
     
     try {
-      if (!sb) {
+      if (!window.supabase) {
         console.error('❌ Supabase not initialized');
         this.leaderboardData = [];
         return;
       }
       
       console.log('📊 Calling get_gold_leaderboard RPC...');
-      const { data: leaderboard, error: lbError } = await sb.rpc(
+      const { data: leaderboard, error: lbError } = await window.supabase.rpc(
         'get_gold_leaderboard',
         { p_limit: 50 }
       );
@@ -2620,6 +2620,12 @@ const GoldLeaderboard = {
       console.log('✅ Leaderboard loaded:', this.leaderboardData.length, 'players');
       if (this.leaderboardData.length > 0) {
         console.log('🥇 Top player:', this.leaderboardData[0].character_name || this.leaderboardData[0].discord_username, 'Gold:', this.leaderboardData[0].gold);
+        
+        // Re-render the leaderboard section after data loads
+        const leaderboardContainer = document.querySelector('.gold-leaderboard');
+        if (leaderboardContainer) {
+          leaderboardContainer.innerHTML = this.render();
+        }
       }
     } catch (err) {
       console.error('❌ Leaderboard load failed:', err);
