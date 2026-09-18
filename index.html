@@ -568,20 +568,44 @@
   @media (max-width:520px){ .comp-groups{ grid-template-columns:1fr; } }
   .comp-group-title{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:8px; text-align:center; }
   .comp-slot{
-    display:flex; align-items:center; gap:8px; min-height:42px; padding:5px 8px; margin-bottom:6px;
+    display:flex; align-items:center; gap:8px; min-height:54px; padding:8px 10px; margin-bottom:8px;
     background:var(--bg-input); border:1px solid var(--divider-strong); border-radius:2px;
   }
   .comp-slot.editable{ cursor:pointer; }
   .comp-slot.editable:hover{ background:rgba(207,154,68,0.1); border-color:var(--blurple); }
   .comp-slot-empty{ font-size:12px; }
   .spec-icon-sm{
-    width:29px; height:29px; border-radius:4px; border:2px solid transparent;
+    width:35px; height:35px; border-radius:4px; border:2px solid transparent;
     background: radial-gradient(circle at 32% 26%, #2b2318 0%, #17130d 55%, #0e0b07 100%);
     display:flex; align-items:center; justify-content:center; padding:5px; flex-shrink:0;
   }
   .spec-icon-sm svg{ width:100%; height:100%; display:block; }
   .comp-slot-info{ display:flex; flex-direction:column; flex:1; overflow:hidden; line-height:1.25; }
   .comp-slot-name{ font-size:13px; font-weight:600; color:var(--text-normal); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .comp-slot-name.name-custom-flame{
+    background:linear-gradient(90deg, #ff6b35, #ff8c42, #ffa500);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    text-shadow:0 0 10px rgba(255,107,53,0.6);
+    animation:flamePulse 2s ease-in-out infinite;
+  }
+  .comp-slot-name.name-custom-star{
+    color:#ffd700;
+    text-shadow:0 0 8px rgba(255,215,0,0.8), 0 0 16px rgba(255,215,0,0.4);
+    animation:starShimmer 1.5s ease-in-out infinite;
+  }
+  .comp-slot-name.name-custom-shadow{
+    color:var(--text-normal);
+    text-shadow:0 0 12px rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.8);
+    filter:drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
+  }
+  @keyframes flamePulse{
+    0%, 100%{ filter:brightness(1); }
+    50%{ filter:brightness(1.2); }
+  }
+  @keyframes starShimmer{
+    0%, 100%{ text-shadow:0 0 8px rgba(255,215,0,0.8), 0 0 16px rgba(255,215,0,0.4); }
+    50%{ text-shadow:0 0 12px rgba(255,215,0,1), 0 0 24px rgba(255,215,0,0.6); }
+  }
   .comp-slot-spec{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .comp-slot-remove{
     background:none; border:none; color:var(--text-muted); font-size:16px; line-height:1; padding:2px 4px; flex-shrink:0;
@@ -1117,6 +1141,20 @@ function guildIconHtml(size, id){
   }
   return crestSvg(id || 'guildicon', size);
 }
+function getUserNameCustomization(userId){
+  const purchases = state.shopPurchases && state.shopPurchases.filter(p=>p.user_id===userId && p.fulfilled);
+  if(!purchases || !purchases.length) return '';
+  const nameCustom = purchases.find(p=>
+    state.shopItems && state.shopItems.find(i=>i.id===p.item_id && i.category==='name_customization')
+  );
+  if(!nameCustom) return '';
+  const item = state.shopItems && state.shopItems.find(i=>i.id===nameCustom.item_id);
+  if(!item) return '';
+  if(item.name.includes('Flame')) return 'name-custom-flame';
+  if(item.name.includes('Golden')) return 'name-custom-star';
+  if(item.name.includes('Shadow')) return 'name-custom-shadow';
+  return '';
+}
 function pageBannerIconHtml(size){
   const custom = state.siteImages && state.siteImages['page_banner_icon'];
   if(custom){
@@ -1221,6 +1259,7 @@ let state = {
   galleryImages: [],
   siteImages: {},       // slot_key -> image_url
   shopItems: [],
+  shopPurchases: [],
   stickers: [],
   editingShopItemId: null,
   selectedSpec: null,
@@ -1295,6 +1334,12 @@ async function boot(){
   __booted = true;
 }
 
+async function loadShopPurchases(){
+  if(!state.session || !state.session.user) return;
+  const { data } = await sb.from('shop_purchases').select('*').eq('user_id', state.session.user.id);
+  state.shopPurchases = data || [];
+}
+
 async function onAuthResolved(){
   if(__authResolveInFlight) return; // avoid overlapping runs if multiple events fire in quick succession
   __authResolveInFlight = true;
@@ -1311,6 +1356,7 @@ async function onAuthResolved(){
       if(state.profile){
         state.view = 'app';
         await loadGuildData();
+        await loadShopPurchases();
         if(window.location.hash){
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
@@ -2477,6 +2523,7 @@ function renderShopModal(){
   const rankItems = state.shopItems.filter(i=>i.category==='rank').sort((a,b)=>(a.rank_order||0)-(b.rank_order||0));
   const iconItems = state.shopItems.filter(i=>i.category==='discord_icon');
   const titleItems = state.shopItems.filter(i=>i.category==='discord_title');
+  const nameCustomItems = state.shopItems.filter(i=>i.category==='name_customization');
   const stickerImages = state.galleryImages.filter(g=>g.is_sticker);
   const stickerPrice = state.settings.sticker_price != null ? state.settings.sticker_price : 25;
 
@@ -2579,6 +2626,12 @@ function renderShopModal(){
         </div>` : '' }
         ${ stickerImages.length ? `<div class="shop-grid">${stickerImages.map(renderStickerCard).join('')}</div>` :
           emptyState(officer ? 'No images are flagged as stickers yet — go to the Gallery to enable some.' : 'No stickers available yet.') }
+      </div>
+
+      <div class="shop-section">
+        <h4 class="shop-section-title">Roster Name Customization</h4>
+        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Make your roster name stand out with special effects and animations.</p>
+        ${ nameCustomItems.length ? `<div class="shop-grid">${nameCustomItems.map(renderSimpleCard).join('')}</div>` : emptyState('No name customizations set up yet.') }
       </div>
 
       <div class="shop-section">
@@ -2954,12 +3007,13 @@ function renderRoster(){
               const slot = slotAt(gi,si);
               const specLabel = slot ? CLASS_SPECS[slot.class_key].specs.find(s=>s.key===slot.spec_key).label : '';
               const clickAttr = officer ? `data-slot-click="${gi}|${si}"` : '';
+              const nameClass = slot ? getUserNameCustomization(slot.id) : '';
               return `
               <div class="comp-slot ${slot?'filled':''} ${officer?'editable':''}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
                 ${ slot ? `
                   <span class="spec-icon-sm" style="${specIconStyle(slot.class_key)}">${specIconHtml(slot.class_key, slot.spec_key)}</span>
                   <span class="comp-slot-info">
-                    <span class="comp-slot-name">${esc(slot.character_name)}</span>
+                    <span class="comp-slot-name ${nameClass}">${esc(slot.character_name)}</span>
                     <span class="comp-slot-spec" style="color:${CLASS_SPECS[slot.class_key].color};">${esc(specLabel)}</span>
                   </span>
                   ${ officer ? `<button type="button" class="comp-slot-remove" data-remove="${gi}|${si}" title="Remove">&times;</button>` : '' }
