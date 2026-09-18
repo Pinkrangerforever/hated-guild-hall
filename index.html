@@ -1014,6 +1014,9 @@
 const SUPABASE_URL = 'https://dymlprrudprwyctjqqer.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_JzIAyh2apUIXDkZZutGsHA_6UI0PuKF';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Expose client globally for modules (like GoldLeaderboard)
+window.supabase = sb;
 const BOSS_SCREENSHOT_BUCKET = 'boss-screenshots';
 
 /* ---- reused helpers (icons, dates, rich text, nav) ---- */
