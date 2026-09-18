@@ -937,58 +937,52 @@
   .gallery-picker-item img{ width:100%; height:100%; object-fit:cover; display:block; }
 
   /* ---- shop modal layout ---- */
-  .shop-modal-container{
-    display:grid; grid-template-columns:1fr 280px; gap:24px; align-items:start;
+  .shop-items-scroll{
+    max-height:65vh; overflow-y:auto; padding-right:8px;
   }
-  @media (max-width: 900px){
-    .shop-modal-container{ grid-template-columns:1fr; }
-    .shop-modal-right{ display:none; }
-  }
-  .shop-modal-left{ overflow-y:auto; max-height:70vh; padding-right:8px; }
-  .shop-modal-right{ position:sticky; top:0; }
 
   /* ---- gold leaderboard ---- */
   .gold-leaderboard{
-    background:var(--bg-card); border:1px solid var(--divider-strong); border-radius:6px;
-    padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.15);
+    background:linear-gradient(135deg, rgba(207,154,68,0.15) 0%, rgba(207,154,68,0.08) 100%);
+    border:1px solid rgba(207,154,68,0.35); border-radius:6px;
+    padding:14px 16px; margin-bottom:16px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.2);
   }
-  .leaderboard-header{
-    text-align:center; margin-bottom:16px; padding-bottom:12px;
-    border-bottom:1px solid var(--divider);
-  }
-  .leaderboard-header h4{
-    margin:0; font-size:14px; font-weight:700; color:var(--text-normal);
+  .leaderboard-title{
+    font-size:13px; font-weight:700; color:var(--text-normal);
+    margin-bottom:10px; text-align:center;
   }
   .leaderboard-list{
-    display:flex; flex-direction:column; gap:8px; max-height:400px; overflow-y:auto;
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+    gap:10px; max-height:120px; overflow-y:auto;
   }
   .leaderboard-row{
-    display:grid; grid-template-columns:32px 1fr 60px; gap:8px; align-items:center;
-    padding:8px 10px; border-radius:4px; font-size:13px;
-    background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    padding:8px 10px; border-radius:4px; font-size:11px; text-align:center;
+    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
     transition:background 0.15s ease;
   }
   .leaderboard-row:hover{
-    background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.12);
+    background:rgba(255,255,255,0.12); border-color:rgba(255,255,255,0.2);
   }
   .leaderboard-row.rank-0{
-    background:linear-gradient(135deg, rgba(207,154,68,0.25) 0%, rgba(207,154,68,0.15) 100%);
-    border:1px solid rgba(207,154,68,0.4);
+    background:linear-gradient(135deg, rgba(207,154,68,0.35) 0%, rgba(207,154,68,0.2) 100%);
+    border:1px solid rgba(207,154,68,0.5);
   }
   .leaderboard-row.rank-1{
-    background:linear-gradient(135deg, rgba(192,192,192,0.2) 0%, rgba(192,192,192,0.1) 100%);
-    border:1px solid rgba(192,192,192,0.3);
+    background:linear-gradient(135deg, rgba(192,192,192,0.3) 0%, rgba(192,192,192,0.15) 100%);
+    border:1px solid rgba(192,192,192,0.4);
   }
   .leaderboard-row.rank-2{
-    background:linear-gradient(135deg, rgba(205,127,50,0.2) 0%, rgba(205,127,50,0.1) 100%);
-    border:1px solid rgba(205,127,50,0.3);
+    background:linear-gradient(135deg, rgba(205,127,50,0.3) 0%, rgba(205,127,50,0.15) 100%);
+    border:1px solid rgba(205,127,50,0.4);
   }
-  .lb-rank{ font-size:18px; text-align:center; font-weight:700; }
-  .lb-name{ font-weight:600; color:var(--text-normal); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .lb-gold{ text-align:right; color:var(--gold-text); font-weight:700; font-size:12px; }
+  .lb-rank{ font-size:16px; font-weight:700; }
+  .lb-name{ font-weight:600; color:var(--text-normal); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; }
+  .lb-gold{ color:var(--gold-text); font-weight:700; font-size:10px; }
 
   .leaderboard-loading, .leaderboard-empty{
-    text-align:center; padding:20px 16px; font-size:12px; color:var(--text-muted);
+    text-align:center; padding:12px 16px; font-size:12px; color:var(--text-muted);
   }
 
   .btn-discord{
@@ -2595,10 +2589,17 @@ function renderModal(){
 const GoldLeaderboard = {
   leaderboardData: null,
   stats: null,
+  isLoading: false,
   
   async load() {
+    if (this.isLoading || this.leaderboardData !== null) return; // Already loaded or loading
+    this.isLoading = true;
+    
     try {
-      if (!window.supabase) return;
+      if (!window.supabase) {
+        console.error('Supabase not initialized');
+        return;
+      }
       
       const { data: leaderboard, error: lbError } = await window.supabase.rpc(
         'get_gold_leaderboard',
@@ -2607,29 +2608,32 @@ const GoldLeaderboard = {
       
       if (lbError) {
         console.error('Leaderboard error:', lbError);
+        this.leaderboardData = [];
         return;
       }
       
       this.leaderboardData = leaderboard || [];
+      console.log('Leaderboard loaded:', this.leaderboardData.length, 'players');
     } catch (err) {
       console.error('Leaderboard load failed:', err);
+      this.leaderboardData = [];
+    } finally {
+      this.isLoading = false;
     }
   },
   
   render() {
-    if (!this.leaderboardData) {
-      return `<div class="leaderboard-loading">Loading...</div>`;
+    if (this.leaderboardData === null) {
+      return `<div class="leaderboard-loading">Loading top earners...</div>`;
     }
     
     if (this.leaderboardData.length === 0) {
-      return `<div class="leaderboard-empty">No gold leaders yet!</div>`;
+      return `<div class="leaderboard-empty">No gold earners yet!</div>`;
     }
     
     let html = `
       <div class="gold-leaderboard">
-        <div class="leaderboard-header">
-          <h4>💰 Top Gold</h4>
-        </div>
+        <div class="leaderboard-title">💰 Top Gold Earners</div>
         <div class="leaderboard-list">
     `;
     
@@ -2670,17 +2674,13 @@ const GoldLeaderboard = {
   }
 };
 
-// Load leaderboard on init
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => GoldLeaderboard.load());
-} else {
-  GoldLeaderboard.load();
-}
-
 function renderShopModal(){
   const officer = isOfficer();
   const gold = state.profile ? (state.profile.gold||0) : 0;
   const myLevel = state.profile ? (state.profile.discord_rank_level||0) : 0;
+
+  // Load leaderboard when modal opens
+  GoldLeaderboard.load();
 
   const rankItems = state.shopItems.filter(i=>i.category==='rank').sort((a,b)=>(a.rank_order||0)-(b.rank_order||0));
   const iconItems = state.shopItems.filter(i=>i.category==='discord_icon');
@@ -2762,17 +2762,18 @@ function renderShopModal(){
 
   return `
   <div class="modal-backdrop" id="modal-backdrop">
-    <div class="modal-panel" id="modal-panel" style="max-width:1100px;">
+    <div class="modal-panel" id="modal-panel" style="max-width:920px;">
       <div class="modal-header">
         <h3>Reward Shop</h3>
         <button class="modal-x" id="modal-close">&times;</button>
       </div>
       
-      <div class="shop-modal-container">
-        <div class="shop-modal-left">
-          <div class="nav-gold-badge" style="margin-bottom:16px;">&#10022; ${gold} gold available</div>
-
-          <div class="shop-section">
+      ${GoldLeaderboard.render()}
+      
+      <div class="nav-gold-badge" style="margin:16px 0;">&#10022; ${gold} gold available</div>
+      
+      <div class="shop-items-scroll">
+        <div class="shop-section">
         <h4 class="shop-section-title">Discord Rank Upgrades</h4>
         <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Purchase in order — each rank unlocks the next. The Discord bot will apply these automatically once it's connected.</p>
         ${ rankItems.length ? `<div class="shop-grid">${rankItems.map(renderRankCard).join('')}</div>` : emptyState('No ranks set up yet.') }
@@ -2810,10 +2811,6 @@ function renderShopModal(){
         <p class="muted sans" style="font-size:12px; margin-bottom:12px;">The Discord bot will apply these to your nickname automatically once it's connected.</p>
         ${ titleItems.length ? `<div class="shop-grid">${titleItems.map(renderSimpleCard).join('')}</div>` : emptyState('No titles set up yet.') }
       </div>
-        </div>
-        
-        <div class="shop-modal-right">
-          ${GoldLeaderboard.render()}
         </div>
       </div>
     </div>
