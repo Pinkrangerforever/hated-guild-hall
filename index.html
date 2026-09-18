@@ -2602,7 +2602,7 @@ const GoldLeaderboard = {
       
       const { data: leaderboard, error: lbError } = await window.supabase.rpc(
         'get_gold_leaderboard',
-        { p_guild_id: 1, p_limit: 50 }
+        { p_limit: 50 }
       );
       
       if (lbError) {
