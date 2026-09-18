@@ -2603,7 +2603,7 @@ const GoldLeaderboard = {
       }
       
       console.log('📊 Calling get_gold_leaderboard RPC...');
-      const { data: leaderboard, error: lbError } = await window.supabase.rpc(
+      const { data: leaderboard, error: lbError } = await sb.rpc(
         'get_gold_leaderboard',
         { p_limit: 50 }
       );
