@@ -2596,7 +2596,7 @@ const GoldLeaderboard = {
     this.isLoading = true;
     
     try {
-      if (!window.supabase) {
+      if (!sb) {
         console.error('❌ Supabase not initialized');
         this.leaderboardData = [];
         return;
