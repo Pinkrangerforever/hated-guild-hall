@@ -2592,30 +2592,37 @@ const GoldLeaderboard = {
   isLoading: false,
   
   async load() {
-    if (this.isLoading || this.leaderboardData !== null) return; // Already loaded or loading
+    if (this.isLoading || this.leaderboardData !== null) return;
     this.isLoading = true;
     
     try {
       if (!window.supabase) {
-        console.error('Supabase not initialized');
+        console.error('❌ Supabase not initialized');
+        this.leaderboardData = [];
         return;
       }
       
+      console.log('📊 Calling get_gold_leaderboard RPC...');
       const { data: leaderboard, error: lbError } = await window.supabase.rpc(
         'get_gold_leaderboard',
         { p_limit: 50 }
       );
       
+      console.log('📊 RPC Response:', { leaderboard, lbError });
+      
       if (lbError) {
-        console.error('Leaderboard error:', lbError);
+        console.error('❌ Leaderboard error:', lbError);
         this.leaderboardData = [];
         return;
       }
       
       this.leaderboardData = leaderboard || [];
-      console.log('Leaderboard loaded:', this.leaderboardData.length, 'players');
+      console.log('✅ Leaderboard loaded:', this.leaderboardData.length, 'players');
+      if (this.leaderboardData.length > 0) {
+        console.log('🥇 Top player:', this.leaderboardData[0].character_name || this.leaderboardData[0].discord_username, 'Gold:', this.leaderboardData[0].gold);
+      }
     } catch (err) {
-      console.error('Leaderboard load failed:', err);
+      console.error('❌ Leaderboard load failed:', err);
       this.leaderboardData = [];
     } finally {
       this.isLoading = false;
