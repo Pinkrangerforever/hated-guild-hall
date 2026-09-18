@@ -1203,6 +1203,7 @@ function applySiteBackground(){
   const color = state.siteImages['site_background_color'] || '#3a2e1d';
   const fgOpacity = state.siteImages['site_background_opacity'] != null ? state.siteImages['site_background_opacity'] : '100';
   const textureOpacity = state.siteImages['site_background_texture_opacity'] != null ? state.siteImages['site_background_texture_opacity'] : '100';
+  const textureSize = state.siteImages['site_background_texture_size'] || '800';
 
   document.body.style.backgroundColor = color;
 
@@ -1215,7 +1216,7 @@ function applySiteBackground(){
   const textureLayer = document.getElementById('bg-layer-texture');
   if(textureLayer){
     textureLayer.style.backgroundImage = textureUrl ? `url('${textureUrl}')` : '';
-    textureLayer.style.backgroundSize = '800px 800px'; // larger tile = less repetition, more visible per-tile detail
+    textureLayer.style.backgroundSize = textureSize + 'px ' + textureSize + 'px';
     textureLayer.style.opacity = String(Number(textureOpacity) / 100);
   }
 }
@@ -3215,6 +3216,10 @@ function renderGallery(){
         <label class="muted sans" style="font-size:12px; min-width:70px;">Opacity: <span id="site-bg-texture-opacity-value">${esc(state.siteImages['site_background_texture_opacity'] || '100')}</span>%</label>
         <input type="range" id="site-bg-texture-opacity-input" min="0" max="100" value="${esc(state.siteImages['site_background_texture_opacity'] || '100')}">
       </div>
+      <div class="slot-opacity-row">
+        <label class="muted sans" style="font-size:12px; min-width:70px;">Tile size: <span id="site-bg-texture-size-value">${esc(state.siteImages['site_background_texture_size'] || '800')}</span>px</label>
+        <input type="range" id="site-bg-texture-size-input" min="50" max="2000" step="10" value="${esc(state.siteImages['site_background_texture_size'] || '800')}">
+      </div>
 
       <div class="rule"></div>
       <div class="slot-label" style="margin-bottom:10px;">Roster Class Icons</div>
@@ -3485,6 +3490,16 @@ function bindApp(){
       if(layer) layer.style.opacity = String(Number(textureOpacityInput.value)/100);
     });
     textureOpacityInput.addEventListener('change', ()=>assignSiteImage('site_background_texture_opacity', textureOpacityInput.value));
+  }
+  const textureSizeInput = document.getElementById('site-bg-texture-size-input');
+  if(textureSizeInput){
+    textureSizeInput.addEventListener('input', ()=>{
+      const valEl = document.getElementById('site-bg-texture-size-value');
+      if(valEl) valEl.textContent = textureSizeInput.value;
+      const layer = document.getElementById('bg-layer-texture');
+      if(layer) layer.style.backgroundSize = textureSizeInput.value + 'px ' + textureSizeInput.value + 'px';
+    });
+    textureSizeInput.addEventListener('change', ()=>assignSiteImage('site_background_texture_size', textureSizeInput.value));
   }
   document.querySelectorAll('[data-pick-image]').forEach(b=>b.addEventListener('click', ()=>{
     if(state.modal && state.modal.type==='pick-image'){
