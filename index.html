@@ -2350,12 +2350,12 @@ function showGoldFloat(x, y, amount){
 // sparkle grants nothing by itself; only a server-verified claim does.
 window.spawnSparkle = spawnSparkle;
 
-async function resetMemberGold(userId){
+async function resetMemberCurrentGold(userId){
   const member = state.profilesById[userId];
   if(!member) return;
   
   const memberName = member.character_name || member.discord_username || 'Member';
-  const newGoldStr = prompt(`Reset ${esc(memberName)}'s gold to how much? (default 0)`, '0');
+  const newGoldStr = prompt(`Reset ${esc(memberName)}'s current gold to how much? (default 0)`, '0');
   if(newGoldStr === null) return;
   
   const newGold = parseInt(newGoldStr, 10);
@@ -2364,25 +2364,59 @@ async function resetMemberGold(userId){
     return;
   }
   
-  const { data, error } = await sb.rpc('reset_member_gold', { p_user_id: userId, p_new_gold: newGold });
+  const { data, error } = await sb.rpc('reset_member_current_gold', { p_user_id: userId, p_new_gold: newGold });
   if(error){ 
-    showToast("Couldn't reset gold — " + (error.message || 'try again'), true);
-    console.error('Reset gold error:', error);
+    showToast("Couldn't reset current gold — " + (error.message || 'try again'), true);
+    console.error('Reset current gold error:', error);
     return;
   }
   
   if(!data || !data.success){
-    showToast("Couldn't reset gold — " + (data?.reason || 'unknown error'), true);
+    showToast("Couldn't reset current gold — " + (data?.reason || 'unknown error'), true);
     return;
   }
   
-  // Update local state
   if(state.profilesById[userId]){
     state.profilesById[userId].gold = newGold;
     if(userId === state.profile?.id) state.profile.gold = newGold;
   }
   
-  showToast(`${esc(memberName)}'s gold reset to ${newGold}`);
+  showToast(`${esc(memberName)}'s current gold reset to ${newGold}`);
+  render();
+}
+
+async function resetMemberEarnedGold(userId){
+  const member = state.profilesById[userId];
+  if(!member) return;
+  
+  const memberName = member.character_name || member.discord_username || 'Member';
+  const newEarnedStr = prompt(`Reset ${esc(memberName)}'s earned gold to how much? (default 0)`, '0');
+  if(newEarnedStr === null) return;
+  
+  const newEarned = parseInt(newEarnedStr, 10);
+  if(isNaN(newEarned) || newEarned < 0){
+    showToast('Invalid gold amount', true);
+    return;
+  }
+  
+  const { data, error } = await sb.rpc('reset_member_earned_gold', { p_user_id: userId, p_new_earned: newEarned });
+  if(error){ 
+    showToast("Couldn't reset earned gold — " + (error.message || 'try again'), true);
+    console.error('Reset earned gold error:', error);
+    return;
+  }
+  
+  if(!data || !data.success){
+    showToast("Couldn't reset earned gold — " + (data?.reason || 'unknown error'), true);
+    return;
+  }
+  
+  if(state.profilesById[userId]){
+    state.profilesById[userId].gold_earned_total = newEarned;
+    if(userId === state.profile?.id) state.profile.gold_earned_total = newEarned;
+  }
+  
+  showToast(`${esc(memberName)}'s earned gold reset to ${newEarned}`);
   render();
 }
 
@@ -3307,11 +3341,14 @@ function renderRoster(){
         <div class="list-item">
           <div style="flex:1;">
             <div style="font-weight:600;">${esc(p.character_name||p.discord_username||'Member')}</div>
-            <div class="muted sans" style="font-size:12px; margin-top:2px;">&#10022; ${(p.gold||0).toLocaleString()} gold</div>
+            <div class="muted sans" style="font-size:12px; margin-top:2px;">♦ ${(p.gold||0).toLocaleString()} current · ♦ ${(p.gold_earned_total||0).toLocaleString()} earned</div>
           </div>
           <span class="badge ${p.protected ? 'role-raidlead' : (p.role==='officer'?'role-officer':'role-member')}" style="margin-right:10px;">${p.protected ? '&#9819; Raid Leader' : (p.role==='officer'?'Officer':'Member')}</span>
           ${ officer && !p.protected ? `<button class="btn secondary" data-toggle-officer="${p.id}">${p.role==='officer'?'Demote':'Promote'}</button>` : '' }
-          ${ isRaidLeader ? `<button class="btn secondary" data-reset-gold="${p.id}" style="background-color:rgba(207,154,68,0.2);">Reset Gold</button>` : '' }
+          ${ isRaidLeader ? `
+            <button class="btn secondary" data-reset-current-gold="${p.id}" style="background-color:rgba(207,154,68,0.2); font-size:11px;">Reset Current</button>
+            <button class="btn secondary" data-reset-earned-gold="${p.id}" style="background-color:rgba(207,154,68,0.15); font-size:11px;">Reset Earned</button>
+          ` : '' }
         </div>
       `).join('') : emptyState('No members yet.') }
     </div>
@@ -3776,7 +3813,8 @@ function bindApp(){
   const syncRoleBtn = document.getElementById('sync-discord-role-btn');
   if(syncRoleBtn) syncRoleBtn.addEventListener('click', ()=>syncDiscordRole(true));
   document.querySelectorAll('[data-toggle-officer]').forEach(b=>b.addEventListener('click', ()=>toggleOfficer(b.dataset.toggleOfficer)));
-  document.querySelectorAll('[data-reset-gold]').forEach(b=>b.addEventListener('click', ()=>resetMemberGold(b.dataset.resetGold)));
+  document.querySelectorAll('[data-reset-current-gold]').forEach(b=>b.addEventListener('click', ()=>resetMemberCurrentGold(b.dataset.resetCurrentGold)));
+  document.querySelectorAll('[data-reset-earned-gold]').forEach(b=>b.addEventListener('click', ()=>resetMemberEarnedGold(b.dataset.resetEarnedGold)));
   document.querySelectorAll('.spec-btn').forEach(b=>b.addEventListener('click', ()=>selectSpec(b.dataset.class, b.dataset.spec)));
   document.querySelectorAll('[data-slot-click]').forEach(el=>el.addEventListener('click', ()=>{
     const [gi,si] = el.dataset.slotClick.split('|').map(Number);
