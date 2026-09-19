@@ -3608,6 +3608,7 @@ function renderNews(){
               const posY = s.position_y ?? 50;
               const isOwner = state.auth?.user?.id === s.placed_by_user_id;
               const isRaidLeader = state.profile?.discord_rank_level === 1;
+              console.log('🎨 Sticker:', { name: s.placed_by_name, placed_by_user_id: s.placed_by_user_id, auth_id: state.auth?.user?.id, isOwner });
               return `
               <div class="sticker-pin-group" 
                    data-sticker-id="${esc(s.id)}"
