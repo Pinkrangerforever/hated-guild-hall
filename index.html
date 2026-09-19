@@ -1678,6 +1678,35 @@ async function loadAdminPurchases(){
   render();
 }
 
+async function moveShopItem(itemId, direction){
+  const item = state.shopItems.find(i=>i.id===itemId);
+  if(!item) return;
+
+  const sameCategory = state.shopItems.filter(i=>i.category===item.category);
+  const sorted = sameCategory.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const currentIndex = sorted.findIndex(i=>i.id===itemId);
+
+  if(direction === 'up' && currentIndex === 0) return;
+  if(direction === 'down' && currentIndex === sorted.length - 1) return;
+
+  const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+  const targetItem = sorted[newIndex];
+
+  const newOrder = item.sort_order || 0;
+  const targetOrder = targetItem.sort_order || 0;
+
+  const { error } = await sb.rpc('update_shop_item_order', { p_item_id: itemId, p_sort_order: targetOrder });
+  if(error){ showToast('Failed to move item', true); return; }
+
+  await sb.rpc('update_shop_item_order', { p_item_id: targetItem.id, p_sort_order: newOrder });
+
+  // Reload shop items
+  const { data } = await sb.from('shop_items').select('*');
+  state.shopItems = data || [];
+  showToast(`Moved ${direction}`);
+  render();
+}
+
 async function refundPurchase(purchaseId, userName){
   if(!confirm(`Refund purchase for ${userName}?`)) return;
 
@@ -3241,10 +3270,11 @@ function renderShopModal(){
   const myLevel = state.profile ? (state.profile.discord_rank_level||0) : 0;
 
   const rankItems = state.shopItems.filter(i=>i.category==='rank').sort((a,b)=>(a.rank_order||0)-(b.rank_order||0));
-  const iconItems = state.shopItems.filter(i=>i.category==='discord_icon');
-  const titleItems = state.shopItems.filter(i=>i.category==='discord_title');
-  const nameCustomItems = state.shopItems.filter(i=>i.category==='name_customization');
+  const iconItems = state.shopItems.filter(i=>i.category==='discord_icon').sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const titleItems = state.shopItems.filter(i=>i.category==='discord_title').sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const nameCustomItems = state.shopItems.filter(i=>i.category==='name_customization').sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const stickerImages = state.galleryImages.filter(g=>g.is_sticker);
+  const isRaidLeader = state.profile && state.profile.protected;
   const stickerPrice = state.settings.sticker_price != null ? state.settings.sticker_price : 25;
 
   function formatLeaderboardRank(index){
@@ -3291,6 +3321,11 @@ function renderShopModal(){
           <span class="nav-gold-badge">💰 ${item.cost}</span>
           ${ officer ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
         </div>
+        ${ isRaidLeader ? `
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <button class="btn secondary" type="button" data-move-shop-item="${item.id}" data-direction="up" style="flex:1; padding:6px; font-size:12px;">↑ Up</button>
+          <button class="btn secondary" type="button" data-move-shop-item="${item.id}" data-direction="down" style="flex:1; padding:6px; font-size:12px;">↓ Down</button>
+        </div>` : '' }
         <button class="btn" type="button" data-buy-shop-item="${item.id}" ${ (!canAfford || item.active===false) ? 'disabled' : '' } style="width:100%; margin-top:10px;">
           ${ item.active===false ? 'Unavailable' : (canAfford ? 'Redeem' : 'Not enough gold') }
         </button>
@@ -4411,6 +4446,7 @@ function bindApp(){
   const shopBtnMobile = document.getElementById('open-shop-btn-mobile');
   if(shopBtnMobile) shopBtnMobile.addEventListener('click', ()=>{ state.mobileNavOpen = false; openShop(); });
   document.querySelectorAll('[data-buy-shop-item]').forEach(b=>b.addEventListener('click', ()=>purchaseShopItem(b.dataset.buyShopItem)));
+  document.querySelectorAll('[data-move-shop-item]').forEach(b=>b.addEventListener('click', ()=>moveShopItem(b.dataset.moveShopItem, b.dataset.direction)));
   document.querySelectorAll('[data-refund-purchase]').forEach(b=>b.addEventListener('click', ()=>refundPurchase(b.dataset.refundPurchase, b.dataset.refundName)));
   document.querySelectorAll('[data-buy-rank]').forEach(b=>b.addEventListener('click', ()=>purchaseRank(b.dataset.buyRank)));
   document.querySelectorAll('[data-buy-sticker]').forEach(b=>b.addEventListener('click', ()=>purchaseSticker(b.dataset.buySticker)));
