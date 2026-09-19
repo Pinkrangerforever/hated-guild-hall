@@ -2580,13 +2580,14 @@ async function saveStickerPrice(){
 async function deleteSticker(stickerId){
   if(!confirm('Remove this sticker from the board?')) return;
   
-  const { error } = await sb.rpc('delete_sticker_as_leader', {
+  const { data, error } = await sb.rpc('delete_sticker_as_leader', {
     p_sticker_id: stickerId,
     p_user_id: state.auth?.user?.id
   });
   
-  if(error){
-    showToast('Only Raid Leaders can delete stickers', true);
+  if(error || !data?.success){
+    showToast('Failed to delete sticker — only Raid Leaders can delete', true);
+    console.error('Delete error:', error);
     return;
   }
   
