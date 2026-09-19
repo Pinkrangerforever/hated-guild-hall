@@ -2602,19 +2602,27 @@ function setupStickerDragHandlers(){
   let dragStart = { x: 0, y: 0 };
   let containerRect = null;
   
+  console.log('🎯 Drag handler setup initialized');
+  
   // Use event delegation - listen on document for pin interactions
   document.addEventListener('mousedown', (e)=>{
     const pin = e.target.closest('.sticker-pin');
     if(!pin) return;
     
     const stickerGroup = pin.closest('.sticker-pin-group');
-    if(!stickerGroup || stickerGroup.dataset.owned !== 'true') return;
+    console.log('📌 Pin clicked - group found:', !!stickerGroup, 'owned:', stickerGroup?.dataset.owned);
+    if(!stickerGroup || stickerGroup.dataset.owned !== 'true') {
+      console.log('⚠️ Not owned or no group');
+      return;
+    }
     
     console.log('🖱️ Drag start on sticker:', stickerGroup.dataset.stickerId);
     draggingSticker = stickerGroup;
     const stickersContainer = stickerGroup.closest('.corkboard-stickers');
     containerRect = stickersContainer ? stickersContainer.getBoundingClientRect() : null;
+    console.log('📦 Container rect:', containerRect ? `${containerRect.width}x${containerRect.height}` : 'null');
     dragStart = { x: e.clientX, y: e.clientY };
+    console.log('🚀 Drag start coords:', dragStart);
     e.preventDefault();
   });
   
@@ -2625,6 +2633,8 @@ function setupStickerDragHandlers(){
     const dy = e.clientY - dragStart.y;
     
     if(Math.abs(dx) < 2 && Math.abs(dy) < 2) return; // Ignore tiny movements
+    
+    console.log('🎯 Moving:', { dx, dy });
     
     // Current position in percentages
     let posX = parseFloat(draggingSticker.style.left) || 50;
