@@ -3550,7 +3550,7 @@ function renderRoster(){
         <div class="list-item">
           <div style="flex:1;">
             <div style="font-weight:600;">${esc(p.character_name||p.discord_username||'Member')}</div>
-            <div class="muted sans" style="font-size:12px; margin-top:2px;">â¬¥ ${(p.gold||0).toLocaleString()} current Â· â¬¥ ${(p.gold_earned_total||0).toLocaleString()} earned</div>
+            <div class="muted sans" style="font-size:12px; margin-top:2px;">&bullet; ${(p.gold||0).toLocaleString()} current &middot; &bullet; ${(p.gold_earned_total||0).toLocaleString()} earned</div>
           </div>
           <span class="badge ${p.protected ? 'role-raidlead' : (p.role==='officer'?'role-officer':'role-member')}" style="margin-right:10px;">${p.protected ? '&#9819; Raid Leader' : (p.role==='officer'?'Officer':'Member')}</span>
           ${ officer && !p.protected ? `<button class="btn secondary" data-toggle-officer="${p.id}">${p.role==='officer'?'Demote':'Promote'}</button>` : '' }
