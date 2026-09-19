@@ -2581,8 +2581,7 @@ async function deleteSticker(stickerId){
   if(!confirm('Remove this sticker from the board?')) return;
   
   const { data, error } = await sb.rpc('delete_sticker_as_leader', {
-    p_sticker_id: stickerId,
-    p_user_id: state.auth?.user?.id
+    p_sticker_id: stickerId
   });
   
   if(error || !data?.success){
