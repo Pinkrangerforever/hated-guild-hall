@@ -2136,6 +2136,7 @@ async function claimSparkle(el){
   try{
     const { data, error } = await sb.rpc('claim_sparkle_gold');
     console.log('sparkle rpc result:', { data, error });
+    console.log('full data object:', JSON.stringify(data, null, 2));
     if(error || !data || !data.success){
       console.log('sparkle failed:', error ? error.message : 'no data or not success');
       return;
