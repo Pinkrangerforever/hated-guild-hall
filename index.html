@@ -482,6 +482,11 @@
     border:1px solid rgba(255,224,153,0.5); border-radius:2px; padding:8px 16px;
   }
   .btn-nav-solid:hover{ text-decoration:none; background:linear-gradient(180deg, #e0b264 0%, #b17c34 100%); }
+  .btn-small{
+    font-size:12px; font-weight:600; padding:6px 12px; border:1px solid var(--divider-strong); border-radius:3px;
+    background:var(--bg-input); color:var(--text-normal); transition:all 0.12s ease;
+  }
+  .btn-small:hover{ background:var(--bg-hover); border-color:var(--blurple); }
   @media (max-width:1150px){ .nav-links{ display:none; } }
 
   .app-nav-links{ display:flex; gap:0; flex-wrap:wrap; align-items:center; }
@@ -1629,6 +1634,22 @@ async function loadShopPurchases(){
   if(!state.session || !state.session.user) return;
   const { data } = await sb.from('shop_purchases').select('*').eq('user_id', state.session.user.id);
   state.shopPurchases = data || [];
+}
+
+async function loadAdminPurchases(){
+  if(!state.profile || !state.profile.protected) return;
+  const { data, error } = await sb.from('shop_purchases').select('*').order('purchased_at', { ascending: false });
+  if(error){ console.error('Failed to load admin purchases:', error); return; }
+  state.adminPurchases = data || [];
+}
+
+async function refundPurchase(purchaseId, userName){
+  if(!confirm(`Refund purchase for ${userName}?`)) return;
+  const { error } = await sb.from('shop_purchases').delete().eq('id', purchaseId);
+  if(error){ showToast('Failed to refund â€” try again', true); return; }
+  state.adminPurchases = state.adminPurchases.filter(p=>p.id!==purchaseId);
+  showToast(`Refunded purchase for ${userName}`);
+  render();
 }
 
 async function onAuthResolved(){
@@ -4027,19 +4048,67 @@ function renderRaidLogs(){
 }
 
 function renderAdmin(){
-  // Defense in depth: even if someone forces state.tab='admin' directly (e.g. via
-  // devtools), this still refuses to render admin content for anyone but the
-  // protected Raid Leader account.
   if(!state.profile || !state.profile.protected){
     state.tab = 'news';
     return renderNews();
   }
-  return `
+
+  if(!state.adminPurchases){
+    loadAdminPurchases();
+    return `
+      ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account â€” not even other officers can see this tab.")}
+      <div class="panel style-glass">
+        <p style="color:var(--text-muted);">Loading shop refunds...</p>
+      </div>
+    `;
+  }
+
+  const purchases = state.adminPurchases || [];
+  let html = `
     ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account â€” not even other officers can see this tab.")}
     <div class="panel style-glass">
-      ${emptyState("Nothing built out here yet. Tell me what you'd like to manage from this page â€” guild settings, dangerous actions, whatever needs the extra lockdown â€” and I'll build it out with the matching database protections.")}
-    </div>
+      <h2>Shop Refunds</h2>
+      <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Manage and refund shop purchases in case of accidents or disputes.</p>
   `;
+
+  if(purchases.length === 0){
+    html += `<p style="color:var(--text-muted);">No shop purchases yet.</p>`;
+  } else {
+    const grouped = {};
+    purchases.forEach(p=>{
+      if(!grouped[p.user_id]) grouped[p.user_id] = [];
+      grouped[p.user_id].push(p);
+    });
+
+    Object.entries(grouped).forEach(([userId, userPurchases])=>{
+      const profile = Object.values(state.profilesById || {}).find(pr=>pr.id===userId);
+      const userName = profile?.character_name || 'Unknown User';
+      html += `
+        <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--divider);">
+          <h3 style="font-size:16px; margin-bottom:12px; color:#dcb570;">${userName}</h3>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+      `;
+      userPurchases.forEach(p=>{
+        const date = new Date(p.purchased_at).toLocaleDateString();
+        html += `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-input); border-radius:4px;">
+            <div style="flex:1;">
+              <div style="color:var(--text-normal); font-weight:500;">${p.item_name}</div>
+              <div style="color:var(--text-muted); font-size:12px;">${p.cost_paid} gold â€¢ ${date}</div>
+            </div>
+            <button class="btn-small" data-refund-purchase="${p.id}" data-refund-name="${userName}" style="margin-left:12px;">Refund</button>
+          </div>
+        `;
+      });
+      html += `
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  html += `</div>`;
+  return html;
 }
 /* ---------------- bindings ---------------- */
 function bindApp(){
@@ -4252,6 +4321,7 @@ function bindApp(){
   const shopBtnMobile = document.getElementById('open-shop-btn-mobile');
   if(shopBtnMobile) shopBtnMobile.addEventListener('click', ()=>{ state.mobileNavOpen = false; openShop(); });
   document.querySelectorAll('[data-buy-shop-item]').forEach(b=>b.addEventListener('click', ()=>purchaseShopItem(b.dataset.buyShopItem)));
+  document.querySelectorAll('[data-refund-purchase]').forEach(b=>b.addEventListener('click', ()=>refundPurchase(b.dataset.refundPurchase, b.dataset.refundName)));
   document.querySelectorAll('[data-buy-rank]').forEach(b=>b.addEventListener('click', ()=>purchaseRank(b.dataset.buyRank)));
   document.querySelectorAll('[data-buy-sticker]').forEach(b=>b.addEventListener('click', ()=>purchaseSticker(b.dataset.buySticker)));
   document.querySelectorAll('[data-delete-sticker]').forEach(b=>b.addEventListener('click', ()=>deleteSticker(b.dataset.deleteSticker)));
