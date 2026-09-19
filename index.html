@@ -542,6 +542,8 @@
   .marketing-section{ max-width:1100px; margin:0 auto; padding:56px 24px; }
   .feature-cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
   .main .feature-cards{ margin-bottom:80px; }
+  .sparkle-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; }
+  .sparkle-event{ padding:24px; text-align:center; }
   .feature-card{
     background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong);
     border-radius:2px; padding:26px 22px; text-align:center;
@@ -1681,7 +1683,7 @@ async function syncDiscordRole(showFeedback){
 
 /* ---------------- data loading ---------------- */
 async function loadGuildData(){
-  const [settingsRes, eventsRes, rsvpsRes, raidsRes, bossesRes, softresRes, raidplanRes, compRes, lootRes, newsRes, profilesRes, galleryRes, siteImagesRes, shopRes, stickersRes] = await Promise.all([
+  const [settingsRes, eventsRes, rsvpsRes, raidsRes, bossesRes, softresRes, raidplanRes, compRes, lootRes, newsRes, profilesRes, galleryRes, siteImagesRes, shopRes, stickersRes, sparklesRes] = await Promise.all([
     sb.from('guild_settings').select('*').eq('id',1).single(),
     sb.from('events').select('*').order('date'),
     sb.from('rsvps').select('*'),
@@ -1697,6 +1699,7 @@ async function loadGuildData(){
     sb.from('site_images').select('*'),
     sb.from('shop_items').select('*').order('cost'),
     sb.from('stickers').select('*').order('placed_at', { ascending:false }),
+    sb.from('sparkle_pending_events').select('*').eq('user_id', state.session?.user?.id || 'null').eq('resolved', false),
   ]);
   if(settingsRes.data) state.settings = settingsRes.data;
   state.events = eventsRes.data || [];
@@ -1717,6 +1720,7 @@ async function loadGuildData(){
   state.siteImages = imgMap;
   state.shopItems = shopRes.data || [];
   state.stickers = stickersRes.data || [];
+  state.pendingSparkles = sparklesRes.data || [];
   applySiteBackground();
 }
 
@@ -3612,6 +3616,34 @@ function renderNews(){
       </div>
     </div>
 
+    <!-- Sparkle Collection Mini-Games -->
+    ${ state.pendingSparkles && state.pendingSparkles.length ? `
+    <div style="margin-bottom:40px;">
+      <div class="eyebrow gold-text">Quick Play</div>
+      <h2 class="page-title" style="margin-bottom:12px;">Gold Collection Challenges</h2>
+      <div class="sparkle-grid">
+        ${ state.pendingSparkles.map(event => {
+          const icon = event.event_type === 'murloc' ? '🐟' : event.event_type === 'fishing' ? '🎣' : '✨';
+          const label = event.event_type === 'murloc' ? 'Murloc Mini-Game' : event.event_type === 'fishing' ? 'Fishing Challenge' : 'Free Gold';
+          return `
+          <div class="panel sparkle-event" data-sparkle-id="${esc(event.id)}">
+            <div style="font-size:40px; margin-bottom:8px;">${icon}</div>
+            <h3 style="font-size:18px; margin-bottom:4px;">${label}</h3>
+            <p class="sans" style="margin-bottom:16px; color:var(--text-muted);">Earn <strong>${event.base_gold}⬥</strong> + up to <strong>${event.bonus_gold}⬥</strong> bonus</p>
+            <button type="button" class="btn" data-resolve-sparkle="${esc(event.id)}-true">Accept Challenge</button>
+            <button type="button" class="btn outline" data-resolve-sparkle="${esc(event.id)}-false">Skip</button>
+          </div>
+          `;
+        }).join('') }
+      </div>
+    </div>
+    ` : `
+    <div style="margin-bottom:40px; text-align:center; padding:40px; background:var(--bg-card); border-radius:4px;">
+      <p class="sans" style="color:var(--text-muted); margin-bottom:16px;">No gold challenges available right now</p>
+      <button type="button" class="btn" data-claim-sparkle="">Claim Free Gold</button>
+    </div>
+    ` }
+
     <!-- Feature cards section - below both -->
     <div style="margin-bottom:32px;">
       <div class="feature-cards">
@@ -4107,6 +4139,17 @@ function bindApp(){
   document.querySelectorAll('[data-edit-shop-item]').forEach(b=>b.addEventListener('click', ()=>startEditShopItem(b.dataset.editShopItem)));
   document.querySelectorAll('[data-save-shop-item]').forEach(b=>b.addEventListener('click', ()=>saveShopItem(b.dataset.saveShopItem)));
   document.querySelectorAll('[data-cancel-shop-edit]').forEach(b=>b.addEventListener('click', cancelEditShopItem));
+
+  // Sparkle event handlers
+  document.querySelectorAll('[data-resolve-sparkle]').forEach(btn => {
+    btn.addEventListener('click', async ()=>{
+      const [sparkleId, won] = btn.dataset.resolveSparkle.split('-');
+      await resolveSparkleEvent(sparkleId, won === 'true');
+    });
+  });
+
+  const claimBtn = document.querySelector('[data-claim-sparkle]');
+  if(claimBtn) claimBtn.addEventListener('click', ()=>claimSparkle(claimBtn));
 }
 
 boot();
