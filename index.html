@@ -645,6 +645,23 @@
     margin-bottom:48px;
   }
   .page-banner .starfield{ opacity:0.25; }
+  
+  /* Unified page header - icon + title + description in one */
+  .page-header-unified{
+    display:flex; gap:24px; align-items:flex-start; margin-bottom:40px;
+    background:rgba(207,154,68,0.05);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(207,154,68,0.15);
+    border-radius:8px;
+    padding:28px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.2);
+  }
+  .page-header-icon{ flex-shrink:0; }
+  .page-header-content{ flex:1; }
+  .page-header-category{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--blurple); margin-bottom:8px; }
+  .page-header-title{ font-size:28px; margin:0 0 8px 0; font-weight:700; color:var(--text-normal); }
+  .page-header-description{ margin:0; font-size:14px; color:var(--text-muted); line-height:1.5; }
   .loading-crest{ filter:drop-shadow(0 0 16px rgba(207,154,68,0.35)); }
   .tree-row:hover{ background:rgba(207,154,68,0.08); }
   .boss-screenshot{ display:block; max-width:100%; border-radius:2px; border:1px solid var(--divider-strong); }
@@ -1371,6 +1388,19 @@ function pageBanner(heading, sub){
           <h2 class="gold-text" style="font-size:22px; font-weight:800;">${esc(heading)}</h2>
           ${ sub ? `<div class="muted sans" style="margin-top:2px;">${esc(sub)}</div>` : '' }
         </div>
+      </div>
+    </div>`;
+}
+
+/* Unified page header - combines icon, title, category, and description */
+function pageHeader(title, category, description){
+  return `
+    <div class="page-header-unified">
+      <div class="page-header-icon">${pageBannerIconHtml(48)}</div>
+      <div class="page-header-content">
+        <div class="page-header-category">${esc(category)}</div>
+        <h2 class="page-header-title">${esc(title)}</h2>
+        <p class="page-header-description">${esc(description)}</p>
       </div>
     </div>`;
 }
@@ -2641,10 +2671,7 @@ function renderCalendar(){
   state.events.forEach(ev=>{ (eventsByDate[ev.date] = eventsByDate[ev.date] || []).push(ev); });
 
   return `
-    ${pageBanner('Raid Calendar')}
-    <div class="eyebrow sans">Schedule</div>
-    <h2 class="page-title">Raid calendar</h2>
-    <p class="page-sub sans">Click any event to see details and mark yourself down for the night.</p>
+    ${pageHeader('Raid Calendar', 'Schedule', "Click any event to see details and mark yourself down for the night.")}
 
     <div class="cal-ornate-frame">
       <div class="ornate-corner tl"></div>
@@ -3018,10 +3045,7 @@ function renderStrategies(){
   }
 
   return `
-    ${pageBanner('Boss Strategies')}
-    <div class="eyebrow sans">Strategy</div>
-    <h2 class="page-title">Boss Strategies</h2>
-    <p class="page-sub sans">Pick a raid instance, then a boss, to see notes and the RaidPlan screenshot.</p>
+    ${pageHeader('Boss Strategies', 'Strategy', "Pick a raid instance, then a boss, to see notes and the RaidPlan screenshot.")}
 
     ${ officer ? `
     <div class="panel style-glass">
@@ -3093,10 +3117,7 @@ function renderStratBreadcrumb(raid, boss){
 function renderSoftres(){
   const officer = isOfficer();
   return `
-    ${pageBanner('Soft Res Links')}
-    <div class="eyebrow sans">Loot rules</div>
-    <h2 class="page-title">Soft-res links</h2>
-    <p class="page-sub sans">Links to soft-reserve sheets for upcoming raids. Newest first.</p>
+    ${pageHeader('Soft Res Links', 'Loot Rules', "Links to soft-reserve sheets for upcoming raids. Newest first.")}
 
     ${ officer ? `
     <div class="panel style-glass">
@@ -3134,10 +3155,7 @@ function renderRoster(){
   function slotAt(g,s){ return state.compSlots.find(row=>row.group_index===g && row.slot_index===s) || null; }
 
   return `
-    ${pageBanner('Roster')}
-    <div class="eyebrow sans">Members</div>
-    <h2 class="page-title">Roster</h2>
-    <p class="page-sub sans">Who's in the guild, and the current raid composition.</p>
+    ${pageHeader('Roster', 'Members', "Who's in the guild, and the current raid composition.")}
 
     <div class="panel style-glass">
       <p class="muted sans" style="margin-bottom:14px;">Officer/Member status is synced from your Discord roles automatically each time you sign in.</p>
@@ -3222,10 +3240,7 @@ function renderRoster(){
 function renderLoot(){
   const officer = isOfficer();
   return `
-    ${pageBanner('Loot Log')}
-    <div class="eyebrow sans">History</div>
-    <h2 class="page-title">Loot log</h2>
-    <p class="page-sub sans">A running record of what's dropped and who won it.</p>
+    ${pageHeader('Loot Log', 'History', "A running record of what's dropped and who won it.")}
 
     ${ officer ? `
     <div class="panel style-glass">
@@ -3268,7 +3283,6 @@ function renderLoot(){
 function renderNews(){
   const officer = isOfficer();
   return `
-    ${pageBanner('Welcome Back, ' + myName())}
 
     <div class="panel style-glass" style="text-align:center;">
       <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
@@ -3395,10 +3409,7 @@ function renderRecruitmentTab(){
   const officer = isOfficer();
   const rec = state.settings;
   return `
-    ${pageBanner('Recruitment')}
-    <div class="eyebrow sans">Public notice</div>
-    <h2 class="page-title">Recruitment</h2>
-    <p class="page-sub sans">This message is shown to anyone who visits before signing in.</p>
+    ${pageHeader('Recruitment', 'Public Notice', "This message is shown to anyone who visits before signing in.")}
 
     ${ officer ? `
     <div class="panel style-glass">
@@ -3421,10 +3432,7 @@ function renderRecruitmentTab(){
 function renderGallery(){
   const officer = isOfficer();
   return `
-    ${pageBanner('Gallery')}
-    <div class="eyebrow sans">Media</div>
-    <h2 class="page-title">Gallery</h2>
-    <p class="page-sub sans">Images officers have uploaded. Use them to customize the guild icon, the site background, and the class icons on the Roster page.</p>
+    ${pageHeader('Gallery', 'Media', "Images officers have uploaded. Use them to customize the guild icon, the site background, and the class icons on the Roster page.")}
 
     ${ officer ? `
     <div class="panel style-glass">
@@ -3550,10 +3558,7 @@ function renderGallery(){
 /* ---------------- guild bank tab (placeholder) ---------------- */
 function renderGuildBank(){
   return `
-    ${pageBanner('Guild Bank')}
-    <div class="eyebrow sans">Coming Soon</div>
-    <h2 class="page-title">Guild Bank</h2>
-    <p class="page-sub sans">Guild bank inventory and donation tracking — this page is a placeholder for now.</p>
+    ${pageHeader('Guild Bank', 'Coming Soon', "Guild bank inventory and donation tracking — this page is a placeholder for now.")}
     <div class="panel style-glass">
       ${emptyState("This page isn't built out yet. Let's design what you want to track here — inventory, donations, or both — and I'll build it next.")}
     </div>
@@ -3562,10 +3567,7 @@ function renderGuildBank(){
 
 function renderRaidLogs(){
   return `
-    ${pageBanner('Raid Logs')}
-    <div class="eyebrow sans">Coming Soon</div>
-    <h2 class="page-title">Raid Logs</h2>
-    <p class="page-sub sans">A place for raid log links or reports — this page is a placeholder for now.</p>
+    ${pageHeader('Raid Logs', 'Coming Soon', "A place for raid log links or reports — this page is a placeholder for now.")}
     <div class="panel style-glass">
       ${emptyState("This page isn't built out yet. Let me know what you'd like here — links to WarcraftLogs reports, an embedded log viewer, parse tracking — and I'll build it out.")}
     </div>
@@ -3581,10 +3583,7 @@ function renderAdmin(){
     return renderNews();
   }
   return `
-    ${pageBanner('Admin')}
-    <div class="eyebrow sans">Raid Leader Only</div>
-    <h2 class="page-title">Admin</h2>
-    <p class="page-sub sans">Visible only to the protected Raid Leader account — not even other officers can see this tab.</p>
+    ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account — not even other officers can see this tab.")}
     <div class="panel style-glass">
       ${emptyState("Nothing built out here yet. Tell me what you'd like to manage from this page — guild settings, dangerous actions, whatever needs the extra lockdown — and I'll build it out with the matching database protections.")}
     </div>
