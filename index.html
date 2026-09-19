@@ -1585,6 +1585,11 @@ async function boot(){
   __booted = true;
 }
 
+async function loadNews(){
+  const { data } = await sb.from('news').select('*').order('created_at', { ascending:false });
+  state.news = data || [];
+}
+
 async function loadShopPurchases(){
   if(!state.session || !state.session.user) return;
   const { data } = await sb.from('shop_purchases').select('*').eq('user_id', state.session.user.id);
@@ -2842,7 +2847,7 @@ function renderLanding(){
           <div class="panel" style="padding:20px;">
             <div class="eyebrow" style="margin-bottom:8px;">${new Date(item.created_at).toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'})}</div>
             <h3 style="margin:8px 0; color:var(--text-normal);">${esc(item.title)}</h3>
-            <div class="sans" style="font-size:14px; line-height:1.6; color:var(--text-muted);">${renderRichText(esc(item.body))}</div>
+            <div class="sans" style="font-size:14px; line-height:1.6; color:var(--text-muted);">${renderRichText(item.body)}</div>
           </div>
         `).join('') : `<div class="panel" style="text-align:center; padding:40px; color:var(--text-muted);">No news posted yet.</div>` }
       </div>
