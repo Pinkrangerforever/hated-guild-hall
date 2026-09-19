@@ -1595,6 +1595,9 @@ async function onAuthResolved(){
   if(__authResolveInFlight) return; // avoid overlapping runs if multiple events fire in quick succession
   __authResolveInFlight = true;
   try{
+    // Load news for both logged-in and non-logged-in users
+    await loadNews();
+
     if(state.session){
       await loadProfile();
       if(!state.profile){
@@ -2822,11 +2825,27 @@ function renderLanding(){
     </div>
   </div>
 
-  <div class="marketing-section" id="recruiting" style="padding-bottom:100px;">
+  <div class="marketing-section" id="recruiting" style="padding-bottom:60px;">
     <div class="panel hero-panel" style="max-width:640px; margin:0 auto;">
       <div class="eyebrow gold-text">Recruiting</div>
       ${ rec.recruitment_roles ? `<p class="sans" style="font-size:13px; font-weight:700; color:#e8c26c; margin-bottom:8px;">Open roles: ${esc(rec.recruitment_roles)}</p>` : '' }
       <p class="sans" style="font-size:14px; line-height:1.6; color:var(--text-muted);">${ rec.recruitment_body ? esc(rec.recruitment_body).replace(/\n/g,'<br>') : 'No recruitment notice posted yet.' }</p>
+    </div>
+  </div>
+
+  <div class="marketing-section" style="padding-bottom:100px;">
+    <div style="max-width:900px; margin:0 auto;">
+      <div class="eyebrow gold-text" style="text-align:center; display:block;">Latest Updates</div>
+      <h2 class="page-title" style="text-align:center; margin-bottom:32px;">Guild Bulletin Board</h2>
+      <div style="display:grid; gap:20px;">
+        ${ state.news && state.news.length ? state.news.slice(0, 3).map(item => `
+          <div class="panel" style="padding:20px;">
+            <div class="eyebrow" style="margin-bottom:8px;">${new Date(item.created_at).toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'})}</div>
+            <h3 style="margin:8px 0; color:var(--text-normal);">${esc(item.title)}</h3>
+            <div class="sans" style="font-size:14px; line-height:1.6; color:var(--text-muted);">${renderRichText(esc(item.body))}</div>
+          </div>
+        `).join('') : `<div class="panel" style="text-align:center; padding:40px; color:var(--text-muted);">No news posted yet.</div>` }
+      </div>
     </div>
   </div>
 
