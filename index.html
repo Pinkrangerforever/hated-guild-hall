@@ -981,10 +981,11 @@
     position:absolute; 
     z-index:3;
     width:100px;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) rotate(0deg);
+    transition: transform 0.2s ease;
   }
-  .sticker-pin-group[data-owned="true"]:hover{ z-index:20; transform:translate(-50%, -50%) scale(1.08); }
-  .sticker-pin-group[data-owned="false"]:hover{ z-index:20; }
+  .sticker-pin-group[data-owned="true"]:hover{ z-index:20; transform:translate(-50%, -50%) scale(1.08) rotate(-2deg); }
+  .sticker-pin-group[data-owned="false"]:hover{ z-index:20; transform:translate(-50%, -50%) rotate(1deg); }
   .sticker-pin{
     position:absolute; top:-16px; left:50%; transform:translateX(-50%);
     width:28px; height:28px; border-radius:50%;
@@ -2526,22 +2527,17 @@ async function purchaseSticker(galleryImageId){
   const note = prompt('Add a note to your sticker (optional):', '');
   if(note === null) return; // User cancelled
   
-  console.log('🎁 Purchasing sticker:', { galleryImageId, note });
   const { data, error } = await sb.rpc('purchase_sticker', { p_gallery_image_id: galleryImageId, p_note: note });
   
   if(error){
-    console.error('❌ Purchase error:', error);
     showToast("Couldn't complete purchase — try again", true);
     return;
   }
   
   if(!data){ 
-    console.error('❌ No data returned');
     showToast("Couldn't complete purchase — try again", true);
     return;
   }
-  
-  console.log('✅ Purchase response:', data);
   
   if(!data.success){
     const reasons = {
@@ -2618,40 +2614,18 @@ function setupStickerDragHandlers(){
   let dragStart = { x: 0, y: 0 };
   let containerRect = null;
   
-  console.log('🎯 Drag handler setup initialized');
-  
-  // Log all pins found
-  const pins = document.querySelectorAll('.sticker-pin');
-  console.log('📌 Found', pins.length, 'pins on page');
-  
   // Use event delegation - listen on document for pin interactions
   document.addEventListener('mousedown', (e)=>{
-    // Check if it's a pin
-    if(e.target.classList && e.target.classList.contains('sticker-pin')){
-      console.log('✋ MOUSEDOWN on pin element directly');
-    }
-    
     const pin = e.target.closest('.sticker-pin');
-    if(!pin){
-      return;
-    }
+    if(!pin) return;
     
-    console.log('📌 Pin found via closest()');
     const stickerGroup = pin.closest('.sticker-pin-group');
-    console.log('📌 Group found:', !!stickerGroup, 'owned:', stickerGroup?.dataset.owned);
+    if(!stickerGroup || stickerGroup.dataset.owned !== 'true') return;
     
-    if(!stickerGroup || stickerGroup.dataset.owned !== 'true') {
-      console.log('⚠️ Not owned or no group, skipping');
-      return;
-    }
-    
-    console.log('🖱️ DRAG START on sticker:', stickerGroup.dataset.stickerId);
     draggingSticker = stickerGroup;
     const stickersContainer = stickerGroup.closest('.corkboard-stickers');
     containerRect = stickersContainer ? stickersContainer.getBoundingClientRect() : null;
-    console.log('📦 Container:', containerRect ? `${containerRect.width}x${containerRect.height}` : 'null');
     dragStart = { x: e.clientX, y: e.clientY };
-    console.log('🚀 Start coords:', dragStart);
     e.preventDefault();
   });
   
@@ -2662,8 +2636,6 @@ function setupStickerDragHandlers(){
     const dy = e.clientY - dragStart.y;
     
     if(Math.abs(dx) < 2 && Math.abs(dy) < 2) return; // Ignore tiny movements
-    
-    console.log('🎯 Moving:', { dx, dy });
     
     // Current position in percentages
     let posX = parseFloat(draggingSticker.style.left) || 50;
@@ -2693,8 +2665,6 @@ function setupStickerDragHandlers(){
     const posY = parseFloat(draggingSticker.style.top) || 50;
     const stickerId = draggingSticker.dataset.stickerId;
     
-    console.log('📍 Saving position:', { posX, posY, stickerId });
-    
     // Update in database
     const { error } = await sb.rpc('update_sticker_position', {
       p_sticker_id: stickerId,
@@ -2703,10 +2673,7 @@ function setupStickerDragHandlers(){
     });
     
     if(error) {
-      console.error('❌ Position save error:', error);
       showToast('Failed to save sticker position', true);
-    } else {
-      console.log('✅ Position saved');
     }
     
     draggingSticker = null;
@@ -3590,9 +3557,6 @@ function renderLoot(){
 /* ---------------- news tab ---------------- */
 function renderNews(){
   const officer = isOfficer();
-  if(state.profile){
-    console.log('👤 Profile loaded - Rank:', state.profile.discord_rank_level, 'Discord Name:', state.profile.discord_name);
-  }
   return `
 
     <!-- Cork board + Video side-by-side layout -->
@@ -3607,7 +3571,6 @@ function renderNews(){
               const posY = s.position_y ?? 50;
               const isOwner = state.session?.user?.id === s.placed_by_user_id;
               const isRaidLeader = state.profile?.discord_rank_level === 1;
-              console.log('🎨 Sticker:', { name: s.placed_by_name, placed_by_user_id: s.placed_by_user_id, auth_id: state.session?.user?.id, isOwner });
               return `
               <div class="sticker-pin-group" 
                    data-sticker-id="${esc(s.id)}"
