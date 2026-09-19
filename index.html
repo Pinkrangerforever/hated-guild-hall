@@ -1659,7 +1659,13 @@ async function refundPurchase(purchaseId, userName){
       showToast(data.error || 'Failed to refund', true);
       return;
     }
+
+    // Remove from admin purchases
     state.adminPurchases = state.adminPurchases.filter(p=>p.id!==purchaseId);
+
+    // Reload shop purchases to reflect the refund
+    await loadShopPurchases();
+
     showToast(`Refunded purchase for ${userName}`);
     render();
   } catch(e) {
