@@ -3427,23 +3427,9 @@ function renderNews(){
   const officer = isOfficer();
   return `
 
-    <div class="panel style-glass" style="text-align:center;">
-      <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
-      <h2 class="hero-title2 gold-text" style="font-size:32px;">Adventure Is Forever</h2>
-      <p class="hero-split-sub sans" style="margin:0 auto 28px auto;">The guild hall is an invitation to take your first steps into raid nights, boss strategy, and the loot log &mdash; built for ${esc(state.settings.guild_name)} as we carry on into Warcraft Forever.</p>
-      <div class="hero-split-media" style="margin-top:0;">
-        <div class="ornate-frame" style="max-width:640px;">
-          <div class="ornate-corner tl"></div>
-          <div class="ornate-corner tr"></div>
-          <div class="ornate-corner bl"></div>
-          <div class="ornate-corner br"></div>
-          <iframe class="hero-video-embed" src="https://www.youtube.com/embed/D30zXcEjg_Y" title="Guild video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-        </div>
-      </div>
-    </div>
-
-    <!-- Corkboard section - shows at top of home page -->
-    <div style="margin-bottom:32px;">
+    <!-- Cork board + Video side-by-side layout -->
+    <div style="display:flex; gap:24px; align-items:flex-start; margin-bottom:40px;">
+      <!-- Corkboard on the left -->
       <div class="corkboard">
         <div class="corkboard-title">Community Board</div>
         ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
@@ -3464,9 +3450,25 @@ function renderNews(){
           </div>
         ` : `<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">No stickers placed yet — be the first!</div>` }
       </div>
+
+      <!-- Center video panel - narrower -->
+      <div class="panel style-glass" style="text-align:center; flex:0 0 auto; max-width:680px;">
+        <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
+        <h2 class="hero-title2 gold-text" style="font-size:32px;">Adventure Is Forever</h2>
+        <p class="hero-split-sub sans" style="margin:0 auto 28px auto;">The guild hall is an invitation to take your first steps into raid nights, boss strategy, and the loot log &mdash; built for ${esc(state.settings.guild_name)} as we carry on into Warcraft Forever.</p>
+        <div class="hero-split-media" style="margin-top:0;">
+          <div class="ornate-frame" style="max-width:640px;">
+            <div class="ornate-corner tl"></div>
+            <div class="ornate-corner tr"></div>
+            <div class="ornate-corner bl"></div>
+            <div class="ornate-corner br"></div>
+            <iframe class="hero-video-embed" src="https://www.youtube.com/embed/D30zXcEjg_Y" title="Guild video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Feature cards section -->
+    <!-- Feature cards section - below both -->
     <div style="margin-bottom:32px;">
       <div class="feature-cards">
         <button type="button" class="feature-card" data-home-card="calendar">
