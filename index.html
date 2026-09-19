@@ -3574,6 +3574,225 @@ function renderAdmin(){
     </div>
   `;
 }
+/* ---------------- bindings ---------------- */
+function bindApp(){
+  document.querySelectorAll('.nav-tab-btn, .mobile-nav-link[data-tab], .btn-nav-admin').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      state.tab = btn.dataset.tab;
+      state.modal = null;
+      state.mobileNavOpen = false;
+      render();
+    });
+  });
+  bindMobileNav();
+  document.querySelectorAll('[data-home-card]').forEach(b=>b.addEventListener('click', ()=>{
+    state.tab = b.dataset.homeCard;
+    state.modal = null;
+    render();
+  }));
+  const logoutBtn = document.getElementById('logout-btn');
+  if(logoutBtn) logoutBtn.addEventListener('click', signOut);
+
+  const eventBtn = document.getElementById('event-form-btn');
+  if(eventBtn) eventBtn.addEventListener('click', addEvent);
+
+  const calPrev = document.getElementById('cal-prev');
+  if(calPrev) calPrev.addEventListener('click', ()=>{
+    let m = state.calendarMonth - 1, y = state.calendarYear;
+    if(m<0){ m=11; y--; }
+    state.calendarMonth = m; state.calendarYear = y; render();
+  });
+  const calNext = document.getElementById('cal-next');
+  if(calNext) calNext.addEventListener('click', ()=>{
+    let m = state.calendarMonth + 1, y = state.calendarYear;
+    if(m>11){ m=0; y++; }
+    state.calendarMonth = m; state.calendarYear = y; render();
+  });
+  const calToday = document.getElementById('cal-today');
+  if(calToday) calToday.addEventListener('click', ()=>{
+    const d = new Date();
+    state.calendarYear = d.getFullYear(); state.calendarMonth = d.getMonth(); render();
+  });
+  const calAddEvent = document.getElementById('cal-add-event');
+  if(calAddEvent) calAddEvent.addEventListener('click', ()=>{ state.modal = {type:'add-event', date:''}; render(); });
+  document.querySelectorAll('[data-adddate]').forEach(b=>b.addEventListener('click', (ev)=>{
+    ev.stopPropagation();
+    state.modal = {type:'add-event', date:b.dataset.adddate}; render();
+  }));
+  document.querySelectorAll('[data-open-event]').forEach(b=>b.addEventListener('click', ()=>{
+    state.modal = {type:'event-detail', eventId:b.dataset.openEvent}; render();
+  }));
+
+  const modalClose = document.getElementById('modal-close');
+  if(modalClose) modalClose.addEventListener('click', ()=>{ state.modal=null; render(); });
+  const backdrop = document.getElementById('modal-backdrop');
+  if(backdrop) backdrop.addEventListener('click', (ev)=>{ if(ev.target.id==='modal-backdrop'){ state.modal=null; render(); } });
+
+  document.querySelectorAll('[data-modal-rsvp]').forEach(b=>b.addEventListener('click', ()=>{
+    if(state.modal && state.modal.type==='event-detail') setRsvp(state.modal.eventId, b.dataset.modalRsvp);
+  }));
+  const modalDelBtn = document.querySelector('[data-modal-delete-event]');
+  if(modalDelBtn) modalDelBtn.addEventListener('click', ()=>deleteEvent(modalDelBtn.dataset.modalDeleteEvent));
+
+  // boss strategy tree
+  document.querySelectorAll('[data-open-raid]').forEach(el=>el.addEventListener('click', ()=>{
+    state.stratNav = { raidId: el.dataset.openRaid, bossId: null };
+    render();
+  }));
+  document.querySelectorAll('[data-open-boss]').forEach(el=>el.addEventListener('click', ()=>{
+    state.stratNav.bossId = el.dataset.openBoss;
+    render();
+  }));
+  document.querySelectorAll('[data-crumb-raids]').forEach(el=>el.addEventListener('click', ()=>{
+    state.stratNav = { raidId:null, bossId:null };
+    render();
+  }));
+  document.querySelectorAll('[data-crumb-raid]').forEach(el=>el.addEventListener('click', ()=>{
+    state.stratNav = { raidId: el.dataset.crumbRaid, bossId:null };
+    render();
+  }));
+  const raidAddBtn = document.getElementById('raid-add-btn');
+  if(raidAddBtn) raidAddBtn.addEventListener('click', addRaidInstance);
+  document.querySelectorAll('[data-del-raid]').forEach(b=>b.addEventListener('click', (ev)=>{ ev.stopPropagation(); deleteRaidInstance(b.dataset.delRaid); }));
+  const bossAddBtn = document.getElementById('boss-add-btn');
+  if(bossAddBtn) bossAddBtn.addEventListener('click', ()=>addBoss(state.stratNav.raidId));
+  document.querySelectorAll('[data-del-boss]').forEach(b=>b.addEventListener('click', (ev)=>{ ev.stopPropagation(); deleteBoss(b.dataset.delBoss); }));
+  const bossNotesSaveBtn = document.getElementById('boss-notes-save-btn');
+  if(bossNotesSaveBtn) bossNotesSaveBtn.addEventListener('click', saveBossNotes);
+  const screenshotInput = document.getElementById('boss-screenshot-input');
+  if(screenshotInput) screenshotInput.addEventListener('change', (ev)=>{ handleScreenshotFile(state.stratNav.bossId, ev.target.files[0]); });
+  const screenshotRemoveBtn = document.getElementById('boss-screenshot-remove-btn');
+  if(screenshotRemoveBtn) screenshotRemoveBtn.addEventListener('click', ()=>removeBossScreenshot(state.stratNav.bossId));
+
+  const raidplanBtn = document.getElementById('raidplan-form-btn');
+  if(raidplanBtn) raidplanBtn.addEventListener('click', addRaidplan);
+  document.querySelectorAll('[data-del-raidplan]').forEach(b=>b.addEventListener('click', ()=>deleteRaidplan(b.dataset.delRaidplan)));
+
+  const softresBtn = document.getElementById('softres-form-btn');
+  if(softresBtn) softresBtn.addEventListener('click', addSoftres);
+  document.querySelectorAll('[data-del-softres]').forEach(b=>b.addEventListener('click', ()=>deleteSoftres(b.dataset.delSoftres)));
+
+  // roster: members + comp planner
+  const myNameSaveBtn = document.getElementById('my-name-save-btn');
+  if(myNameSaveBtn) myNameSaveBtn.addEventListener('click', saveMyName);
+  const syncRoleBtn = document.getElementById('sync-discord-role-btn');
+  if(syncRoleBtn) syncRoleBtn.addEventListener('click', ()=>syncDiscordRole(true));
+  document.querySelectorAll('[data-toggle-officer]').forEach(b=>b.addEventListener('click', ()=>toggleOfficer(b.dataset.toggleOfficer)));
+  document.querySelectorAll('.spec-btn').forEach(b=>b.addEventListener('click', ()=>selectSpec(b.dataset.class, b.dataset.spec)));
+  document.querySelectorAll('[data-slot-click]').forEach(el=>el.addEventListener('click', ()=>{
+    const [gi,si] = el.dataset.slotClick.split('|').map(Number);
+    openCompSlotModal(gi,si);
+  }));
+  document.querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click', (ev)=>{
+    ev.stopPropagation();
+    const [gi,si] = b.dataset.remove.split('|').map(Number);
+    removeCompSlot(gi,si);
+  }));
+  const assignSaveBtn = document.getElementById('assign-slot-save');
+  if(assignSaveBtn){
+    assignSaveBtn.addEventListener('click', saveCompSlot);
+    const nameInput = document.getElementById('assign-slot-name');
+    if(nameInput) nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') saveCompSlot(); });
+  }
+  const assignClearBtn = document.getElementById('assign-slot-clear');
+  if(assignClearBtn && state.modal && state.modal.type==='assign-slot'){
+    const { groupIdx, slotIdx } = state.modal;
+    assignClearBtn.addEventListener('click', ()=>removeCompSlot(groupIdx, slotIdx));
+  }
+
+  const lootBtn = document.getElementById('loot-form-btn');
+  if(lootBtn) lootBtn.addEventListener('click', addLoot);
+  document.querySelectorAll('[data-del-loot]').forEach(b=>b.addEventListener('click', ()=>deleteLoot(b.dataset.delLoot)));
+
+  const newsBtn = document.getElementById('news-form-btn');
+  if(newsBtn) newsBtn.addEventListener('click', addNews);
+  document.querySelectorAll('[data-del-news]').forEach(b=>b.addEventListener('click', ()=>deleteNews(b.dataset.delNews)));
+
+  const newsBodyInput = document.getElementById('news-body-input');
+  const newsPreview = document.getElementById('news-preview');
+  function updateNewsPreview(){
+    if(!newsBodyInput || !newsPreview) return;
+    const val = newsBodyInput.value.trim();
+    newsPreview.innerHTML = val ? renderRichText(val) : '<span class="muted">Nothing to preview yet.</span>';
+  }
+  if(newsBodyInput){
+    newsBodyInput.addEventListener('input', updateNewsPreview);
+    document.querySelectorAll('[data-rte]').forEach(b=>b.addEventListener('click', ()=>{
+      rteApply('news-body-input', b.dataset.rte, '#cf9a44');
+      updateNewsPreview();
+    }));
+    document.querySelectorAll('.rte-swatch').forEach(sw=>sw.addEventListener('click', ()=>{
+      rteApply('news-body-input', 'color', sw.dataset.color);
+      updateNewsPreview();
+    }));
+  }
+
+  const recBtn = document.getElementById('rec-form-btn');
+  if(recBtn) recBtn.addEventListener('click', saveRecruitment);
+
+  const galleryInput = document.getElementById('gallery-upload-input');
+  if(galleryInput) galleryInput.addEventListener('change', (ev)=>{ handleGalleryFiles(ev.target.files); });
+  document.querySelectorAll('[data-del-gallery]').forEach(b=>b.addEventListener('click', ()=>deleteGalleryImage(b.dataset.delGallery)));
+  document.querySelectorAll('[data-toggle-sticker]').forEach(b=>b.addEventListener('click', ()=>{
+    const [id, current] = b.dataset.toggleSticker.split('|');
+    toggleGalleryImageSticker(id, current === '1');
+  }));
+  document.querySelectorAll('[data-choose-slot]').forEach(b=>b.addEventListener('click', (ev)=>{ ev.stopPropagation(); openImagePicker(b.dataset.chooseSlot); }));
+  document.querySelectorAll('[data-clear-slot]').forEach(b=>b.addEventListener('click', ()=>clearSiteImage(b.dataset.clearSlot)));
+  const bgColorInput = document.getElementById('site-bg-color-input');
+  if(bgColorInput) bgColorInput.addEventListener('change', ()=>assignSiteImage('site_background_color', bgColorInput.value));
+
+  const bgOpacityInput = document.getElementById('site-bg-opacity-input');
+  if(bgOpacityInput){
+    bgOpacityInput.addEventListener('input', ()=>{
+      const valEl = document.getElementById('site-bg-opacity-value');
+      if(valEl) valEl.textContent = bgOpacityInput.value;
+      const layer = document.getElementById('bg-layer-image');
+      if(layer) layer.style.opacity = String(Number(bgOpacityInput.value)/100);
+    });
+    bgOpacityInput.addEventListener('change', ()=>assignSiteImage('site_background_opacity', bgOpacityInput.value));
+  }
+  const textureOpacityInput = document.getElementById('site-bg-texture-opacity-input');
+  if(textureOpacityInput){
+    textureOpacityInput.addEventListener('input', ()=>{
+      const valEl = document.getElementById('site-bg-texture-opacity-value');
+      if(valEl) valEl.textContent = textureOpacityInput.value;
+      const layer = document.getElementById('bg-layer-texture');
+      if(layer) layer.style.opacity = String(Number(textureOpacityInput.value)/100);
+    });
+    textureOpacityInput.addEventListener('change', ()=>assignSiteImage('site_background_texture_opacity', textureOpacityInput.value));
+  }
+  const textureSizeInput = document.getElementById('site-bg-texture-size-input');
+  if(textureSizeInput){
+    textureSizeInput.addEventListener('input', ()=>{
+      const valEl = document.getElementById('site-bg-texture-size-value');
+      if(valEl) valEl.textContent = textureSizeInput.value;
+      const layer = document.getElementById('bg-layer-texture');
+      if(layer) layer.style.backgroundSize = textureSizeInput.value + 'px ' + textureSizeInput.value + 'px';
+    });
+    textureSizeInput.addEventListener('change', ()=>assignSiteImage('site_background_texture_size', textureSizeInput.value));
+  }
+  document.querySelectorAll('[data-pick-image]').forEach(b=>b.addEventListener('click', ()=>{
+    if(state.modal && state.modal.type==='pick-image'){
+      assignSiteImage(state.modal.slotKey, b.dataset.pickUrl);
+    }
+  }));
+
+  const shopBtn = document.getElementById('open-shop-btn');
+  if(shopBtn) shopBtn.addEventListener('click', openShop);
+  const shopBtnMobile = document.getElementById('open-shop-btn-mobile');
+  if(shopBtnMobile) shopBtnMobile.addEventListener('click', ()=>{ state.mobileNavOpen = false; openShop(); });
+  document.querySelectorAll('[data-buy-shop-item]').forEach(b=>b.addEventListener('click', ()=>purchaseShopItem(b.dataset.buyShopItem)));
+  document.querySelectorAll('[data-buy-rank]').forEach(b=>b.addEventListener('click', ()=>purchaseRank(b.dataset.buyRank)));
+  document.querySelectorAll('[data-buy-sticker]').forEach(b=>b.addEventListener('click', ()=>purchaseSticker(b.dataset.buySticker)));
+  const stickerPriceBtn = document.getElementById('save-sticker-price-btn');
+  if(stickerPriceBtn) stickerPriceBtn.addEventListener('click', saveStickerPrice);
+  document.querySelectorAll('[data-edit-shop-item]').forEach(b=>b.addEventListener('click', ()=>startEditShopItem(b.dataset.editShopItem)));
+  document.querySelectorAll('[data-save-shop-item]').forEach(b=>b.addEventListener('click', ()=>saveShopItem(b.dataset.saveShopItem)));
+  document.querySelectorAll('[data-cancel-shop-edit]').forEach(b=>b.addEventListener('click', cancelEditShopItem));
+}
+
+boot();
 
 })();
 </script>
