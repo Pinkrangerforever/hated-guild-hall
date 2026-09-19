@@ -91,6 +91,19 @@
   .logout-link:hover{ text-decoration:underline; }
 
   .main{ max-width:1400px; margin:0 auto; padding:140px 40px 32px 40px; }
+  
+  /* Per-page width customization */
+  .main.page-calendar { max-width: 1400px; }
+  .main.page-strategies { max-width: 1400px; }
+  .main.page-softres { max-width: 1200px; }
+  .main.page-roster { max-width: 1400px; }
+  .main.page-loot { max-width: 1200px; }
+  .main.page-news { max-width: 1200px; }
+  .main.page-recruitment { max-width: 1200px; }
+  .main.page-gallery { max-width: 1300px; }
+  .main.page-guildbank { max-width: 1400px; }
+  .main.page-raidlogs { max-width: 1200px; }
+  .main.page-admin { max-width: 1300px; }
   .eyebrow{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--blurple); margin-bottom:8px; }
   .main .eyebrow{ margin-top:12px; }
   .page-title{ font-size:26px; margin-bottom:6px; font-weight:700; }
@@ -2567,7 +2580,7 @@ function renderApp(){
         ${ state.profile && state.profile.protected ? `<button type="button" class="mobile-nav-link ${state.tab==='admin'?'active':''}" data-tab="admin">Admin</button>` : '' }
       </div>
     </nav>
-    <div class="main">
+    <div class="main page-${state.tab}">
       ${ state.toast ? `<div class="toast ${state.toastError?'toast-error':'toast-success'} sans">${esc(state.toast)}</div>` : '' }
       ${ renderTab() }
       ${ renderModal() }
@@ -3212,7 +3225,7 @@ function renderLoot(){
     <p class="page-sub sans">A running record of what's dropped and who won it.</p>
 
     ${ officer ? `
-    <div class="panel">
+    <div class="panel style-glass">
       <h3 style="margin-bottom:14px;">Log an item</h3>
       <div id="loot-form">
         <div class="row">
@@ -3228,7 +3241,7 @@ function renderLoot(){
       </div>
     </div>` : ''}
 
-    <div class="panel">
+    <div class="panel style-glass">
       ${ state.loot.length ? `
       <table>
         <thead><tr><th>Date</th><th>Item</th><th>Winner</th><th>Boss</th>${officer?'<th></th>':''}</tr></thead>
@@ -3316,7 +3329,7 @@ function renderNews(){
     <p class="page-sub sans">Officer posts for lockout changes, loot rule updates, and anything else worth pinning.</p>
 
     ${ officer ? `
-    <div class="panel">
+    <div class="panel style-glass">
       <h3 style="margin-bottom:14px;">Post an announcement</h3>
       <div id="news-form">
         <div class="field"><label>Title</label><input name="title" placeholder="e.g. New loot council rules starting this week" required></div>
@@ -3359,7 +3372,7 @@ function renderNews(){
       </div>
     </div>` : ''}
 
-    <div class="panel">
+    <div class="panel style-glass">
       ${ state.news.length ? state.news.map(n=>`
         <div class="list-item">
           <div style="flex:1;">
@@ -3385,7 +3398,7 @@ function renderRecruitmentTab(){
     <p class="page-sub sans">This message is shown to anyone who visits before signing in.</p>
 
     ${ officer ? `
-    <div class="panel">
+    <div class="panel style-glass">
       <h3 style="margin-bottom:14px;">Edit recruitment notice</h3>
       <div id="rec-form">
         <div class="field"><label>Guild name</label><input name="guildName" value="${esc(rec.guild_name||'')}"></div>
@@ -3394,7 +3407,7 @@ function renderRecruitmentTab(){
         <button class="btn" type="button" id="rec-form-btn">Save</button>
       </div>
     </div>` : `
-    <div class="panel">
+    <div class="panel style-glass">
       ${ rec.recruitment_roles ? `<p style="font-weight:600; color:var(--verdigris-dark); margin-bottom:8px;">Open roles: ${esc(rec.recruitment_roles)}</p>` : '' }
       <p style="line-height:1.6; white-space:pre-wrap;">${ rec.recruitment_body ? esc(rec.recruitment_body) : 'No recruitment notice posted yet.' }</p>
     </div>`}
@@ -3411,13 +3424,13 @@ function renderGallery(){
     <p class="page-sub sans">Images officers have uploaded. Use them to customize the guild icon, the site background, and the class icons on the Roster page.</p>
 
     ${ officer ? `
-    <div class="panel">
+    <div class="panel style-glass">
       <h3 style="margin-bottom:14px;">Upload an image</h3>
       <label class="btn" style="cursor:pointer; display:inline-block;">Choose files<input type="file" accept="image/*" id="gallery-upload-input" multiple style="display:none;"></label>
       <p class="muted sans" style="margin-top:8px; font-size:12px;">You can select multiple images at once (up to 20).</p>
     </div>
 
-    <div class="panel">
+    <div class="panel style-glass">
       <h3 style="margin-bottom:4px;">Site Images</h3>
       <p class="muted sans" style="margin-bottom:16px;">Assign a gallery image to a spot on the site, or clear it to go back to the default artwork.</p>
 
@@ -3512,7 +3525,7 @@ function renderGallery(){
       </div>
     </div>` : '' }
 
-    <div class="panel">
+    <div class="panel style-glass">
       <h3 style="margin-bottom:14px;">All uploaded images</h3>
       ${ state.galleryImages.length ? `
         <div class="gallery-grid">
@@ -3550,7 +3563,7 @@ function renderRaidLogs(){
     <div class="eyebrow sans">Coming Soon</div>
     <h2 class="page-title">Raid Logs</h2>
     <p class="page-sub sans">A place for raid log links or reports — this page is a placeholder for now.</p>
-    <div class="panel">
+    <div class="panel style-glass">
       ${emptyState("This page isn't built out yet. Let me know what you'd like here — links to WarcraftLogs reports, an embedded log viewer, parse tracking — and I'll build it out.")}
     </div>
   `;
@@ -3569,7 +3582,7 @@ function renderAdmin(){
     <div class="eyebrow sans">Raid Leader Only</div>
     <h2 class="page-title">Admin</h2>
     <p class="page-sub sans">Visible only to the protected Raid Leader account — not even other officers can see this tab.</p>
-    <div class="panel">
+    <div class="panel style-glass">
       ${emptyState("Nothing built out here yet. Tell me what you'd like to manage from this page — guild settings, dangerous actions, whatever needs the extra lockdown — and I'll build it out with the matching database protections.")}
     </div>
   `;
