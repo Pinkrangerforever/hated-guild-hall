@@ -1444,7 +1444,11 @@ function guildIconHtml(size, id){
 function getUserNameCustomization(userId){
   if(!userId) return '';
   const purchases = state.shopPurchases && state.shopPurchases.filter(p=>p.user_id===userId && p.fulfilled);
-  if(!purchases || !purchases.length) return '';
+  if(!purchases || !purchases.length) {
+    console.log('[DEBUG] No purchases for userId:', userId);
+    return '';
+  }
+  console.log('[DEBUG] Purchases found:', purchases.map(p=>p.item_name));
 
   // Check for roster name borders (get highest tier)
   const borderPurchases = purchases.filter(p=> {
@@ -3777,6 +3781,7 @@ function renderRoster(){
                 const profiles = Object.values(state.profilesById || {});
                 const userId = profiles.find(p => p.character_name === slot.character_name)?.id;
                 var nameClass = getUserNameCustomization(userId);
+                if(nameClass) console.log('[DEBUG] Applied class to', slot.character_name, ':', nameClass);
               } else {
                 var nameClass = '';
               }
