@@ -122,6 +122,47 @@
   .panel-section:last-child{
     border-bottom:none;
   }
+
+  /* DARK CARD STYLE - for Roster */
+  .panel.style-dark-card,
+  .panel.style-dark-card .comp-slot {
+    background:linear-gradient(135deg, rgba(35,30,20,0.8), rgba(25,20,12,0.9));
+    border:1px solid rgba(207,154,68,0.16);
+    border-radius:4px;
+    padding:20px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.08);
+  }
+  .panel.style-dark-card > h2, .panel.style-dark-card > h3 {
+    border-color:rgba(207,154,68,0.2);
+  }
+
+  /* GRADIENT STYLE - for Shop */
+  .panel.style-gradient,
+  .panel.style-gradient .comp-slot {
+    background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6));
+    border:1px solid rgba(207,154,68,0.2);
+    border-radius:3px;
+    padding:18px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  }
+  .panel.style-gradient > h2, .panel.style-gradient > h3 {
+    border-color:rgba(207,154,68,0.24);
+  }
+
+  /* GLASS-MORPHISM STYLE - for Events */
+  .panel.style-glass,
+  .panel.style-glass .comp-slot {
+    background:rgba(207,154,68,0.05);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(207,154,68,0.15);
+    border-radius:8px;
+    padding:16px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.2);
+  }
+  .panel.style-glass > h2, .panel.style-glass > h3 {
+    border-color:rgba(207,154,68,0.18);
+  }
   .panel + .panel{ margin-top:16px; }
   .main .panel{ margin-bottom:80px; }
   .main .panel + .panel{ margin-top:80px; }
@@ -608,6 +649,21 @@
   .comp-slot{
     display:flex; align-items:center; gap:8px; min-height:59px; padding:12px 16px; margin-bottom:8px;
     background:rgba(207,154,68,0.04); border:1px solid rgba(207,154,68,0.12); border-radius:3px;
+  }
+  .panel.style-dark-card .comp-slot {
+    background:rgba(20,16,10,0.6);
+    border:1px solid rgba(207,154,68,0.2);
+    border-radius:3px;
+  }
+  .panel.style-gradient .comp-slot {
+    background:rgba(30,24,15,0.5);
+    border:1px solid rgba(207,154,68,0.16);
+    border-radius:3px;
+  }
+  .panel.style-glass .comp-slot {
+    background:rgba(207,154,68,0.08);
+    border:1px solid rgba(207,154,68,0.18);
+    border-radius:5px;
   }
   .comp-slot.editable{ cursor:pointer; }
   .comp-slot.editable:hover{ background:rgba(207,154,68,0.1); border-color:var(--blurple); }
