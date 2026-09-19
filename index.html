@@ -3612,11 +3612,6 @@ function renderNews(){
       </div>
     </div>
 
-    <!-- Sparkle Collection Button -->
-    <div style="margin-bottom:40px; text-align:center;">
-      <button type="button" class="btn gold-text" id="claim-sparkle-btn" style="font-size:16px; padding:14px 32px;">✨ Claim Gold</button>
-    </div>
-
     <!-- Feature cards section - below both -->
     <div style="margin-bottom:32px;">
       <div class="feature-cards">
@@ -4112,10 +4107,6 @@ function bindApp(){
   document.querySelectorAll('[data-edit-shop-item]').forEach(b=>b.addEventListener('click', ()=>startEditShopItem(b.dataset.editShopItem)));
   document.querySelectorAll('[data-save-shop-item]').forEach(b=>b.addEventListener('click', ()=>saveShopItem(b.dataset.saveShopItem)));
   document.querySelectorAll('[data-cancel-shop-edit]').forEach(b=>b.addEventListener('click', cancelEditShopItem));
-
-  // Sparkle claim button handler
-  const claimSparkleBtn = document.getElementById('claim-sparkle-btn');
-  if(claimSparkleBtn) claimSparkleBtn.addEventListener('click', ()=>claimSparkle(claimSparkleBtn));
 }
 
 boot();
