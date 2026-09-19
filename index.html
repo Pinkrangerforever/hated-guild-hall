@@ -2124,7 +2124,12 @@ async function claimSparkle(el){
   el.remove();
   try{
     const { data, error } = await sb.rpc('claim_sparkle_gold');
-    if(error || !data || !data.success) return; // cooldown or not logged in — just no visible reward
+    console.log('sparkle rpc result:', { data, error });
+    if(error || !data || !data.success){
+      console.log('sparkle failed:', error ? error.message : 'no data or not success');
+      return;
+    }
+    console.log('sparkle event type:', data.event);
     if(data.event === 'murloc') return startMurlocEvent(rect, data.pending_id);
     if(data.event === 'fishing') return startFishingEvent(rect, data.pending_id);
     // normal claim: gold is already awarded by the server
@@ -2133,7 +2138,9 @@ async function claimSparkle(el){
       render();
     }
     showGoldFloat(rect.left + rect.width/2, rect.top, data.awarded);
-  }catch(e){ /* silent — sparkles are low-stakes fun, not worth erroring the UI over */ }
+  }catch(e){ 
+    console.error('sparkle error:', e);
+  }
 }
 async function resolveSparkleEvent(pendingId, won, x, y){
   try{
