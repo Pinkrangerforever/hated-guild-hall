@@ -2083,24 +2083,31 @@ let __sparkleInterval = null;
 const SPARKLE_MIN_MS = 20000, SPARKLE_MAX_MS = 45000, SPARKLE_LIFETIME_MS = 8000;
 
 function startSparkleSystem(){
+  console.log('sparkle system starting');
   if(__sparkleInterval) return; // already running
   scheduleSparkle();
 }
 function stopSparkleSystem(){
+  console.log('sparkle system stopping');
   if(__sparkleInterval){ clearTimeout(__sparkleInterval); __sparkleInterval = null; }
   const layer = document.getElementById('sparkle-layer');
   if(layer) layer.innerHTML = '';
 }
 function scheduleSparkle(){
   const delay = SPARKLE_MIN_MS + Math.random() * (SPARKLE_MAX_MS - SPARKLE_MIN_MS);
+  console.log('sparkle scheduled in', Math.round(delay/1000), 'seconds');
   __sparkleInterval = setTimeout(()=>{
     spawnSparkle();
     scheduleSparkle();
   }, delay);
 }
 function spawnSparkle(){
+  console.log('spawning sparkle');
   const layer = document.getElementById('sparkle-layer');
-  if(!layer) return;
+  if(!layer) {
+    console.log('sparkle-layer not found!');
+    return;
+  }
   const el = document.createElement('button');
   el.type = 'button';
   el.className = 'sparkle';
@@ -2113,8 +2120,12 @@ function spawnSparkle(){
     '<span class="sparkle-main"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + mainStar + '</svg></span>' +
     '<span class="sparkle-dot d1"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + dotStar + '</svg></span>' +
     '<span class="sparkle-dot d2"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + dotStar + '</svg></span>';
-  el.addEventListener('click', ()=>claimSparkle(el));
+  el.addEventListener('click', ()=>{
+    console.log('sparkle clicked');
+    claimSparkle(el);
+  });
   layer.appendChild(el);
+  console.log('sparkle added to DOM');
   setTimeout(()=>{ if(el.parentNode) el.remove(); }, SPARKLE_LIFETIME_MS);
 }
 async function claimSparkle(el){
