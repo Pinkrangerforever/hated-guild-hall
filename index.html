@@ -1646,11 +1646,21 @@ async function loadAdminPurchases(){
 
 async function refundPurchase(purchaseId, userName){
   if(!confirm(`Refund purchase for ${userName}?`)) return;
-  const { error } = await sb.from('shop_purchases').delete().eq('id', purchaseId);
-  if(error){ showToast('Failed to refund â€” try again', true); return; }
-  state.adminPurchases = state.adminPurchases.filter(p=>p.id!==purchaseId);
-  showToast(`Refunded purchase for ${userName}`);
-  render();
+
+  try {
+    const { error } = await sb.rpc('refund_shop_purchase', { p_purchase_id: purchaseId });
+    if(error){
+      console.error('Refund error:', error);
+      showToast('Failed to refund â€” try again', true);
+      return;
+    }
+    state.adminPurchases = state.adminPurchases.filter(p=>p.id!==purchaseId);
+    showToast(`Refunded purchase for ${userName}`);
+    render();
+  } catch(e) {
+    console.error('Refund exception:', e);
+    showToast('Failed to refund â€” try again', true);
+  }
 }
 
 async function onAuthResolved(){
