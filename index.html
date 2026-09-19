@@ -2355,7 +2355,14 @@ async function openShop(){
   // Fetch top 4 gold earners
   try {
     const { data, error } = await sb.rpc('get_gold_leaderboard', { p_limit: 4 });
-    if(!error && data) state.goldLeaderboard = data;
+    console.log('🏆 Leaderboard fetch:', { data, error });
+    if(error) console.error('RPC error:', error);
+    if(!error && data) {
+      state.goldLeaderboard = data;
+      console.log('✅ Leaderboard set:', state.goldLeaderboard);
+    } else {
+      console.log('⚠️ No leaderboard data returned');
+    }
   } catch(e){ console.error('Leaderboard fetch failed:', e); }
   
   state.modal = { type:'shop' };
