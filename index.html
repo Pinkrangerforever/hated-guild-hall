@@ -584,12 +584,12 @@
   .spec-btn.readonly:hover{ filter:none; }
   .painted-icon{ filter: drop-shadow(0 1px 1.5px rgba(0,0,0,0.75)); }
 
-  .comp-groups{ display:grid; grid-template-columns:repeat(4, 1.69fr); gap:14px; }
-  @media (max-width:860px){ .comp-groups{ grid-template-columns:repeat(2, 1fr); } }
+  .comp-groups{ display:grid; grid-template-columns:repeat(2, 1fr); gap:14px; }
+  @media (max-width:860px){ .comp-groups{ grid-template-columns:1fr; } }
   @media (max-width:520px){ .comp-groups{ grid-template-columns:1fr; } }
   .comp-group-title{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:8px; text-align:center; }
   .comp-slot{
-    display:flex; align-items:center; gap:8px; min-height:59px; min-width:280px; padding:8px 16px; margin-bottom:8px;
+    display:flex; align-items:center; gap:8px; min-height:59px; padding:8px 16px; margin-bottom:8px;
     background:var(--bg-input); border:1px solid var(--divider-strong); border-radius:2px;
   }
   .comp-slot.editable{ cursor:pointer; }
