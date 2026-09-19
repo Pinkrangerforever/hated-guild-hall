@@ -1399,18 +1399,23 @@ function guildIconHtml(size, id){
   return crestSvg(id || 'guildicon', size);
 }
 function getUserNameCustomization(userId){
+  if(!userId) { console.log('[border] No userId provided'); return ''; }
   const purchases = state.shopPurchases && state.shopPurchases.filter(p=>p.user_id===userId && p.fulfilled);
-  if(!purchases || !purchases.length) return '';
+  console.log(`[border] userId=${userId}, purchases:`, purchases);
+  if(!purchases || !purchases.length) { console.log('[border] No fulfilled purchases'); return ''; }
 
   // Check for roster name borders (get highest tier)
   const borderPurchases = purchases.filter(p=> {
     const item = state.shopItems && state.shopItems.find(i=>i.id===p.item_id);
+    console.log(`[border] Item ${p.item_id}:`, item?.name);
     return item && item.name.includes('Roster Name Border');
   });
+  console.log('[border] Border purchases:', borderPurchases.length);
   if(borderPurchases.length) {
     const borderItems = borderPurchases.map(p=>state.shopItems.find(i=>i.id===p.item_id));
     const highestTier = Math.max(...borderItems.map(i=>i.metadata?.tier || 0));
     const tierName = ['','uncommon','rare','epic','legendary'][highestTier];
+    console.log(`[border] Tier ${highestTier} = ${tierName}`);
     if(tierName) return `roster-border-${tierName}`;
   }
 
