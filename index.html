@@ -2643,38 +2643,39 @@ const GoldLeaderboard = {
   },
   
   render() {
-    if (this.leaderboardData === null) {
-      return `<div class="leaderboard-loading">Loading top earners...</div>`;
-    }
-    
-    if (this.leaderboardData.length === 0) {
-      return `<div class="leaderboard-empty">No gold earners yet!</div>`;
-    }
-    
     let html = `
       <div class="gold-leaderboard">
+    `;
+    
+    if (this.leaderboardData === null) {
+      html += `<div class="leaderboard-loading">Loading top earners...</div>`;
+    } else if (this.leaderboardData.length === 0) {
+      html += `<div class="leaderboard-empty">No gold earners yet!</div>`;
+    } else {
+      html += `
         <div class="leaderboard-title">💰 Top Gold Earners</div>
         <div class="leaderboard-list">
-    `;
-    
-    this.leaderboardData.forEach((entry, idx) => {
-      const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
-      const goldStr = this.formatGold(entry.gold || 0);
+      `;
+      
+      this.leaderboardData.forEach((entry, idx) => {
+        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+        const goldStr = this.formatGold(entry.gold || 0);
+        
+        html += `
+          <div class="leaderboard-row rank-${idx}">
+            <div class="lb-rank">${medal}</div>
+            <div class="lb-name">${esc(entry.character_name || entry.discord_username || 'Unknown')}</div>
+            <div class="lb-gold">${goldStr}</div>
+          </div>
+        `;
+      });
       
       html += `
-        <div class="leaderboard-row rank-${idx}">
-          <div class="lb-rank">${medal}</div>
-          <div class="lb-name">${esc(entry.character_name || entry.discord_username || 'Unknown')}</div>
-          <div class="lb-gold">${goldStr}</div>
         </div>
       `;
-    });
+    }
     
-    html += `
-        </div>
-      </div>
-    `;
-    
+    html += `</div>`;
     return html;
   },
   
