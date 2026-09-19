@@ -2947,7 +2947,7 @@ function renderStrategies(){
       <h2 class="page-title" style="margin-top:8px;">${esc(boss.name)}</h2>
       <p class="page-sub sans">${esc(raid.name)}</p>
 
-      <div class="panel">
+      <div class="panel style-glass">
         <h3 style="margin-bottom:12px;">Strategy notes</h3>
         ${ officer ? `
           <div class="field"><textarea id="boss-notes-input" placeholder="Positioning, cooldown order, who tanks what, wipe triggers...">${esc(boss.notes||'')}</textarea></div>
@@ -2955,7 +2955,7 @@ function renderStrategies(){
         ` : (boss.notes ? `<div class="muted" style="white-space:pre-wrap; line-height:1.6;">${esc(boss.notes)}</div>` : emptyState('No notes yet.')) }
       </div>
 
-      <div class="panel">
+      <div class="panel style-glass">
         <h3 style="margin-bottom:12px;">RaidPlan Screenshot</h3>
         ${ boss.screenshot_url ? `
           <img src="${esc(boss.screenshot_url)}" alt="${esc(boss.name)} raid plan screenshot" class="boss-screenshot">
@@ -2981,7 +2981,7 @@ function renderStrategies(){
       <p class="page-sub sans">Click a boss to open its strategy notes and RaidPlan screenshot.</p>
 
       ${ officer ? `
-      <div class="panel">
+      <div class="panel style-glass">
         <h3 style="margin-bottom:14px;">Add a boss</h3>
         <div id="boss-add-form">
           <div class="field"><label>Boss name</label><input name="bossName" placeholder="e.g. Rage Winterchill" required></div>
@@ -2990,7 +2990,7 @@ function renderStrategies(){
         </div>
       </div>` : '' }
 
-      <div class="panel">
+      <div class="panel style-glass">
         ${ bosses.length ? bosses.map(b=>`
           <div class="list-item tree-row" data-open-boss="${b.id}">
             <div style="flex:1; font-weight:600;">${esc(b.name)}</div>
@@ -3008,7 +3008,7 @@ function renderStrategies(){
     <p class="page-sub sans">Pick a raid instance, then a boss, to see notes and the RaidPlan screenshot.</p>
 
     ${ officer ? `
-    <div class="panel">
+    <div class="panel style-glass">
       <h3 style="margin-bottom:14px;">Add a raid instance</h3>
       <div id="raid-add-form">
         <div class="field"><label>Raid name</label><input name="raidName" placeholder="e.g. Hyjal Summit" required></div>
@@ -3017,7 +3017,7 @@ function renderStrategies(){
       </div>
     </div>` : '' }
 
-    <div class="panel">
+    <div class="panel style-glass">
       ${ state.raids.length ? state.raids.map(r=>{
         const count = state.bosses.filter(b=>b.raid_id===r.id).length;
         return `
@@ -3036,7 +3036,7 @@ function renderStrategies(){
     <p class="page-sub sans">General reference links to <a href="https://raidplan.io/classic" target="_blank" rel="noopener">raidplan.io</a> plans. For a specific boss, open that boss's page to post a screenshot directly.</p>
 
     ${ officer ? `
-    <div class="panel">
+    <div class="panel style-glass">
       <h3 style="margin-bottom:14px;">Add a plan link</h3>
       <div id="raidplan-form">
         <div class="row">
@@ -3048,7 +3048,7 @@ function renderStrategies(){
       </div>
     </div>` : ''}
 
-    <div class="panel">
+    <div class="panel style-glass">
       ${ state.raidplanLinks.length ? state.raidplanLinks.map(r=>`
         <div class="list-item link-row">
           <div style="flex:1;">
@@ -3083,7 +3083,7 @@ function renderSoftres(){
     <p class="page-sub sans">Links to soft-reserve sheets for upcoming raids. Newest first.</p>
 
     ${ officer ? `
-    <div class="panel">
+    <div class="panel style-glass">
       <h3 style="margin-bottom:14px;">Add a link</h3>
       <div id="softres-form">
         <div class="row">
@@ -3095,7 +3095,7 @@ function renderSoftres(){
       </div>
     </div>` : ''}
 
-    <div class="panel">
+    <div class="panel style-glass">
       ${ state.softresLinks.length ? state.softresLinks.map(s=>`
         <div class="list-item link-row">
           <div style="flex:1;">
@@ -3254,7 +3254,7 @@ function renderNews(){
   return `
     ${pageBanner('Welcome Back, ' + myName())}
 
-    <div class="panel" style="text-align:center;">
+    <div class="panel style-glass" style="text-align:center;">
       <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
       <h2 class="hero-title2 gold-text" style="font-size:32px;">Adventure Is Forever</h2>
       <p class="hero-split-sub sans" style="margin:0 auto 28px auto;">The guild hall is an invitation to take your first steps into raid nights, boss strategy, and the loot log &mdash; built for ${esc(state.settings.guild_name)} as we carry on into Warcraft Forever.</p>
