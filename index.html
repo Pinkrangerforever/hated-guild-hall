@@ -3193,6 +3193,13 @@ function renderRoster(){
   const sel = state.selectedSpec;
   const allProfiles = Object.values(state.profilesById).sort((a,b)=> (a.character_name||a.discord_username||'').localeCompare(b.character_name||b.discord_username||''));
 
+  console.log('🔍 Roster debug:', {
+    hasProfile: !!state.profile,
+    rankLevel: state.profile?.discord_rank_level,
+    isRaidLeader,
+    officer
+  });
+
   function slotAt(g,s){ return state.compSlots.find(row=>row.group_index===g && row.slot_index===s) || null; }
   
   function formatGoldDisplay(copper) {
