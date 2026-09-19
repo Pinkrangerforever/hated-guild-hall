@@ -2748,6 +2748,17 @@ async function purchaseSticker(galleryImageId){
   state.stickers = stickers || state.stickers;
   render();
 }
+async function setActiveNameCustomization(itemId){
+  const activeId = itemId === 'none' ? null : itemId;
+  const { data, error } = await sb.from('profiles').update({ active_name_customization: activeId }).eq('id', state.session.user.id);
+  if(error){
+    showToast('Failed to update preference', true);
+    return;
+  }
+  if(state.profile) state.profile.active_name_customization = activeId;
+  showToast('Preference updated!');
+  render();
+}
 function startEditShopItem(itemId){
   state.editingShopItemId = itemId;
   render();
@@ -3129,6 +3140,7 @@ function renderApp(){
     ['softres','Soft Res Links'],
     ['gallery','Gallery'],
     ['recruitment','Recruitment'],
+    ['settings','Settings'],
   ];
   return `
     <nav class="site-nav">
@@ -3182,6 +3194,7 @@ function renderTab(){
     case 'gallery': return renderGallery();
     case 'guildbank': return renderGuildBank();
     case 'raidlogs': return renderRaidLogs();
+    case 'settings': return renderSettings();
     case 'admin': return renderAdmin();
     default: return '';
   }
@@ -4185,6 +4198,44 @@ function renderRaidLogs(){
   `;
 }
 
+function renderSettings(){
+  const activeId = state.profile?.active_name_customization;
+  const nameCustomPurchases = (state.shopPurchases || []).filter(p => {
+    if(!p.fulfilled) return false;
+    const item = state.shopItems?.find(i => i.id === p.item_id);
+    return item && item.category === 'name_customization' && !item.name.includes('Roster Name Border');
+  });
+
+  return `
+    ${pageHeader('Settings', 'Preferences', 'Customize your profile appearance')}
+
+    <div class="panel style-glass">
+      <h3 style="margin-bottom:16px;">Name Customization</h3>
+      <p class="muted" style="margin-bottom:16px;">Select which name customization style to display:</p>
+
+      ${ nameCustomPurchases.length ? `
+        <div style="display:grid; gap:12px;">
+          <button class="btn ${!activeId ? 'primary' : 'secondary'}" type="button" data-set-name-custom="none" style="padding:12px; text-align:left;">
+            <div style="font-weight:600;">None</div>
+            <div class="muted" style="font-size:12px;">No custom effect</div>
+          </button>
+          ${ nameCustomPurchases.map(p => {
+            const item = state.shopItems?.find(i => i.id === p.item_id);
+            const isActive = activeId === p.item_id;
+            return `
+            <button class="btn ${isActive ? 'primary' : 'secondary'}" type="button" data-set-name-custom="${p.item_id}" style="padding:12px; text-align:left;">
+              <div style="font-weight:600;">${esc(item?.name || 'Unknown')}</div>
+              <div class="muted" style="font-size:12px;">${esc(item?.description || '')}</div>
+            </button>`;
+          }).join('')}
+        </div>
+      ` : `
+        <div class="emptyState">You haven't purchased any name customizations yet. Visit the Shop to get one!</div>
+      ` }
+    </div>
+  `;
+}
+
 function renderAdmin(){
   if(!state.profile || !state.profile.protected){
     state.tab = 'news';
@@ -4464,6 +4515,7 @@ function bindApp(){
   document.querySelectorAll('[data-buy-rank]').forEach(b=>b.addEventListener('click', ()=>purchaseRank(b.dataset.buyRank)));
   document.querySelectorAll('[data-buy-sticker]').forEach(b=>b.addEventListener('click', ()=>purchaseSticker(b.dataset.buySticker)));
   document.querySelectorAll('[data-delete-sticker]').forEach(b=>b.addEventListener('click', ()=>deleteSticker(b.dataset.deleteSticker)));
+  document.querySelectorAll('[data-set-name-custom]').forEach(b=>b.addEventListener('click', ()=>setActiveNameCustomization(b.dataset.setNameCustom)));
   
   // Sticker drag-and-drop handlers - set up only once
   if(!window._stickerDragSetup){
