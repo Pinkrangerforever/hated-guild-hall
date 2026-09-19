@@ -3385,7 +3385,13 @@ function renderAssignSlotModal(groupIdx, slotIdx){
       </div>
       <div class="field">
         <label>Raider name</label>
-        <input id="assign-slot-name" placeholder="Character name" value="${esc(slot?slot.character_name:'')}">
+        <select id="assign-slot-name" style="width:100%; padding:8px; border-radius:2px; border:1px solid var(--divider); background:var(--bg-card); color:var(--text-normal); font-size:14px;">
+          <option value="">-- Select a raider --</option>
+          ${ Object.values(state.profilesById||{})
+            .sort((a,b)=>(a.character_name||'').localeCompare(b.character_name||''))
+            .map(p=>`<option value="${esc(p.character_name)}" ${slot?.character_name===p.character_name?'selected':''}>${esc(p.character_name)}</option>`)
+            .join('') }
+        </select>
       </div>
       <div id="assign-slot-error" class="field-error" style="display:none;"></div>
       <div style="display:flex; gap:10px;">
