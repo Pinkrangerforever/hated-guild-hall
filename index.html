@@ -3287,7 +3287,7 @@ function renderRoster(){
           </div>
           <span class="badge ${p.protected ? 'role-raidlead' : (p.role==='officer'?'role-officer':'role-member')}" style="margin-right:10px;">${p.protected ? '&#9819; Raid Leader' : (p.role==='officer'?'Officer':'Member')}</span>
           ${ officer && !p.protected ? `<button class="btn secondary" data-toggle-officer="${p.id}">${p.role==='officer'?'Demote':'Promote'}</button>` : '' }
-          ${ isRaidLeader && p.id !== auth.currentUser.id ? `<button class="btn secondary" data-reset-gold="${p.id}" title="Reset gold to 0">Reset Gold</button>` : '' }
+          ${ isRaidLeader ? `<button class="btn secondary" data-reset-gold="${p.id}" title="Reset gold to 0">Reset Gold</button>` : '' }
         </div>
       `).join('') : emptyState('No members yet.') }
     </div>
