@@ -982,10 +982,17 @@
     z-index:3;
     width:100px;
     transform: translate(-50%, -50%) rotate(0deg);
+  }
+  .sticker-pin-group[data-owned="true"]:hover{ 
+    z-index:20; 
+    transform:translate(-50%, -50%) scale(1.08) rotate(-2deg);
     transition: transform 0.2s ease;
   }
-  .sticker-pin-group[data-owned="true"]:hover{ z-index:20; transform:translate(-50%, -50%) scale(1.08) rotate(-2deg); }
-  .sticker-pin-group[data-owned="false"]:hover{ z-index:20; transform:translate(-50%, -50%) rotate(1deg); }
+  .sticker-pin-group[data-owned="false"]:hover{ 
+    z-index:20; 
+    transform:translate(-50%, -50%) rotate(1deg);
+    transition: transform 0.2s ease;
+  }
   .sticker-pin{
     position:absolute; top:-16px; left:50%; transform:translateX(-50%);
     width:28px; height:28px; border-radius:50%;
@@ -3575,7 +3582,7 @@ function renderNews(){
               <div class="sticker-pin-group" 
                    data-sticker-id="${esc(s.id)}"
                    data-owned="${isOwner}"
-                   style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%);">
+                   style="left: ${posX}%; top: ${posY}%;">
                 <div class="sticker-pin"></div>
                 <div class="sticker-pin-shadow"></div>
                 ${ isRaidLeader ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">✕</button>` : '' }
