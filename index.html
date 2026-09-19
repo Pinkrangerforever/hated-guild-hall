@@ -3618,8 +3618,15 @@ function renderRoster(){
               const slot = slotAt(gi,si);
               const specLabel = slot ? CLASS_SPECS[slot.class_key].specs.find(s=>s.key===slot.spec_key).label : '';
               const clickAttr = officer ? `data-slot-click="${gi}|${si}"` : '';
-              const userId = slot ? Object.values(state.profilesById || {}).find(p => p.character_name === slot.character_name)?.id : null;
-              const nameClass = slot ? getUserNameCustomization(userId) : '';
+              if(slot) {
+                const profiles = Object.values(state.profilesById || {});
+                console.log(`[comp] Group ${gi} Slot ${si}: "${slot.character_name}" - profiles available:`, profiles.map(p=>p.character_name));
+                const userId = profiles.find(p => p.character_name === slot.character_name)?.id;
+                console.log(`[comp] Found userId: ${userId}`);
+                var nameClass = getUserNameCustomization(userId);
+              } else {
+                var nameClass = '';
+              }
               return `
               <div class="comp-slot ${slot?'filled':''} ${officer?'editable':''}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
                 ${ slot ? `
