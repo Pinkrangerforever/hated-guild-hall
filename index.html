@@ -1459,6 +1459,7 @@ let state = {
   shopItems: [],
   shopPurchases: [],
   stickers: [],
+  goldLeaderboard: [],  // top 4 earners {character_name, discord_username, gold_earned_total}
   editingShopItemId: null,
   selectedSpec: null,
   modal: null,
@@ -2350,7 +2351,13 @@ function showGoldFloat(x, y, amount){
 window.spawnSparkle = spawnSparkle;
 
 /* ---------------- reward shop ---------------- */
-function openShop(){
+async function openShop(){
+  // Fetch top 4 gold earners
+  try {
+    const { data, error } = await sb.rpc('get_gold_leaderboard', { p_limit: 4 });
+    if(!error && data) state.goldLeaderboard = data;
+  } catch(e){ console.error('Leaderboard fetch failed:', e); }
+  
   state.modal = { type:'shop' };
   render();
 }
@@ -2736,6 +2743,24 @@ function renderShopModal(){
   const stickerImages = state.galleryImages.filter(g=>g.is_sticker);
   const stickerPrice = state.settings.sticker_price != null ? state.settings.sticker_price : 25;
 
+  function formatLeaderboardRank(index){
+    const medals = ['🥇', '🥈', '🥉'];
+    return medals[index] || `${index+1}th`;
+  }
+
+  function renderLeaderboardRow(member, index){
+    const name = member.character_name || member.discord_username || 'Member';
+    const earnedGold = member.gold_earned_total || 0;
+    return `
+      <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(207,154,68,0.1);">
+        <div style="display:flex; gap:12px; align-items:center;">
+          <span style="font-size:18px;">${formatLeaderboardRank(index)}</span>
+          <span class="gold-text" style="font-weight:600;">${esc(name)}</span>
+        </div>
+        <span class="muted sans">&#10022; ${earnedGold.toLocaleString()}</span>
+      </div>`;
+  }
+
   function renderEditForm(item){
     return `
       <div class="shop-card">
@@ -2815,6 +2840,15 @@ function renderShopModal(){
         <button class="modal-x" id="modal-close">&times;</button>
       </div>
       <div class="nav-gold-badge" style="margin-bottom:16px;">&#10022; ${gold} gold available</div>
+
+      ${ state.goldLeaderboard && state.goldLeaderboard.length ? `
+      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
+        <h4 class="shop-section-title">Top Gold Earners</h4>
+        <div style="padding:8px 0;">
+          ${state.goldLeaderboard.map((member, idx) => renderLeaderboardRow(member, idx)).join('')}
+        </div>
+      </div>
+      ` : '' }
 
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
         <h4 class="shop-section-title">Discord Rank Upgrades</h4>
