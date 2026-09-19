@@ -2526,8 +2526,23 @@ async function purchaseSticker(galleryImageId){
   const note = prompt('Add a note to your sticker (optional):', '');
   if(note === null) return; // User cancelled
   
+  console.log('🎁 Purchasing sticker:', { galleryImageId, note });
   const { data, error } = await sb.rpc('purchase_sticker', { p_gallery_image_id: galleryImageId, p_note: note });
-  if(error || !data){ showToast("Couldn't complete purchase — try again", true); return; }
+  
+  if(error){
+    console.error('❌ Purchase error:', error);
+    showToast("Couldn't complete purchase — try again", true);
+    return;
+  }
+  
+  if(!data){ 
+    console.error('❌ No data returned');
+    showToast("Couldn't complete purchase — try again", true);
+    return;
+  }
+  
+  console.log('✅ Purchase response:', data);
+  
   if(!data.success){
     const reasons = {
       insufficient_gold: "You don't have enough gold for that yet",
@@ -2537,6 +2552,7 @@ async function purchaseSticker(galleryImageId){
     showToast(reasons[data.reason] || "Couldn't complete purchase", true);
     return;
   }
+  
   if(state.profile){ state.profile.gold = data.new_gold; }
   showToast('Sticker placed on the wall!');
   // Refresh stickers so the new one shows up immediately without a full reload
