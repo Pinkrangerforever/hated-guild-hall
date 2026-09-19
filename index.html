@@ -1021,6 +1021,16 @@
     font-size:10px; font-weight:600; color:#5a4a38; text-align:center;
     margin-top:4px; text-shadow:1px 1px 0 rgba(255,255,255,0.2);
   }
+  .sticker-delete-btn{
+    position:absolute; top:-8px; right:-8px; 
+    width:24px; height:24px; border-radius:50%; padding:0;
+    background:#b0524f; border:2px solid #f5ddb5;
+    color:#f5ddb5; font-weight:700; font-size:14px;
+    cursor:pointer; z-index:5; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 6px rgba(0,0,0,0.4);
+    transition:background 0.2s ease;
+  }
+  .sticker-delete-btn:hover{ background:#d46460; }
 
   /* ---- gallery + site image slots ---- */
   .slot-row{
@@ -2565,24 +2575,45 @@ async function saveStickerPrice(){
   render();
 }
 
-function setupStickerDragHandlers(){
-  const stickersContainer = document.querySelector('.corkboard-stickers');
-  if(!stickersContainer) return;
+async function deleteSticker(stickerId){
+  if(!confirm('Remove this sticker from the board?')) return;
   
+  const { error } = await sb.rpc('delete_sticker_as_leader', {
+    p_sticker_id: stickerId,
+    p_user_id: state.auth?.user?.id
+  });
+  
+  if(error){
+    showToast('Only Raid Leaders can delete stickers', true);
+    return;
+  }
+  
+  showToast('Sticker removed');
+  // Refresh stickers
+  const { data: stickers } = await sb.from('stickers').select('*').order('placed_at', { ascending:false });
+  state.stickers = stickers || state.stickers;
+  render();
+}
+
+function setupStickerDragHandlers(){
   let draggingSticker = null;
   let dragStart = { x: 0, y: 0 };
   let containerRect = null;
   
-  document.querySelectorAll('.sticker-pin-group[data-owned="true"] .sticker-pin').forEach(pin=>{
-    pin.addEventListener('mousedown', (e)=>{
-      const stickerGroup = pin.closest('.sticker-pin-group');
-      if(!stickerGroup) return;
-      
-      draggingSticker = stickerGroup;
-      containerRect = stickersContainer.getBoundingClientRect();
-      dragStart = { x: e.clientX, y: e.clientY };
-      pin.style.cursor = 'grabbing';
-    });
+  // Use event delegation - listen on document for pin interactions
+  document.addEventListener('mousedown', (e)=>{
+    const pin = e.target.closest('.sticker-pin');
+    if(!pin) return;
+    
+    const stickerGroup = pin.closest('.sticker-pin-group');
+    if(!stickerGroup || stickerGroup.dataset.owned !== 'true') return;
+    
+    draggingSticker = stickerGroup;
+    const stickersContainer = stickerGroup.closest('.corkboard-stickers');
+    containerRect = stickersContainer ? stickersContainer.getBoundingClientRect() : null;
+    dragStart = { x: e.clientX, y: e.clientY };
+    pin.style.cursor = 'grabbing';
+    e.preventDefault();
   });
   
   document.addEventListener('mousemove', (e)=>{
@@ -3533,6 +3564,7 @@ function renderNews(){
                    style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%);">
                 <div class="sticker-pin" ${isOwner ? 'style="cursor:grab;"' : ''}></div>
                 <div class="sticker-pin-shadow"></div>
+                ${ state.profile?.discord_rank_level === 1 ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">✕</button>` : '' }
                 ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
                 <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
                 <div class="sticker-placer">${esc(s.placed_by_name)}</div>
@@ -4041,6 +4073,7 @@ function bindApp(){
   document.querySelectorAll('[data-buy-shop-item]').forEach(b=>b.addEventListener('click', ()=>purchaseShopItem(b.dataset.buyShopItem)));
   document.querySelectorAll('[data-buy-rank]').forEach(b=>b.addEventListener('click', ()=>purchaseRank(b.dataset.buyRank)));
   document.querySelectorAll('[data-buy-sticker]').forEach(b=>b.addEventListener('click', ()=>purchaseSticker(b.dataset.buySticker)));
+  document.querySelectorAll('[data-delete-sticker]').forEach(b=>b.addEventListener('click', ()=>deleteSticker(b.dataset.deleteSticker)));
   
   // Sticker drag-and-drop handlers
   setupStickerDragHandlers();
