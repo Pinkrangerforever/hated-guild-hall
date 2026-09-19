@@ -1442,15 +1442,14 @@ function guildIconHtml(size, id){
   return crestSvg(id || 'guildicon', size);
 }
 function getUserNameCustomization(userId){
-  if(!userId) return '';
+  if(!userId) return { border: '', nameCustom: '' };
   const purchases = state.shopPurchases && state.shopPurchases.filter(p=>p.user_id===userId && p.fulfilled);
   if(!purchases || !purchases.length) {
-    console.log('[DEBUG] No purchases for userId:', userId);
-    return '';
+    return { border: '', nameCustom: '' };
   }
-  console.log('[DEBUG] Purchases found:', purchases.map(p=>p.item_name));
 
   // Check for roster name borders (get highest tier)
+  let border = '';
   const borderPurchases = purchases.filter(p=> {
     const item = state.shopItems && state.shopItems.find(i=>i.id===p.item_id);
     return item && item.name.includes('Roster Name Border');
@@ -1459,20 +1458,24 @@ function getUserNameCustomization(userId){
     const borderItems = borderPurchases.map(p=>state.shopItems.find(i=>i.id===p.item_id));
     const highestTier = Math.max(...borderItems.map(i=>i.metadata?.tier || 0));
     const tierName = ['','uncommon','rare','epic','legendary'][highestTier];
-    if(tierName) return `roster-border-${tierName}`;
+    if(tierName) border = `roster-border-${tierName}`;
   }
 
   // Check for other name customizations
-  const nameCustom = purchases.find(p=>
+  let nameCustom = '';
+  const nameCustomPurchase = purchases.find(p=>
     state.shopItems && state.shopItems.find(i=>i.id===p.item_id && i.category==='name_customization' && !i.name.includes('Roster Name Border'))
   );
-  if(!nameCustom) return '';
-  const item = state.shopItems && state.shopItems.find(i=>i.id===nameCustom.item_id);
-  if(!item) return '';
-  if(item.name.includes('Flame')) return 'name-custom-flame';
-  if(item.name.includes('Golden')) return 'name-custom-star';
-  if(item.name.includes('Shadow')) return 'name-custom-shadow';
-  return '';
+  if(nameCustomPurchase) {
+    const item = state.shopItems && state.shopItems.find(i=>i.id===nameCustomPurchase.item_id);
+    if(item) {
+      if(item.name.includes('Flame')) nameCustom = 'name-custom-flame';
+      else if(item.name.includes('Golden')) nameCustom = 'name-custom-star';
+      else if(item.name.includes('Shadow')) nameCustom = 'name-custom-shadow';
+    }
+  }
+
+  return { border, nameCustom };
 }
 function pageBannerIconHtml(size){
   const custom = state.siteImages && state.siteImages['page_banner_icon'];
@@ -3777,15 +3780,17 @@ function renderRoster(){
               const slot = slotAt(gi,si);
               const specLabel = slot ? CLASS_SPECS[slot.class_key].specs.find(s=>s.key===slot.spec_key).label : '';
               const clickAttr = officer ? `data-slot-click="${gi}|${si}"` : '';
+              let borderClass = '';
+              let nameClass = '';
               if(slot) {
                 const profiles = Object.values(state.profilesById || {});
                 const userId = profiles.find(p => p.character_name === slot.character_name)?.id;
-                var nameClass = getUserNameCustomization(userId);
-                if(nameClass) console.log('[DEBUG] Applied class to', slot.character_name, ':', nameClass);
-              } else {
-                var nameClass = '';
+                const customization = getUserNameCustomization(userId);
+                borderClass = customization.border;
+                nameClass = customization.nameCustom;
+                if(nameClass) console.log('[DEBUG] Applied name class to', slot.character_name, ':', nameClass);
+                if(borderClass) console.log('[DEBUG] Applied border class to', slot.character_name, ':', borderClass);
               }
-              const borderClass = nameClass && nameClass.includes('border') ? nameClass : '';
               return `
               <div class="comp-slot ${slot?'filled':''} ${officer?'editable':''} ${borderClass}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
                 ${ slot ? `
