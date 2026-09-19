@@ -2699,8 +2699,7 @@ function setupStickerDragHandlers(){
     const { error } = await sb.rpc('update_sticker_position', {
       p_sticker_id: stickerId,
       p_position_x: Math.round(posX * 100) / 100,
-      p_position_y: Math.round(posY * 100) / 100,
-      p_user_id: state.auth?.user?.id
+      p_position_y: Math.round(posY * 100) / 100
     });
     
     if(error) {
@@ -3606,9 +3605,9 @@ function renderNews(){
             ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s)=>{
               const posX = s.position_x ?? 50;
               const posY = s.position_y ?? 50;
-              const isOwner = state.auth?.user?.id === s.placed_by_user_id;
+              const isOwner = state.session?.user?.id === s.placed_by_user_id;
               const isRaidLeader = state.profile?.discord_rank_level === 1;
-              console.log('🎨 Sticker:', { name: s.placed_by_name, placed_by_user_id: s.placed_by_user_id, auth_id: state.auth?.user?.id, isOwner });
+              console.log('🎨 Sticker:', { name: s.placed_by_name, placed_by_user_id: s.placed_by_user_id, auth_id: state.session?.user?.id, isOwner });
               return `
               <div class="sticker-pin-group" 
                    data-sticker-id="${esc(s.id)}"
