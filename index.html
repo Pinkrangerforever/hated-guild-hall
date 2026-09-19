@@ -1634,6 +1634,9 @@ async function loadShopPurchases(){
   if(!state.session || !state.session.user) return;
   const { data } = await sb.from('shop_purchases').select('*').eq('user_id', state.session.user.id);
   state.shopPurchases = data || [];
+  console.log('Shop purchases loaded for user:', state.session.user.id);
+  console.log('Fulfilled purchases:', state.shopPurchases.filter(p=>p.fulfilled).map(p=>p.item_name));
+  console.log('Unfulfilled purchases:', state.shopPurchases.filter(p=>!p.fulfilled).map(p=>p.item_name));
 }
 
 async function loadAdminPurchases(){
@@ -1641,6 +1644,8 @@ async function loadAdminPurchases(){
   const { data, error } = await sb.from('shop_purchases').select('*').order('purchased_at', { ascending: false });
   if(error){ console.error('Failed to load admin purchases:', error); state.adminPurchases = []; render(); return; }
   state.adminPurchases = data || [];
+  console.log('Admin purchases loaded:', state.adminPurchases.length, 'items');
+  console.log('Admin purchases:', state.adminPurchases);
   render();
 }
 
