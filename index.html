@@ -1639,8 +1639,9 @@ async function loadShopPurchases(){
 async function loadAdminPurchases(){
   if(!state.profile || !state.profile.protected) return;
   const { data, error } = await sb.from('shop_purchases').select('*').order('purchased_at', { ascending: false });
-  if(error){ console.error('Failed to load admin purchases:', error); return; }
+  if(error){ console.error('Failed to load admin purchases:', error); state.adminPurchases = []; render(); return; }
   state.adminPurchases = data || [];
+  render();
 }
 
 async function refundPurchase(purchaseId, userName){
@@ -4053,7 +4054,7 @@ function renderAdmin(){
     return renderNews();
   }
 
-  if(!state.adminPurchases){
+  if(state.adminPurchases === undefined || state.adminPurchases === null){
     loadAdminPurchases();
     return `
       ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account â€” not even other officers can see this tab.")}
@@ -4063,7 +4064,7 @@ function renderAdmin(){
     `;
   }
 
-  const purchases = state.adminPurchases || [];
+  const purchases = state.adminPurchases;
   let html = `
     ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account â€” not even other officers can see this tab.")}
     <div class="panel style-glass">
