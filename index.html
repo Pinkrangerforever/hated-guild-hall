@@ -1648,10 +1648,15 @@ async function refundPurchase(purchaseId, userName){
   if(!confirm(`Refund purchase for ${userName}?`)) return;
 
   try {
-    const { error } = await sb.rpc('refund_shop_purchase', { p_purchase_id: purchaseId });
+    const { data, error } = await sb.rpc('refund_shop_purchase', { p_purchase_id: purchaseId });
     if(error){
-      console.error('Refund error:', error);
-      showToast('Failed to refund â€” try again', true);
+      console.error('Refund RPC error:', error, 'Data:', data);
+      showToast('Failed to refund â€” check console for details', true);
+      return;
+    }
+    if(data && !data.success){
+      console.error('Refund failed:', data);
+      showToast(data.error || 'Failed to refund', true);
       return;
     }
     state.adminPurchases = state.adminPurchases.filter(p=>p.id!==purchaseId);
@@ -1659,7 +1664,7 @@ async function refundPurchase(purchaseId, userName){
     render();
   } catch(e) {
     console.error('Refund exception:', e);
-    showToast('Failed to refund â€” try again', true);
+    showToast('Refund error: ' + e.message, true);
   }
 }
 
