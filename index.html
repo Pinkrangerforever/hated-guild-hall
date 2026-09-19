@@ -2103,10 +2103,11 @@ function playSparkleChime(){
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const now = audioContext.currentTime;
     
-    // Create two notes for a pleasant chime: high and medium
+    // Create a sparkly ascending chime with high frequencies
     const notes = [
-      { freq: 800, start: 0, duration: 0.15 },
-      { freq: 600, start: 0.05, duration: 0.2 }
+      { freq: 1200, start: 0, duration: 0.08 },      // High sparkle
+      { freq: 1600, start: 0.06, duration: 0.12 },   // Higher sparkle
+      { freq: 2000, start: 0.10, duration: 0.15 },   // Highest shimmer
     ];
     
     notes.forEach(note=>{
@@ -2116,7 +2117,7 @@ function playSparkleChime(){
       osc.frequency.value = note.freq;
       osc.type = 'sine';
       
-      gain.gain.setValueAtTime(0.1, now + note.start);
+      gain.gain.setValueAtTime(0.08, now + note.start);
       gain.gain.exponentialRampToValueAtTime(0.01, now + note.start + note.duration);
       
       osc.connect(gain);
@@ -2165,31 +2166,32 @@ async function claimSparkle(el){
   el.remove();
   try{
     const { data, error } = await sb.rpc('claim_sparkle_gold');
-    console.log('sparkle rpc result:', { data, error });
-    console.log('full data object:', JSON.stringify(data, null, 2));
-    if(error || !data || !data.success){
-      console.log('sparkle failed:', error ? error.message : 'no data or not success');
-      return;
-    }
-    console.log('sparkle event type:', data.event);
+    if(error || !data || !data.success) return;
+    
     if(data.event === 'murloc') return startMurlocEvent(rect, data.pending_id);
     if(data.event === 'fishing') return startFishingEvent(rect, data.pending_id);
-    // normal claim: gold is already awarded by the server
+    
+    // normal claim: update gold directly without full render to preserve video
     if(state.profile){
       state.profile.gold = data.total;
-      render();
+      // Update gold badge in DOM instead of calling render()
+      const goldBadge = document.querySelector('.nav-gold-badge');
+      if(goldBadge) goldBadge.textContent = '⬥ ' + data.total;
     }
     showGoldFloat(rect.left + rect.width/2, rect.top, data.awarded);
-  }catch(e){ 
-    console.error('sparkle error:', e);
-  }
+  }catch(e){ /* silent */ }
 }
 async function resolveSparkleEvent(pendingId, won, x, y){
   try{
     const { data, error } = await sb.rpc('resolve_sparkle_event', { p_pending_id: pendingId, p_won: won });
     if(error || !data || !data.success) return;
     if(data.won){
-      if(state.profile){ state.profile.gold = data.total; render(); }
+      if(state.profile){
+        state.profile.gold = data.total;
+        // Update gold badge directly without full render to preserve video
+        const goldBadge = document.querySelector('.nav-gold-badge');
+        if(goldBadge) goldBadge.textContent = '⬥ ' + data.total;
+      }
       showGoldFloat(x, y, data.awarded);
     }
     // loss: nothing to award — the calling minigame already shows its own "got away" message
