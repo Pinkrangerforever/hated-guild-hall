@@ -1579,6 +1579,47 @@ async function setRsvp(eventId, status){
   render();
 }
 
+async function resetPlayerGold(userId) {
+  // Check if user is Raid Leader
+  const isRaidLeader = state.profile && (state.profile.discord_rank_level === 1);
+  if (!isRaidLeader) {
+    showToast('Only Raid Leaders can reset gold', true);
+    return;
+  }
+  
+  // Get the player's current info
+  const player = state.profilesById[userId];
+  if (!player) return;
+  
+  // Confirmation
+  const charName = player.character_name || player.discord_username || 'this player';
+  if (!confirm(`Reset ${charName}'s gold to 0?\n\nCurrent gold: ${player.gold}\n\nThis action cannot be undone.`)) {
+    return;
+  }
+  
+  // Call RPC to reset
+  const { data, error } = await sb.rpc('admin_reset_user_gold', {
+    p_user_id: userId,
+    p_new_gold_amount: 0
+  });
+  
+  if (error) {
+    console.error('Reset failed:', error);
+    showToast('Failed to reset gold — check console', true);
+    return;
+  }
+  
+  if (data && data.success) {
+    // Update local state
+    player.gold = 0;
+    showToast(`${charName}'s gold reset to 0`);
+    render();
+  } else if (data && data.error) {
+    showToast(data.error, true);
+  }
+}
+
+
 /* ---------------- boss strategy tree ---------------- */
 async function addRaidInstance(){
   const c = document.getElementById('raid-add-form');
@@ -3148,37 +3189,27 @@ function renderSoftres(){
 /* ---------------- roster tab: members + raid composition ---------------- */
 function renderRoster(){
   const officer = isOfficer();
+  const isRaidLeader = state.profile && (state.profile.discord_rank_level === 1);
   const sel = state.selectedSpec;
   const allProfiles = Object.values(state.profilesById).sort((a,b)=> (a.character_name||a.discord_username||'').localeCompare(b.character_name||b.discord_username||''));
 
   function slotAt(g,s){ return state.compSlots.find(row=>row.group_index===g && row.slot_index===s) || null; }
+  
+  function formatGoldDisplay(copper) {
+    if (!copper) return '0c';
+    const gold = Math.floor(copper / 10000);
+    const silver = Math.floor((copper % 10000) / 100);
+    const remainingCopper = copper % 100;
+    if (gold > 0) return `${gold}g ${silver}s`;
+    if (silver > 0) return `${silver}s ${remainingCopper}c`;
+    return `${remainingCopper}c`;
+  }
 
   return `
     ${pageBanner('Roster')}
     <div class="eyebrow sans">Members</div>
     <h2 class="page-title">Roster</h2>
-    <p class="page-sub sans">Who's in the guild, and the current raid composition.</p>
-
-    <div class="panel">
-      <h3 style="margin-bottom:4px;">Guild Members</h3>
-      <p class="muted sans" style="margin-bottom:14px;">Officer/Member status is synced from your Discord roles automatically each time you sign in.</p>
-      <div class="field" style="max-width:320px;">
-        <label>Your character name</label>
-        <div style="display:flex; gap:8px;">
-          <input id="my-name-input" value="${esc(myName())}">
-          <button class="btn secondary" type="button" id="my-name-save-btn">Save</button>
-        </div>
-      </div>
-      <button class="btn secondary" type="button" id="sync-discord-role-btn" style="margin-top:4px;">Re-check my Discord roles now</button>
-      <div class="rule"></div>
-      ${ allProfiles.length ? allProfiles.map(p=>`
-        <div class="list-item">
-          <div style="flex:1; font-weight:600;">${esc(p.character_name||p.discord_username||'Member')}</div>
-          <span class="badge ${p.protected ? 'role-raidlead' : (p.role==='officer'?'role-officer':'role-member')}" style="margin-right:10px;">${p.protected ? '&#9819; Raid Leader' : (p.role==='officer'?'Officer':'Member')}</span>
-          ${ officer && !p.protected ? `<button class="btn secondary" data-toggle-officer="${p.id}">${p.role==='officer'?'Demote':'Promote'}</button>` : '' }
-        </div>
-      `).join('') : emptyState('No members yet.') }
-    </div>
+    <p class="page-sub sans">Raid composition and guild membership.</p>
 
     <div class="panel">
       <h3 style="margin-bottom:4px;">Raid Composition</h3>
@@ -3234,6 +3265,31 @@ function renderRoster(){
           </div>
         `).join('') }
       </div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin-bottom:4px;">Guild Members</h3>
+      <p class="muted sans" style="margin-bottom:14px;">Officer/Member status is synced from your Discord roles automatically each time you sign in.</p>
+      <div class="field" style="max-width:320px;">
+        <label>Your character name</label>
+        <div style="display:flex; gap:8px;">
+          <input id="my-name-input" value="${esc(myName())}">
+          <button class="btn secondary" type="button" id="my-name-save-btn">Save</button>
+        </div>
+      </div>
+      <button class="btn secondary" type="button" id="sync-discord-role-btn" style="margin-top:4px;">Re-check my Discord roles now</button>
+      <div class="rule"></div>
+      ${ allProfiles.length ? allProfiles.map(p=>`
+        <div class="list-item">
+          <div style="flex:1;">
+            <div style="font-weight:600;">${esc(p.character_name||p.discord_username||'Member')}</div>
+            <div class="muted sans" style="font-size:12px; margin-top:2px;">💰 ${formatGoldDisplay(p.gold_earned_total || 0)}</div>
+          </div>
+          <span class="badge ${p.protected ? 'role-raidlead' : (p.role==='officer'?'role-officer':'role-member')}" style="margin-right:10px;">${p.protected ? '&#9819; Raid Leader' : (p.role==='officer'?'Officer':'Member')}</span>
+          ${ officer && !p.protected ? `<button class="btn secondary" data-toggle-officer="${p.id}">${p.role==='officer'?'Demote':'Promote'}</button>` : '' }
+          ${ isRaidLeader && p.id !== auth.currentUser.id ? `<button class="btn secondary" data-reset-gold="${p.id}" title="Reset gold to 0">Reset Gold</button>` : '' }
+        </div>
+      `).join('') : emptyState('No members yet.') }
     </div>
 
   `;
@@ -3715,6 +3771,7 @@ function bindApp(){
   const syncRoleBtn = document.getElementById('sync-discord-role-btn');
   if(syncRoleBtn) syncRoleBtn.addEventListener('click', ()=>syncDiscordRole(true));
   document.querySelectorAll('[data-toggle-officer]').forEach(b=>b.addEventListener('click', ()=>toggleOfficer(b.dataset.toggleOfficer)));
+  document.querySelectorAll('[data-reset-gold]').forEach(b=>b.addEventListener('click', ()=>resetPlayerGold(b.dataset.resetGold)));
   document.querySelectorAll('.spec-btn').forEach(b=>b.addEventListener('click', ()=>selectSpec(b.dataset.class, b.dataset.spec)));
   document.querySelectorAll('[data-slot-click]').forEach(el=>el.addEventListener('click', ()=>{
     const [gi,si] = el.dataset.slotClick.split('|').map(Number);
