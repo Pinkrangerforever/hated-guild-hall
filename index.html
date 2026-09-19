@@ -978,11 +978,12 @@
     position:relative; width:100%; min-height:350px; perspective:600px;
   }
   .sticker-pin-group{
-    position:absolute; transform-origin:center;
-    transition:none; /* Disable transition during drag */
+    position:absolute; 
     z-index:3;
+    width:140px;
+    transform: translate(-50%, -50%);
   }
-  .sticker-pin-group[data-owned="true"]:hover{ z-index:20; transform:scale(1.08) !important; }
+  .sticker-pin-group[data-owned="true"]:hover{ z-index:20; transform:translate(-50%, -50%) scale(1.08); }
   .sticker-pin-group[data-owned="false"]:hover{ z-index:20; }
   .sticker-pin{
     position:absolute; top:-14px; left:50%; transform:translateX(-50%);
@@ -2570,6 +2571,7 @@ function setupStickerDragHandlers(){
   
   let draggingSticker = null;
   let dragStart = { x: 0, y: 0 };
+  let containerRect = null;
   
   document.querySelectorAll('.sticker-pin-group[data-owned="true"] .sticker-pin').forEach(pin=>{
     pin.addEventListener('mousedown', (e)=>{
@@ -2577,33 +2579,35 @@ function setupStickerDragHandlers(){
       if(!stickerGroup) return;
       
       draggingSticker = stickerGroup;
+      containerRect = stickersContainer.getBoundingClientRect();
       dragStart = { x: e.clientX, y: e.clientY };
       pin.style.cursor = 'grabbing';
     });
   });
   
   document.addEventListener('mousemove', (e)=>{
-    if(!draggingSticker) return;
+    if(!draggingSticker || !containerRect) return;
     
-    const rect = stickersContainer.getBoundingClientRect();
     const dx = e.clientX - dragStart.x;
     const dy = e.clientY - dragStart.y;
     
-    // Calculate new position as percentage within container
-    let left = parseFloat(draggingSticker.style.left) || 0;
-    let top = parseFloat(draggingSticker.style.top) || 0;
+    // Current position in percentages
+    let posX = parseFloat(draggingSticker.style.left) || 50;
+    let posY = parseFloat(draggingSticker.style.top) || 50;
     
-    left += dx;
-    top += dy;
+    // Convert pixel movement to percentage change
+    const pctDx = (dx / containerRect.width) * 100;
+    const pctDy = (dy / containerRect.height) * 100;
     
-    // Clamp to container bounds
-    const stickerWidth = 140;
-    const stickerHeight = 140;
-    left = Math.max(0, Math.min(left, rect.width - stickerWidth));
-    top = Math.max(0, Math.min(top, rect.height - stickerHeight));
+    posX += pctDx;
+    posY += pctDy;
     
-    draggingSticker.style.left = left + 'px';
-    draggingSticker.style.top = top + 'px';
+    // Clamp to reasonable bounds (10-90%)
+    posX = Math.max(10, Math.min(90, posX));
+    posY = Math.max(10, Math.min(90, posY));
+    
+    draggingSticker.style.left = posX + '%';
+    draggingSticker.style.top = posY + '%';
     
     dragStart = { x: e.clientX, y: e.clientY };
   });
@@ -2614,14 +2618,8 @@ function setupStickerDragHandlers(){
     const pin = draggingSticker.querySelector('.sticker-pin');
     if(pin) pin.style.cursor = 'grab';
     
-    // Convert pixel position to percentage for storage
-    const rect = stickersContainer.getBoundingClientRect();
-    const left = parseFloat(draggingSticker.style.left);
-    const top = parseFloat(draggingSticker.style.top);
-    
-    const posX = ((left + 70) / rect.width * 100);
-    const posY = ((top + 70) / rect.height * 100);
-    
+    const posX = parseFloat(draggingSticker.style.left) || 50;
+    const posY = parseFloat(draggingSticker.style.top) || 50;
     const stickerId = draggingSticker.dataset.stickerId;
     
     // Update in database
@@ -2635,6 +2633,7 @@ function setupStickerDragHandlers(){
     if(error) showToast('Failed to save sticker position', true);
     
     draggingSticker = null;
+    containerRect = null;
   });
 }
 
@@ -3531,7 +3530,7 @@ function renderNews(){
               <div class="sticker-pin-group" 
                    data-sticker-id="${esc(s.id)}"
                    data-owned="${isOwner}"
-                   style="left: calc(${posX}% - 70px); top: calc(${posY}% - 70px); width:140px;">
+                   style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%);">
                 <div class="sticker-pin" ${isOwner ? 'style="cursor:grab;"' : ''}></div>
                 <div class="sticker-pin-shadow"></div>
                 ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
