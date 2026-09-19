@@ -981,16 +981,13 @@
     position:absolute; 
     z-index:3;
     width:80px;
-    transform: translate(-50%, -50%) rotate(0deg);
   }
   .sticker-pin-group[data-owned="true"]:hover{ 
     z-index:20; 
-    transform:translate(-50%, -50%) scale(1.08) rotate(-2deg);
     transition: transform 0.15s ease;
   }
   .sticker-pin-group[data-owned="false"]:hover{ 
     z-index:20; 
-    transform:translate(-50%, -50%) rotate(1deg);
     transition: transform 0.15s ease;
   }
   .sticker-pin{
@@ -2640,6 +2637,36 @@ function setupStickerDragHandlers(){
   let dragStart = { x: 0, y: 0 };
   let containerRect = null;
   
+  // Extract rotation from transform string
+  function getRotationFromTransform(transformStr){
+    const match = transformStr.match(/rotate\(([^)]+)deg\)/);
+    return match ? parseFloat(match[1]) : 0;
+  }
+  
+  // Store original rotations and set up hover handlers
+  document.querySelectorAll('.sticker-pin-group').forEach(stickerGroup=>{
+    const originalTransform = stickerGroup.style.transform;
+    const rotation = getRotationFromTransform(originalTransform);
+    stickerGroup.dataset.rotation = rotation;
+    
+    // Hover in
+    stickerGroup.addEventListener('mouseenter', ()=>{
+      if(stickerGroup.dataset.owned === 'true'){
+        const scale = 1.08;
+        const hoverRotation = rotation - 2;
+        stickerGroup.style.transform = `translate(-50%, -50%) scale(${scale}) rotate(${hoverRotation}deg)`;
+      } else {
+        const hoverRotation = rotation + 1;
+        stickerGroup.style.transform = `translate(-50%, -50%) rotate(${hoverRotation}deg)`;
+      }
+    });
+    
+    // Hover out
+    stickerGroup.addEventListener('mouseleave', ()=>{
+      stickerGroup.style.transform = originalTransform;
+    });
+  });
+  
   // Use event delegation - listen on document for pin interactions
   document.addEventListener('mousedown', (e)=>{
     const pin = e.target.closest('.sticker-pin');
@@ -3595,13 +3622,14 @@ function renderNews(){
             ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s)=>{
               const posX = s.position_x ?? 50;
               const posY = s.position_y ?? 50;
+              const rotation = (Math.random() * 50) - 25; // Random -25 to +25 degrees
               const isOwner = state.session?.user?.id === s.placed_by_user_id;
               const isRaidLeader = state.profile?.discord_rank_level === 1;
               return `
               <div class="sticker-pin-group" 
                    data-sticker-id="${esc(s.id)}"
                    data-owned="${isOwner}"
-                   style="left: ${posX}%; top: ${posY}%;">
+                   style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
                 <div class="sticker-pin"></div>
                 <div class="sticker-pin-shadow"></div>
                 ${ isRaidLeader ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">✕</button>` : '' }
