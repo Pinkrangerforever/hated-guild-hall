@@ -1603,8 +1603,10 @@ async function onAuthResolved(){
     // Load news and stickers for both logged-in and non-logged-in users
     try {
       await loadNews();
-      const { data } = await sb.from('stickers').select('*').or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+      const { data, error } = await sb.from('stickers').select('*');
+      if(error) throw error;
       state.stickers = data || [];
+      console.log('Loaded stickers:', state.stickers.length);
     } catch(e) {
       console.error('Error loading news/stickers:', e);
       state.news = [];
