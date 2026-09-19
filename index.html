@@ -2924,10 +2924,12 @@ function renderLanding(){
 
         <!-- Center video panel -->
         <div class="panel style-glass" style="text-align:center; flex:1; min-width:0;">
-          <h1 class="hero-title-animated" style="font-size:56px; font-weight:900; margin:0 0 12px 0; background:linear-gradient(135deg, #ff8000 0%, #ffb347 50%, #dcb570 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; letter-spacing:3px; text-shadow:0 0 30px rgba(255,128,0,0.3); animation:heroGlow 3s ease-in-out infinite;">HATED is Forever!</h1>
-          <div style="height:2px; width:80px; background:linear-gradient(90deg, transparent, #ff8000, transparent); margin:16px auto 24px auto; animation:slideIn 1s ease-out;"></div>
-          <p style="font-size:16px; line-height:1.8; color:#d4c5b9; margin:0 0 32px 0; font-weight:400; letter-spacing:0.8px; animation:fadeInUp 1s ease-out 0.2s both;">Welcome home, friends, to <span style="font-weight:700; color:#ffb347;">HATED</span>.<br>A place for legend-makers, loot-seekers, and adventure-chasers.</p>
-          <button class="cta-button" style="padding:14px 36px; font-size:15px; font-weight:700; letter-spacing:1px; background:linear-gradient(135deg, #ff8000, #ffb347); color:#0a0a0a; border:none; border-radius:4px; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 20px rgba(255,128,0,0.3); margin-bottom:32px; animation:fadeInUp 1s ease-out 0.4s both;">SIGN IN & EXPLORE</button>
+          <div style="background:rgba(0,0,0,0.35); backdrop-filter:blur(10px); padding:32px 24px; border-radius:8px; border:1px solid rgba(255,180,71,0.2); animation:fadeInUp 1s ease-out both;">
+            <h1 class="hero-title-animated" style="font-size:56px; font-weight:900; margin:0 0 12px 0; background:linear-gradient(135deg, #ff8000 0%, #ffb347 50%, #dcb570 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; letter-spacing:3px; text-shadow:0 0 30px rgba(255,128,0,0.3); animation:heroGlow 3s ease-in-out infinite;">HATED is Forever!</h1>
+            <div style="height:2px; width:80px; background:linear-gradient(90deg, transparent, #ff8000, transparent); margin:16px auto 24px auto; animation:slideIn 1s ease-out;"></div>
+            <p style="font-size:16px; line-height:1.8; color:#e8d7c3; margin:0 0 24px 0; font-weight:400; letter-spacing:0.5px; animation:fadeInUp 1s ease-out 0.2s both;">Welcome home, friends, welcome to <span style="font-weight:700; color:#ffb347;">HATED</span>!<br>Sign in and check out our guild resources!<br><span style="color:#7fa363; font-style:italic;">Keep an eye out for 'shiny' surprises!</span></p>
+            <button class="cta-button" style="padding:12px 32px; font-size:14px; font-weight:700; letter-spacing:1px; background:linear-gradient(135deg, #ff8000, #ffb347); color:#0a0a0a; border:none; border-radius:4px; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 20px rgba(255,128,0,0.3); animation:fadeInUp 1s ease-out 0.4s both;">SIGN IN</button>
+          </div>
           <div class="hero-split-media" style="margin-top:0;">
             <div class="ornate-frame" style="width:100%;">
               <div class="ornate-corner tl"></div>
@@ -2943,35 +2945,35 @@ function renderLanding(){
       <!-- Feature Cards -->
       <div style="margin-top:60px; animation:fadeInUp 1s ease-out 0.6s both;">
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:20px; margin-bottom:60px;">
-          <div class="feature-card" style="background:linear-gradient(135deg, rgba(255,128,0,0.1), rgba(207,154,68,0.05)); border:1px solid rgba(255,180,71,0.2); border-radius:8px; padding:28px 20px; text-align:center; transition:all 0.3s ease; cursor:pointer;">
+          <div class="feature-card" style="background:linear-gradient(135deg, rgba(255,128,0,0.25), rgba(207,154,68,0.15)); border:1px solid rgba(255,180,71,0.3); border-radius:8px; padding:28px 20px; text-align:center; transition:all 0.3s ease; cursor:pointer;">
             <div style="font-size:32px; margin-bottom:12px;">📅</div>
             <h3 style="color:#ffb347; font-size:16px; font-weight:700; margin:0 0 8px 0;">Raid Calendar</h3>
-            <p style="color:var(--text-muted); font-size:13px; margin:0;">Plan your raids and never miss an event</p>
+            <p style="color:#d4c5b9; font-size:13px; margin:0;">Plan your raids and never miss an event</p>
           </div>
-          <div class="feature-card" style="background:linear-gradient(135deg, rgba(255,128,0,0.1), rgba(207,154,68,0.05)); border:1px solid rgba(255,180,71,0.2); border-radius:8px; padding:28px 20px; text-align:center; transition:all 0.3s ease; cursor:pointer;">
+          <div class="feature-card" style="background:linear-gradient(135deg, rgba(255,128,0,0.25), rgba(207,154,68,0.15)); border:1px solid rgba(255,180,71,0.3); border-radius:8px; padding:28px 20px; text-align:center; transition:all 0.3s ease; cursor:pointer;">
             <div style="font-size:32px; margin-bottom:12px;">👥</div>
             <h3 style="color:#ffb347; font-size:16px; font-weight:700; margin:0 0 8px 0;">Guild Roster</h3>
-            <p style="color:var(--text-muted); font-size:13px; margin:0;">Meet members and plan raid compositions</p>
+            <p style="color:#d4c5b9; font-size:13px; margin:0;">Meet members and plan raid compositions</p>
           </div>
-          <div class="feature-card" style="background:linear-gradient(135deg, rgba(255,128,0,0.1), rgba(207,154,68,0.05)); border:1px solid rgba(255,180,71,0.2); border-radius:8px; padding:28px 20px; text-align:center; transition:all 0.3s ease; cursor:pointer;">
+          <div class="feature-card" style="background:linear-gradient(135deg, rgba(255,128,0,0.25), rgba(207,154,68,0.15)); border:1px solid rgba(255,180,71,0.3); border-radius:8px; padding:28px 20px; text-align:center; transition:all 0.3s ease; cursor:pointer;">
             <div style="font-size:32px; margin-bottom:12px;">⚔️</div>
             <h3 style="color:#ffb347; font-size:16px; font-weight:700; margin:0 0 8px 0;">Boss Strategies</h3>
-            <p style="color:var(--text-muted); font-size:13px; margin:0;">Learn tactics and dominate the raid</p>
+            <p style="color:#d4c5b9; font-size:13px; margin:0;">Learn tactics and dominate the raid</p>
           </div>
-          <div class="feature-card" style="background:linear-gradient(135deg, rgba(255,128,0,0.1), rgba(207,154,68,0.05)); border:1px solid rgba(255,180,71,0.2); border-radius:8px; padding:28px 20px; text-align:center; transition:all 0.3s ease; cursor:pointer;">
+          <div class="feature-card" style="background:linear-gradient(135deg, rgba(255,128,0,0.25), rgba(207,154,68,0.15)); border:1px solid rgba(255,180,71,0.3); border-radius:8px; padding:28px 20px; text-align:center; transition:all 0.3s ease; cursor:pointer;">
             <div style="font-size:32px; margin-bottom:12px;">💎</div>
             <h3 style="color:#ffb347; font-size:16px; font-weight:700; margin:0 0 8px 0;">Loot Log</h3>
-            <p style="color:var(--text-muted); font-size:13px; margin:0;">Track treasures and manage loot fairly</p>
+            <p style="color:#d4c5b9; font-size:13px; margin:0;">Track treasures and manage loot fairly</p>
           </div>
-          <div class="feature-card" style="background:linear-gradient(135deg, rgba(255,128,0,0.1), rgba(207,154,68,0.05)); border:1px solid rgba(255,180,71,0.2); border-radius:8px; padding:28px 20px; text-align:center; transition:all 0.3s ease; cursor:pointer;">
+          <div class="feature-card" style="background:linear-gradient(135deg, rgba(255,128,0,0.25), rgba(207,154,68,0.15)); border:1px solid rgba(255,180,71,0.3); border-radius:8px; padding:28px 20px; text-align:center; transition:all 0.3s ease; cursor:pointer;">
             <div style="font-size:32px; margin-bottom:12px;">🎪</div>
             <h3 style="color:#ffb347; font-size:16px; font-weight:700; margin:0 0 8px 0;">Community</h3>
-            <p style="color:var(--text-muted); font-size:13px; margin:0;">Connect with friends and share moments</p>
+            <p style="color:#d4c5b9; font-size:13px; margin:0;">Connect with friends and share moments</p>
           </div>
-          <div class="feature-card" style="background:linear-gradient(135deg, rgba(255,128,0,0.1), rgba(207,154,68,0.05)); border:1px solid rgba(255,180,71,0.2); border-radius:8px; padding:28px 20px; text-align:center; transition:all 0.3s ease; cursor:pointer;">
+          <div class="feature-card" style="background:linear-gradient(135deg, rgba(255,128,0,0.25), rgba(207,154,68,0.15)); border:1px solid rgba(255,180,71,0.3); border-radius:8px; padding:28px 20px; text-align:center; transition:all 0.3s ease; cursor:pointer;">
             <div style="font-size:32px; margin-bottom:12px;">✨</div>
             <h3 style="color:#ffb347; font-size:16px; font-weight:700; margin:0 0 8px 0;">Cosmetics</h3>
-            <p style="color:var(--text-muted); font-size:13px; margin:0;">Customize your profile with unique items</p>
+            <p style="color:#d4c5b9; font-size:13px; margin:0;">Customize your profile with unique items</p>
           </div>
         </div>
       </div>
