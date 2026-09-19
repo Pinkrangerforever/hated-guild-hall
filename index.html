@@ -3783,8 +3783,9 @@ function renderRoster(){
               } else {
                 var nameClass = '';
               }
+              const borderClass = nameClass && nameClass.includes('border') ? nameClass : '';
               return `
-              <div class="comp-slot ${slot?'filled':''} ${officer?'editable':''} ${slot && slot.character_name && getUserNameCustomization(userId) && getUserNameCustomization(userId).includes('border') ? getUserNameCustomization(userId) : ''}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
+              <div class="comp-slot ${slot?'filled':''} ${officer?'editable':''} ${borderClass}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
                 ${ slot ? `
                   <span class="spec-icon-sm" style="${specIconStyle(slot.class_key)}">${specIconHtml(slot.class_key, slot.spec_key)}</span>
                   <span class="comp-slot-info">
