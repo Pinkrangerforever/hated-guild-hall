@@ -1601,7 +1601,12 @@ async function onAuthResolved(){
   __authResolveInFlight = true;
   try{
     // Load news for both logged-in and non-logged-in users
-    await loadNews();
+    try {
+      await loadNews();
+    } catch(e) {
+      console.error('Error loading news:', e);
+      state.news = [];
+    }
 
     if(state.session){
       await loadProfile();
