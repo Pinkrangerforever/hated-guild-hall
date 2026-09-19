@@ -937,54 +937,71 @@
   }
   .sticker-shop-card{ text-align:center; }
   .shop-sticker-preview{ width:100%; aspect-ratio:1; object-fit:cover; border-radius:3px; margin-bottom:8px; }
-  /* Cartoony corkboard */
+  /* Realistic cork board */
   .corkboard{
-    flex:0 0 320px; padding:16px; border-radius:8px;
-    background:linear-gradient(135deg, #c4956b 0%, #b8825f 50%, #a6714d 100%);
-    background-size:8px 8px;
-    box-shadow:inset 0 0 20px rgba(0,0,0,0.35), 0 8px 24px rgba(0,0,0,0.4);
-    border:12px solid #8b5a2b;
-    border-top-width:18px; border-left-width:15px;
+    flex:0 0 380px; padding:20px; border-radius:4px;
+    background:
+      repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px),
+      repeating-linear-gradient(-45deg, transparent, transparent 2px, rgba(0,0,0,.02) 2px, rgba(0,0,0,.02) 4px),
+      linear-gradient(135deg, #d4a574 0%, #c89968 25%, #d4a574 50%, #c89968 75%, #d4a574 100%);
+    background-size:
+      12px 12px,
+      12px 12px,
+      auto;
+    box-shadow:
+      inset 0 0 40px rgba(0,0,0,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.1),
+      0 12px 30px rgba(0,0,0,0.5);
+    border:16px solid #8b6b47;
+    border-top-width:20px;
+    border-left-width:18px;
+    border-right-width:14px;
+    border-bottom-width:14px;
     position:relative;
-    min-height:400px;
+    min-height:420px;
+    overflow:hidden;
   }
   .corkboard::before{
     content:''; position:absolute; top:-8px; left:-8px; right:-8px; bottom:-8px;
-    background:radial-gradient(ellipse at 20% 30%, rgba(255,255,255,0.1), transparent 50%);
-    border-radius:8px; pointer-events:none;
+    background:radial-gradient(ellipse at 25% 25%, rgba(255,255,255,0.08), transparent 60%),
+               radial-gradient(ellipse at 75% 75%, rgba(0,0,0,0.05), transparent 60%);
+    border-radius:2px; pointer-events:none; z-index:1;
   }
   .corkboard-title{
-    font-size:16px; font-weight:800; color:#f0dfb4; margin-bottom:12px; text-shadow:1px 1px 2px rgba(0,0,0,0.5);
+    font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:0.08em;
+    color:#5a4a38; margin-bottom:16px; text-shadow:1px 1px 0 rgba(255,255,255,0.2);
+    position:relative; z-index:2;
   }
   .corkboard-stickers{
-    position:relative; width:100%; height:100%; perspective:600px;
+    position:relative; width:100%; min-height:350px; perspective:600px;
   }
   .sticker-pin-group{
     position:absolute; transform-origin:center;
     transition:transform 0.2s ease;
+    z-index:3;
   }
-  .sticker-pin-group:hover{ z-index:10; transform:scale(1.08) rotate(0deg) !important; }
+  .sticker-pin-group:hover{ z-index:20; transform:scale(1.12) rotate(0deg) !important; }
   .sticker-pin{
-    position:absolute; top:-12px; left:50%; transform:translateX(-50%);
-    width:18px; height:18px; border-radius:50%;
-    background:radial-gradient(circle at 35% 35%, #e8d4a0, #c9a876);
-    box-shadow:0 2px 6px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(0,0,0,0.3);
-    z-index:2;
+    position:absolute; top:-14px; left:50%; transform:translateX(-50%);
+    width:20px; height:20px; border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, #f5ddb5 0%, #d4b896 50%, #8b6b47 100%);
+    box-shadow:0 3px 8px rgba(0,0,0,0.6), inset -1px -1px 3px rgba(0,0,0,0.4), inset 1px 1px 2px rgba(255,255,255,0.2);
+    z-index:4;
   }
   .sticker-pin-shadow{
-    position:absolute; top:-8px; left:50%; transform:translateX(-50%);
-    width:20px; height:20px; border-radius:50%;
-    background:radial-gradient(circle, transparent 40%, rgba(0,0,0,0.15) 100%);
+    position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+    width:22px; height:22px; border-radius:50%;
+    background:radial-gradient(circle at center, rgba(0,0,0,0.2) 0%, transparent 70%);
   }
   .corkboard-sticker{
-    width:100%; aspect-ratio:1; object-fit:cover; border-radius:3px;
-    border:3px solid #f0dfb4;
-    box-shadow:0 4px 12px rgba(0,0,0,0.4), 2px 2px 8px rgba(0,0,0,0.2);
+    width:100%; aspect-ratio:1; object-fit:cover; border-radius:2px;
+    border:3px solid #f5ddb5;
+    box-shadow:0 4px 14px rgba(0,0,0,0.5), 2px 2px 6px rgba(0,0,0,0.3);
     max-width:140px;
   }
   .sticker-placer{
-    font-size:10px; font-weight:600; color:#f0dfb4; text-align:center;
-    margin-top:6px; text-shadow:1px 1px 1px rgba(0,0,0,0.6);
+    font-size:9px; font-weight:600; color:#5a4a38; text-align:center;
+    margin-top:4px; text-shadow:1px 1px 0 rgba(255,255,255,0.1);
   }
 
   /* ---- gallery + site image slots ---- */
@@ -2475,7 +2492,11 @@ async function purchaseRank(itemId){
   render();
 }
 async function purchaseSticker(galleryImageId){
-  const { data, error } = await sb.rpc('purchase_sticker', { p_gallery_image_id: galleryImageId });
+  // Prompt for optional text/note
+  const note = prompt('Add a note to your sticker (optional):', '');
+  if(note === null) return; // User cancelled
+  
+  const { data, error } = await sb.rpc('purchase_sticker', { p_gallery_image_id: galleryImageId, p_note: note });
   if(error || !data){ showToast("Couldn't complete purchase — try again", true); return; }
   if(!data.success){
     const reasons = {
@@ -3432,7 +3453,10 @@ function renderNews(){
                 <div class="sticker-pin"></div>
                 <div class="sticker-pin-shadow"></div>
                 <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
-                <div class="sticker-placer">${esc(s.placed_by_name)}</div>
+                <div class="sticker-placer">
+                  <div>${esc(s.placed_by_name)}</div>
+                  ${ s.note ? `<div style="font-size:8px; margin-top:2px; max-width:135px; overflow:hidden; text-overflow:ellipsis;">${esc(s.note)}</div>` : '' }
+                </div>
               </div>`;
             }).join('') }
           </div>
