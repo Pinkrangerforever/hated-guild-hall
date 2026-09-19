@@ -727,23 +727,20 @@
   .spec-icon-sm svg{ width:100%; height:100%; display:block; }
   .comp-slot-info{ display:flex; flex-direction:column; flex:1; overflow:hidden; line-height:1.25; }
   .comp-slot-name{ font-size:13px; font-weight:600; color:var(--text-normal); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .comp-slot-name.name-custom-flame{
-    color:#ff6b35;
-    text-shadow:0 0 8px rgba(255,107,53,0.8), 0 0 16px rgba(255,165,0,0.6), 0 0 24px rgba(255,69,0,0.4);
-    filter:drop-shadow(0 0 6px rgba(255,107,53,0.6));
-    animation:flameFlicker 1.2s ease-in-out infinite;
+  .comp-slot.name-custom-flame{
+    background:linear-gradient(135deg, rgba(255,69,0,0.15) 0%, rgba(255,107,53,0.1) 50%, rgba(255,165,0,0.05) 100%);
+    box-shadow:inset 0 0 20px rgba(255,107,53,0.3), inset 0 0 10px rgba(255,165,0,0.2), 0 0 15px rgba(255,69,0,0.2);
+    animation:flameGlowSlot 1.2s ease-in-out infinite;
   }
-  .comp-slot-name.name-custom-star{
-    color:#ffd700;
-    text-shadow:0 0 10px rgba(255,235,59,1), 0 0 20px rgba(255,215,0,0.8), 0 0 30px rgba(255,165,0,0.5);
-    filter:drop-shadow(0 0 8px rgba(255,235,59,0.6));
-    animation:goldenRadiance 1.5s ease-in-out infinite;
+  .comp-slot.name-custom-star{
+    background:linear-gradient(135deg, rgba(255,235,59,0.15) 0%, rgba(255,215,0,0.1) 50%, rgba(255,165,0,0.05) 100%);
+    box-shadow:inset 0 0 20px rgba(255,235,59,0.4), inset 0 0 10px rgba(255,215,0,0.2), 0 0 20px rgba(255,235,59,0.25);
+    animation:goldenGlowSlot 1.5s ease-in-out infinite;
   }
-  .comp-slot-name.name-custom-shadow{
-    color:#8b4789;
-    text-shadow:0 0 10px rgba(75,14,78,0.8), 0 0 16px rgba(40,0,50,0.6);
-    filter:drop-shadow(1px 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 8px rgba(75,14,78,0.4));
-    animation:shadowAura 2s ease-in-out infinite;
+  .comp-slot.name-custom-shadow{
+    background:linear-gradient(135deg, rgba(75,14,78,0.15) 0%, rgba(40,0,50,0.1) 50%, rgba(0,0,0,0.05) 100%);
+    box-shadow:inset 0 0 20px rgba(75,14,78,0.3), inset 0 0 15px rgba(40,0,50,0.2), 0 0 15px rgba(75,14,78,0.15);
+    animation:shadowGlowSlot 2s ease-in-out infinite;
   }
   .comp-slot.roster-border-uncommon{
     border:2px solid #1eff00 !important;
@@ -765,20 +762,17 @@
     border-radius:6px;
     box-shadow:0 0 20px rgba(255,128,0,0.8), 0 0 40px rgba(255,128,0,0.4), inset 0 0 12px rgba(255,128,0,0.2);
   }
-  @keyframes flameFlicker{
-    0%{ filter:brightness(0.95) drop-shadow(0 0 6px rgba(255,107,53,0.6)); text-shadow:0 0 8px rgba(255,107,53,0.8), 0 0 16px rgba(255,165,0,0.6), 0 0 24px rgba(255,69,0,0.4); }
-    25%{ filter:brightness(1.15) drop-shadow(0 0 12px rgba(255,107,53,0.8)); text-shadow:0 0 12px rgba(255,107,53,1), 0 0 20px rgba(255,165,0,0.8), 0 0 32px rgba(255,69,0,0.6); }
-    50%{ filter:brightness(1) drop-shadow(0 0 8px rgba(255,107,53,0.7)); text-shadow:0 0 10px rgba(255,107,53,0.9), 0 0 18px rgba(255,165,0,0.7), 0 0 28px rgba(255,69,0,0.5); }
-    75%{ filter:brightness(1.1) drop-shadow(0 0 10px rgba(255,107,53,0.75)); text-shadow:0 0 11px rgba(255,107,53,0.95), 0 0 22px rgba(255,165,0,0.75), 0 0 30px rgba(255,69,0,0.55); }
-    100%{ filter:brightness(0.95) drop-shadow(0 0 6px rgba(255,107,53,0.6)); text-shadow:0 0 8px rgba(255,107,53,0.8), 0 0 16px rgba(255,165,0,0.6), 0 0 24px rgba(255,69,0,0.4); }
+  @keyframes flameGlowSlot{
+    0%, 100%{ box-shadow:inset 0 0 20px rgba(255,107,53,0.3), inset 0 0 10px rgba(255,165,0,0.2), 0 0 15px rgba(255,69,0,0.2); }
+    50%{ box-shadow:inset 0 0 30px rgba(255,107,53,0.5), inset 0 0 15px rgba(255,165,0,0.3), 0 0 25px rgba(255,69,0,0.4); }
   }
-  @keyframes goldenRadiance{
-    0%, 100%{ text-shadow:0 0 10px rgba(255,235,59,1), 0 0 20px rgba(255,215,0,0.8), 0 0 30px rgba(255,165,0,0.5); filter:brightness(1) drop-shadow(0 0 8px rgba(255,235,59,0.6)); }
-    50%{ text-shadow:0 0 16px rgba(255,235,59,1), 0 0 28px rgba(255,215,0,0.9), 0 0 40px rgba(255,165,0,0.7); filter:brightness(1.1) drop-shadow(0 0 12px rgba(255,235,59,0.8)); }
+  @keyframes goldenGlowSlot{
+    0%, 100%{ box-shadow:inset 0 0 20px rgba(255,235,59,0.4), inset 0 0 10px rgba(255,215,0,0.2), 0 0 20px rgba(255,235,59,0.25); }
+    50%{ box-shadow:inset 0 0 30px rgba(255,235,59,0.6), inset 0 0 15px rgba(255,215,0,0.4), 0 0 30px rgba(255,235,59,0.4); }
   }
-  @keyframes shadowAura{
-    0%, 100%{ text-shadow:0 0 10px rgba(75,14,78,0.8), 0 0 16px rgba(40,0,50,0.6), inset 0 0 10px rgba(0,0,0,0.4); filter:drop-shadow(1px 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 8px rgba(75,14,78,0.4)); }
-    50%{ text-shadow:0 0 14px rgba(75,14,78,0.9), 0 0 22px rgba(40,0,50,0.7), inset 0 0 12px rgba(0,0,0,0.5); filter:drop-shadow(2px 2px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 12px rgba(75,14,78,0.5)); }
+  @keyframes shadowGlowSlot{
+    0%, 100%{ box-shadow:inset 0 0 20px rgba(75,14,78,0.3), inset 0 0 15px rgba(40,0,50,0.2), 0 0 15px rgba(75,14,78,0.15); }
+    50%{ box-shadow:inset 0 0 25px rgba(75,14,78,0.4), inset 0 0 20px rgba(40,0,50,0.3), 0 0 20px rgba(75,14,78,0.25); }
   }
   @keyframes heroGlow{
     0%, 100%{ text-shadow:0 0 20px rgba(255,128,0,0.5), 0 0 40px rgba(255,128,0,0.2); }
@@ -1444,11 +1438,9 @@ function guildIconHtml(size, id){
 function getUserNameCustomization(userId){
   if(!userId) return { border: '', nameCustom: '' };
   const purchases = state.shopPurchases && state.shopPurchases.filter(p=>p.user_id===userId && p.fulfilled);
-  if(!purchases || !purchases.length) {
-    return { border: '', nameCustom: '' };
-  }
+  if(!purchases || !purchases.length) return { border: '', nameCustom: '' };
 
-  // Check for roster name borders (get highest tier)
+  // Get highest tier border
   let border = '';
   const borderPurchases = purchases.filter(p=> {
     const item = state.shopItems && state.shopItems.find(i=>i.id===p.item_id);
@@ -1461,17 +1453,17 @@ function getUserNameCustomization(userId){
     if(tierName) border = `roster-border-${tierName}`;
   }
 
-  // Check for other name customizations
+  // Get active name customization from profile
   let nameCustom = '';
-  const nameCustomPurchase = purchases.find(p=>
-    state.shopItems && state.shopItems.find(i=>i.id===p.item_id && i.category==='name_customization' && !i.name.includes('Roster Name Border'))
-  );
-  if(nameCustomPurchase) {
-    const item = state.shopItems && state.shopItems.find(i=>i.id===nameCustomPurchase.item_id);
-    if(item) {
-      if(item.name.includes('Flame')) nameCustom = 'name-custom-flame';
-      else if(item.name.includes('Golden')) nameCustom = 'name-custom-star';
-      else if(item.name.includes('Shadow')) nameCustom = 'name-custom-shadow';
+  const profile = state.profilesById && Object.values(state.profilesById).find(p => p.id === userId);
+  const activeCustomId = profile?.active_name_customization;
+
+  if(activeCustomId) {
+    const activeItem = state.shopItems && state.shopItems.find(i => i.id === activeCustomId);
+    if(activeItem && purchases.some(p => p.item_id === activeCustomId)) {
+      if(activeItem.name.includes('Flame')) nameCustom = 'name-custom-flame';
+      else if(activeItem.name.includes('Golden')) nameCustom = 'name-custom-star';
+      else if(activeItem.name.includes('Shadow')) nameCustom = 'name-custom-shadow';
     }
   }
 
@@ -3780,19 +3772,16 @@ function renderRoster(){
               const slot = slotAt(gi,si);
               const specLabel = slot ? CLASS_SPECS[slot.class_key].specs.find(s=>s.key===slot.spec_key).label : '';
               const clickAttr = officer ? `data-slot-click="${gi}|${si}"` : '';
-              let borderClass = '';
-              let nameClass = '';
+              let slotClasses = `${slot?'filled':''} ${officer?'editable':''}`;
               if(slot) {
                 const profiles = Object.values(state.profilesById || {});
                 const userId = profiles.find(p => p.character_name === slot.character_name)?.id;
                 const customization = getUserNameCustomization(userId);
-                borderClass = customization.border;
-                nameClass = customization.nameCustom;
-                if(nameClass) console.log('[DEBUG] Applied name class to', slot.character_name, ':', nameClass);
-                if(borderClass) console.log('[DEBUG] Applied border class to', slot.character_name, ':', borderClass);
+                if(customization.border) slotClasses += ` ${customization.border}`;
+                if(customization.nameCustom) slotClasses += ` ${customization.nameCustom}`;
               }
               return `
-              <div class="comp-slot ${slot?'filled':''} ${officer?'editable':''} ${borderClass}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
+              <div class="comp-slot ${slotClasses}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
                 ${ slot ? `
                   <span class="spec-icon-sm" style="${specIconStyle(slot.class_key)}">${specIconHtml(slot.class_key, slot.spec_key)}</span>
                   <span class="comp-slot-info">
