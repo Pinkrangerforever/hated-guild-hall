@@ -734,6 +734,26 @@
     text-shadow:0 0 12px rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.8);
     filter:drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
   }
+  .comp-slot-name.roster-border-uncommon{
+    padding:2px 4px; border-radius:2px;
+    border:2px solid #1eff00;
+    box-shadow:0 0 8px rgba(30,255,0,0.6);
+  }
+  .comp-slot-name.roster-border-rare{
+    padding:2px 4px; border-radius:2px;
+    border:2px solid #0070dd;
+    box-shadow:0 0 8px rgba(0,112,221,0.6);
+  }
+  .comp-slot-name.roster-border-epic{
+    padding:2px 4px; border-radius:2px;
+    border:2px solid #a335ee;
+    box-shadow:0 0 8px rgba(163,53,238,0.6);
+  }
+  .comp-slot-name.roster-border-legendary{
+    padding:2px 4px; border-radius:2px;
+    border:2px solid #ff8000;
+    box-shadow:0 0 8px rgba(255,128,0,0.6);
+  }
   @keyframes flamePulse{
     0%, 100%{ filter:brightness(1); }
     50%{ filter:brightness(1.2); }
@@ -1381,8 +1401,22 @@ function guildIconHtml(size, id){
 function getUserNameCustomization(userId){
   const purchases = state.shopPurchases && state.shopPurchases.filter(p=>p.user_id===userId && p.fulfilled);
   if(!purchases || !purchases.length) return '';
+
+  // Check for roster name borders (get highest tier)
+  const borderPurchases = purchases.filter(p=> {
+    const item = state.shopItems && state.shopItems.find(i=>i.id===p.item_id);
+    return item && item.name.includes('Roster Name Border');
+  });
+  if(borderPurchases.length) {
+    const borderItems = borderPurchases.map(p=>state.shopItems.find(i=>i.id===p.item_id));
+    const highestTier = Math.max(...borderItems.map(i=>i.metadata?.tier || 0));
+    const tierName = ['','uncommon','rare','epic','legendary'][highestTier];
+    if(tierName) return `roster-border-${tierName}`;
+  }
+
+  // Check for other name customizations
   const nameCustom = purchases.find(p=>
-    state.shopItems && state.shopItems.find(i=>i.id===p.item_id && i.category==='name_customization')
+    state.shopItems && state.shopItems.find(i=>i.id===p.item_id && i.category==='name_customization' && !i.name.includes('Roster Name Border'))
   );
   if(!nameCustom) return '';
   const item = state.shopItems && state.shopItems.find(i=>i.id===nameCustom.item_id);
