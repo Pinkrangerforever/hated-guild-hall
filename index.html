@@ -3699,7 +3699,7 @@ function renderNews(){
                    style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
                 <div class="sticker-pin"></div>
                 <div class="sticker-pin-shadow"></div>
-                ${ isRaidLeader ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">âœ•</button>` : '' }
+                ${ isRaidLeader ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">&times;</button>` : '' }
                 <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
                 ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
                 <div class="sticker-placer">${esc(s.placed_by_name)}</div>
