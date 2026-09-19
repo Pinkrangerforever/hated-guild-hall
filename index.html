@@ -2625,14 +2625,27 @@ const GoldLeaderboard = {
         console.log('🥇 Top player:', this.leaderboardData[0].character_name || this.leaderboardData[0].discord_username, 'Gold:', this.leaderboardData[0].gold);
       }
       
-      // FORCE re-render the leaderboard section after data loads (whether empty or not)
-      const leaderboardContainer = document.querySelector('.gold-leaderboard');
-      if (leaderboardContainer) {
-        console.log('🔄 Re-rendering leaderboard container...');
-        leaderboardContainer.innerHTML = this.render();
-      } else {
-        console.warn('⚠️ Leaderboard container not found in DOM');
-      }
+      // FORCE re-render the modal after data loads
+      console.log('🔄 Queuing modal re-render after leaderboard loads...');
+      
+      // Use requestAnimationFrame to ensure DOM is ready, then re-render
+      requestAnimationFrame(() => {
+        const leaderboardContainer = document.querySelector('.gold-leaderboard');
+        if (leaderboardContainer) {
+          console.log('✅ Found container, updating now...');
+          leaderboardContainer.innerHTML = this.render();
+        } else {
+          // If still not found, try a small delay and re-render the whole modal
+          setTimeout(() => {
+            console.log('⏱️ Container not found, attempting full modal re-render...');
+            const modalPanel = document.getElementById('modal-panel');
+            if (modalPanel && state.modal === 'shop') {
+              console.log('🔄 Full re-render triggered');
+              renderApp();
+            }
+          }, 100);
+        }
+      });
     } catch (err) {
       console.error('❌ Leaderboard load failed:', err);
       console.error('Error details:', err.message, err.code);
