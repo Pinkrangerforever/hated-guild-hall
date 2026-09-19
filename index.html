@@ -1692,13 +1692,14 @@ async function moveShopItem(itemId, direction){
   const newIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
   const targetItem = sorted[newIndex];
 
-  const newOrder = item.sort_order || 0;
-  const targetOrder = targetItem.sort_order || 0;
+  const currentOrder = item.sort_order || (currentIndex * 10);
+  const targetOrder = targetItem.sort_order || (newIndex * 10);
 
-  const { error } = await sb.rpc('update_shop_item_order', { p_item_id: itemId, p_sort_order: targetOrder });
-  if(error){ showToast('Failed to move item', true); return; }
+  const { error: error1 } = await sb.rpc('update_shop_item_order', { p_item_id: itemId, p_sort_order: targetOrder });
+  if(error1){ showToast('Failed to move item', true); return; }
 
-  await sb.rpc('update_shop_item_order', { p_item_id: targetItem.id, p_sort_order: newOrder });
+  const { error: error2 } = await sb.rpc('update_shop_item_order', { p_item_id: targetItem.id, p_sort_order: currentOrder });
+  if(error2){ showToast('Failed to swap item', true); return; }
 
   // Reload shop items
   const { data } = await sb.from('shop_items').select('*');
