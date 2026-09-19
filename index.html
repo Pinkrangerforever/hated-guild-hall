@@ -980,7 +980,7 @@
   .sticker-pin-group{
     position:absolute; 
     z-index:3;
-    width:140px;
+    width:100px;
     transform: translate(-50%, -50%);
   }
   .sticker-pin-group[data-owned="true"]:hover{ z-index:20; transform:translate(-50%, -50%) scale(1.08); }
@@ -1003,11 +1003,11 @@
     width:100%; aspect-ratio:1; object-fit:cover; border-radius:2px;
     border:3px solid #f5ddb5;
     box-shadow:0 4px 14px rgba(0,0,0,0.5), 2px 2px 6px rgba(0,0,0,0.3);
-    max-width:140px;
+    max-width:100px;
   }
   .sticker-note{
-    font-size:14px; font-weight:700; color:#f5ddb5; text-align:center;
-    margin-bottom:6px; 
+    font-size:11px; font-weight:700; color:#f5ddb5; text-align:center;
+    margin-top:4px; 
     text-shadow:
       -1px -1px 0 #2a1f14,
       1px -1px 0 #2a1f14,
@@ -1017,7 +1017,7 @@
       0px 1px 0 #2a1f14,
       -1px 0px 0 #2a1f14,
       1px 0px 0 #2a1f14;
-    max-width:135px; overflow:hidden; text-overflow:ellipsis; word-wrap:break-word;
+    max-width:100px; overflow:hidden; text-overflow:ellipsis; word-wrap:break-word;
   }
   .sticker-placer{
     font-size:10px; font-weight:600; color:#5a4a38; text-align:center;
@@ -2620,25 +2620,38 @@ function setupStickerDragHandlers(){
   
   console.log('🎯 Drag handler setup initialized');
   
+  // Log all pins found
+  const pins = document.querySelectorAll('.sticker-pin');
+  console.log('📌 Found', pins.length, 'pins on page');
+  
   // Use event delegation - listen on document for pin interactions
   document.addEventListener('mousedown', (e)=>{
-    const pin = e.target.closest('.sticker-pin');
-    if(!pin) return;
+    // Check if it's a pin
+    if(e.target.classList && e.target.classList.contains('sticker-pin')){
+      console.log('✋ MOUSEDOWN on pin element directly');
+    }
     
-    const stickerGroup = pin.closest('.sticker-pin-group');
-    console.log('📌 Pin clicked - group found:', !!stickerGroup, 'owned:', stickerGroup?.dataset.owned);
-    if(!stickerGroup || stickerGroup.dataset.owned !== 'true') {
-      console.log('⚠️ Not owned or no group');
+    const pin = e.target.closest('.sticker-pin');
+    if(!pin){
       return;
     }
     
-    console.log('🖱️ Drag start on sticker:', stickerGroup.dataset.stickerId);
+    console.log('📌 Pin found via closest()');
+    const stickerGroup = pin.closest('.sticker-pin-group');
+    console.log('📌 Group found:', !!stickerGroup, 'owned:', stickerGroup?.dataset.owned);
+    
+    if(!stickerGroup || stickerGroup.dataset.owned !== 'true') {
+      console.log('⚠️ Not owned or no group, skipping');
+      return;
+    }
+    
+    console.log('🖱️ DRAG START on sticker:', stickerGroup.dataset.stickerId);
     draggingSticker = stickerGroup;
     const stickersContainer = stickerGroup.closest('.corkboard-stickers');
     containerRect = stickersContainer ? stickersContainer.getBoundingClientRect() : null;
-    console.log('📦 Container rect:', containerRect ? `${containerRect.width}x${containerRect.height}` : 'null');
+    console.log('📦 Container:', containerRect ? `${containerRect.width}x${containerRect.height}` : 'null');
     dragStart = { x: e.clientX, y: e.clientY };
-    console.log('🚀 Drag start coords:', dragStart);
+    console.log('🚀 Start coords:', dragStart);
     e.preventDefault();
   });
   
@@ -3603,8 +3616,8 @@ function renderNews(){
                 <div class="sticker-pin"></div>
                 <div class="sticker-pin-shadow"></div>
                 ${ isRaidLeader ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">✕</button>` : '' }
-                ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
                 <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
+                ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
                 <div class="sticker-placer">${esc(s.placed_by_name)}</div>
               </div>`;
             }).join('') }
