@@ -97,13 +97,30 @@
   .page-sub{ font-size:14px; color:var(--text-muted); margin-bottom:24px; line-height:1.5; }
 
   .panel{
-    background:var(--bg-card);
-    border:1px solid var(--divider);
-    border-top:2px solid var(--divider-strong);
-    border-radius:2px;
-    padding:20px 22px;
-    margin-bottom:16px;
-    box-shadow: var(--shadow-card);
+    background:transparent;
+    border:none;
+    border-radius:0;
+    padding:0;
+    margin-bottom:48px;
+    box-shadow:none;
+  }
+  .panel > h2, .panel > h3{ 
+    font-size:18px; 
+    margin-bottom:20px; 
+    padding-bottom:12px;
+    border-bottom:1px solid rgba(207,154,68,0.12);
+    color:var(--yellow);
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    font-size:13px;
+    font-weight:700;
+  }
+  .panel-section{
+    padding:24px 0;
+    border-bottom:1px solid rgba(207,154,68,0.08);
+  }
+  .panel-section:last-child{
+    border-bottom:none;
   }
   .panel + .panel{ margin-top:16px; }
   .main .panel{ margin-bottom:80px; }
@@ -589,8 +606,8 @@
   @media (max-width:520px){ .comp-groups{ grid-template-columns:1fr; } }
   .comp-group-title{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:8px; text-align:center; }
   .comp-slot{
-    display:flex; align-items:center; gap:8px; min-height:59px; padding:8px 16px; margin-bottom:8px;
-    background:var(--bg-input); border:1px solid var(--divider-strong); border-radius:2px;
+    display:flex; align-items:center; gap:8px; min-height:59px; padding:12px 16px; margin-bottom:8px;
+    background:rgba(207,154,68,0.04); border:1px solid rgba(207,154,68,0.12); border-radius:3px;
   }
   .comp-slot.editable{ cursor:pointer; }
   .comp-slot.editable:hover{ background:rgba(207,154,68,0.1); border-color:var(--blurple); }
