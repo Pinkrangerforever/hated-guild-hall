@@ -3784,11 +3784,11 @@ function renderRoster(){
                 var nameClass = '';
               }
               return `
-              <div class="comp-slot ${slot?'filled':''} ${officer?'editable':''} ${nameClass}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
+              <div class="comp-slot ${slot?'filled':''} ${officer?'editable':''} ${slot && slot.character_name && getUserNameCustomization(userId) && getUserNameCustomization(userId).includes('border') ? getUserNameCustomization(userId) : ''}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
                 ${ slot ? `
                   <span class="spec-icon-sm" style="${specIconStyle(slot.class_key)}">${specIconHtml(slot.class_key, slot.spec_key)}</span>
                   <span class="comp-slot-info">
-                    <span class="comp-slot-name">${esc(slot.character_name)}</span>
+                    <span class="comp-slot-name ${nameClass}">${esc(slot.character_name)}</span>
                     <span class="comp-slot-spec" style="color:${CLASS_SPECS[slot.class_key].color};">${esc(specLabel)}</span>
                   </span>
                   ${ officer ? `<button type="button" class="comp-slot-remove" data-remove="${gi}|${si}" title="Remove">&times;</button>` : '' }
