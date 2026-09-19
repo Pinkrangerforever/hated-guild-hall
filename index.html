@@ -2781,8 +2781,78 @@ function renderLanding(){
     {id:'signin', label:'Gallery'},
   ];
   const rec = state.settings;
+
+  // Get the news section content (same as logged-in page)
+  const newsSection = `
+    <div class="main page-news" style="max-width:1400px; margin:0 auto; padding:80px 40px 32px 40px;">
+      <div class="eyebrow sans">Welcome</div>
+      <h2 class="page-title">Guild Hall</h2>
+      <p class="page-sub sans">Browse the latest news and updates from the guild, or sign in to explore the full hall.</p>
+
+      <!-- News section from logged-in home page -->
+      <div style="display:flex; gap:24px; align-items:flex-start; margin-bottom:40px;">
+        <!-- Corkboard on the left -->
+        <div class="corkboard">
+          <div class="corkboard-title">Community Board</div>
+          ${ state.stickers && state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
+            <div class="corkboard-stickers">
+              ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s)=>{
+                const posX = s.position_x ?? 50;
+                const posY = s.position_y ?? 50;
+                const rotation = (Math.random() * 50) - 25;
+                return `
+                <div class="sticker-pin-group"
+                     style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
+                  <div class="sticker-pin"></div>
+                  <div class="sticker-pin-shadow"></div>
+                  <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
+                  ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
+                  <div class="sticker-placer">${esc(s.placed_by_name)}</div>
+                </div>`;
+              }).join('') }
+            </div>
+          ` : `<div style="padding:20px; text-align:center; color:var(--blurple); font-size:13px; font-weight:600;">Buy a sticker in the store!</div>` }
+        </div>
+
+        <!-- Center video panel -->
+        <div class="panel style-glass" style="text-align:center; flex:0 0 auto; max-width:680px;">
+          <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
+          <h2 class="hero-title2 gold-text" style="font-size:32px;">Adventure Is Forever</h2>
+          <p class="hero-split-sub sans" style="margin:0 auto 28px auto;">The guild hall is an invitation to take your first steps into raid nights, boss strategy, and the loot log &mdash; built for ${esc(state.settings.guild_name)} as we carry on into Warcraft Forever.</p>
+          <div class="hero-split-media" style="margin-top:0;">
+            <div class="ornate-frame" style="max-width:640px;">
+              <div class="ornate-corner tl"></div>
+              <div class="ornate-corner tr"></div>
+              <div class="ornate-corner bl"></div>
+              <div class="ornate-corner br"></div>
+              <iframe class="hero-video-embed" src="https://www.youtube.com/embed/D30zXcEjg_Y" title="Guild video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- News items -->
+      <div style="margin-top:40px;">
+        ${ state.news && state.news.length ? `
+          <div class="eyebrow gold-text" style="margin-bottom:16px;">Latest News</div>
+          <div style="display:grid; gap:16px;">
+            ${ state.news.slice(0, 5).map(item => `
+              <div class="panel" style="padding:16px;">
+                <div class="eyebrow" style="margin-bottom:6px;">${new Date(item.created_at).toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'})}</div>
+                <h3 style="margin:6px 0; color:var(--text-normal); font-size:16px;">${esc(item.title)}</h3>
+                <div class="sans" style="font-size:13px; line-height:1.5; color:var(--text-muted);">${renderRichText(item.body)}</div>
+              </div>
+            `).join('') }
+          </div>
+        ` : `` }
+      </div>
+    </div>
+  `;
+
   return `
   ${topNavBar(navLinks, {guildName: state.settings.guild_name, showRecruit:true})}
+
+  ${newsSection}
 
   <div class="marketing-hero ${(state.siteImages['site_background'] || state.siteImages['site_background_texture'] || state.siteImages['site_background_color']) ? 'custom-bg' : ''}" id="about">
     <div class="hero-centered">
@@ -2835,27 +2905,11 @@ function renderLanding(){
     </div>
   </div>
 
-  <div class="marketing-section" id="recruiting" style="padding-bottom:60px;">
+  <div class="marketing-section" id="recruiting" style="padding-bottom:100px;">
     <div class="panel hero-panel" style="max-width:640px; margin:0 auto;">
       <div class="eyebrow gold-text">Recruiting</div>
       ${ rec.recruitment_roles ? `<p class="sans" style="font-size:13px; font-weight:700; color:#e8c26c; margin-bottom:8px;">Open roles: ${esc(rec.recruitment_roles)}</p>` : '' }
       <p class="sans" style="font-size:14px; line-height:1.6; color:var(--text-muted);">${ rec.recruitment_body ? esc(rec.recruitment_body).replace(/\n/g,'<br>') : 'No recruitment notice posted yet.' }</p>
-    </div>
-  </div>
-
-  <div class="marketing-section" style="padding-bottom:100px;">
-    <div style="max-width:900px; margin:0 auto;">
-      <div class="eyebrow gold-text" style="text-align:center; display:block;">Latest Updates</div>
-      <h2 class="page-title" style="text-align:center; margin-bottom:32px;">Guild Bulletin Board</h2>
-      <div style="display:grid; gap:20px;">
-        ${ state.news && state.news.length ? state.news.slice(0, 3).map(item => `
-          <div class="panel" style="padding:20px;">
-            <div class="eyebrow" style="margin-bottom:8px;">${new Date(item.created_at).toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'})}</div>
-            <h3 style="margin:8px 0; color:var(--text-normal);">${esc(item.title)}</h3>
-            <div class="sans" style="font-size:14px; line-height:1.6; color:var(--text-muted);">${renderRichText(item.body)}</div>
-          </div>
-        `).join('') : `<div class="panel" style="text-align:center; padding:40px; color:var(--text-muted);">No news posted yet.</div>` }
-      </div>
     </div>
   </div>
 
