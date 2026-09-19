@@ -979,10 +979,11 @@
   }
   .sticker-pin-group{
     position:absolute; transform-origin:center;
-    transition:transform 0.2s ease;
+    transition:none; /* Disable transition during drag */
     z-index:3;
   }
-  .sticker-pin-group:hover{ z-index:20; transform:scale(1.12) rotate(0deg) !important; }
+  .sticker-pin-group[data-owned="true"]:hover{ z-index:20; transform:scale(1.08) !important; }
+  .sticker-pin-group[data-owned="false"]:hover{ z-index:20; }
   .sticker-pin{
     position:absolute; top:-14px; left:50%; transform:translateX(-50%);
     width:20px; height:20px; border-radius:50%;
@@ -1001,9 +1002,23 @@
     box-shadow:0 4px 14px rgba(0,0,0,0.5), 2px 2px 6px rgba(0,0,0,0.3);
     max-width:140px;
   }
+  .sticker-note{
+    font-size:14px; font-weight:700; color:#f5ddb5; text-align:center;
+    margin-bottom:6px; 
+    text-shadow:
+      -1px -1px 0 #2a1f14,
+      1px -1px 0 #2a1f14,
+      -1px 1px 0 #2a1f14,
+      1px 1px 0 #2a1f14,
+      0px -1px 0 #2a1f14,
+      0px 1px 0 #2a1f14,
+      -1px 0px 0 #2a1f14,
+      1px 0px 0 #2a1f14;
+    max-width:135px; overflow:hidden; text-overflow:ellipsis; word-wrap:break-word;
+  }
   .sticker-placer{
-    font-size:9px; font-weight:600; color:#5a4a38; text-align:center;
-    margin-top:4px; text-shadow:1px 1px 0 rgba(255,255,255,0.1);
+    font-size:10px; font-weight:600; color:#5a4a38; text-align:center;
+    margin-top:4px; text-shadow:1px 1px 0 rgba(255,255,255,0.2);
   }
 
   /* ---- gallery + site image slots ---- */
@@ -2549,6 +2564,80 @@ async function saveStickerPrice(){
   render();
 }
 
+function setupStickerDragHandlers(){
+  const stickersContainer = document.querySelector('.corkboard-stickers');
+  if(!stickersContainer) return;
+  
+  let draggingSticker = null;
+  let dragStart = { x: 0, y: 0 };
+  
+  document.querySelectorAll('.sticker-pin-group[data-owned="true"] .sticker-pin').forEach(pin=>{
+    pin.addEventListener('mousedown', (e)=>{
+      const stickerGroup = pin.closest('.sticker-pin-group');
+      if(!stickerGroup) return;
+      
+      draggingSticker = stickerGroup;
+      dragStart = { x: e.clientX, y: e.clientY };
+      pin.style.cursor = 'grabbing';
+    });
+  });
+  
+  document.addEventListener('mousemove', (e)=>{
+    if(!draggingSticker) return;
+    
+    const rect = stickersContainer.getBoundingClientRect();
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    
+    // Calculate new position as percentage within container
+    let left = parseFloat(draggingSticker.style.left) || 0;
+    let top = parseFloat(draggingSticker.style.top) || 0;
+    
+    left += dx;
+    top += dy;
+    
+    // Clamp to container bounds
+    const stickerWidth = 140;
+    const stickerHeight = 140;
+    left = Math.max(0, Math.min(left, rect.width - stickerWidth));
+    top = Math.max(0, Math.min(top, rect.height - stickerHeight));
+    
+    draggingSticker.style.left = left + 'px';
+    draggingSticker.style.top = top + 'px';
+    
+    dragStart = { x: e.clientX, y: e.clientY };
+  });
+  
+  document.addEventListener('mouseup', async (e)=>{
+    if(!draggingSticker) return;
+    
+    const pin = draggingSticker.querySelector('.sticker-pin');
+    if(pin) pin.style.cursor = 'grab';
+    
+    // Convert pixel position to percentage for storage
+    const rect = stickersContainer.getBoundingClientRect();
+    const left = parseFloat(draggingSticker.style.left);
+    const top = parseFloat(draggingSticker.style.top);
+    
+    const posX = ((left + 70) / rect.width * 100);
+    const posY = ((top + 70) / rect.height * 100);
+    
+    const stickerId = draggingSticker.dataset.stickerId;
+    
+    // Update in database
+    const { error } = await sb.rpc('update_sticker_position', {
+      p_sticker_id: stickerId,
+      p_position_x: Math.round(posX * 100) / 100,
+      p_position_y: Math.round(posY * 100) / 100,
+      p_user_id: state.auth?.user?.id
+    });
+    
+    if(error) showToast('Failed to save sticker position', true);
+    
+    draggingSticker = null;
+  });
+}
+
 /* ---------------- top-level render ---------------- */
 function render(){
   const app = document.getElementById('app');
@@ -3434,17 +3523,20 @@ function renderNews(){
         <div class="corkboard-title">Community Board</div>
         ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
           <div class="corkboard-stickers">
-            ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s, idx)=>{
-              const angle = (((idx * 73 + 11) % 360) - 180) * 0.15;
+            ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s)=>{
+              const posX = s.position_x ?? 50;
+              const posY = s.position_y ?? 50;
+              const isOwner = state.auth?.user?.id === s.placed_by_user_id;
               return `
-              <div class="sticker-pin-group" style="transform: rotate(${angle}deg);">
-                <div class="sticker-pin"></div>
+              <div class="sticker-pin-group" 
+                   data-sticker-id="${esc(s.id)}"
+                   data-owned="${isOwner}"
+                   style="left: calc(${posX}% - 70px); top: calc(${posY}% - 70px); width:140px;">
+                <div class="sticker-pin" ${isOwner ? 'style="cursor:grab;"' : ''}></div>
                 <div class="sticker-pin-shadow"></div>
+                ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
                 <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
-                <div class="sticker-placer">
-                  <div>${esc(s.placed_by_name)}</div>
-                  ${ s.note ? `<div style="font-size:8px; margin-top:2px; max-width:135px; overflow:hidden; text-overflow:ellipsis;">${esc(s.note)}</div>` : '' }
-                </div>
+                <div class="sticker-placer">${esc(s.placed_by_name)}</div>
               </div>`;
             }).join('') }
           </div>
@@ -3950,6 +4042,10 @@ function bindApp(){
   document.querySelectorAll('[data-buy-shop-item]').forEach(b=>b.addEventListener('click', ()=>purchaseShopItem(b.dataset.buyShopItem)));
   document.querySelectorAll('[data-buy-rank]').forEach(b=>b.addEventListener('click', ()=>purchaseRank(b.dataset.buyRank)));
   document.querySelectorAll('[data-buy-sticker]').forEach(b=>b.addEventListener('click', ()=>purchaseSticker(b.dataset.buySticker)));
+  
+  // Sticker drag-and-drop handlers
+  setupStickerDragHandlers();
+  
   const stickerPriceBtn = document.getElementById('save-sticker-price-btn');
   if(stickerPriceBtn) stickerPriceBtn.addEventListener('click', saveStickerPrice);
   document.querySelectorAll('[data-edit-shop-item]').forEach(b=>b.addEventListener('click', ()=>startEditShopItem(b.dataset.editShopItem)));
