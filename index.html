@@ -2788,9 +2788,6 @@ function renderLanding(){
   // Get the news section content (same as logged-in page)
   const newsSection = `
     <div class="main page-news" style="max-width:1400px; margin:0 auto; padding:80px 40px 32px 40px;">
-      <div class="eyebrow gold-text" style="text-align:center;">${esc(state.settings.guild_name)} Awaits</div>
-      <h2 class="page-title gold-text" style="text-align:center; margin-bottom:32px;">Adventure Is Forever</h2>
-
       <!-- News section from logged-in home page -->
       <div style="display:flex; gap:24px; align-items:flex-start; margin-bottom:40px;">
         <!-- Corkboard on the left -->
@@ -2818,6 +2815,8 @@ function renderLanding(){
 
         <!-- Center video panel -->
         <div class="panel style-glass" style="text-align:center; flex:0 0 auto; max-width:680px;">
+          <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
+          <h2 class="hero-title2 gold-text" style="font-size:32px;">Adventure Is Forever</h2>
           <div class="hero-split-media" style="margin-top:0;">
             <div class="ornate-frame" style="max-width:640px;">
               <div class="ornate-corner tl"></div>
@@ -3710,9 +3709,6 @@ function renderNews(){
 
       <!-- Center video panel - narrower -->
       <div class="panel style-glass" style="text-align:center; flex:0 0 auto; max-width:680px;">
-        <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
-        <h2 class="hero-title2 gold-text" style="font-size:32px;">Adventure Is Forever</h2>
-        <p class="hero-split-sub sans" style="margin:0 auto 28px auto;">The guild hall is an invitation to take your first steps into raid nights, boss strategy, and the loot log &mdash; built for ${esc(state.settings.guild_name)} as we carry on into Warcraft Forever.</p>
         <div class="hero-split-media" style="margin-top:0;">
           <div class="ornate-frame" style="max-width:640px;">
             <div class="ornate-corner tl"></div>
