@@ -2785,9 +2785,8 @@ function renderLanding(){
   // Get the news section content (same as logged-in page)
   const newsSection = `
     <div class="main page-news" style="max-width:1400px; margin:0 auto; padding:80px 40px 32px 40px;">
-      <div class="eyebrow sans">Welcome</div>
-      <h2 class="page-title">Guild Hall</h2>
-      <p class="page-sub sans">Browse the latest news and updates from the guild, or sign in to explore the full hall.</p>
+      <div class="eyebrow gold-text" style="text-align:center;">${esc(state.settings.guild_name)} Awaits</div>
+      <h2 class="page-title gold-text" style="text-align:center; margin-bottom:32px;">Adventure Is Forever</h2>
 
       <!-- News section from logged-in home page -->
       <div style="display:flex; gap:24px; align-items:flex-start; margin-bottom:40px;">
@@ -2854,23 +2853,6 @@ function renderLanding(){
 
   ${newsSection}
 
-  <div class="marketing-hero ${(state.siteImages['site_background'] || state.siteImages['site_background_texture'] || state.siteImages['site_background_color']) ? 'custom-bg' : ''}" id="about">
-    <div class="hero-centered">
-      <div class="eyebrow gold-text">${esc(state.settings.guild_name)} Awaits</div>
-      <h1 class="hero-title2 gold-text">Adventure Is Forever</h1>
-      <p class="hero-split-sub sans">The guild hall is an invitation to take your first steps into raid nights, boss strategy, and the loot log &mdash; built for ${esc(state.settings.guild_name)} as we carry on into Warcraft Forever.</p>
-      <div class="hero-split-media">
-        <div class="ornate-frame">
-          <div class="ornate-corner tl"></div>
-          <div class="ornate-corner tr"></div>
-          <div class="ornate-corner bl"></div>
-          <div class="ornate-corner br"></div>
-          <iframe class="hero-video-embed" src="https://www.youtube.com/embed/D30zXcEjg_Y" title="Guild video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-        </div>
-      </div>
-    </div>
-    <div class="hero-fade"></div>
-  </div>
 
   <div class="marketing-section" id="signin" style="padding-top:20px;">
     <div class="panel hero-panel" style="max-width:420px; margin:0 auto; text-align:center;">
