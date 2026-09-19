@@ -734,25 +734,25 @@
     text-shadow:0 0 12px rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.8);
     filter:drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
   }
-  .comp-slot-name.roster-border-uncommon{
-    padding:2px 4px; border-radius:2px;
-    border:2px solid #1eff00;
-    box-shadow:0 0 8px rgba(30,255,0,0.6);
+  .comp-slot.roster-border-uncommon{
+    border:2px solid #1eff00 !important;
+    border-radius:6px;
+    box-shadow:0 0 12px rgba(30,255,0,0.5), inset 0 0 8px rgba(30,255,0,0.1);
   }
-  .comp-slot-name.roster-border-rare{
-    padding:2px 4px; border-radius:2px;
-    border:2px solid #0070dd;
-    box-shadow:0 0 8px rgba(0,112,221,0.6);
+  .comp-slot.roster-border-rare{
+    border:2px solid #0070dd !important;
+    border-radius:6px;
+    box-shadow:0 0 12px rgba(0,112,221,0.5), inset 0 0 8px rgba(0,112,221,0.1);
   }
-  .comp-slot-name.roster-border-epic{
-    padding:2px 4px; border-radius:2px;
-    border:2px solid #a335ee;
-    box-shadow:0 0 8px rgba(163,53,238,0.6);
+  .comp-slot.roster-border-epic{
+    border:2px solid #a335ee !important;
+    border-radius:6px;
+    box-shadow:0 0 12px rgba(163,53,238,0.5), inset 0 0 8px rgba(163,53,238,0.1);
   }
-  .comp-slot-name.roster-border-legendary{
-    padding:2px 4px; border-radius:2px;
-    border:2px solid #ff8000;
-    box-shadow:0 0 8px rgba(255,128,0,0.6);
+  .comp-slot.roster-border-legendary{
+    border:2px solid #ff8000 !important;
+    border-radius:6px;
+    box-shadow:0 0 12px rgba(255,128,0,0.5), inset 0 0 8px rgba(255,128,0,0.1);
   }
   @keyframes flamePulse{
     0%, 100%{ filter:brightness(1); }
@@ -1399,23 +1399,19 @@ function guildIconHtml(size, id){
   return crestSvg(id || 'guildicon', size);
 }
 function getUserNameCustomization(userId){
-  if(!userId) { console.log('[border] No userId provided'); return ''; }
+  if(!userId) return '';
   const purchases = state.shopPurchases && state.shopPurchases.filter(p=>p.user_id===userId && p.fulfilled);
-  console.log(`[border] userId=${userId}, purchases:`, purchases);
-  if(!purchases || !purchases.length) { console.log('[border] No fulfilled purchases'); return ''; }
+  if(!purchases || !purchases.length) return '';
 
   // Check for roster name borders (get highest tier)
   const borderPurchases = purchases.filter(p=> {
     const item = state.shopItems && state.shopItems.find(i=>i.id===p.item_id);
-    console.log(`[border] Item ${p.item_id}:`, item?.name);
     return item && item.name.includes('Roster Name Border');
   });
-  console.log('[border] Border purchases:', borderPurchases.length);
   if(borderPurchases.length) {
     const borderItems = borderPurchases.map(p=>state.shopItems.find(i=>i.id===p.item_id));
     const highestTier = Math.max(...borderItems.map(i=>i.metadata?.tier || 0));
     const tierName = ['','uncommon','rare','epic','legendary'][highestTier];
-    console.log(`[border] Tier ${highestTier} = ${tierName}`);
     if(tierName) return `roster-border-${tierName}`;
   }
 
@@ -3620,19 +3616,17 @@ function renderRoster(){
               const clickAttr = officer ? `data-slot-click="${gi}|${si}"` : '';
               if(slot) {
                 const profiles = Object.values(state.profilesById || {});
-                console.log(`[comp] Group ${gi} Slot ${si}: "${slot.character_name}" - profiles available:`, profiles.map(p=>p.character_name));
                 const userId = profiles.find(p => p.character_name === slot.character_name)?.id;
-                console.log(`[comp] Found userId: ${userId}`);
                 var nameClass = getUserNameCustomization(userId);
               } else {
                 var nameClass = '';
               }
               return `
-              <div class="comp-slot ${slot?'filled':''} ${officer?'editable':''}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
+              <div class="comp-slot ${slot?'filled':''} ${officer?'editable':''} ${nameClass}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
                 ${ slot ? `
                   <span class="spec-icon-sm" style="${specIconStyle(slot.class_key)}">${specIconHtml(slot.class_key, slot.spec_key)}</span>
                   <span class="comp-slot-info">
-                    <span class="comp-slot-name ${nameClass}">${esc(slot.character_name)}</span>
+                    <span class="comp-slot-name">${esc(slot.character_name)}</span>
                     <span class="comp-slot-spec" style="color:${CLASS_SPECS[slot.class_key].color};">${esc(specLabel)}</span>
                   </span>
                   ${ officer ? `<button type="button" class="comp-slot-remove" data-remove="${gi}|${si}" title="Remove">&times;</button>` : '' }
