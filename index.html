@@ -1775,6 +1775,27 @@ async function loadRosterComposition(){
   console.log('Loaded roster composition:', state.compSlots.length, 'slots', error);
 }
 
+async function loadPublicProfiles(){
+  const { data } = await sb.from('profiles').select('*');
+  state.profilesById = {};
+  if(data) {
+    data.forEach(p => { state.profilesById[p.id] = p; });
+  }
+  console.log('Loaded profiles:', Object.keys(state.profilesById).length);
+}
+
+async function loadPublicShopPurchases(){
+  const { data } = await sb.from('shop_purchases').select('*').eq('fulfilled', true);
+  state.shopPurchases = data || [];
+  console.log('Loaded shop purchases:', state.shopPurchases.length);
+}
+
+async function loadPublicShopItems(){
+  const { data } = await sb.from('shop_items').select('*');
+  state.shopItems = data || [];
+  console.log('Loaded shop items:', state.shopItems.length);
+}
+
 async function loadShopPurchases(){
   if(!state.session || !state.session.user) return;
   const { data } = await sb.from('shop_purchases').select('*').eq('user_id', state.session.user.id);
@@ -1937,6 +1958,9 @@ async function onAuthResolved(){
     try {
       await loadNews();
       await loadRosterComposition();
+      await loadPublicProfiles();
+      await loadPublicShopPurchases();
+      await loadPublicShopItems();
       const { data, error } = await sb.from('stickers').select('*');
       if(error) throw error;
       state.stickers = data || [];
