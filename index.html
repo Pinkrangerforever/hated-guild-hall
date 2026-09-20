@@ -1835,12 +1835,16 @@ async function moveShopItem(itemId, direction){
   });
 
   // Update all affected items
+  console.log('Updating sort orders:', newSortOrders);
   let hasError = false;
   for(const [id, sortOrder] of Object.entries(newSortOrders)) {
-    const { error } = await sb.rpc('update_shop_item_order', { p_item_id: id, p_sort_order: sortOrder });
+    console.log(`  Updating item ${id} to sort_order ${sortOrder}`);
+    const { data: updateData, error } = await sb.rpc('update_shop_item_order', { p_item_id: id, p_sort_order: sortOrder });
     if(error) {
       console.error(`Failed to update sort order for item ${id}:`, error);
       hasError = true;
+    } else {
+      console.log(`  âœ“ Updated ${id}`);
     }
   }
 
@@ -1849,14 +1853,24 @@ async function moveShopItem(itemId, direction){
     return;
   }
 
+  console.log('All updates successful, reloading shop items...');
+
   // Reload and render - preserve scroll position
   const scrollPos = window.scrollY;
+  console.log('Scroll position before render:', scrollPos);
+
   const { data } = await sb.from('shop_items').select('*');
   state.shopItems = data || [];
+  console.log('Shop items reloaded:', state.shopItems.length, 'items');
+
   showToast(`Moved ${direction}`);
   render();
+
   // Restore scroll position after render completes
-  setTimeout(() => window.scrollTo(0, scrollPos), 50);
+  setTimeout(() => {
+    console.log('Restoring scroll to:', scrollPos);
+    window.scrollTo(0, scrollPos);
+  }, 50);
 }
 
 async function refundPurchase(purchaseId, userName){
