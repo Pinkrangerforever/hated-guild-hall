@@ -3052,19 +3052,19 @@ function setupStickerDragHandlers(){
   let draggingSticker = null;
   let dragStart = { x: 0, y: 0 };
   let containerRect = null;
-  
+
   // Extract rotation from transform string
   function getRotationFromTransform(transformStr){
     const match = transformStr.match(/rotate\(([^)]+)deg\)/);
     return match ? parseFloat(match[1]) : 0;
   }
-  
+
   // Store original rotations and set up hover handlers
   document.querySelectorAll('.sticker-pin-group').forEach(stickerGroup=>{
     const originalTransform = stickerGroup.style.transform;
     const rotation = getRotationFromTransform(originalTransform);
     stickerGroup.dataset.rotation = rotation;
-    
+
     // Hover in
     stickerGroup.addEventListener('mouseenter', ()=>{
       if(stickerGroup.dataset.owned === 'true'){
@@ -3076,78 +3076,86 @@ function setupStickerDragHandlers(){
         stickerGroup.style.transform = `translate(-50%, -50%) rotate(${hoverRotation}deg)`;
       }
     });
-    
+
     // Hover out
     stickerGroup.addEventListener('mouseleave', ()=>{
       stickerGroup.style.transform = originalTransform;
     });
   });
-  
-  // Use event delegation - listen on document for pin interactions
-  document.addEventListener('mousedown', (e)=>{
+
+  // Remove old listeners if they exist (prevent duplicates)
+  const oldMouseDown = window._stickerMouseDown;
+  const oldMouseMove = window._stickerMouseMove;
+  const oldMouseUp = window._stickerMouseUp;
+  if(oldMouseDown) document.removeEventListener('mousedown', oldMouseDown);
+  if(oldMouseMove) document.removeEventListener('mousemove', oldMouseMove);
+  if(oldMouseUp) document.removeEventListener('mouseup', oldMouseUp);
+
+  // Set up new listeners with raid leader permission check
+  window._stickerMouseDown = (e)=>{
     const pin = e.target.closest('.sticker-pin');
     if(!pin) return;
-    
+
     const stickerGroup = pin.closest('.sticker-pin-group');
-    if(!stickerGroup || stickerGroup.dataset.owned !== 'true') return;
-    
+    if(!stickerGroup || stickerGroup.dataset.draggable !== 'true') return;
+
     draggingSticker = stickerGroup;
     const stickersContainer = stickerGroup.closest('.corkboard-stickers');
     containerRect = stickersContainer ? stickersContainer.getBoundingClientRect() : null;
     dragStart = { x: e.clientX, y: e.clientY };
     e.preventDefault();
-  });
-  
-  document.addEventListener('mousemove', (e)=>{
+  };
+
+  window._stickerMouseMove = (e)=>{
     if(!draggingSticker || !containerRect) return;
-    
+
     const dx = e.clientX - dragStart.x;
     const dy = e.clientY - dragStart.y;
-    
-    if(Math.abs(dx) < 2 && Math.abs(dy) < 2) return; // Ignore tiny movements
-    
-    // Current position in percentages
+
+    if(Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
+
     let posX = parseFloat(draggingSticker.style.left) || 50;
     let posY = parseFloat(draggingSticker.style.top) || 50;
-    
-    // Convert pixel movement to percentage change
+
     const pctDx = (dx / containerRect.width) * 100;
     const pctDy = (dy / containerRect.height) * 100;
-    
+
     posX += pctDx;
     posY += pctDy;
-    
-    // Clamp to reasonable bounds (10-90%)
+
     posX = Math.max(10, Math.min(90, posX));
     posY = Math.max(10, Math.min(90, posY));
-    
+
     draggingSticker.style.left = posX + '%';
     draggingSticker.style.top = posY + '%';
-    
+
     dragStart = { x: e.clientX, y: e.clientY };
-  });
-  
-  document.addEventListener('mouseup', async (e)=>{
+  };
+
+  window._stickerMouseUp = async (e)=>{
     if(!draggingSticker) return;
-    
+
     const posX = parseFloat(draggingSticker.style.left) || 50;
     const posY = parseFloat(draggingSticker.style.top) || 50;
     const stickerId = draggingSticker.dataset.stickerId;
-    
-    // Update in database
+
     const { error } = await sb.rpc('update_sticker_position', {
       p_sticker_id: stickerId,
       p_position_x: Math.round(posX * 100) / 100,
       p_position_y: Math.round(posY * 100) / 100
     });
-    
+
     if(error) {
       showToast('Failed to save sticker position', true);
     }
-    
+
     draggingSticker = null;
     containerRect = null;
-  });
+  };
+
+  document.addEventListener('mousedown', window._stickerMouseDown);
+  document.addEventListener('mousemove', window._stickerMouseMove);
+  document.addEventListener('mouseup', window._stickerMouseUp);
 }
 
 /* ---------------- top-level render ---------------- */
@@ -3199,10 +3207,12 @@ function renderLanding(){
                 const posY = s.position_y ?? 50;
                 const rotation = (Math.random() * 50) - 25;
                 const isOwner = state.session?.user?.id === s.placed_by_user_id;
+                const isRaidLeader = state.profile && state.profile.protected;
                 return `
                 <div class="sticker-pin-group"
                      data-sticker-id="${esc(s.id)}"
                      data-owned="${isOwner}"
+                     data-draggable="${isRaidLeader}"
                      style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
                   <div class="sticker-pin"></div>
                   <div class="sticker-pin-shadow"></div>
@@ -4215,9 +4225,10 @@ function renderNews(){
               const isOwner = state.session?.user?.id === s.placed_by_user_id;
               const isRaidLeader = state.profile && state.profile.protected;
               return `
-              <div class="sticker-pin-group" 
+              <div class="sticker-pin-group"
                    data-sticker-id="${esc(s.id)}"
                    data-owned="${isOwner}"
+                   data-draggable="${isRaidLeader}"
                    style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
                 <div class="sticker-pin"></div>
                 <div class="sticker-pin-shadow"></div>
