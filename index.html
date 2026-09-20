@@ -2972,6 +2972,9 @@ async function setActiveNameCustomization(itemId){
     return;
   }
   if(state.profile) state.profile.active_name_customization = activeId;
+  if(state.profilesById && state.session?.user?.id && state.profilesById[state.session.user.id]) {
+    state.profilesById[state.session.user.id].active_name_customization = activeId;
+  }
   showToast('Preference updated!');
   render();
 }
