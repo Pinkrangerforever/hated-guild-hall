@@ -4594,12 +4594,13 @@ function renderSettings(){
   });
 
   const testRole = getTestRole();
-  const isRaidLeader = testIsRaidLeader();
+  const isActuallyRaidLeader = state.profile && state.profile.protected;
+  const showDebugPanel = isActuallyRaidLeader || testRole; // Show if actually raid leader OR in test mode
 
   return `
     ${pageHeader('Settings', 'Preferences', 'Customize your profile appearance')}
 
-    ${isRaidLeader ? `
+    ${showDebugPanel ? `
     <div class="panel style-glass" style="background:linear-gradient(180deg, rgba(100,50,0,0.4), rgba(50,30,0,0.4)); border:1px solid rgba(200,100,50,0.3); margin-bottom:20px;">
       <h3 style="margin-bottom:12px; color:#ffb300;">ðŸ”§ Debug Panel</h3>
       <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Temporarily test the site as different roles without logging out.</p>
