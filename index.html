@@ -1702,6 +1702,20 @@ function isOfficer(){ return !!(state.profile && state.profile.role === 'officer
 function myName(){ return state.profile ? (state.profile.character_name || state.profile.discord_username || 'Member') : ''; }
 function nameFor(userId){ const p = state.profilesById[userId]; return p ? (p.character_name || p.discord_username || 'Member') : 'Member'; }
 
+/* ---------- TEST MODE HELPERS ---------- */
+function getTestRole(){ return localStorage.getItem('testRole') || null; }
+function setTestRole(role){ if(role) localStorage.setItem('testRole', role); else localStorage.removeItem('testRole'); }
+function getEffectiveRole(){
+  const testRole = getTestRole();
+  if(testRole) return testRole;
+  if(state.profile?.protected) return 'raidleader';
+  if(state.profile?.role === 'officer') return 'officer';
+  return 'member';
+}
+function testIsRaidLeader(){ return getEffectiveRole() === 'raidleader'; }
+function testIsOfficer(){ return getEffectiveRole() === 'officer'; }
+function testIsMember(){ return getEffectiveRole() === 'member'; }
+
 function showToast(msg, isError){
   state.toast = msg;
   state.toastError = !!isError;
@@ -2261,7 +2275,7 @@ async function deleteRaidplan(id){
 
 /* ---------------- raid composition planner ---------------- */
 function selectSpec(classKey, specKey){
-  if(!isOfficer()) return;
+  if(!testIsOfficer()) return;
   if(state.selectedSpec && state.selectedSpec.classKey===classKey && state.selectedSpec.specKey===specKey){
     state.selectedSpec = null;
   } else {
@@ -2270,7 +2284,7 @@ function selectSpec(classKey, specKey){
   render();
 }
 function openCompSlotModal(groupIdx, slotIdx){
-  if(!isOfficer()) return;
+  if(!testIsOfficer()) return;
   if(!state.selectedSpec){ showToast('Pick a class/spec above first', true); return; }
   state.modal = { type:'assign-slot', groupIdx, slotIdx };
   render();
@@ -2293,7 +2307,7 @@ async function saveCompSlot(){
   render();
 }
 async function removeCompSlot(groupIdx, slotIdx){
-  if(!isOfficer()){ showToast('Only officers can edit the roster', true); return; }
+  if(!testIsOfficer()){ showToast('Only officers can edit the roster', true); return; }
   const { error } = await sb.from('comp_slots').delete().eq('group_index', groupIdx).eq('slot_index', slotIdx);
   if(error){ showToast("Couldn't save â€” try again", true); return; }
   state.compSlots = state.compSlots.filter(s=>!(s.group_index===groupIdx && s.slot_index===slotIdx));
@@ -3259,7 +3273,7 @@ function renderLanding(){
                 const posY = s.position_y ?? 50;
                 const rotation = (Math.random() * 50) - 25;
                 const isOwner = state.session?.user?.id === s.placed_by_user_id;
-                const isRaidLeader = state.profile && state.profile.protected;
+                const isRaidLeader = testIsRaidLeader();
                 return `
                 <div class="sticker-pin-group"
                      data-sticker-id="${esc(s.id)}"
@@ -3448,7 +3462,7 @@ function bindMobileNav(){
 }
 
 function renderApp(){
-  const officer = isOfficer();
+  const officer = testIsOfficer();
   const navItems = [
     ['news','Home'],
     ['calendar','Raid Calendar'],
@@ -3495,7 +3509,8 @@ function renderApp(){
       </div>
     </nav>
     <div class="main page-${state.tab}">
-      ${ state.toast ? `<div class="toast ${state.toastError?'toast-error':'toast-success'} sans">${esc(state.toast)}</div>` : '' }
+      ${ getTestRole() ? `<div style="position:fixed; top:0; left:0; right:0; background:linear-gradient(90deg, #ff6b00, #ffb300); color:white; padding:10px 16px; text-align:center; font-weight:600; z-index:999; font-size:13px;">ðŸ”§ TEST MODE: Viewing as ${getTestRole().toUpperCase()}</div>` : '' }
+      ${ state.toast ? `<div class="toast ${state.toastError?'toast-error':'toast-success'} sans" style="${getTestRole() ? 'margin-top:50px;' : ''}">${esc(state.toast)}</div>` : '' }
       ${ renderTab() }
       ${ renderModal() }
     </div>
@@ -3534,7 +3549,7 @@ function myRsvpFor(eventId){
 }
 
 function renderCalendar(){
-  const officer = isOfficer();
+  const officer = testIsOfficer();
   const y = state.calendarYear, m = state.calendarMonth;
   const first = firstWeekdayOfMonth(y,m);
   const numDays = daysInMonth(y,m);
@@ -3607,7 +3622,7 @@ function renderModal(){
 }
 
 function renderShopModal(){
-  const officer = isOfficer();
+  const officer = testIsOfficer();
   const gold = state.profile ? (state.profile.gold||0) : 0;
   const myLevel = state.profile ? (state.profile.discord_rank_level||0) : 0;
 
@@ -3616,7 +3631,7 @@ function renderShopModal(){
   const titleItems = state.shopItems.filter(i=>i.category==='discord_title').sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const nameCustomItems = state.shopItems.filter(i=>i.category==='name_customization').sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const stickerImages = state.galleryImages.filter(g=>g.is_sticker);
-  const isRaidLeader = state.profile && state.profile.protected;
+  const isRaidLeader = testIsRaidLeader();
   const stickerPrice = state.settings.sticker_price != null ? state.settings.sticker_price : 25;
 
   function formatLeaderboardRank(index){
@@ -3819,7 +3834,7 @@ function renderAddEventModal(prefillDate){
 function renderEventDetailModal(eventId){
   const ev = state.events.find(e=>e.id===eventId);
   if(!ev) return '';
-  const officer = isOfficer();
+  const officer = testIsOfficer();
   const mine = myRsvpFor(ev.id);
   const groups = rsvpGroupsFor(ev.id);
   function nameList(arr){ return arr.length ? esc(arr.join(', ')) : '<span class="muted">nobody yet</span>'; }
@@ -3896,7 +3911,7 @@ function renderAssignSlotModal(groupIdx, slotIdx){
 
 /* ---------------- boss strategies tab ---------------- */
 function renderStrategies(){
-  const officer = isOfficer();
+  const officer = testIsOfficer();
   const nav = state.stratNav;
 
   if(nav.raidId && nav.bossId){
@@ -4033,7 +4048,7 @@ function renderStratBreadcrumb(raid, boss){
 
 /* ---------------- soft-res tab ---------------- */
 function renderSoftres(){
-  const officer = isOfficer();
+  const officer = testIsOfficer();
   return `
     ${pageHeader('Soft Res Links', 'Loot Rules', "Links to soft-reserve sheets for upcoming raids. Newest first.")}
 
@@ -4066,8 +4081,8 @@ function renderSoftres(){
 
 /* ---------------- roster tab: members + raid composition ---------------- */
 function renderRoster(){
-  const officer = isOfficer();
-  const isRaidLeader = state.profile && state.profile.protected;
+  const officer = testIsOfficer();
+  const isRaidLeader = testIsRaidLeader();
   const sel = state.selectedSpec;
   const allProfiles = Object.values(state.profilesById).sort((a,b)=> (a.character_name||a.discord_username||'').localeCompare(b.character_name||b.discord_username||''));
 
@@ -4104,7 +4119,7 @@ function renderRoster(){
             ${ [0,1,2,3,4].map(si=>{
               const slot = slotAt(gi,si);
               const specLabel = slot ? CLASS_SPECS[slot.class_key].specs.find(s=>s.key===slot.spec_key).label : '';
-              const isRaidLeader = state.profile && state.profile.protected;
+              const isRaidLeader = testIsRaidLeader();
               const canEditSlot = officer || isRaidLeader;
               const clickAttr = canEditSlot ? `data-slot-click="${gi}|${si}"` : '';
               let slotClasses = `${slot?'filled':''} ${canEditSlot?'editable':''}`;
@@ -4174,7 +4189,7 @@ function renderRoster(){
 
 /* ---------------- loot log tab ---------------- */
 function renderLoot(){
-  const officer = isOfficer();
+  const officer = testIsOfficer();
   return `
     ${pageHeader('Loot Log', 'History', "A running record of what's dropped and who won it.")}
 
@@ -4217,8 +4232,8 @@ function renderLoot(){
 
 /* ---- render roster groups (for home page) ---- */
 function renderRosterGroups(){
-  const officer = isOfficer();
-  const isRaidLeader = state.profile && state.profile.protected;
+  const officer = testIsOfficer();
+  const isRaidLeader = testIsRaidLeader();
   const canEdit = officer || isRaidLeader;
 
   function slotAt(g,s){ return state.compSlots.find(row=>row.group_index===g && row.slot_index===s) || null; }
@@ -4260,7 +4275,7 @@ function renderRosterGroups(){
 
 /* ---------------- news tab ---------------- */
 function renderNews(){
-  const officer = isOfficer();
+  const officer = testIsOfficer();
   return `
 
     <!-- Cork board + Video side-by-side layout -->
@@ -4275,7 +4290,7 @@ function renderNews(){
               const posY = s.position_y ?? 50;
               const rotation = (Math.random() * 50) - 25; // Random -25 to +25 degrees
               const isOwner = state.session?.user?.id === s.placed_by_user_id;
-              const isRaidLeader = state.profile && state.profile.protected;
+              const isRaidLeader = testIsRaidLeader();
               return `
               <div class="sticker-pin-group"
                    data-sticker-id="${esc(s.id)}"
@@ -4402,7 +4417,7 @@ function renderNews(){
 
 /* ---------------- recruitment tab ---------------- */
 function renderRecruitmentTab(){
-  const officer = isOfficer();
+  const officer = testIsOfficer();
   const rec = state.settings;
   return `
     ${pageHeader('Recruitment', 'Public Notice', "This message is shown to anyone who visits before signing in.")}
@@ -4426,7 +4441,7 @@ function renderRecruitmentTab(){
 
 /* ---------------- gallery + site image slots tab ---------------- */
 function renderGallery(){
-  const officer = isOfficer();
+  const officer = testIsOfficer();
   return `
     ${pageHeader('Gallery', 'Media', "Images officers have uploaded. Use them to customize the guild icon, the site background, and the class icons on the Roster page.")}
 
@@ -4578,8 +4593,25 @@ function renderSettings(){
     return item && item.category === 'name_customization' && !item.name.includes('Roster Name Border');
   });
 
+  const testRole = getTestRole();
+  const isRaidLeader = testIsRaidLeader();
+
   return `
     ${pageHeader('Settings', 'Preferences', 'Customize your profile appearance')}
+
+    ${isRaidLeader ? `
+    <div class="panel style-glass" style="background:linear-gradient(180deg, rgba(100,50,0,0.4), rgba(50,30,0,0.4)); border:1px solid rgba(200,100,50,0.3); margin-bottom:20px;">
+      <h3 style="margin-bottom:12px; color:#ffb300;">ðŸ”§ Debug Panel</h3>
+      <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Temporarily test the site as different roles without logging out.</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn ${!testRole ? 'primary' : 'secondary'}" type="button" id="test-role-actual" style="flex:1; min-width:120px;">Your Actual Role</button>
+        <button class="btn ${testRole === 'member' ? 'primary' : 'secondary'}" type="button" id="test-role-member" style="flex:1; min-width:120px;">Test as Member</button>
+        <button class="btn ${testRole === 'officer' ? 'primary' : 'secondary'}" type="button" id="test-role-officer" style="flex:1; min-width:120px;">Test as Officer</button>
+        <button class="btn ${testRole === 'raidleader' ? 'primary' : 'secondary'}" type="button" id="test-role-raidleader" style="flex:1; min-width:120px;">Test as Raid Leader</button>
+      </div>
+      ${testRole ? `<div class="muted sans" style="font-size:11px; margin-top:10px; padding:8px; background:rgba(0,0,0,0.2); border-radius:3px;">Currently viewing as: <strong style="color:#ffb300;">${testRole}</strong></div>` : ''}
+    </div>
+    ` : ''}
 
     <div class="panel style-glass">
       <h3 style="margin-bottom:16px;">Name Customization</h3>
@@ -4897,6 +4929,17 @@ function bindApp(){
   document.querySelectorAll('[data-edit-shop-item]').forEach(b=>b.addEventListener('click', ()=>startEditShopItem(b.dataset.editShopItem)));
   document.querySelectorAll('[data-save-shop-item]').forEach(b=>b.addEventListener('click', ()=>saveShopItem(b.dataset.saveShopItem)));
   document.querySelectorAll('[data-cancel-shop-edit]').forEach(b=>b.addEventListener('click', cancelEditShopItem));
+
+  // Debug panel buttons
+  const testRoleActual = document.getElementById('test-role-actual');
+  const testRoleMember = document.getElementById('test-role-member');
+  const testRoleOfficer = document.getElementById('test-role-officer');
+  const testRoleRaidleader = document.getElementById('test-role-raidleader');
+
+  if(testRoleActual) testRoleActual.addEventListener('click', ()=>{ setTestRole(null); render(); });
+  if(testRoleMember) testRoleMember.addEventListener('click', ()=>{ setTestRole('member'); render(); });
+  if(testRoleOfficer) testRoleOfficer.addEventListener('click', ()=>{ setTestRole('officer'); render(); });
+  if(testRoleRaidleader) testRoleRaidleader.addEventListener('click', ()=>{ setTestRole('raidleader'); render(); });
 }
 
 boot();
