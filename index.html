@@ -1828,17 +1828,17 @@ async function moveShopItem(itemId, direction){
     const targetItem = sameCategory[swapIndex];
     console.log(`Swapping with item at index ${swapIndex}:`, targetItem.name);
 
-    // Assign new sort orders - spread items by 10 to maintain order and allow future insertions
+    // Create a new array with the items swapped
+    const newOrder = [...sameCategory];
+    [newOrder[currentIndex], newOrder[swapIndex]] = [newOrder[swapIndex], newOrder[currentIndex]];
+    console.log('New order after swap:', newOrder.map(i => i.name));
+
+    // Assign new sort orders based on the new positions
     const newSortOrders = {};
-    sameCategory.forEach((itm, idx) => {
-      if(idx === currentIndex) {
-        newSortOrders[targetItem.id] = swapIndex * 10;
-      } else if(idx === swapIndex) {
-        newSortOrders[itemId] = currentIndex * 10;
-      } else {
-        newSortOrders[itm.id] = idx * 10;
-      }
+    newOrder.forEach((itm, idx) => {
+      newSortOrders[itm.id] = idx * 10;
     });
+    console.log('New sort orders:', newSortOrders);
 
     // Update all affected items
     console.log('Updating sort orders:', newSortOrders);
