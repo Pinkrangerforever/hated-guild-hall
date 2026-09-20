@@ -1789,88 +1789,98 @@ async function loadAdminPurchases(){
 }
 
 async function moveShopItem(itemId, direction){
-  const item = state.shopItems.find(i=>i.id===itemId);
-  if(!item) {
-    console.error('Item not found:', itemId);
-    showToast('Item not found', true);
-    return;
-  }
-
-  // Get items in same category sorted by sort_order
-  const sameCategory = state.shopItems.filter(i=>i.category===item.category).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
-  const currentIndex = sameCategory.findIndex(i=>i.id===itemId);
-
-  console.log(`Moving ${item.name} (${direction}):`, {
-    itemId,
-    category: item.category,
-    currentIndex,
-    totalInCategory: sameCategory.length,
-    sameCategory: sameCategory.map(i=>({id:i.id, name:i.name, sort_order:i.sort_order}))
-  });
-
-  // Check bounds
-  if(direction === 'left' && currentIndex === 0) {
-    showToast('Already at the left', true);
-    return;
-  }
-  if(direction === 'right' && currentIndex === sameCategory.length - 1) {
-    showToast('Already at the right', true);
-    return;
-  }
-
-  // Get the item to swap with
-  const swapIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
-  const targetItem = sameCategory[swapIndex];
-
-  // Assign new sort orders - spread items by 10 to maintain order and allow future insertions
-  const newSortOrders = {};
-  sameCategory.forEach((itm, idx) => {
-    if(idx === currentIndex) {
-      newSortOrders[targetItem.id] = swapIndex * 10;
-    } else if(idx === swapIndex) {
-      newSortOrders[itemId] = currentIndex * 10;
-    } else {
-      newSortOrders[itm.id] = idx * 10;
+  try {
+    const item = state.shopItems.find(i=>i.id===itemId);
+    if(!item) {
+      console.error('Item not found:', itemId);
+      showToast('Item not found', true);
+      return;
     }
-  });
 
-  // Update all affected items
-  console.log('Updating sort orders:', newSortOrders);
-  let hasError = false;
-  for(const [id, sortOrder] of Object.entries(newSortOrders)) {
-    console.log(`  Updating item ${id} to sort_order ${sortOrder}`);
-    const { data: updateData, error } = await sb.rpc('update_shop_item_order', { p_item_id: id, p_sort_order: sortOrder });
-    if(error) {
-      console.error(`Failed to update sort order for item ${id}:`, error);
-      hasError = true;
-    } else {
-      console.log(`  âœ“ Updated ${id}`);
+    // Get items in same category sorted by sort_order
+    const sameCategory = state.shopItems.filter(i=>i.category===item.category).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+    const currentIndex = sameCategory.findIndex(i=>i.id===itemId);
+
+    console.log(`Moving ${item.name} (${direction}):`, {
+      itemId,
+      category: item.category,
+      currentIndex,
+      totalInCategory: sameCategory.length,
+      sameCategory: sameCategory.map(i=>({id:i.id, name:i.name, sort_order:i.sort_order}))
+    });
+
+    // Check bounds
+    if(direction === 'left' && currentIndex === 0) {
+      console.log('Already at left boundary');
+      showToast('Already at the left', true);
+      return;
     }
+    if(direction === 'right' && currentIndex === sameCategory.length - 1) {
+      console.log('Already at right boundary');
+      showToast('Already at the right', true);
+      return;
+    }
+
+    console.log('Bounds check passed, proceeding with swap...');
+
+    // Get the item to swap with
+    const swapIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
+    const targetItem = sameCategory[swapIndex];
+    console.log(`Swapping with item at index ${swapIndex}:`, targetItem.name);
+
+    // Assign new sort orders - spread items by 10 to maintain order and allow future insertions
+    const newSortOrders = {};
+    sameCategory.forEach((itm, idx) => {
+      if(idx === currentIndex) {
+        newSortOrders[targetItem.id] = swapIndex * 10;
+      } else if(idx === swapIndex) {
+        newSortOrders[itemId] = currentIndex * 10;
+      } else {
+        newSortOrders[itm.id] = idx * 10;
+      }
+    });
+
+    // Update all affected items
+    console.log('Updating sort orders:', newSortOrders);
+    let hasError = false;
+    for(const [id, sortOrder] of Object.entries(newSortOrders)) {
+      console.log(`  Updating item ${id} to sort_order ${sortOrder}`);
+      const { data: updateData, error } = await sb.rpc('update_shop_item_order', { p_item_id: id, p_sort_order: sortOrder });
+      if(error) {
+        console.error(`Failed to update sort order for item ${id}:`, error);
+        hasError = true;
+      } else {
+        console.log(`  âœ“ Updated ${id}`);
+      }
+    }
+
+    if(hasError) {
+      showToast('Failed to move item', true);
+      return;
+    }
+
+    console.log('All updates successful, reloading shop items...');
+
+    // Reload and render - preserve scroll position
+    const scrollPos = window.scrollY;
+    console.log('Scroll position before render:', scrollPos);
+
+    const { data } = await sb.from('shop_items').select('*');
+    state.shopItems = data || [];
+    console.log('Shop items reloaded:', state.shopItems.length, 'items');
+
+    showToast(`Moved ${direction}`);
+    render();
+
+    // Restore scroll position after render completes
+    setTimeout(() => {
+      console.log('Restoring scroll to:', scrollPos);
+      window.scrollTo(0, scrollPos);
+    }, 50);
+  } catch(err) {
+    console.error('Error in moveShopItem:', err);
+    showToast('Error moving item: ' + err.message, true);
   }
-
-  if(hasError) {
-    showToast('Failed to move item', true);
-    return;
-  }
-
-  console.log('All updates successful, reloading shop items...');
-
-  // Reload and render - preserve scroll position
-  const scrollPos = window.scrollY;
-  console.log('Scroll position before render:', scrollPos);
-
-  const { data } = await sb.from('shop_items').select('*');
-  state.shopItems = data || [];
-  console.log('Shop items reloaded:', state.shopItems.length, 'items');
-
-  showToast(`Moved ${direction}`);
-  render();
-
-  // Restore scroll position after render completes
-  setTimeout(() => {
-    console.log('Restoring scroll to:', scrollPos);
-    window.scrollTo(0, scrollPos);
-  }, 50);
 }
 
 async function refundPurchase(purchaseId, userName){
