@@ -727,31 +727,46 @@
   .spec-icon-sm svg{ width:100%; height:100%; display:block; }
   .comp-slot-info{ display:flex; flex-direction:column; flex:1; overflow:hidden; line-height:1.25; }
   .comp-slot-name{ font-size:13px; font-weight:600; color:var(--text-normal); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .comp-slot.name-custom-flame{
-    background:linear-gradient(135deg, rgba(255,69,0,0.2) 0%, rgba(255,107,53,0.15) 50%, rgba(255,165,0,0.08) 100%);
-    box-shadow:inset 0 0 30px rgba(255,69,0,0.4), inset 0 0 15px rgba(255,107,53,0.3), 0 0 25px rgba(255,69,0,0.35), 0 0 40px rgba(255,107,53,0.2);
-    animation:flameGlowSlot 1.2s ease-in-out infinite;
-  }
-  .comp-slot.name-custom-flame .comp-slot-name{
-    color:#ff6b35;
+  .comp-slot-name.name-custom-flame{
+    color:#ffeb3b;
     text-shadow:
-      0 0 4px #ff4500,
-      0 0 8px #ff6b35,
-      0 0 12px #ffa500,
-      0 0 20px rgba(255,69,0,0.8),
-      0 0 30px rgba(255,107,53,0.6),
-      0 0 40px rgba(255,165,0,0.4);
-    animation:flameFlickerText 0.6s ease-in-out infinite;
+      0 0 8px #ffeb3b,
+      -8px -8px 20px rgba(255,107,53,0.7),
+      8px -8px 20px rgba(255,165,0,0.7),
+      -12px 0 25px rgba(255,69,0,0.6),
+      12px 0 25px rgba(255,140,0,0.6),
+      -6px 6px 30px rgba(255,165,0,0.5),
+      6px 6px 30px rgba(255,200,0,0.5),
+      0 10px 35px rgba(255,107,53,0.4),
+      -15px -5px 40px rgba(255,69,0,0.3),
+      15px -5px 40px rgba(255,140,0,0.3);
+    animation:flameBokeh 1.4s ease-in-out infinite;
   }
-  .comp-slot.name-custom-star{
-    background:linear-gradient(135deg, rgba(255,235,59,0.15) 0%, rgba(255,215,0,0.1) 50%, rgba(255,165,0,0.05) 100%);
-    box-shadow:inset 0 0 20px rgba(255,235,59,0.4), inset 0 0 10px rgba(255,215,0,0.2), 0 0 20px rgba(255,235,59,0.25);
-    animation:goldenGlowSlot 1.5s ease-in-out infinite;
+  .comp-slot-name.name-custom-star{
+    color:#ffd700;
+    text-shadow:
+      0 0 8px #ffd700,
+      -8px -8px 15px rgba(255,235,59,0.6),
+      8px -8px 15px rgba(255,215,0,0.6),
+      -10px 0 20px rgba(255,215,0,0.5),
+      10px 0 20px rgba(255,235,59,0.5),
+      -5px 5px 25px rgba(255,200,0,0.4),
+      5px 5px 25px rgba(255,235,59,0.4),
+      0 8px 30px rgba(255,215,0,0.3);
+    animation:goldenBokeh 1.5s ease-in-out infinite;
   }
-  .comp-slot.name-custom-shadow{
-    background:linear-gradient(135deg, rgba(75,14,78,0.15) 0%, rgba(40,0,50,0.1) 50%, rgba(0,0,0,0.05) 100%);
-    box-shadow:inset 0 0 20px rgba(75,14,78,0.3), inset 0 0 15px rgba(40,0,50,0.2), 0 0 15px rgba(75,14,78,0.15);
-    animation:shadowGlowSlot 2s ease-in-out infinite;
+  .comp-slot-name.name-custom-shadow{
+    color:#8b4789;
+    text-shadow:
+      0 0 6px rgba(75,14,78,0.8),
+      -8px -8px 18px rgba(75,14,78,0.5),
+      8px -8px 18px rgba(100,30,130,0.5),
+      -10px 0 22px rgba(50,10,70,0.4),
+      10px 0 22px rgba(75,14,78,0.4),
+      -6px 6px 28px rgba(40,0,50,0.3),
+      6px 6px 28px rgba(60,20,80,0.3),
+      0 10px 32px rgba(30,0,40,0.25);
+    animation:shadowBokeh 1.8s ease-in-out infinite;
   }
   .comp-slot.roster-border-uncommon{
     border:2px solid #1eff00 !important;
@@ -773,24 +788,81 @@
     border-radius:6px;
     box-shadow:0 0 20px rgba(255,128,0,0.8), 0 0 40px rgba(255,128,0,0.4), inset 0 0 12px rgba(255,128,0,0.2);
   }
-  @keyframes flameGlowSlot{
-    0%, 100%{ box-shadow:inset 0 0 30px rgba(255,69,0,0.4), inset 0 0 15px rgba(255,107,53,0.3), 0 0 25px rgba(255,69,0,0.35), 0 0 40px rgba(255,107,53,0.2); }
-    50%{ box-shadow:inset 0 0 40px rgba(255,69,0,0.6), inset 0 0 20px rgba(255,107,53,0.5), 0 0 35px rgba(255,69,0,0.5), 0 0 50px rgba(255,107,53,0.35); }
+  @keyframes flameBokeh{
+    0%, 100%{
+      text-shadow:
+        0 0 8px #ffeb3b,
+        -8px -8px 20px rgba(255,107,53,0.7),
+        8px -8px 20px rgba(255,165,0,0.7),
+        -12px 0 25px rgba(255,69,0,0.6),
+        12px 0 25px rgba(255,140,0,0.6),
+        -6px 6px 30px rgba(255,165,0,0.5),
+        6px 6px 30px rgba(255,200,0,0.5),
+        0 10px 35px rgba(255,107,53,0.4),
+        -15px -5px 40px rgba(255,69,0,0.3),
+        15px -5px 40px rgba(255,140,0,0.3);
+    }
+    50%{
+      text-shadow:
+        0 0 12px #ffeb3b,
+        -10px -10px 25px rgba(255,107,53,0.85),
+        10px -10px 25px rgba(255,165,0,0.85),
+        -14px 0 30px rgba(255,69,0,0.75),
+        14px 0 30px rgba(255,140,0,0.75),
+        -8px 8px 35px rgba(255,165,0,0.65),
+        8px 8px 35px rgba(255,200,0,0.65),
+        0 12px 40px rgba(255,107,53,0.5),
+        -18px -8px 45px rgba(255,69,0,0.4),
+        18px -8px 45px rgba(255,140,0,0.4);
+    }
   }
-  @keyframes flameFlickerText{
-    0%{ color:#ff4500; text-shadow:0 0 4px #ff4500, 0 0 8px #ff6b35, 0 0 12px #ffa500, 0 0 20px rgba(255,69,0,0.8), 0 0 30px rgba(255,107,53,0.6), 0 0 40px rgba(255,165,0,0.4); }
-    25%{ color:#ff6b35; text-shadow:0 0 6px #ff6b35, 0 0 12px #ffa500, 0 0 18px #ffcc00, 0 0 28px rgba(255,107,53,0.9), 0 0 40px rgba(255,165,0,0.7), 0 0 50px rgba(255,200,0,0.5); }
-    50%{ color:#ffa500; text-shadow:0 0 8px #ffa500, 0 0 16px #ffcc00, 0 0 24px #ffeb3b, 0 0 35px rgba(255,165,0,1), 0 0 50px rgba(255,200,0,0.8), 0 0 60px rgba(255,235,59,0.5); }
-    75%{ color:#ff6b35; text-shadow:0 0 6px #ff6b35, 0 0 12px #ffa500, 0 0 18px #ffcc00, 0 0 28px rgba(255,107,53,0.9), 0 0 40px rgba(255,165,0,0.7), 0 0 50px rgba(255,200,0,0.5); }
-    100%{ color:#ff4500; text-shadow:0 0 4px #ff4500, 0 0 8px #ff6b35, 0 0 12px #ffa500, 0 0 20px rgba(255,69,0,0.8), 0 0 30px rgba(255,107,53,0.6), 0 0 40px rgba(255,165,0,0.4); }
+  @keyframes goldenBokeh{
+    0%, 100%{
+      text-shadow:
+        0 0 8px #ffd700,
+        -8px -8px 15px rgba(255,235,59,0.6),
+        8px -8px 15px rgba(255,215,0,0.6),
+        -10px 0 20px rgba(255,215,0,0.5),
+        10px 0 20px rgba(255,235,59,0.5),
+        -5px 5px 25px rgba(255,200,0,0.4),
+        5px 5px 25px rgba(255,235,59,0.4),
+        0 8px 30px rgba(255,215,0,0.3);
+    }
+    50%{
+      text-shadow:
+        0 0 12px #ffd700,
+        -10px -10px 20px rgba(255,235,59,0.75),
+        10px -10px 20px rgba(255,215,0,0.75),
+        -12px 0 25px rgba(255,215,0,0.65),
+        12px 0 25px rgba(255,235,59,0.65),
+        -7px 7px 30px rgba(255,200,0,0.5),
+        7px 7px 30px rgba(255,235,59,0.5),
+        0 10px 35px rgba(255,215,0,0.4);
+    }
   }
-  @keyframes goldenGlowSlot{
-    0%, 100%{ box-shadow:inset 0 0 20px rgba(255,235,59,0.4), inset 0 0 10px rgba(255,215,0,0.2), 0 0 20px rgba(255,235,59,0.25); }
-    50%{ box-shadow:inset 0 0 30px rgba(255,235,59,0.6), inset 0 0 15px rgba(255,215,0,0.4), 0 0 30px rgba(255,235,59,0.4); }
-  }
-  @keyframes shadowGlowSlot{
-    0%, 100%{ box-shadow:inset 0 0 20px rgba(75,14,78,0.3), inset 0 0 15px rgba(40,0,50,0.2), 0 0 15px rgba(75,14,78,0.15); }
-    50%{ box-shadow:inset 0 0 25px rgba(75,14,78,0.4), inset 0 0 20px rgba(40,0,50,0.3), 0 0 20px rgba(75,14,78,0.25); }
+  @keyframes shadowBokeh{
+    0%, 100%{
+      text-shadow:
+        0 0 6px rgba(75,14,78,0.8),
+        -8px -8px 18px rgba(75,14,78,0.5),
+        8px -8px 18px rgba(100,30,130,0.5),
+        -10px 0 22px rgba(50,10,70,0.4),
+        10px 0 22px rgba(75,14,78,0.4),
+        -6px 6px 28px rgba(40,0,50,0.3),
+        6px 6px 28px rgba(60,20,80,0.3),
+        0 10px 32px rgba(30,0,40,0.25);
+    }
+    50%{
+      text-shadow:
+        0 0 10px rgba(75,14,78,0.95),
+        -10px -10px 22px rgba(75,14,78,0.65),
+        10px -10px 22px rgba(100,30,130,0.65),
+        -12px 0 26px rgba(50,10,70,0.5),
+        12px 0 26px rgba(75,14,78,0.5),
+        -8px 8px 32px rgba(40,0,50,0.4),
+        8px 8px 32px rgba(60,20,80,0.4),
+        0 12px 36px rgba(30,0,40,0.35);
+    }
   }
   @keyframes heroGlow{
     0%, 100%{ text-shadow:0 0 20px rgba(255,128,0,0.5), 0 0 40px rgba(255,128,0,0.2); }
@@ -3804,19 +3876,20 @@ function renderRoster(){
               const specLabel = slot ? CLASS_SPECS[slot.class_key].specs.find(s=>s.key===slot.spec_key).label : '';
               const clickAttr = officer ? `data-slot-click="${gi}|${si}"` : '';
               let slotClasses = `${slot?'filled':''} ${officer?'editable':''}`;
+              let nameClasses = '';
               if(slot) {
                 const profiles = Object.values(state.profilesById || {});
                 const userId = profiles.find(p => p.character_name === slot.character_name)?.id;
                 const customization = getUserNameCustomization(userId);
                 if(customization.border) slotClasses += ` ${customization.border}`;
-                if(customization.nameCustom) slotClasses += ` ${customization.nameCustom}`;
+                if(customization.nameCustom) nameClasses = customization.nameCustom;
               }
               return `
               <div class="comp-slot ${slotClasses}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
                 ${ slot ? `
                   <span class="spec-icon-sm" style="${specIconStyle(slot.class_key)}">${specIconHtml(slot.class_key, slot.spec_key)}</span>
                   <span class="comp-slot-info">
-                    <span class="comp-slot-name">${esc(slot.character_name)}</span>
+                    <span class="comp-slot-name ${nameClasses}">${esc(slot.character_name)}</span>
                     <span class="comp-slot-spec" style="color:${CLASS_SPECS[slot.class_key].color};">${esc(specLabel)}</span>
                   </span>
                   ${ officer ? `<button type="button" class="comp-slot-remove" data-remove="${gi}|${si}" title="Remove">&times;</button>` : '' }
