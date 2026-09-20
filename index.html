@@ -4207,7 +4207,7 @@ function renderNews(){
               const posY = s.position_y ?? 50;
               const rotation = (Math.random() * 50) - 25; // Random -25 to +25 degrees
               const isOwner = state.session?.user?.id === s.placed_by_user_id;
-              const isRaidLeader = state.profile?.discord_rank_level === 1;
+              const isRaidLeader = state.profile && state.profile.protected;
               return `
               <div class="sticker-pin-group" 
                    data-sticker-id="${esc(s.id)}"
