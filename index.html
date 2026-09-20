@@ -1792,26 +1792,46 @@ async function moveShopItem(itemId, direction){
   const item = state.shopItems.find(i=>i.id===itemId);
   if(!item) return;
 
-  const sameCategory = state.shopItems.filter(i=>i.category===item.category);
-  const sorted = sameCategory.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
-  const currentIndex = sorted.findIndex(i=>i.id===itemId);
+  // Get items in same category sorted by sort_order
+  const sameCategory = state.shopItems.filter(i=>i.category===item.category).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const currentIndex = sameCategory.findIndex(i=>i.id===itemId);
 
+  // Check bounds
   if(direction === 'left' && currentIndex === 0) return;
-  if(direction === 'right' && currentIndex === sorted.length - 1) return;
+  if(direction === 'right' && currentIndex === sameCategory.length - 1) return;
 
-  const newIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
-  const targetItem = sorted[newIndex];
+  // Get the item to swap with
+  const swapIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
+  const targetItem = sameCategory[swapIndex];
 
-  const currentOrder = item.sort_order || (currentIndex * 10);
-  const targetOrder = targetItem.sort_order || (newIndex * 10);
+  // Assign new sort orders - spread items by 10 to maintain order and allow future insertions
+  const newSortOrders = {};
+  sameCategory.forEach((itm, idx) => {
+    if(idx === currentIndex) {
+      newSortOrders[targetItem.id] = swapIndex * 10;
+    } else if(idx === swapIndex) {
+      newSortOrders[itemId] = currentIndex * 10;
+    } else {
+      newSortOrders[itm.id] = idx * 10;
+    }
+  });
 
-  const { error: error1 } = await sb.rpc('update_shop_item_order', { p_item_id: itemId, p_sort_order: targetOrder });
-  if(error1){ showToast('Failed to move item', true); return; }
+  // Update all affected items
+  let hasError = false;
+  for(const [id, sortOrder] of Object.entries(newSortOrders)) {
+    const { error } = await sb.rpc('update_shop_item_order', { p_item_id: id, p_sort_order: sortOrder });
+    if(error) {
+      console.error(`Failed to update sort order for item ${id}:`, error);
+      hasError = true;
+    }
+  }
 
-  const { error: error2 } = await sb.rpc('update_shop_item_order', { p_item_id: targetItem.id, p_sort_order: currentOrder });
-  if(error2){ showToast('Failed to swap item', true); return; }
+  if(hasError) {
+    showToast('Failed to move item', true);
+    return;
+  }
 
-  // Reload shop items
+  // Reload and render
   const { data } = await sb.from('shop_items').select('*');
   state.shopItems = data || [];
   showToast(`Moved ${direction}`);
