@@ -741,12 +741,11 @@
     right:0;
     bottom:0;
     pointer-events:none;
-    background-image:
-      radial-gradient(circle at 20% 60%, rgba(255,255,0,0.25) 0%, transparent 25%),
-      radial-gradient(circle at 80% 50%, rgba(255,200,0,0.2) 0%, transparent 20%),
-      radial-gradient(circle at 50% 80%, rgba(255,100,0,0.15) 0%, transparent 30%),
-      radial-gradient(ellipse at 50% 50%, rgba(255,140,0,0.12) 0%, rgba(200,50,0,0.08) 50%, transparent 100%);
-    animation:flameAnim 3.5s ease-in-out infinite;
+    background-image:url('flame-bg.webp');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    opacity:0.8;
     z-index:10;
   }
   .comp-slot.name-custom-star::before{
