@@ -763,13 +763,12 @@
     right:0;
     bottom:0;
     pointer-events:none;
-    background-image:
-      radial-gradient(circle at 25% 55%, rgba(255,235,59,0.25) 0%, transparent 25%),
-      radial-gradient(circle at 75% 65%, rgba(255,215,0,0.2) 0%, transparent 22%),
-      radial-gradient(circle at 50% 35%, rgba(255,200,0,0.18) 0%, transparent 28%),
-      radial-gradient(ellipse at 50% 50%, rgba(255,215,0,0.15) 0%, rgba(200,180,0,0.05) 60%, transparent 100%);
-    animation:goldenAnim 1.8s ease-in-out infinite;
-    z-index:10;
+    background-image:url('star-bg.gif');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    opacity:0.85;
+    z-index:5;
   }
   .comp-slot.name-custom-shadow::before{
     content:'';
