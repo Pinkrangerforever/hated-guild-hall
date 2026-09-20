@@ -1770,8 +1770,9 @@ async function loadNews(){
 }
 
 async function loadRosterComposition(){
-  const { data } = await sb.from('comp_slots').select('*');
+  const { data, error } = await sb.from('comp_slots').select('*');
   state.compSlots = data || [];
+  console.log('Loaded roster composition:', state.compSlots.length, 'slots', error);
 }
 
 async function loadShopPurchases(){
