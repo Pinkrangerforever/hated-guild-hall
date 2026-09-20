@@ -712,7 +712,10 @@
     border-radius:3px;
   }
   .panel.style-glass .comp-slot {
-    background:rgba(207,154,68,0.08);
+    background:
+      repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.05) 2px, rgba(255,255,255,0.05) 4px),
+      rgba(207,154,68,0.08);
     border:1px solid rgba(207,154,68,0.18);
     border-radius:5px;
   }
@@ -728,27 +731,27 @@
   .comp-slot-info{ display:flex; flex-direction:column; flex:1; overflow:hidden; line-height:1.25; }
   .comp-slot-name{ font-size:13px; font-weight:600; color:var(--text-normal); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .comp-slot.name-custom-flame{
-    background:
-      radial-gradient(circle at 20% 60%, rgba(255,255,0,0.4) 0%, transparent 25%),
-      radial-gradient(circle at 80% 50%, rgba(255,200,0,0.35) 0%, transparent 20%),
-      radial-gradient(circle at 50% 80%, rgba(255,100,0,0.3) 0%, transparent 30%),
-      radial-gradient(ellipse at 50% 50%, rgba(255,140,0,0.25) 0%, rgba(200,50,0,0.15) 50%, transparent 100%);
+    background-image:
+      radial-gradient(circle at 20% 60%, rgba(255,255,0,0.25) 0%, transparent 25%),
+      radial-gradient(circle at 80% 50%, rgba(255,200,0,0.2) 0%, transparent 20%),
+      radial-gradient(circle at 50% 80%, rgba(255,100,0,0.15) 0%, transparent 30%),
+      radial-gradient(ellipse at 50% 50%, rgba(255,140,0,0.12) 0%, rgba(200,50,0,0.08) 50%, transparent 100%);
     animation:flameAnim 2s ease-in-out infinite;
   }
   .comp-slot.name-custom-star{
-    background:
-      radial-gradient(circle at 25% 55%, rgba(255,235,59,0.45) 0%, transparent 25%),
-      radial-gradient(circle at 75% 65%, rgba(255,215,0,0.4) 0%, transparent 22%),
-      radial-gradient(circle at 50% 35%, rgba(255,200,0,0.35) 0%, transparent 28%),
-      radial-gradient(ellipse at 50% 50%, rgba(255,215,0,0.3) 0%, rgba(200,180,0,0.1) 60%, transparent 100%);
+    background-image:
+      radial-gradient(circle at 25% 55%, rgba(255,235,59,0.25) 0%, transparent 25%),
+      radial-gradient(circle at 75% 65%, rgba(255,215,0,0.2) 0%, transparent 22%),
+      radial-gradient(circle at 50% 35%, rgba(255,200,0,0.18) 0%, transparent 28%),
+      radial-gradient(ellipse at 50% 50%, rgba(255,215,0,0.15) 0%, rgba(200,180,0,0.05) 60%, transparent 100%);
     animation:goldenAnim 1.8s ease-in-out infinite;
   }
   .comp-slot.name-custom-shadow{
-    background:
-      radial-gradient(circle at 30% 50%, rgba(75,14,78,0.3) 0%, transparent 25%),
-      radial-gradient(circle at 70% 60%, rgba(100,30,130,0.25) 0%, transparent 20%),
-      radial-gradient(circle at 50% 70%, rgba(50,10,70,0.2) 0%, transparent 28%),
-      radial-gradient(ellipse at 50% 50%, rgba(60,20,80,0.2) 0%, rgba(30,0,40,0.08) 60%, transparent 100%);
+    background-image:
+      radial-gradient(circle at 30% 50%, rgba(75,14,78,0.18) 0%, transparent 25%),
+      radial-gradient(circle at 70% 60%, rgba(100,30,130,0.15) 0%, transparent 20%),
+      radial-gradient(circle at 50% 70%, rgba(50,10,70,0.12) 0%, transparent 28%),
+      radial-gradient(ellipse at 50% 50%, rgba(60,20,80,0.1) 0%, rgba(30,0,40,0.04) 60%, transparent 100%);
     animation:shadowAnim 2s ease-in-out infinite;
   }
   .comp-slot.roster-border-uncommon{
@@ -773,50 +776,50 @@
   }
   @keyframes flameAnim{
     0%, 100%{
-      background:
-        radial-gradient(circle at 20% 60%, rgba(255,255,0,0.4) 0%, transparent 25%),
-        radial-gradient(circle at 80% 50%, rgba(255,200,0,0.35) 0%, transparent 20%),
-        radial-gradient(circle at 50% 80%, rgba(255,100,0,0.3) 0%, transparent 30%),
-        radial-gradient(ellipse at 50% 50%, rgba(255,140,0,0.25) 0%, rgba(200,50,0,0.15) 50%, transparent 100%);
+      background-image:
+        radial-gradient(circle at 20% 60%, rgba(255,255,0,0.25) 0%, transparent 25%),
+        radial-gradient(circle at 80% 50%, rgba(255,200,0,0.2) 0%, transparent 20%),
+        radial-gradient(circle at 50% 80%, rgba(255,100,0,0.15) 0%, transparent 30%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,140,0,0.12) 0%, rgba(200,50,0,0.08) 50%, transparent 100%);
     }
     50%{
-      background:
-        radial-gradient(circle at 25% 55%, rgba(255,255,0,0.5) 0%, transparent 28%),
-        radial-gradient(circle at 75% 55%, rgba(255,165,0,0.45) 0%, transparent 25%),
-        radial-gradient(circle at 45% 75%, rgba(255,69,0,0.4) 0%, transparent 35%),
-        radial-gradient(ellipse at 50% 50%, rgba(255,107,53,0.35) 0%, rgba(200,50,0,0.2) 50%, transparent 100%);
+      background-image:
+        radial-gradient(circle at 25% 55%, rgba(255,255,0,0.35) 0%, transparent 28%),
+        radial-gradient(circle at 75% 55%, rgba(255,165,0,0.3) 0%, transparent 25%),
+        radial-gradient(circle at 45% 75%, rgba(255,69,0,0.25) 0%, transparent 35%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,107,53,0.2) 0%, rgba(200,50,0,0.12) 50%, transparent 100%);
     }
   }
   @keyframes goldenAnim{
     0%, 100%{
-      background:
-        radial-gradient(circle at 25% 55%, rgba(255,235,59,0.45) 0%, transparent 25%),
-        radial-gradient(circle at 75% 65%, rgba(255,215,0,0.4) 0%, transparent 22%),
-        radial-gradient(circle at 50% 35%, rgba(255,200,0,0.35) 0%, transparent 28%),
-        radial-gradient(ellipse at 50% 50%, rgba(255,215,0,0.3) 0%, rgba(200,180,0,0.1) 60%, transparent 100%);
+      background-image:
+        radial-gradient(circle at 25% 55%, rgba(255,235,59,0.25) 0%, transparent 25%),
+        radial-gradient(circle at 75% 65%, rgba(255,215,0,0.2) 0%, transparent 22%),
+        radial-gradient(circle at 50% 35%, rgba(255,200,0,0.18) 0%, transparent 28%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,215,0,0.15) 0%, rgba(200,180,0,0.05) 60%, transparent 100%);
     }
     50%{
-      background:
-        radial-gradient(circle at 30% 50%, rgba(255,235,59,0.55) 0%, transparent 28%),
-        radial-gradient(circle at 70% 60%, rgba(255,235,59,0.5) 0%, transparent 25%),
-        radial-gradient(circle at 45% 40%, rgba(255,215,0,0.45) 0%, transparent 30%),
-        radial-gradient(ellipse at 50% 50%, rgba(255,235,59,0.4) 0%, rgba(220,200,0,0.15) 60%, transparent 100%);
+      background-image:
+        radial-gradient(circle at 30% 50%, rgba(255,235,59,0.35) 0%, transparent 28%),
+        radial-gradient(circle at 70% 60%, rgba(255,235,59,0.3) 0%, transparent 25%),
+        radial-gradient(circle at 45% 40%, rgba(255,215,0,0.28) 0%, transparent 30%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,235,59,0.22) 0%, rgba(220,200,0,0.08) 60%, transparent 100%);
     }
   }
   @keyframes shadowAnim{
     0%, 100%{
-      background:
-        radial-gradient(circle at 30% 50%, rgba(75,14,78,0.3) 0%, transparent 25%),
-        radial-gradient(circle at 70% 60%, rgba(100,30,130,0.25) 0%, transparent 20%),
-        radial-gradient(circle at 50% 70%, rgba(50,10,70,0.2) 0%, transparent 28%),
-        radial-gradient(ellipse at 50% 50%, rgba(60,20,80,0.2) 0%, rgba(30,0,40,0.08) 60%, transparent 100%);
+      background-image:
+        radial-gradient(circle at 30% 50%, rgba(75,14,78,0.18) 0%, transparent 25%),
+        radial-gradient(circle at 70% 60%, rgba(100,30,130,0.15) 0%, transparent 20%),
+        radial-gradient(circle at 50% 70%, rgba(50,10,70,0.12) 0%, transparent 28%),
+        radial-gradient(ellipse at 50% 50%, rgba(60,20,80,0.1) 0%, rgba(30,0,40,0.04) 60%, transparent 100%);
     }
     50%{
-      background:
-        radial-gradient(circle at 35% 45%, rgba(75,14,78,0.4) 0%, transparent 28%),
-        radial-gradient(circle at 65% 65%, rgba(100,30,130,0.35) 0%, transparent 25%),
-        radial-gradient(circle at 50% 75%, rgba(75,14,78,0.3) 0%, transparent 32%),
-        radial-gradient(ellipse at 50% 50%, rgba(75,14,78,0.3) 0%, rgba(40,10,50,0.12) 60%, transparent 100%);
+      background-image:
+        radial-gradient(circle at 35% 45%, rgba(75,14,78,0.25) 0%, transparent 28%),
+        radial-gradient(circle at 65% 65%, rgba(100,30,130,0.2) 0%, transparent 25%),
+        radial-gradient(circle at 50% 75%, rgba(75,14,78,0.18) 0%, transparent 32%),
+        radial-gradient(ellipse at 50% 50%, rgba(75,14,78,0.15) 0%, rgba(40,10,50,0.06) 60%, transparent 100%);
     }
   }
   @keyframes heroGlow{
