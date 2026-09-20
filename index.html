@@ -3257,7 +3257,7 @@ function renderApp(){
         </div>
         <div class="nav-cta-group">
           <span class="nav-user sans">${esc(myName())} <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span></span>
-          <span class="nav-gold-badge">ðŸ’° ${state.profile ? (state.profile.gold||0) : 0}</span>
+          <span class="nav-gold-badge">&#x1F4B0; ${state.profile ? (state.profile.gold||0) : 0}</span>
           <button type="button" class="btn-nav-outline" id="open-shop-btn">Shop</button>
           ${ state.profile && state.profile.protected ? `<button type="button" class="btn-nav-admin ${state.tab==='admin'?'active':''}" data-tab="admin">Admin</button>` : '' }
           <button class="btn-nav-outline" id="logout-btn" type="button">Sign Out</button>
@@ -3415,7 +3415,7 @@ function renderShopModal(){
           <span style="font-size:18px;">${formatLeaderboardRank(index)}</span>
           <span class="gold-text" style="font-weight:600;">${esc(name)}</span>
         </div>
-        <span class="muted sans">ðŸ’° ${earnedGold.toLocaleString()}</span>
+        <span class="muted sans">&#x1F4B0; ${earnedGold.toLocaleString()}</span>
       </div>`;
   }
 
@@ -3443,7 +3443,7 @@ function renderShopModal(){
         <div class="shop-card-name">${esc(item.name)}</div>
         <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
         <div class="shop-card-footer">
-          <span class="nav-gold-badge">ðŸ’° ${item.cost}</span>
+          <span class="nav-gold-badge">&#x1F4B0; ${item.cost}</span>
           ${ officer ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
         </div>
         ${ isRaidLeader ? `
@@ -3474,7 +3474,7 @@ function renderShopModal(){
         <div class="shop-card-name">Rank ${order}: ${esc(item.name)}</div>
         <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
         <div class="shop-card-footer">
-          <span class="nav-gold-badge">ðŸ’° ${item.cost}</span>
+          <span class="nav-gold-badge">&#x1F4B0; ${item.cost}</span>
           ${ officer ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
         </div>
         ${ owned ? `<div class="shop-owned-badge">&#10003; Owned</div>` :
@@ -3490,7 +3490,7 @@ function renderShopModal(){
         <img src="${esc(img.url)}" alt="${esc(img.caption||'')}" class="shop-sticker-preview">
         <div class="shop-card-name">${esc(img.caption||'Sticker')}</div>
         <div class="shop-card-footer">
-          <span class="nav-gold-badge">ðŸ’° ${stickerPrice}</span>
+          <span class="nav-gold-badge">&#x1F4B0; ${stickerPrice}</span>
         </div>
         <button class="btn" type="button" data-buy-sticker="${img.id}" ${canAfford?'':'disabled'} style="width:100%; margin-top:10px;">
           ${ canAfford ? 'Place on Wall' : 'Not enough gold' }
@@ -3505,7 +3505,7 @@ function renderShopModal(){
         <h3>Reward Shop</h3>
         <button class="modal-x" id="modal-close">&times;</button>
       </div>
-      <div class="nav-gold-badge" style="margin-bottom:16px;">ðŸ’° ${gold} gold available</div>
+      <div class="nav-gold-badge" style="margin-bottom:16px;">&#x1F4B0; ${gold} gold available</div>
 
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
         <h4 class="shop-section-title">Sticker Wall</h4>
@@ -3937,7 +3937,7 @@ function renderRoster(){
         <div class="list-item">
           <div style="flex:1;">
             <div style="font-weight:600;">${esc(p.character_name||p.discord_username||'Member')}</div>
-            <div class="muted sans" style="font-size:12px; margin-top:2px;">ðŸ’° ${(p.gold||0).toLocaleString()} current Â· ðŸ’° ${(p.gold_earned_total||0).toLocaleString()} earned</div>
+            <div class="muted sans" style="font-size:12px; margin-top:2px;">&#x1F4B0; ${(p.gold||0).toLocaleString()} current Â· &#x1F4B0; ${(p.gold_earned_total||0).toLocaleString()} earned</div>
           </div>
           <span class="badge ${p.protected ? 'role-raidlead' : (p.role==='officer'?'role-officer':'role-member')}" style="margin-right:10px;">${p.protected ? '&#9819; Raid Leader' : (p.role==='officer'?'Officer':'Member')}</span>
           ${ officer && !p.protected ? `<button class="btn secondary" data-toggle-officer="${p.id}">${p.role==='officer'?'Demote':'Promote'}</button>` : '' }
@@ -4385,7 +4385,7 @@ function renderAdmin(){
           <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-input); border-radius:4px;">
             <div style="flex:1;">
               <div style="color:var(--text-normal); font-weight:500;">${p.item_name}</div>
-              <div style="color:var(--text-muted); font-size:12px;">ðŸ’° ${p.cost_paid} gold Â· ${date}</div>
+              <div style="color:var(--text-muted); font-size:12px;">&#x1F4B0; ${p.cost_paid} gold Â· ${date}</div>
             </div>
             <button class="btn-small" data-refund-purchase="${p.id}" data-refund-name="${userName}" style="margin-left:12px;">Refund</button>
           </div>
