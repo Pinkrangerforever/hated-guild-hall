@@ -2967,11 +2967,13 @@ async function purchaseSticker(galleryImageId){
   const { data, error } = await sb.rpc('purchase_sticker', { p_gallery_image_id: galleryImageId, p_note: note });
 
   if(error){
-    showToast("Couldn't complete purchase â€” try again", true);
+    console.error('Sticker purchase RPC error:', error);
+    showToast("Couldn't complete purchase â€” " + (error.message || 'try again'), true);
     return;
   }
 
   if(!data){
+    console.error('Sticker purchase returned no data');
     showToast("Couldn't complete purchase â€” try again", true);
     return;
   }
