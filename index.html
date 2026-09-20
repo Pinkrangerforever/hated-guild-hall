@@ -3198,8 +3198,11 @@ function renderLanding(){
                 const posX = s.position_x ?? 50;
                 const posY = s.position_y ?? 50;
                 const rotation = (Math.random() * 50) - 25;
+                const isOwner = state.session?.user?.id === s.placed_by_user_id;
                 return `
                 <div class="sticker-pin-group"
+                     data-sticker-id="${esc(s.id)}"
+                     data-owned="${isOwner}"
                      style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
                   <div class="sticker-pin"></div>
                   <div class="sticker-pin-shadow"></div>
@@ -4823,11 +4826,8 @@ function bindApp(){
   document.querySelectorAll('[data-delete-sticker]').forEach(b=>b.addEventListener('click', ()=>deleteSticker(b.dataset.deleteSticker)));
   document.querySelectorAll('[data-set-name-custom]').forEach(b=>b.addEventListener('click', ()=>setActiveNameCustomization(b.dataset.setNameCustom)));
   
-  // Sticker drag-and-drop handlers - set up only once
-  if(!window._stickerDragSetup){
-    setupStickerDragHandlers();
-    window._stickerDragSetup = true;
-  }
+  // Sticker drag-and-drop handlers - set up after each render
+  setupStickerDragHandlers();
   
   const stickerPriceBtn = document.getElementById('save-sticker-price-btn');
   if(stickerPriceBtn) stickerPriceBtn.addEventListener('click', saveStickerPrice);
