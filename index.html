@@ -3205,14 +3205,22 @@ function setupStickerDragHandlers(){
     const posY = parseFloat(draggingSticker.style.top) || 50;
     const stickerId = draggingSticker.dataset.stickerId;
 
-    const { error } = await sb.rpc('update_sticker_position', {
+    console.log('Saving sticker position:', { stickerId, posX, posY });
+
+    const { data, error } = await sb.rpc('update_sticker_position', {
       p_sticker_id: stickerId,
       p_position_x: Math.round(posX * 100) / 100,
       p_position_y: Math.round(posY * 100) / 100
     });
 
     if(error) {
+      console.error('Sticker position RPC error:', error);
+      showToast('Failed to save sticker position â€” ' + (error.message || 'try again'), true);
+    } else if(!data?.success) {
+      console.error('Sticker position update returned failure:', data);
       showToast('Failed to save sticker position', true);
+    } else {
+      console.log('âœ“ Sticker position saved:', { posX, posY });
     }
 
     draggingSticker = null;
