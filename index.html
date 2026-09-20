@@ -3667,6 +3667,12 @@ function renderShopModal(){
       ` : '' }
 
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
+        <h4 class="shop-section-title">Roster Name Customization</h4>
+        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Make your roster name stand out with special effects and animations.</p>
+        ${ nameCustomItems.length ? `<div class="shop-grid">${nameCustomItems.map(renderSimpleCard).join('')}</div>` : emptyState('No name customizations set up yet.') }
+      </div>
+
+      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
         <h4 class="shop-section-title">Sticker Wall</h4>
         <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Place a sticker on the wall with your name under it. Stickers stay up for 7 days before auto-deleting.</p>
         ${ officer ? `
@@ -3679,12 +3685,6 @@ function renderShopModal(){
         </div>` : '' }
         ${ stickerImages.length ? `<div class="shop-grid">${stickerImages.map(renderStickerCard).join('')}</div>` :
           emptyState(officer ? 'No images are flagged as stickers yet â€” go to the Gallery to enable some.' : 'No stickers available yet.') }
-      </div>
-
-      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
-        <h4 class="shop-section-title">Roster Name Customization</h4>
-        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Make your roster name stand out with special effects and animations.</p>
-        ${ nameCustomItems.length ? `<div class="shop-grid">${nameCustomItems.map(renderSimpleCard).join('')}</div>` : emptyState('No name customizations set up yet.') }
       </div>
 
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
