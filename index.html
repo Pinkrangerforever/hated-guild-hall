@@ -3986,8 +3986,10 @@ function renderRoster(){
             ${ [0,1,2,3,4].map(si=>{
               const slot = slotAt(gi,si);
               const specLabel = slot ? CLASS_SPECS[slot.class_key].specs.find(s=>s.key===slot.spec_key).label : '';
-              const clickAttr = officer ? `data-slot-click="${gi}|${si}"` : '';
-              let slotClasses = `${slot?'filled':''} ${officer?'editable':''}`;
+              const isRaidLeader = state.profile && state.profile.protected;
+              const canEditSlot = officer || isRaidLeader;
+              const clickAttr = canEditSlot ? `data-slot-click="${gi}|${si}"` : '';
+              let slotClasses = `${slot?'filled':''} ${canEditSlot?'editable':''}`;
               if(slot) {
                 const profiles = Object.values(state.profilesById || {});
                 const userId = profiles.find(p => p.character_name === slot.character_name)?.id;
@@ -4095,6 +4097,49 @@ function renderLoot(){
   `;
 }
 
+/* ---- render roster groups (for home page) ---- */
+function renderRosterGroups(){
+  const officer = isOfficer();
+  const isRaidLeader = state.profile && state.profile.protected;
+  const canEdit = officer || isRaidLeader;
+
+  function slotAt(g,s){ return state.compSlots.find(row=>row.group_index===g && row.slot_index===s) || null; }
+
+  return `
+    <div class="comp-groups">
+      ${ [0,1,2,3].map(gi=>`
+        <div class="comp-group">
+          <div class="comp-group-title">Group ${gi+1}</div>
+          ${ [0,1,2,3,4].map(si=>{
+            const slot = slotAt(gi,si);
+            const specLabel = slot ? CLASS_SPECS[slot.class_key].specs.find(s=>s.key===slot.spec_key).label : '';
+            const clickAttr = canEdit ? `data-slot-click="${gi}|${si}"` : '';
+            let slotClasses = `${slot?'filled':''} ${canEdit?'editable':''}`;
+            if(slot) {
+              const profiles = Object.values(state.profilesById || {});
+              const userId = profiles.find(p => p.character_name === slot.character_name)?.id;
+              const customization = getUserNameCustomization(userId);
+              if(customization.border) slotClasses += ` ${customization.border}`;
+              if(customization.nameCustom) slotClasses += ` ${customization.nameCustom}`;
+            }
+            return `
+            <div class="comp-slot ${slotClasses}" ${clickAttr} style="${slot?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
+              ${ slot ? `
+                <span class="spec-icon-sm" style="${specIconStyle(slot.class_key)}">${specIconHtml(slot.class_key, slot.spec_key)}</span>
+                <span class="comp-slot-info">
+                  <span class="comp-slot-name">${esc(slot.character_name)}</span>
+                  <span class="comp-slot-spec" style="color:${CLASS_SPECS[slot.class_key].color};">${esc(specLabel)}</span>
+                </span>
+                ${ canEdit ? `<button type="button" class="comp-slot-remove" data-remove="${gi}|${si}" title="Remove">&times;</button>` : '' }
+              ` : `<span class="comp-slot-empty muted">Empty</span>` }
+            </div>`;
+          }).join('') }
+        </div>
+      `).join('') }
+    </div>
+  `;
+}
+
 /* ---------------- news tab ---------------- */
 function renderNews(){
   const officer = isOfficer();
@@ -4144,6 +4189,12 @@ function renderNews(){
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Raid Roster Groups Section -->
+    <div style="margin-top:60px; margin-bottom:60px;">
+      <h2 class="page-title" style="text-align:center; margin-bottom:32px;">Raid Roster</h2>
+      ${renderRosterGroups()}
     </div>
 
     <!-- Feature cards section - below both -->
