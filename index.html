@@ -1769,6 +1769,11 @@ async function loadNews(){
   state.news = data || [];
 }
 
+async function loadRosterComposition(){
+  const { data } = await sb.from('comp_slots').select('*');
+  state.compSlots = data || [];
+}
+
 async function loadShopPurchases(){
   if(!state.session || !state.session.user) return;
   const { data } = await sb.from('shop_purchases').select('*').eq('user_id', state.session.user.id);
@@ -1927,9 +1932,10 @@ async function onAuthResolved(){
   if(__authResolveInFlight) return; // avoid overlapping runs if multiple events fire in quick succession
   __authResolveInFlight = true;
   try{
-    // Load news and stickers for both logged-in and non-logged-in users
+    // Load news, roster, and stickers for both logged-in and non-logged-in users
     try {
       await loadNews();
+      await loadRosterComposition();
       const { data, error } = await sb.from('stickers').select('*');
       if(error) throw error;
       state.stickers = data || [];
