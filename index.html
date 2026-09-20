@@ -1561,9 +1561,10 @@ function getUserNameCustomization(userId){
   if(activeCustomId) {
     const activeItem = state.shopItems && state.shopItems.find(i => i.id === activeCustomId);
     if(activeItem && purchases.some(p => p.item_id === activeCustomId)) {
-      if(activeItem.name.includes('Flame')) nameCustom = 'name-custom-flame';
-      else if(activeItem.name.includes('Golden')) nameCustom = 'name-custom-star';
-      else if(activeItem.name.includes('Shadow')) nameCustom = 'name-custom-shadow';
+      const meta = activeItem.metadata || {};
+      if(meta.effect === 'flame') nameCustom = 'name-custom-flame';
+      else if(meta.effect === 'star') nameCustom = 'name-custom-star';
+      else if(meta.effect === 'shadow' || meta.effect === 'techno') nameCustom = 'name-custom-shadow';
     }
   }
 
