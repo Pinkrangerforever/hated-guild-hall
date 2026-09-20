@@ -3216,11 +3216,11 @@ function setupStickerDragHandlers(){
     if(error) {
       console.error('Sticker position RPC error:', error);
       showToast('Failed to save sticker position â€” ' + (error.message || 'try again'), true);
-    } else if(!data?.success) {
+    } else if(data === true || data?.success === true) {
+      console.log('âœ“ Sticker position saved:', { posX, posY });
+    } else {
       console.error('Sticker position update returned failure:', data);
       showToast('Failed to save sticker position', true);
-    } else {
-      console.log('âœ“ Sticker position saved:', { posX, posY });
     }
 
     draggingSticker = null;
