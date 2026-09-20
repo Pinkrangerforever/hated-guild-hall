@@ -1790,15 +1790,33 @@ async function loadAdminPurchases(){
 
 async function moveShopItem(itemId, direction){
   const item = state.shopItems.find(i=>i.id===itemId);
-  if(!item) return;
+  if(!item) {
+    console.error('Item not found:', itemId);
+    showToast('Item not found', true);
+    return;
+  }
 
   // Get items in same category sorted by sort_order
   const sameCategory = state.shopItems.filter(i=>i.category===item.category).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const currentIndex = sameCategory.findIndex(i=>i.id===itemId);
 
+  console.log(`Moving ${item.name} (${direction}):`, {
+    itemId,
+    category: item.category,
+    currentIndex,
+    totalInCategory: sameCategory.length,
+    sameCategory: sameCategory.map(i=>({id:i.id, name:i.name, sort_order:i.sort_order}))
+  });
+
   // Check bounds
-  if(direction === 'left' && currentIndex === 0) return;
-  if(direction === 'right' && currentIndex === sameCategory.length - 1) return;
+  if(direction === 'left' && currentIndex === 0) {
+    showToast('Already at the left', true);
+    return;
+  }
+  if(direction === 'right' && currentIndex === sameCategory.length - 1) {
+    showToast('Already at the right', true);
+    return;
+  }
 
   // Get the item to swap with
   const swapIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
@@ -1831,11 +1849,14 @@ async function moveShopItem(itemId, direction){
     return;
   }
 
-  // Reload and render
+  // Reload and render - preserve scroll position
+  const scrollPos = window.scrollY;
   const { data } = await sb.from('shop_items').select('*');
   state.shopItems = data || [];
   showToast(`Moved ${direction}`);
   render();
+  // Restore scroll position after render completes
+  setTimeout(() => window.scrollTo(0, scrollPos), 50);
 }
 
 async function refundPurchase(purchaseId, userName){
