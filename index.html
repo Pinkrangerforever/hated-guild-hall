@@ -3476,7 +3476,7 @@ function renderShopModal(){
           <button class="btn secondary" type="button" data-move-shop-item="${item.id}" data-direction="left" style="flex:1; padding:6px; font-size:12px;">Move Left</button>
           <button class="btn secondary" type="button" data-move-shop-item="${item.id}" data-direction="right" style="flex:1; padding:6px; font-size:12px;">Move Right</button>
         </div>` : '' }
-        ${ owned ? `<div class="shop-owned-badge">âœ“ Owned</div>` :
+        ${ owned ? `<div class="shop-owned-badge">&#10003; Owned</div>` :
           `<button class="btn" type="button" data-buy-shop-item="${item.id}" ${ (!canAfford || item.active===false) ? 'disabled' : '' } style="width:100%; margin-top:10px;">
             ${ item.active===false ? 'Unavailable' : (canAfford ? 'Redeem' : 'Not enough gold') }
           </button>`
