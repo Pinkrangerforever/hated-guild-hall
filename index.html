@@ -2930,23 +2930,52 @@ async function purchaseRank(itemId){
   showToast('Rank upgraded!');
   render();
 }
+function findNonOverlappingPosition(){
+  const minDistance = 20; // Minimum distance between stickers (%)
+  const maxAttempts = 50;
+
+  for(let attempt = 0; attempt < maxAttempts; attempt++){
+    const x = 20 + Math.random() * 60; // 20-80%
+    const y = 20 + Math.random() * 60; // 20-80%
+
+    // Check distance from existing stickers
+    let tooClose = false;
+    if(state.stickers){
+      for(const sticker of state.stickers){
+        const sx = sticker.position_x ?? 50;
+        const sy = sticker.position_y ?? 50;
+        const distance = Math.sqrt(Math.pow(x - sx, 2) + Math.pow(y - sy, 2));
+        if(distance < minDistance){
+          tooClose = true;
+          break;
+        }
+      }
+    }
+
+    if(!tooClose) return { x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 };
+  }
+
+  // Fallback to random if no free space found
+  return { x: 20 + Math.random() * 60, y: 20 + Math.random() * 60 };
+}
+
 async function purchaseSticker(galleryImageId){
   // Prompt for optional text/note
   const note = prompt('Add a note to your sticker (optional):', '');
   if(note === null) return; // User cancelled
-  
+
   const { data, error } = await sb.rpc('purchase_sticker', { p_gallery_image_id: galleryImageId, p_note: note });
-  
+
   if(error){
     showToast("Couldn't complete purchase â€” try again", true);
     return;
   }
-  
-  if(!data){ 
+
+  if(!data){
     showToast("Couldn't complete purchase â€” try again", true);
     return;
   }
-  
+
   if(!data.success){
     const reasons = {
       insufficient_gold: "You don't have enough gold for that yet",
@@ -2956,12 +2985,33 @@ async function purchaseSticker(galleryImageId){
     showToast(reasons[data.reason] || "Couldn't complete purchase", true);
     return;
   }
-  
+
   if(state.profile){ state.profile.gold = data.new_gold; }
-  showToast('Sticker placed on the wall!');
-  // Refresh stickers so the new one shows up immediately without a full reload
+
+  // Refresh stickers
   const { data: stickers } = await sb.from('stickers').select('*').order('placed_at', { ascending:false });
   state.stickers = stickers || state.stickers;
+
+  // Find the newly placed sticker (last one) and update its position if default
+  if(state.stickers && state.stickers.length > 0){
+    const newSticker = state.stickers[0];
+    const isDefault = (newSticker.position_x ?? 50) === 50 && (newSticker.position_y ?? 50) === 50;
+
+    if(isDefault){
+      const pos = findNonOverlappingPosition();
+      const { error: updateError } = await sb.rpc('update_sticker_position', {
+        p_sticker_id: newSticker.id,
+        p_position_x: pos.x,
+        p_position_y: pos.y
+      });
+      if(!updateError){
+        newSticker.position_x = pos.x;
+        newSticker.position_y = pos.y;
+      }
+    }
+  }
+
+  showToast('Sticker placed on the wall!');
   render();
 }
 async function setActiveNameCustomization(itemId){
