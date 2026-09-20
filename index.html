@@ -3215,7 +3215,7 @@ function renderLanding(){
             <h1 class="hero-title-animated" style="font-size:56px; font-weight:900; margin:0 0 12px 0; background:linear-gradient(135deg, #ff8000 0%, #ffb347 50%, #dcb570 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; letter-spacing:3px; text-shadow:0 0 30px rgba(255,128,0,0.3); animation:heroGlow 3s ease-in-out infinite;">HATED is Forever!</h1>
             <div style="height:2px; width:80px; background:linear-gradient(90deg, transparent, #ff8000, transparent); margin:16px auto 24px auto; animation:slideIn 1s ease-out;"></div>
             <p style="font-size:16px; line-height:1.8; color:#e8d7c3; margin:0 0 24px 0; font-weight:400; letter-spacing:0.5px; animation:fadeInUp 1s ease-out 0.2s both;">Welcome home, friends, welcome to <span style="font-weight:700; color:#ffb347;">HATED</span>!<br>Sign in and check out our guild resources!<br>Keep an eye out for <span style="color:#ffb347; font-weight:700;">'shiny'</span> surprises!</p>
-            <button class="cta-button" style="padding:12px 32px; font-size:14px; font-weight:700; letter-spacing:1px; background:linear-gradient(135deg, #ff8000, #ffb347); color:#0a0a0a; border:none; border-radius:4px; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 20px rgba(255,128,0,0.3); animation:fadeInUp 1s ease-out 0.4s both;">SIGN IN</button>
+            <button class="cta-button" id="hero-signin-btn" type="button" style="padding:12px 32px; font-size:14px; font-weight:700; letter-spacing:1px; background:linear-gradient(135deg, #ff8000, #ffb347); color:#0a0a0a; border:none; border-radius:4px; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 20px rgba(255,128,0,0.3); animation:fadeInUp 1s ease-out 0.4s both;">SIGN IN</button>
           </div>
           <div class="hero-split-media" style="margin-top:32px;">
             <div class="ornate-frame" style="width:100%;">
@@ -3355,6 +3355,8 @@ function bindLanding(){
   if(btn) btn.addEventListener('click', signInWithDiscord);
   const navBtn = document.getElementById('nav-discord-signin-btn');
   if(navBtn) navBtn.addEventListener('click', signInWithDiscord);
+  const heroBtn = document.getElementById('hero-signin-btn');
+  if(heroBtn) heroBtn.addEventListener('click', signInWithDiscord);
   document.querySelectorAll('a[href="#signin"]').forEach(a=>{
     a.addEventListener('click', (ev)=>{
       ev.preventDefault();
