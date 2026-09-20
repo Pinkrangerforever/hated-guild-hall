@@ -2908,6 +2908,7 @@ async function purchaseShopItem(itemId){
   }
   if(state.profile){ state.profile.gold = data.new_gold; }
   showToast('Redeemed: ' + data.item_name);
+  await loadShopPurchases();
   render();
 }
 async function purchaseRank(itemId){
