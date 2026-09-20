@@ -746,7 +746,7 @@
       radial-gradient(circle at 80% 50%, rgba(255,200,0,0.2) 0%, transparent 20%),
       radial-gradient(circle at 50% 80%, rgba(255,100,0,0.15) 0%, transparent 30%),
       radial-gradient(ellipse at 50% 50%, rgba(255,140,0,0.12) 0%, rgba(200,50,0,0.08) 50%, transparent 100%);
-    animation:flameAnim 2s ease-in-out infinite;
+    animation:flameAnim 3.5s ease-in-out infinite;
     z-index:10;
   }
   .comp-slot.name-custom-star::before{
@@ -802,19 +802,40 @@
     box-shadow:0 0 20px rgba(255,128,0,0.8), 0 0 40px rgba(255,128,0,0.4), inset 0 0 12px rgba(255,128,0,0.2);
   }
   @keyframes flameAnim{
-    0%, 100%{
+    0%{
       background-image:
-        radial-gradient(circle at 20% 60%, rgba(255,255,0,0.25) 0%, transparent 25%),
-        radial-gradient(circle at 80% 50%, rgba(255,200,0,0.2) 0%, transparent 20%),
-        radial-gradient(circle at 50% 80%, rgba(255,100,0,0.15) 0%, transparent 30%),
-        radial-gradient(ellipse at 50% 50%, rgba(255,140,0,0.12) 0%, rgba(200,50,0,0.08) 50%, transparent 100%);
+        radial-gradient(circle at 20% 40%, rgba(255,255,0,0.3) 0%, transparent 20%),
+        radial-gradient(circle at 75% 65%, rgba(255,200,0,0.25) 0%, transparent 18%),
+        radial-gradient(circle at 50% 85%, rgba(255,100,0,0.2) 0%, transparent 25%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,140,0,0.15) 0%, rgba(200,50,0,0.08) 50%, transparent 100%);
+    }
+    25%{
+      background-image:
+        radial-gradient(circle at 30% 35%, rgba(255,255,0,0.35) 0%, transparent 22%),
+        radial-gradient(circle at 65% 55%, rgba(255,200,0,0.3) 0%, transparent 20%),
+        radial-gradient(circle at 45% 75%, rgba(255,69,0,0.25) 0%, transparent 28%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,107,53,0.2) 0%, rgba(200,50,0,0.1) 50%, transparent 100%);
     }
     50%{
       background-image:
-        radial-gradient(circle at 25% 55%, rgba(255,255,0,0.35) 0%, transparent 28%),
-        radial-gradient(circle at 75% 55%, rgba(255,165,0,0.3) 0%, transparent 25%),
-        radial-gradient(circle at 45% 75%, rgba(255,69,0,0.25) 0%, transparent 35%),
-        radial-gradient(ellipse at 50% 50%, rgba(255,107,53,0.2) 0%, rgba(200,50,0,0.12) 50%, transparent 100%);
+        radial-gradient(circle at 35% 50%, rgba(255,255,0,0.32) 0%, transparent 21%),
+        radial-gradient(circle at 70% 40%, rgba(255,165,0,0.28) 0%, transparent 19%),
+        radial-gradient(circle at 40% 80%, rgba(255,69,0,0.22) 0%, transparent 26%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,107,53,0.18) 0%, rgba(200,50,0,0.09) 50%, transparent 100%);
+    }
+    75%{
+      background-image:
+        radial-gradient(circle at 25% 55%, rgba(255,255,0,0.33) 0%, transparent 20%),
+        radial-gradient(circle at 80% 50%, rgba(255,200,0,0.26) 0%, transparent 18%),
+        radial-gradient(circle at 55% 70%, rgba(255,100,0,0.23) 0%, transparent 27%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,140,0,0.16) 0%, rgba(200,50,0,0.08) 50%, transparent 100%);
+    }
+    100%{
+      background-image:
+        radial-gradient(circle at 20% 40%, rgba(255,255,0,0.3) 0%, transparent 20%),
+        radial-gradient(circle at 75% 65%, rgba(255,200,0,0.25) 0%, transparent 18%),
+        radial-gradient(circle at 50% 85%, rgba(255,100,0,0.2) 0%, transparent 25%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,140,0,0.15) 0%, rgba(200,50,0,0.08) 50%, transparent 100%);
     }
   }
   @keyframes goldenAnim{
