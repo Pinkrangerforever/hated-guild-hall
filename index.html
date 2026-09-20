@@ -1859,6 +1859,8 @@ async function onAuthResolved(){
       if(error) throw error;
       state.stickers = data || [];
       console.log('Loaded stickers:', state.stickers.length);
+      // Clean up expired stickers
+      await cleanupExpiredStickers();
     } catch(e) {
       console.error('Error loading news/stickers:', e);
       state.news = [];
@@ -1966,6 +1968,12 @@ async function loadGuildData(){
     sb.from('stickers').select('*').order('placed_at', { ascending:false }),
   ]);
   if(settingsRes.data) state.settings = settingsRes.data;
+
+  // Clean up expired stickers (older than 7 days)
+  if(stickersRes.data) {
+    state.stickers = stickersRes.data;
+    await cleanupExpiredStickers();
+  }
   state.events = eventsRes.data || [];
   state.rsvps = rsvpsRes.data || [];
   state.raids = raidsRes.data || [];
@@ -2914,6 +2922,23 @@ async function deleteSticker(stickerId){
   render();
 }
 
+async function cleanupExpiredStickers(){
+  if(!state.stickers || state.stickers.length === 0) return;
+
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  for(const sticker of state.stickers){
+    if(sticker.placed_at){
+      const placedDate = new Date(sticker.placed_at);
+      if(placedDate < sevenDaysAgo){
+        const { error } = await sb.from('stickers').delete().eq('id', sticker.id);
+        if(!error) console.log(`Deleted expired sticker: ${sticker.id}`);
+      }
+    }
+  }
+}
+
 function setupStickerDragHandlers(){
   let draggingSticker = null;
   let dragStart = { x: 0, y: 0 };
@@ -3509,7 +3534,7 @@ function renderShopModal(){
 
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
         <h4 class="shop-section-title">Sticker Wall</h4>
-        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Place a sticker on the wall with your name under it â€” stickers stay up permanently for now.</p>
+        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Place a sticker on the wall with your name under it. Stickers stay up for 7 days before auto-deleting.</p>
         ${ officer ? `
         <div class="field" style="max-width:220px; margin-bottom:14px;">
           <label>Sticker price (gold)</label>
