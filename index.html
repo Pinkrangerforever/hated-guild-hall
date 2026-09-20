@@ -1865,17 +1865,27 @@ async function moveShopItem(itemId, direction){
     const scrollPos = window.scrollY;
     console.log('Scroll position before render:', scrollPos);
 
-    const { data } = await sb.from('shop_items').select('*');
+    const { data, error: reloadError } = await sb.from('shop_items').select('*').order('sort_order', { ascending: true });
+    if(reloadError) {
+      console.error('Error reloading shop items:', reloadError);
+      showToast('Failed to reload items', true);
+      return;
+    }
+
     state.shopItems = data || [];
     console.log('Shop items reloaded:', state.shopItems.length, 'items');
+    console.log('Reloaded order:', state.shopItems.map(i => ({id: i.id, name: i.name, category: i.category, sort_order: i.sort_order})));
 
     showToast(`Moved ${direction}`);
     render();
 
-    // Restore scroll position after render completes
+    // Restore scroll position in the modal (find the modal scroll container)
     setTimeout(() => {
-      console.log('Restoring scroll to:', scrollPos);
-      window.scrollTo(0, scrollPos);
+      const modalPanel = document.querySelector('.modal-panel');
+      if(modalPanel && scrollPos > 0) {
+        console.log('Restoring modal scroll to:', scrollPos);
+        modalPanel.scrollTop = scrollPos;
+      }
     }, 50);
   } catch(err) {
     console.error('Error in moveShopItem:', err);
