@@ -2922,7 +2922,7 @@ function startBlacksmithGame(spawnRect){
 
   const items = ['Sword', 'Shield', 'Axe', 'Dagger', 'Mace'];
   const item = items[Math.floor(Math.random() * items.length)];
-  const baseReward = 100 + Math.floor(Math.random() * 50);
+  const baseReward = 25 + Math.floor(Math.random() * 25);
 
   const cx = spawnRect.left + spawnRect.width/2, cy = spawnRect.top + spawnRect.height/2;
 
@@ -2933,15 +2933,21 @@ function startBlacksmithGame(spawnRect){
   forge.innerHTML = `
     <div style="position:relative; width:100%; height:100%;">
       <img class="anvil-graphic" src="https://housing-media.wowdb.com/decor/thumb/7425323.png" style="position:absolute; left:50%; bottom:0; transform:translateX(-50%); height:70%; max-width:90%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));" alt="anvil"/>
-      <img class="sword-graphic" src="https://wow.zamimg.com/modelviewer/classic/webthumbs/item/142/30606.webp" style="position:absolute; left:50%; top:8%; transform:translateX(-50%); height:65%; max-width:45%; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));" alt="sword"/>
-      <img class="hammer-graphic" src="https://wow.zamimg.com/modelviewer/live/webthumbs/item/60/664636.webp" style="position:absolute; right:0%; top:0%; transform:rotate(180deg); transform-origin:0% 100%; height:55%; max-width:40%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));" alt="hammer"/>
+      <img class="sword-graphic" src="https://wow.zamimg.com/modelviewer/classic/webthumbs/item/142/30606.webp" style="position:absolute; left:50%; top:5%; transform:translateX(-50%); height:75%; max-width:50%; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));" alt="sword"/>
+      <img class="hammer-graphic" src="https://wow.zamimg.com/modelviewer/live/webthumbs/item/60/664636.webp" style="position:absolute; right:0%; top:0%; transform:rotate(90deg); transform-origin:0% 100%; height:55%; max-width:40%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));" alt="hammer"/>
       <svg class="timing-gauge" viewBox="0 0 180 100" xmlns="http://www.w3.org/2000/svg" style="position:absolute; left:50%; top:-20%; transform:translateX(-50%); width:140px; height:85px; pointer-events:none; z-index:10;">
+        <defs>
+          <linearGradient id="arcGradient" x1="0%" y1="50%" x2="100%" y2="50%">
+            <stop offset="0%" style="stop-color:#7fa363;stop-opacity:0.9"/>
+            <stop offset="18%" style="stop-color:#7fa363;stop-opacity:0.9"/>
+            <stop offset="18%" style="stop-color:rgba(255,255,255,0.1);stop-opacity:0.1"/>
+            <stop offset="100%" style="stop-color:rgba(255,255,255,0.1);stop-opacity:0.1"/>
+          </linearGradient>
+        </defs>
         <!-- Arc outline (charcoal grey) -->
         <path d="M 10 90 A 80 80 0 0 1 170 90" fill="none" stroke="#2a2a2a" stroke-width="12" stroke-linecap="round"/>
-        <!-- Background arc (lighter) -->
-        <path d="M 10 90 A 80 80 0 0 1 170 90" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="9" stroke-linecap="round"/>
-        <!-- Green perfect zone (30 degrees from left, 180Â° to 150Â°) -->
-        <path d="M 10 90 A 80 80 0 0 1 20 130" fill="none" stroke="#7fa363" stroke-width="9" stroke-linecap="round" opacity="0.9"/>
+        <!-- Unified arc with gradient (green on left, gray on right) -->
+        <path d="M 10 90 A 80 80 0 0 1 170 90" fill="none" stroke="url(#arcGradient)" stroke-width="9" stroke-linecap="round"/>
         <!-- Red indicator circle -->
         <circle class="gauge-indicator" cx="170" cy="90" r="5" fill="#e74c3c" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.8))"/>
       </svg>
@@ -2996,13 +3002,15 @@ function startBlacksmithGame(spawnRect){
 
       // Hammer swings from nearly upright to down and back (0Â° to -85Â°)
       const swing = -Math.sin(progress * Math.PI) * 85;
-      hammer.style.transform = `rotate(${swing}deg)`;
+      hammer.style.transform = `rotate(${90 + swing}deg)`;
 
-      if(elapsed < cycleTime){
+      // Reset clickedInWindow when indicator returns to right side (angle < 30)
+      if(angle < 30 && clickedInWindow){
+        clickedInWindow = false;
+      }
+
+      if(!gameState.resolved){
         animationId = requestAnimationFrame(animate);
-      } else {
-        hammer.style.transform = 'rotate(0deg)';
-        gameState.hammerCycle = setTimeout(()=>runHammerCycle(), 150);
       }
     };
 
@@ -3018,10 +3026,6 @@ function startBlacksmithGame(spawnRect){
       const elapsed = performance.now() - cycleStart;
       const progress = (elapsed / cycleTime) % 1;
       const angle = Math.abs(Math.sin(progress * Math.PI)) * 180;
-
-      if(animationId) cancelAnimationFrame(animationId);
-      clearTimeout(gameState.hammerCycle);
-      hammer.style.transform = 'rotate(0deg)';
 
       // Green zone is 150-180 degrees (left side)
       if(angle >= 150 && angle <= 180){
@@ -3052,7 +3056,7 @@ function startBlacksmithGame(spawnRect){
       }
     }
 
-    forge.addEventListener('click', handleClick, { once: true });
+    forge.addEventListener('click', handleClick);
 
     // 10 second timeout for game
     gameState.gameTimeout = setTimeout(()=>{
@@ -3070,8 +3074,6 @@ function startBlacksmithGame(spawnRect){
 
     if(gameState.hits >= gameState.maxHits){
       finishGame(true);
-    } else {
-      setTimeout(()=>runHammerCycle(), 200);
     }
   }
 
@@ -3084,8 +3086,6 @@ function startBlacksmithGame(spawnRect){
 
     if(attemptsSoFar >= gameState.maxAttempts){
       finishGame(gameState.hits >= gameState.maxHits);
-    } else {
-      setTimeout(()=>runHammerCycle(), 200);
     }
   }
 
