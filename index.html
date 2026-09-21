@@ -2920,8 +2920,7 @@ function startBlacksmithGame(spawnRect){
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
 
-  const items = ['Sword', 'Shield', 'Thunderfury', 'Dagger', 'Mace'];
-  const item = items[Math.floor(Math.random() * items.length)];
+  const item = 'Thunderfury';
   const baseReward = 25 + Math.floor(Math.random() * 25);
 
   const cx = spawnRect.left + spawnRect.width/2, cy = spawnRect.top + spawnRect.height/2;
