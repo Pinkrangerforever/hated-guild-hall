@@ -2275,7 +2275,7 @@ async function deleteRaidplan(id){
 
 /* ---------------- raid composition planner ---------------- */
 function selectSpec(classKey, specKey){
-  if(!testIsOfficer()) return;
+  if(!testIsOfficer() && !testIsRaidLeader()) return;
   if(state.selectedSpec && state.selectedSpec.classKey===classKey && state.selectedSpec.specKey===specKey){
     state.selectedSpec = null;
   } else {
@@ -2284,7 +2284,7 @@ function selectSpec(classKey, specKey){
   render();
 }
 function openCompSlotModal(groupIdx, slotIdx){
-  if(!testIsOfficer()) return;
+  if(!testIsOfficer() && !testIsRaidLeader()) return;
   if(!state.selectedSpec){ showToast('Pick a class/spec above first', true); return; }
   state.modal = { type:'assign-slot', groupIdx, slotIdx };
   render();
