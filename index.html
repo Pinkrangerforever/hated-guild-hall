@@ -4060,12 +4060,12 @@ function renderRoster(){
     <div class="panel style-glass">
       <h3 style="margin-bottom:4px;">Raid Composition</h3>
       <p class="muted sans" style="margin-bottom:16px;">
-        ${ officer
+        ${ (officer || isRaidLeader)
           ? "Pick a class and spec below, then click a slot to assign a raider's name to it. Click a filled slot to reassign it, or use the Ã— to clear it."
           : "This is the current raid composition. Officers manage who's assigned to each spot." }
       </p>
 
-      ${ officer ? `
+      ${ (officer || isRaidLeader) ? `
       <div class="comp-palette">
         ${ Object.entries(CLASS_SPECS).map(([classKey,cls])=>`
           <div class="class-block" style="border-color:${cls.color}55;">
