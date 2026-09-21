@@ -3005,9 +3005,6 @@ function startBlacksmithGame(spawnRect){
         </div>
         <div class="timing-feedback"></div>
       </div>
-      <div class="forge-controls">
-        <button class="forge-start-btn">Start Forging</button>
-      </div>
     </div>
   `;
   layer.appendChild(gameContainer);
@@ -3021,22 +3018,18 @@ function startBlacksmithGame(spawnRect){
     hammerCycle: null
   };
 
-  const startBtn = gameContainer.querySelector('.forge-start-btn');
   const gameContent = gameContainer.querySelector('.forge-content');
   const feedback = gameContainer.querySelector('.timing-feedback');
   const hitCounter = gameContainer.querySelector('.hit-count');
   const hammer = gameContainer.querySelector('.hammer');
   const timerBar = gameContainer.querySelector('.timer-bar');
 
-  startBtn.addEventListener('click', startGame);
+  // Remove start button and immediately start game
+  const startBtn = gameContainer.querySelector('.forge-start-btn');
+  startBtn.remove();
 
-  function startGame(){
-    gameState.gameActive = true;
-    startBtn.style.display = 'none';
-    gameContent.style.pointerEvents = 'auto';
-
-    runHammerCycle();
-  }
+  gameState.gameActive = true;
+  setTimeout(() => runHammerCycle(), 300);
 
   function runHammerCycle(){
     if(!gameState.gameActive || gameState.resolved) return;
