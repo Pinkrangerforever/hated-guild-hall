@@ -2622,18 +2622,19 @@ async function claimSparkle(el){
   const rect = el.getBoundingClientRect();
   el.remove();
 
-  // 90% chance to trigger blacksmith mini-game (for testing)
-  if(Math.random() < 0.90){
-    startBlacksmithGame(rect);
-    return;
-  }
-
   try{
     const { data, error } = await sb.rpc('claim_sparkle_gold');
     if(error || !data || !data.success) return;
 
-    if(data.event === 'murloc') return startMurlocEvent(rect, data.pending_id);
-    if(data.event === 'fishing') return startFishingEvent(rect, data.pending_id);
+    // 25% chance for each event type
+    const rand = Math.random();
+    if(rand < 0.25) {
+      return startBlacksmithGame(rect);
+    } else if(rand < 0.5) {
+      return startMurlocEvent(rect, data.pending_id);
+    } else if(rand < 0.75) {
+      return startFishingEvent(rect, data.pending_id);
+    }
 
     // normal claim: update gold directly without full render to preserve video
     if(state.profile){
