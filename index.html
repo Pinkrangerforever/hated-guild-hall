@@ -1669,6 +1669,48 @@ function topNavBar(navLinks, opts){
     </div>
   </nav>`;
 }
+/* ---- gold audit log ---- */
+async function loadGoldTransactions(){
+  const { data, error } = await sb.rpc('get_gold_transactions', { p_limit: 500 });
+  if(error){ console.error('Failed to load transactions:', error); return []; }
+  return data || [];
+}
+
+function renderAuditLog(transactions, playerFilter = '', typeFilter = ''){
+  const filtered = transactions.filter(t => {
+    const matchesPlayer = !playerFilter || (t.character_name || '').toLowerCase().includes(playerFilter.toLowerCase());
+    const matchesType = !typeFilter || t.transaction_type === typeFilter;
+    return matchesPlayer && matchesType;
+  });
+
+  if(!filtered.length) return '<p class="muted" style="text-align:center; padding:20px;">No transactions found</p>';
+
+  return `
+    <table style="width:100%; font-size:12px; border-collapse:collapse;">
+      <thead>
+        <tr style="border-bottom:1px solid var(--divider);">
+          <th style="text-align:left; padding:8px; font-weight:600;">Player</th>
+          <th style="text-align:left; padding:8px; font-weight:600;">Type</th>
+          <th style="text-align:right; padding:8px; font-weight:600;">Amount</th>
+          <th style="text-align:left; padding:8px; font-weight:600;">Reason</th>
+          <th style="text-align:left; padding:8px; font-weight:600; width:120px;">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filtered.map(t => `
+          <tr style="border-bottom:1px solid var(--divider-light); hover:background:rgba(207,154,68,0.05);">
+            <td style="padding:8px;">${esc(t.character_name || 'Unknown')}</td>
+            <td style="padding:8px;"><span style="padding:2px 6px; border-radius:3px; background:${t.transaction_type==='earned'?'rgba(30,255,0,0.2)':t.transaction_type==='spent'?'rgba(255,100,0,0.2)':'rgba(100,150,255,0.2)'};">${esc(t.transaction_type)}</span></td>
+            <td style="padding:8px; text-align:right; font-weight:600; color:${t.amount>0?'#1eff00':'#ff6464';};">${t.amount>0?'+':''}${t.amount}</td>
+            <td style="padding:8px; color:var(--text-muted);">${esc(t.reason || t.source)}</td>
+            <td style="padding:8px; color:var(--text-muted);">${new Date(t.created_at).toLocaleString()}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
 /* ---- state ---- */
 let state = {
   view: 'loading',       // loading | landing | app
@@ -4563,7 +4605,8 @@ function renderSettings(){
 
   const testRole = getTestRole();
   const isActuallyRaidLeader = state.profile && state.profile.protected;
-  const showDebugPanel = isActuallyRaidLeader || testRole; // Show if actually raid leader OR in test mode
+  const showDebugPanel = isActuallyRaidLeader || testRole;
+  const showGoldAudit = testIsRaidLeader();
 
   return `
     ${pageHeader('Settings', 'Preferences', 'Customize your profile appearance')}
@@ -4579,6 +4622,25 @@ function renderSettings(){
         <button class="btn ${testRole === 'raidleader' ? 'primary' : 'secondary'}" type="button" id="test-role-raidleader" style="flex:1; min-width:120px;">Test as Raid Leader</button>
       </div>
       ${testRole ? `<div class="muted sans" style="font-size:11px; margin-top:10px; padding:8px; background:rgba(0,0,0,0.2); border-radius:3px;">Currently viewing as: <strong style="color:#ffb300;">${testRole}</strong></div>` : ''}
+    </div>
+    ` : ''}
+
+    ${showGoldAudit ? `
+    <div class="panel style-glass" style="margin-bottom:20px;">
+      <h3 style="margin-bottom:16px;">Gold Audit Log</h3>
+      <p class="muted sans" style="margin-bottom:16px;">View complete transaction history for all players.</p>
+      <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+        <input type="text" id="audit-player-filter" placeholder="Filter by player name..." style="flex:1; min-width:200px; padding:8px; border:1px solid var(--divider); border-radius:4px; background:rgba(0,0,0,0.2); color:#fff;">
+        <select id="audit-type-filter" style="padding:8px; border:1px solid var(--divider); border-radius:4px; background:rgba(0,0,0,0.2); color:#fff;">
+          <option value="">All Types</option>
+          <option value="earned">Earned</option>
+          <option value="spent">Spent</option>
+          <option value="adjusted">Adjusted</option>
+        </select>
+      </div>
+      <div id="audit-log-container" style="max-height:600px; overflow-y:auto; border:1px solid var(--divider); border-radius:4px; padding:12px;">
+        <p class="muted" style="text-align:center;">Loading transactions...</p>
+      </div>
     </div>
     ` : ''}
 
@@ -4909,6 +4971,28 @@ function bindApp(){
   if(testRoleMember) testRoleMember.addEventListener('click', ()=>{ setTestRole('member'); render(); });
   if(testRoleOfficer) testRoleOfficer.addEventListener('click', ()=>{ setTestRole('officer'); render(); });
   if(testRoleRaidleader) testRoleRaidleader.addEventListener('click', ()=>{ setTestRole('raidleader'); render(); });
+
+  // Gold audit log
+  if(document.getElementById('audit-log-container')){
+    (async ()=>{
+      const transactions = await loadGoldTransactions();
+      state.goldTransactions = transactions;
+      updateAuditLog();
+
+      const playerFilter = document.getElementById('audit-player-filter');
+      const typeFilter = document.getElementById('audit-type-filter');
+      if(playerFilter) playerFilter.addEventListener('input', updateAuditLog);
+      if(typeFilter) typeFilter.addEventListener('change', updateAuditLog);
+    })();
+  }
+
+  function updateAuditLog(){
+    const container = document.getElementById('audit-log-container');
+    if(!container) return;
+    const playerFilter = document.getElementById('audit-player-filter')?.value || '';
+    const typeFilter = document.getElementById('audit-type-filter')?.value || '';
+    container.innerHTML = renderAuditLog(state.goldTransactions || [], playerFilter, typeFilter);
+  }
 }
 
 boot();
