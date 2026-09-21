@@ -2992,19 +2992,18 @@ function startBlacksmithGame(spawnRect){
       const elapsed = now - cycleStart;
       const progress = (elapsed / cycleTime) % 1;
 
-      // Indicator: pause at right, swing to left, return to right
+      // Indicator: swing from left to right, pause at right, return to left
       let angle;
-      if (progress < 0.1) {
+      if (progress < 0.45) {
+        // Swing from left to right
+        angle = 180 - (progress / 0.45) * 180;
+      } else if (progress < 0.9) {
         // Pause at right side
         angle = 0;
-      } else if (progress < 0.55) {
-        // Swing from right to left
-        const swingProgress = (progress - 0.1) / 0.45;
-        angle = swingProgress * 180;
       } else {
-        // Swing from left back to right
-        const returnProgress = (progress - 0.55) / 0.45;
-        angle = 180 - (returnProgress * 180);
+        // Swing from right back to left
+        const returnProgress = (progress - 0.9) / 0.1;
+        angle = returnProgress * 180;
       }
       const rad = angle * Math.PI / 180;
       const x = 90 + 80 * Math.cos(rad);
