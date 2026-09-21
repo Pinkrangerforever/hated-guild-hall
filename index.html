@@ -2938,10 +2938,10 @@ function startBlacksmithGame(spawnRect){
       <svg class="timing-gauge" viewBox="0 0 180 100" xmlns="http://www.w3.org/2000/svg" style="position:absolute; left:50%; top:-20%; transform:translateX(-50%); width:210px; height:128px; pointer-events:none; z-index:10;">
         <defs>
           <linearGradient id="arcGradient" x1="0%" y1="50%" x2="100%" y2="50%">
-            <stop offset="0%" style="stop-color:#7fa363;stop-opacity:0.9"/>
-            <stop offset="5%" style="stop-color:#7fa363;stop-opacity:0.9"/>
-            <stop offset="5%" style="stop-color:rgba(255,255,255,0.1);stop-opacity:0.1"/>
-            <stop offset="100%" style="stop-color:rgba(255,255,255,0.1);stop-opacity:0.1"/>
+            <stop offset="0%" style="stop-color:rgba(255,255,255,0.1);stop-opacity:0.1"/>
+            <stop offset="95%" style="stop-color:rgba(255,255,255,0.1);stop-opacity:0.1"/>
+            <stop offset="95%" style="stop-color:#7fa363;stop-opacity:0.9"/>
+            <stop offset="100%" style="stop-color:#7fa363;stop-opacity:0.9"/>
           </linearGradient>
         </defs>
         <!-- Arc outline (charcoal grey) -->
@@ -3011,8 +3011,9 @@ function startBlacksmithGame(spawnRect){
       indicator.setAttribute('cx', x.toFixed(1));
       indicator.setAttribute('cy', y.toFixed(1));
 
-      // Hammer swings from upright downward to strike the sword
-      const swing = Math.sin(progress * Math.PI) * 135;
+      // Hammer swings from upright downward to strike the sword (smoother arc)
+      const easeProgress = Math.sin(progress * Math.PI);
+      const swing = easeProgress * 110;
       hammer.style.transform = `rotate(${swing - 90}deg)`;
 
       // Reset clickedInWindow when indicator returns to right side (angle < 30)
