@@ -2637,13 +2637,17 @@ async function claimSparkle(el){
     }
 
     // normal claim: update gold directly without full render to preserve video
+    const oldGold = state.profile?.gold || 0;
+    const awarded = data.awarded || (data.total - oldGold) || 0;
     if(state.profile){
       state.profile.gold = data.total;
       // Update gold badge in DOM instead of calling render()
       const goldBadge = document.querySelector('.nav-gold-badge');
       if(goldBadge) goldBadge.textContent = 'â¬¥ ' + data.total;
     }
-    showGoldFloat(rect.left + rect.width/2, rect.top, data.awarded);
+    if(awarded > 0){
+      showGoldFloat(rect.left + rect.width/2, rect.top, awarded);
+    }
   }catch(e){ /* silent */ }
 }
 async function resolveSparkleEvent(pendingId, won, x, y){
