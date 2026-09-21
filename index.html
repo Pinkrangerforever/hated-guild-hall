@@ -2926,14 +2926,14 @@ function startBlacksmithGame(spawnRect){
     <div style="position:relative; width:100%; height:100%;">
       <img class="anvil-graphic" src="https://housing-media.wowdb.com/decor/thumb/7425323.png" style="position:absolute; left:50%; bottom:0; transform:translateX(-50%); height:70%; max-width:90%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));" alt="anvil"/>
       <img class="sword-graphic" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0cwoE1CSVXzjejqIff6NygNEgx0f_kFxst9MfCBhhAQ&s=10" style="position:absolute; left:50%; top:30%; transform:translateX(-50%); height:35%; max-width:20%; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));" alt="sword"/>
-      <img class="hammer-graphic" src="https://wow.zamimg.com/modelviewer/live/webthumbs/item/60/664636.webp" style="position:absolute; left:50%; top:8%; transform-origin:50% 90%; height:50%; max-width:35%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));" alt="hammer"/>
+      <img class="hammer-graphic" src="https://wow.zamimg.com/modelviewer/live/webthumbs/item/60/664636.webp" style="position:absolute; right:0%; top:0%; transform-origin:0% 100%; height:55%; max-width:40%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));" alt="hammer"/>
       <svg class="timing-gauge" viewBox="0 0 180 100" xmlns="http://www.w3.org/2000/svg" style="position:absolute; left:50%; top:-20%; transform:translateX(-50%); width:140px; height:85px; pointer-events:none; z-index:10;">
         <!-- Arc outline (charcoal grey) -->
         <path d="M 10 90 A 80 80 0 0 1 170 90" fill="none" stroke="#2a2a2a" stroke-width="12" stroke-linecap="round"/>
         <!-- Background arc (lighter) -->
         <path d="M 10 90 A 80 80 0 0 1 170 90" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="9" stroke-linecap="round"/>
-        <!-- Green perfect zone (30 degrees from left) -->
-        <path d="M 10 90 A 80 80 0 0 1 60 30" fill="none" stroke="#7fa363" stroke-width="9" stroke-linecap="round" opacity="0.9"/>
+        <!-- Green perfect zone (30 degrees from left, 180Â° to 150Â°) -->
+        <path d="M 10 90 A 80 80 0 0 1 20 130" fill="none" stroke="#7fa363" stroke-width="9" stroke-linecap="round" opacity="0.9"/>
         <!-- Red indicator circle -->
         <circle class="gauge-indicator" cx="10" cy="90" r="5" fill="#e74c3c" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.8))"/>
       </svg>
@@ -2980,9 +2980,9 @@ function startBlacksmithGame(spawnRect){
       const angle = 180 - (progress * 180);
       const rad = angle * Math.PI / 180;
       const x = 90 + 80 * Math.cos(rad);
-      const y = 90 + 80 * Math.sin(rad);
-      indicator.setAttribute('cx', x);
-      indicator.setAttribute('cy', y);
+      const y = 90 - 80 * Math.sin(rad);
+      indicator.setAttribute('cx', x.toFixed(1));
+      indicator.setAttribute('cy', y.toFixed(1));
 
       // Swing hammer in sync (0Â° at start/end, -75Â° at middle)
       const swing = Math.sin(progress * Math.PI) * 75;
