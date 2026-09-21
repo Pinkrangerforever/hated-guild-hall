@@ -3038,8 +3038,8 @@ function startBlacksmithGame(spawnRect){
       const progress = (elapsed / cycleTime) % 1;
       const angle = Math.abs(Math.sin(progress * Math.PI)) * 180;
 
-      // Green zone is 170-180 degrees (small left side), only on forward swing
-      if(angle >= 170 && angle <= 180 && progress < 0.45){
+      // Green zone is 0-10 degrees (small right side), only on forward swing
+      if(angle >= 0 && angle <= 10 && progress < 0.45){
         recordHit();
         createSparks();
       } else {
