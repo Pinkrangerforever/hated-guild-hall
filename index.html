@@ -2637,16 +2637,16 @@ async function claimSparkle(el){
     }
 
     // normal claim: update gold directly without full render to preserve video
-    const oldGold = state.profile?.gold || 0;
-    const awarded = data.awarded || (data.total - oldGold) || 0;
-    if(state.profile){
+    if(data.total !== undefined && state.profile){
+      const oldGold = state.profile.gold || 0;
+      const awarded = Math.max(0, data.total - oldGold);
       state.profile.gold = data.total;
       // Update gold badge in DOM instead of calling render()
       const goldBadge = document.querySelector('.nav-gold-badge');
       if(goldBadge) goldBadge.textContent = 'â¬¥ ' + data.total;
-    }
-    if(awarded > 0){
-      showGoldFloat(rect.left + rect.width/2, rect.top, awarded);
+      if(awarded > 0){
+        showGoldFloat(rect.left + rect.width/2, rect.top, awarded);
+      }
     }
   }catch(e){ /* silent */ }
 }
