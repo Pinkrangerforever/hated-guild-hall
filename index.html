@@ -1711,7 +1711,7 @@ function renderAuditLog(transactions, playerFilter = '', typeFilter = ''){
               <span>Spent: <span style="color:#ff6464;">${spent.toLocaleString()}</span></span>
               <span>Net: <span style="color:${net>0?'#1eff00':'#ff6464'};">${net>0?'+':''}${net.toLocaleString()}</span></span>
             </span>
-            <span style="font-size:14px; transition:transform 0.2s;" class="audit-toggle-icon">â–¶</span>
+            <span style="font-size:14px; transition:transform 0.2s; display:inline-block;" class="audit-toggle-icon">&gt;</span>
           </button>
           <div class="audit-player-content" data-player="${playerId}" style="display:none; background:rgba(0,0,0,0.2);">
             <table style="width:100%; font-size:11px; border-collapse:collapse;">
