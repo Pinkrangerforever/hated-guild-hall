@@ -1088,8 +1088,8 @@
     100%{ transform:rotate(0deg); }
   }
   @keyframes gaugeNeedleSweep{
-    0%{ cx:10; }
-    100%{ cx:150; }
+    0%{ x1:10; x2:10; }
+    100%{ x1:150; x2:150; }
   }
 
   .shop-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
@@ -2925,18 +2925,21 @@ function startBlacksmithGame(spawnRect){
     <div style="position:relative; width:100%; height:100%;">
       <img class="anvil-graphic" src="https://housing-media.wowdb.com/decor/thumb/7425323.png" style="position:absolute; left:50%; bottom:0; transform:translateX(-50%); height:85%; max-width:90%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6)); mix-blend-mode:multiply;" alt="anvil"/>
       <img class="sword-graphic" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR08GNim6IQuhLd_e4y7iGg2Zspfq8YoV-cGpviFY6O8w&s=10" style="position:absolute; left:50%; top:25%; transform:translateX(-50%); height:50%; max-width:30%; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8)); mix-blend-mode:multiply;" alt="sword"/>
-      <svg class="timing-gauge" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg" style="position:absolute; left:50%; top:50%; transform:translateX(-50%); width:110px; height:62px; pointer-events:none;">
+      <svg class="timing-gauge" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg" style="position:absolute; left:50%; top:-10%; transform:translateX(-50%); width:120px; height:70px; pointer-events:none; z-index:10;">
         <defs>
           <linearGradient id="perfectGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" style="stop-color:#7fa363;stop-opacity:0.8" />
-            <stop offset="100%" style="stop-color:#7fa363;stop-opacity:0.3" />
+            <stop offset="0%" style="stop-color:#7fa363;stop-opacity:0.9" />
+            <stop offset="100%" style="stop-color:#7fa363;stop-opacity:0.5" />
           </linearGradient>
         </defs>
-        <path d="M 10 80 A 70 70 0 0 1 150 80" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="6" stroke-linecap="round"/>
-        <path class="perfect-zone" d="M 35 80 A 70 70 0 0 1 125 80" fill="none" stroke="url(#perfectGradient)" stroke-width="6" stroke-linecap="round"/>
-        <circle class="gauge-needle" cx="80" cy="80" r="3" fill="#f0dfb4" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.8))"/>
+        <!-- Background arc -->
+        <path d="M 10 80 A 70 70 0 0 1 150 80" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="5" stroke-linecap="round"/>
+        <!-- Green perfect zone on LEFT side -->
+        <path class="perfect-zone" d="M 10 80 A 70 70 0 0 1 60 80" fill="none" stroke="url(#perfectGradient)" stroke-width="5" stroke-linecap="round"/>
+        <!-- Moving needle line -->
+        <line class="gauge-needle" x1="10" y1="60" x2="10" y2="100" stroke="#f0dfb4" stroke-width="2" stroke-linecap="round" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.8))"/>
       </svg>
-      <img class="hammer-graphic" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRFfzReAc2AMMNIImVlRReP3rEeL7aM5Ge7KRLwEdXBDw&s=10" style="position:absolute; left:50%; top:-5%; transform-origin:50% 85%; height:65%; max-width:40%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8)); mix-blend-mode:multiply;" alt="hammer"/>
+      <img class="hammer-graphic" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRFfzReAc2AMMNIImVlRReP3rEeL7aM5Ge7KRLwEdXBDw&s=10" style="position:absolute; left:50%; top:5%; transform-origin:50% 85%; height:60%; max-width:38%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8)) brightness(0.95) contrast(1.1); mix-blend-mode:multiply;" alt="hammer"/>
     </div>
     <div class="hit-display" style="position:absolute; bottom:2px; left:50%; transform:translateX(-50%); font-size:9px; color:#f0dfb4; font-weight:700; min-width:35px; text-align:center;"></div>
     <div class="feedback-popup" style="position:absolute; top:35%; left:50%; transform:translate(-50%,-50%); font-size:13px; font-weight:700; pointer-events:none; display:none; text-shadow:0 2px 4px rgba(0,0,0,0.8);"></div>
