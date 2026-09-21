@@ -1998,7 +1998,6 @@ async function onAuthResolved(){
       if(state.profile){
         state.view = 'app';
         await loadGuildData();
-        await loadShopPurchases();
         if(window.location.hash){
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
@@ -2069,7 +2068,7 @@ async function syncDiscordRole(showFeedback){
 
 /* ---------------- data loading ---------------- */
 async function loadGuildData(){
-  const [settingsRes, eventsRes, rsvpsRes, raidsRes, bossesRes, softresRes, raidplanRes, compRes, lootRes, newsRes, profilesRes, galleryRes, siteImagesRes, shopRes, stickersRes] = await Promise.all([
+  const [settingsRes, eventsRes, rsvpsRes, raidsRes, bossesRes, softresRes, raidplanRes, compRes, lootRes, newsRes, profilesRes, galleryRes, siteImagesRes, shopRes, purchasesRes, stickersRes] = await Promise.all([
     sb.from('guild_settings').select('*').eq('id',1).single(),
     sb.from('events').select('*').order('date'),
     sb.from('rsvps').select('*'),
@@ -2084,6 +2083,7 @@ async function loadGuildData(){
     sb.from('gallery_images').select('*').order('created_at', { ascending:false }),
     sb.from('site_images').select('*'),
     sb.from('shop_items').select('*').order('cost'),
+    sb.from('shop_purchases').select('*').eq('fulfilled', true),
     sb.from('stickers').select('*').order('placed_at', { ascending:false }),
   ]);
   if(settingsRes.data) state.settings = settingsRes.data;
@@ -2110,6 +2110,7 @@ async function loadGuildData(){
   (siteImagesRes.data||[]).forEach(row=>{ if(row.image_url) imgMap[row.slot_key] = row.image_url; });
   state.siteImages = imgMap;
   state.shopItems = shopRes.data || [];
+  state.shopPurchases = purchasesRes.data || [];
   state.stickers = stickersRes.data || [];
   applySiteBackground();
 }
