@@ -3060,8 +3060,8 @@ function startBlacksmithGame(spawnRect){
         angle = returnProgress * 180;
       }
 
-      // Green zone is 170-180 degrees (LEFT side) during pause at left
-      if(angle >= 170 && angle <= 180 && progress < 0.1){
+      // Green zone is 160-180 degrees (LEFT side) during pause at left
+      if(angle >= 160 && angle <= 180 && progress < 0.15){
         recordHit();
         createSparks();
       } else {
