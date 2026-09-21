@@ -1685,32 +1685,54 @@ function renderAuditLog(transactions, playerFilter = '', typeFilter = ''){
 
   if(!filtered.length) return '<p class="muted" style="text-align:center; padding:20px;">No transactions found</p>';
 
+  // Group by player
+  const grouped = {};
+  filtered.forEach(t => {
+    const player = t.character_name || 'Unknown';
+    if(!grouped[player]) grouped[player] = [];
+    grouped[player].push(t);
+  });
+
   return `
-    <table style="width:100%; font-size:12px; border-collapse:collapse;">
-      <thead>
-        <tr style="border-bottom:1px solid var(--divider);">
-          <th style="text-align:left; padding:8px; font-weight:600;">Player</th>
-          <th style="text-align:left; padding:8px; font-weight:600;">Type</th>
-          <th style="text-align:right; padding:8px; font-weight:600;">Amount</th>
-          <th style="text-align:left; padding:8px; font-weight:600;">Reason</th>
-          <th style="text-align:left; padding:8px; font-weight:600; width:120px;">Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${filtered.map(t => {
-          const bgColor = t.transaction_type==='earned'?'rgba(30,255,0,0.2)':t.transaction_type==='spent'?'rgba(255,100,0,0.2)':'rgba(100,150,255,0.2)';
-          const textColor = t.amount>0?'#1eff00':'#ff6464';
-          return `
-          <tr style="border-bottom:1px solid var(--divider-light);">
-            <td style="padding:8px;">${esc(t.character_name || 'Unknown')}</td>
-            <td style="padding:8px;"><span style="padding:2px 6px; border-radius:3px; background:${bgColor};">${esc(t.transaction_type)}</span></td>
-            <td style="padding:8px; text-align:right; font-weight:600; color:${textColor};">${t.amount>0?'+':''}${t.amount}</td>
-            <td style="padding:8px; color:var(--text-muted);">${esc(t.reason || t.source)}</td>
-            <td style="padding:8px; color:var(--text-muted);">${new Date(t.created_at).toLocaleString()}</td>
-          </tr>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      ${Object.entries(grouped).sort((a,b) => a[0].localeCompare(b[0])).map(([player, txns]) => {
+        const earned = txns.filter(t => t.transaction_type === 'earned').reduce((sum, t) => sum + t.amount, 0);
+        const spent = txns.filter(t => t.transaction_type === 'spent').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        const adjusted = txns.filter(t => t.transaction_type === 'adjusted').reduce((sum, t) => sum + t.amount, 0);
+        const net = earned - spent + adjusted;
+        const playerId = player.replace(/\s+/g, '-').toLowerCase();
+
+        return `
+        <div style="border:1px solid var(--divider); border-radius:4px; overflow:hidden;">
+          <button type="button" class="audit-player-toggle" data-player="${playerId}" style="width:100%; padding:12px; background:rgba(207,154,68,0.1); border:none; cursor:pointer; text-align:left; display:flex; justify-content:space-between; align-items:center; font-weight:600; color:#fff; transition:background 0.2s;">
+            <span>${esc(player)}</span>
+            <span style="display:flex; gap:16px; font-size:11px; font-weight:400; color:var(--text-muted);">
+              <span>Earned: <span style="color:#1eff00;">${earned.toLocaleString()}</span></span>
+              <span>Spent: <span style="color:#ff6464;">${spent.toLocaleString()}</span></span>
+              <span>Net: <span style="color:${net>0?'#1eff00':'#ff6464'};">${net>0?'+':''}${net.toLocaleString()}</span></span>
+            </span>
+            <span style="font-size:14px; transition:transform 0.2s;" class="audit-toggle-icon">â–¶</span>
+          </button>
+          <div class="audit-player-content" data-player="${playerId}" style="display:none; background:rgba(0,0,0,0.2);">
+            <table style="width:100%; font-size:11px; border-collapse:collapse;">
+              <tbody>
+                ${txns.map(t => {
+                  const bgColor = t.transaction_type==='earned'?'rgba(30,255,0,0.2)':t.transaction_type==='spent'?'rgba(255,100,0,0.2)':'rgba(100,150,255,0.2)';
+                  const textColor = t.amount>0?'#1eff00':'#ff6464';
+                  return `
+                  <tr style="border-top:1px solid var(--divider-light);">
+                    <td style="padding:8px;"><span style="padding:2px 6px; border-radius:3px; background:${bgColor};">${esc(t.transaction_type)}</span></td>
+                    <td style="padding:8px; text-align:right; font-weight:600; color:${textColor}; width:60px;">${t.amount>0?'+':''}${t.amount}</td>
+                    <td style="padding:8px; color:var(--text-muted); flex:1;">${esc(t.reason || t.source)}</td>
+                    <td style="padding:8px; color:var(--text-muted); width:120px;">${new Date(t.created_at).toLocaleString()}</td>
+                  </tr>
+                  `}).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
         `}).join('')}
-      </tbody>
-    </table>
+    </div>
   `;
 }
 
@@ -4995,6 +5017,22 @@ function bindApp(){
     const playerFilter = document.getElementById('audit-player-filter')?.value || '';
     const typeFilter = document.getElementById('audit-type-filter')?.value || '';
     container.innerHTML = renderAuditLog(state.goldTransactions || [], playerFilter, typeFilter);
+
+    // Add toggle handlers
+    document.querySelectorAll('.audit-player-toggle').forEach(btn => {
+      btn.addEventListener('click', ()=>{
+        const player = btn.dataset.player;
+        const content = document.querySelector(`.audit-player-content[data-player="${player}"]`);
+        const icon = btn.querySelector('.audit-toggle-icon');
+        if(content.style.display === 'none'){
+          content.style.display = 'block';
+          icon.style.transform = 'rotate(90deg)';
+        } else {
+          content.style.display = 'none';
+          icon.style.transform = 'rotate(0deg)';
+        }
+      });
+    });
   }
 }
 
