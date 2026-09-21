@@ -2629,7 +2629,7 @@ async function claimSparkle(el){
     // 25% chance for each event type
     const rand = Math.random();
     if(rand < 0.25) {
-      return startBlacksmithGame(rect);
+      return startBlacksmithGame(rect, data.pending_id);
     } else if(rand < 0.5) {
       return startMurlocEvent(rect, data.pending_id);
     } else if(rand < 0.75) {
@@ -2921,7 +2921,7 @@ function showGoldFloat(x, y, amount){
   setTimeout(()=>{ if(el.parentNode) el.remove(); }, 1200);
 }
 
-function startBlacksmithGame(spawnRect){
+function startBlacksmithGame(spawnRect, pendingId){
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
 
@@ -3167,7 +3167,7 @@ function startBlacksmithGame(spawnRect){
     if(success){
       showFeedback('Success!', '#7fa363');
       showToast(`Forged ${item}! +${baseReward} Gold`);
-      claimBlacksmithReward(baseReward, cx, cy);
+      claimBlacksmithReward(pendingId, true, cx, cy);
     } else {
       showToast('Time\'s up!', true);
     }
@@ -3178,23 +3178,20 @@ function startBlacksmithGame(spawnRect){
   runHammerCycle();
 }
 
-async function claimBlacksmithReward(amount, x, y){
+async function claimBlacksmithReward(pendingId, won, x, y){
   try{
-    const { data, error } = await sb.rpc('claim_sparkle_gold');
+    const { data, error } = await sb.rpc('resolve_sparkle_event', { p_pending_id: pendingId, p_won: won });
     if(error || !data || !data.success) return;
 
-    if(data.total !== undefined && state.profile){
-      const oldGold = state.profile.gold || 0;
-      const awarded = Math.max(0, data.total - oldGold);
-      state.profile.gold = data.total;
-
-      // Update gold badge
-      const goldBadge = document.querySelector('.nav-gold-badge');
-      if(goldBadge) goldBadge.textContent = '⬥ ' + data.total;
-
-      // Show gold popup
-      if(awarded > 0 && x !== undefined && y !== undefined){
-        showGoldFloat(x, y, awarded);
+    if(data.won){
+      if(state.profile){
+        state.profile.gold = data.total;
+        // Update gold badge directly without full render
+        const goldBadge = document.querySelector('.nav-gold-badge');
+        if(goldBadge) goldBadge.textContent = '⬥ ' + data.total;
+      }
+      if(data.awarded !== undefined && x !== undefined && y !== undefined){
+        showGoldFloat(x, y, data.awarded);
       }
     }
   }catch(e){ console.error('Blacksmith reward claim error:', e); }
