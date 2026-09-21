@@ -1697,15 +1697,18 @@ function renderAuditLog(transactions, playerFilter = '', typeFilter = ''){
         </tr>
       </thead>
       <tbody>
-        ${filtered.map(t => `
-          <tr style="border-bottom:1px solid var(--divider-light); hover:background:rgba(207,154,68,0.05);">
+        ${filtered.map(t => {
+          const bgColor = t.transaction_type==='earned'?'rgba(30,255,0,0.2)':t.transaction_type==='spent'?'rgba(255,100,0,0.2)':'rgba(100,150,255,0.2)';
+          const textColor = t.amount>0?'#1eff00':'#ff6464';
+          return `
+          <tr style="border-bottom:1px solid var(--divider-light);">
             <td style="padding:8px;">${esc(t.character_name || 'Unknown')}</td>
-            <td style="padding:8px;"><span style="padding:2px 6px; border-radius:3px; background:${t.transaction_type==='earned'?'rgba(30,255,0,0.2)':t.transaction_type==='spent'?'rgba(255,100,0,0.2)':'rgba(100,150,255,0.2)'};">${esc(t.transaction_type)}</span></td>
-            <td style="padding:8px; text-align:right; font-weight:600; color:${t.amount>0?'#1eff00':'#ff6464';};">${t.amount>0?'+':''}${t.amount}</td>
+            <td style="padding:8px;"><span style="padding:2px 6px; border-radius:3px; background:${bgColor};">${esc(t.transaction_type)}</span></td>
+            <td style="padding:8px; text-align:right; font-weight:600; color:${textColor};">${t.amount>0?'+':''}${t.amount}</td>
             <td style="padding:8px; color:var(--text-muted);">${esc(t.reason || t.source)}</td>
             <td style="padding:8px; color:var(--text-muted);">${new Date(t.created_at).toLocaleString()}</td>
           </tr>
-        `).join('')}
+        `}).join('')}
       </tbody>
     </table>
   `;
