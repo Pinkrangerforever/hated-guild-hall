@@ -1075,82 +1075,17 @@
     animation:fishJump 0.85s ease-out forwards;
   }
 
-  .blacksmith-game-overlay{
-    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-    background:rgba(0,0,0,0.7); z-index:9999; animation:fadeIn 0.3s ease-out;
-  }
   .blacksmith-forge{
-    background:var(--bg-card); border:2px solid var(--yellow); border-radius:8px;
-    padding:24px; max-width:500px; width:90%; box-shadow:0 8px 24px rgba(0,0,0,0.8);
+    position:absolute; width:120px; height:120px; pointer-events:auto;
+    animation:poolAppear 0.4s cubic-bezier(.3,1.5,.4,1) both;
   }
-  .forge-header{
-    font-size:20px; font-weight:700; color:var(--yellow); margin-bottom:20px; text-align:center;
-    text-shadow:0 2px 4px rgba(0,0,0,0.6);
-  }
-  .forge-content{
-    display:flex; flex-direction:column; align-items:center; gap:16px; margin-bottom:20px;
-    min-height:280px;
-  }
-  .anvil-container{
-    position:relative; width:120px; height:120px; perspective:1000px;
-  }
-  .anvil-svg{
-    width:100%; height:100%; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.6));
-  }
-  .hammer{
-    position:absolute; inset:0; width:100%; height:100%; pointer-events:none;
-  }
-  .hammer-head{
-    position:absolute; width:20px; height:16px; background:#5a5a5a;
-    left:50%; top:20%; transform:translateX(-50%);
-    border-radius:2px; box-shadow:0 2px 4px rgba(0,0,0,0.8);
-  }
-  .hammer-handle{
-    position:absolute; width:4px; height:60px; background:#8b7355;
-    left:50%; top:36%; transform:translateX(-50%);
-    border-radius:2px;
-  }
-  .hammer-animate{
-    animation:hammerStrike 0.8s ease-in-out;
-  }
-  .forge-item-display{
-    font-size:18px; font-weight:700; color:var(--yellow);
-    text-shadow:0 2px 4px rgba(0,0,0,0.6);
-  }
-  .hammer-timer{
-    width:100%; height:6px; background:var(--bg-tertiary); border-radius:3px;
-    border:1px solid var(--divider-strong); overflow:hidden;
-  }
-  .timer-bar{
-    height:100%; background:linear-gradient(90deg, #7fa363, #cf9a44);
-    width:0%; transform-origin:left;
-  }
-  .hit-counter{
-    font-size:14px; color:var(--text-normal);
-  }
-  .hit-label{ font-weight:600; color:var(--text-muted); }
-  .hit-count{ font-weight:700; color:var(--yellow); margin-left:4px; }
-  .timing-feedback{
-    font-size:18px; font-weight:700; min-height:24px; text-align:center;
-    text-shadow:0 2px 4px rgba(0,0,0,0.6);
-  }
-  .forge-controls{ text-align:center; }
-  .forge-start-btn{
-    background:var(--blurple); color:#fff; border:none; border-radius:4px;
-    padding:10px 32px; font-weight:700; font-size:14px; cursor:pointer;
-    transition:background 0.2s ease;
-  }
-  .forge-start-btn:hover{ background:var(--blurple-hover); }
+  .anvil-svg{ position:absolute; inset:0; width:100%; height:100%; display:block; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6)); }
 
-  @keyframes hammerStrike{
-    0%{ transform:translateY(-80px); }
-    50%{ transform:translateY(-80px); }
-    75%{ transform:translateY(20px); }
-    100%{ transform:translateY(-80px); }
-  }
-  @keyframes timer-fill{
-    0%{ width:0%; }
-    100%{ width:100%; }
+  @keyframes hammerStrikeQuick{
+    0%{ transform:translateY(-20px); }
+    50%{ transform:translateY(-20px); }
+    80%{ transform:translateY(15px); }
+    100%{ transform:translateY(-20px); }
   }
 
   .shop-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
@@ -2976,155 +2911,108 @@ function startBlacksmithGame(spawnRect){
   const item = items[Math.floor(Math.random() * items.length)];
   const baseReward = 100 + Math.floor(Math.random() * 50);
 
-  const gameContainer = document.createElement('div');
-  gameContainer.className = 'blacksmith-game-overlay';
-  gameContainer.innerHTML = `
-    <div class="blacksmith-forge">
-      <div class="forge-header">Forge ${item}</div>
-      <div class="forge-content">
-        <div class="anvil-container">
-          <svg class="anvil-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <rect x="30" y="140" width="140" height="30" fill="#3d3d3d" rx="2"/>
-            <ellipse cx="100" cy="140" rx="75" ry="8" fill="#2a2a2a"/>
-            <polygon points="100,60 130,100 70,100" fill="#5a5a5a"/>
-            <path d="M 100 60 Q 115 75 130 100 Q 100 110 70 100 Q 85 75 100 60" fill="#4a4a4a"/>
-            <circle cx="100" cy="90" r="12" fill="#8b8b8b" opacity="0.6"/>
-          </svg>
-          <div class="hammer" style="display:none;">
-            <div class="hammer-head"></div>
-            <div class="hammer-handle"></div>
-          </div>
-        </div>
-        <div class="forge-item-display">${item}</div>
-        <div class="hammer-timer">
-          <div class="timer-bar"></div>
-        </div>
-        <div class="hit-counter">
-          <span class="hit-label">Hits:</span>
-          <span class="hit-count">0/3</span>
-        </div>
-        <div class="timing-feedback"></div>
-      </div>
+  const cx = spawnRect.left + spawnRect.width/2, cy = spawnRect.top + spawnRect.height/2;
+
+  const forge = document.createElement('div');
+  forge.className = 'blacksmith-forge';
+  forge.style.left = (cx - 60) + 'px';
+  forge.style.top = (cy - 60) + 'px';
+  forge.innerHTML = `
+    <svg class="anvil-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <rect x="15" y="85" width="90" height="20" fill="#3d3d3d" rx="1"/>
+      <ellipse cx="60" cy="85" rx="50" ry="5" fill="#2a2a2a"/>
+      <polygon points="60,30 80,60 40,60" fill="#5a5a5a"/>
+      <path d="M 60 30 Q 70 45 80 60 Q 60 65 40 60 Q 50 45 60 30" fill="#4a4a4a"/>
+      <circle cx="60" cy="52" r="8" fill="#8b8b8b" opacity="0.6"/>
+    </svg>
+    <div class="hammer-mini" style="display:none; position:absolute; left:50%; top:8%; transform:translateX(-50%); width:12px; height:28px; z-index:2;">
+      <div style="width:10px; height:8px; background:#5a5a5a; border-radius:2px; margin:0 auto;"></div>
+      <div style="width:3px; height:20px; background:#8b7355; margin:0 auto;"></div>
     </div>
+    <div class="hit-display" style="position:absolute; bottom:2px; left:50%; transform:translateX(-50%); font-size:10px; color:#f0dfb4; font-weight:700; min-width:30px; text-align:center;"></div>
   `;
-  layer.appendChild(gameContainer);
+  layer.appendChild(forge);
 
   let gameState = {
     hits: 0,
     maxHits: 3,
-    gameActive: false,
     resolved: false,
     difficulty: 1,
     hammerCycle: null
   };
 
-  const gameContent = gameContainer.querySelector('.forge-content');
-  const feedback = gameContainer.querySelector('.timing-feedback');
-  const hitCounter = gameContainer.querySelector('.hit-count');
-  const hammer = gameContainer.querySelector('.hammer');
-  const timerBar = gameContainer.querySelector('.timer-bar');
-
-  // Remove start button and immediately start game
-  const startBtn = gameContainer.querySelector('.forge-start-btn');
-  startBtn.remove();
-
-  gameState.gameActive = true;
-  setTimeout(() => runHammerCycle(), 300);
+  const hammer = forge.querySelector('.hammer-mini');
+  const hitDisplay = forge.querySelector('.hit-display');
+  hitDisplay.textContent = '0/3';
 
   function runHammerCycle(){
-    if(!gameState.gameActive || gameState.resolved) return;
+    if(gameState.resolved) return;
 
-    const baseSpeed = 2000 - (gameState.difficulty * 300);
-    const cycleTime = Math.max(baseSpeed, 800);
+    const baseSpeed = 1800 - (gameState.difficulty * 250);
+    const cycleTime = Math.max(baseSpeed, 700);
 
     hammer.style.display = 'block';
-    hammer.classList.add('hammer-animate');
-
-    timerBar.style.animation = 'none';
-    timerBar.offsetHeight;
-    timerBar.style.animation = `timer-fill ${cycleTime}ms linear`;
+    hammer.style.animation = `hammerStrikeQuick ${cycleTime}ms ease-in-out`;
 
     gameState.hammerCycle = setTimeout(()=>{
-      hammer.classList.remove('hammer-animate');
+      hammer.style.animation = 'none';
+      hammer.style.display = 'none';
       setTimeout(()=>runHammerCycle(), 100);
     }, cycleTime);
 
     const hitWindowStart = cycleTime * 0.75;
     const hitWindowEnd = cycleTime * 0.95;
-
     let clickedInWindow = false;
 
-    function handleGameClick(){
-      if(!gameState.gameActive || clickedInWindow) return;
+    function handleClick(){
+      if(clickedInWindow) return;
       clickedInWindow = true;
 
       const elapsed = performance.now() - cycleStart;
       const relativeElapsed = elapsed % cycleTime;
 
+      clearTimeout(gameState.hammerCycle);
+      hammer.style.animation = 'none';
+      hammer.style.display = 'none';
+
       if(relativeElapsed >= hitWindowStart && relativeElapsed <= hitWindowEnd){
-        recordHit('Perfect!', '#7fa363');
-      } else if(relativeElapsed < hitWindowStart){
-        recordHit('Too Early!', '#b0524f');
+        recordHit();
       } else {
-        recordHit('Too Late!', '#b0524f');
+        finishGame(false);
       }
     }
 
     const cycleStart = performance.now();
-    gameContent.addEventListener('click', handleGameClick, { once: true });
+    forge.addEventListener('click', handleClick, { once: true });
   }
 
-  function recordHit(message, color){
+  function recordHit(){
     gameState.hits++;
     gameState.difficulty++;
-
-    gameContent.removeEventListener('click', recordHit);
-    clearTimeout(gameState.hammerCycle);
-    hammer.classList.remove('hammer-animate');
-    hammer.style.display = 'none';
-    timerBar.style.animation = 'none';
-
-    feedback.textContent = message;
-    feedback.style.color = color;
-    feedback.style.display = 'block';
-
-    hitCounter.textContent = gameState.hits + '/3';
+    hitDisplay.textContent = gameState.hits + '/3';
 
     if(gameState.hits >= gameState.maxHits){
       finishGame(true);
     } else {
-      setTimeout(()=>{
-        feedback.style.display = 'none';
-        if(gameState.gameActive) runHammerCycle();
-      }, 600);
+      setTimeout(()=>runHammerCycle(), 200);
     }
   }
 
   function finishGame(success){
     if(gameState.resolved) return;
     gameState.resolved = true;
-    gameState.gameActive = false;
     clearTimeout(gameState.hammerCycle);
-
-    gameContent.style.pointerEvents = 'none';
     hammer.style.display = 'none';
-    timerBar.style.animation = 'none';
 
     if(success){
       showToast(`Forged ${item}! +${baseReward} Gold`);
       claimBlacksmithReward(baseReward);
-    } else {
-      showToast('Forge failed! Try again.');
     }
 
-    setTimeout(()=>{
-      if(gameContainer.parentNode) gameContainer.remove();
-    }, 1200);
+    setTimeout(()=>{ if(forge.parentNode) forge.remove(); }, 1200);
   }
 
-  setTimeout(()=>{
-    startBtn.focus();
-  }, 50);
+  runHammerCycle();
 }
 
 async function claimBlacksmithReward(amount){
