@@ -2939,8 +2939,8 @@ function startBlacksmithGame(spawnRect){
         <defs>
           <linearGradient id="arcGradient" x1="0%" y1="50%" x2="100%" y2="50%">
             <stop offset="0%" style="stop-color:#7fa363;stop-opacity:0.9"/>
-            <stop offset="8%" style="stop-color:#7fa363;stop-opacity:0.9"/>
-            <stop offset="8%" style="stop-color:rgba(255,255,255,0.1);stop-opacity:0.1"/>
+            <stop offset="5%" style="stop-color:#7fa363;stop-opacity:0.9"/>
+            <stop offset="5%" style="stop-color:rgba(255,255,255,0.1);stop-opacity:0.1"/>
             <stop offset="100%" style="stop-color:rgba(255,255,255,0.1);stop-opacity:0.1"/>
           </linearGradient>
         </defs>
@@ -3038,8 +3038,8 @@ function startBlacksmithGame(spawnRect){
       const progress = (elapsed / cycleTime) % 1;
       const angle = Math.abs(Math.sin(progress * Math.PI)) * 180;
 
-      // Green zone is 170-180 degrees (small left side, harder to hit)
-      if(angle >= 170 && angle <= 180){
+      // Green zone is 170-180 degrees (small left side), only on forward swing
+      if(angle >= 170 && angle <= 180 && progress < 0.45){
         recordHit();
         createSparks();
       } else {
@@ -3058,7 +3058,7 @@ function startBlacksmithGame(spawnRect){
         const dist = 20 + Math.random() * 15;
         spark.style.cssText = `
           position:fixed; left:${centerX}px; top:${centerY}px; width:4px; height:4px;
-          background:#ffcc00; border-radius:50%; pointer-events:none; z-index:100;
+          background:#ffff99; border-radius:50%; pointer-events:none; z-index:100;
           --tx:${Math.cos(angle)*dist}px; --ty:${Math.sin(angle)*dist}px;
           animation:sparkPop 0.6s ease-out forwards;
         `;
