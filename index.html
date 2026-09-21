@@ -4104,13 +4104,14 @@ function renderRoster(){
                     <span class="comp-slot-name">${esc(slot.character_name)}</span>
                     <span class="comp-slot-spec" style="color:${CLASS_SPECS[slot.class_key].color};">${esc(specLabel)}</span>
                   </span>
-                  ${ officer ? `<button type="button" class="comp-slot-remove" data-remove="${gi}|${si}" title="Remove">&times;</button>` : '' }
+                  ${ (officer || isRaidLeader) ? `<button type="button" class="comp-slot-remove" data-remove="${gi}|${si}" title="Remove">&times;</button>` : '' }
                 ` : `<span class="comp-slot-empty muted">Empty</span>` }
                 <span class="comp-slot-extras">
                   ${ [1,2].map(n=>{
                     const extraKey = `comp_extra:${gi}:${si}:${n}`;
                     const url = state.siteImages[extraKey];
-                    return `<button type="button" class="comp-extra-icon ${url?'filled':''} ${officer?'':'readonly'}" ${officer?`data-choose-slot="${extraKey}"`:''} title="${officer?'Click to set an icon':''}">
+                    const canEdit = officer || isRaidLeader;
+                    return `<button type="button" class="comp-extra-icon ${url?'filled':''} ${canEdit?'':'readonly'}" ${canEdit?`data-choose-slot="${extraKey}"`:''} title="${canEdit?'Click to set an icon':''}">
                       ${ url ? `<img src="${esc(url)}" alt="">` : '' }
                     </button>`;
                   }).join('') }
