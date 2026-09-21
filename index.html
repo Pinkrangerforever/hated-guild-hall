@@ -2933,7 +2933,7 @@ function startBlacksmithGame(spawnRect){
   forge.innerHTML = `
     <div style="position:relative; width:100%; height:100%;">
       <img class="anvil-graphic" src="https://housing-media.wowdb.com/decor/thumb/7425323.png" style="position:absolute; left:50%; bottom:0; transform:translateX(-50%); height:70%; max-width:90%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));" alt="anvil"/>
-      <img class="sword-graphic" src="https://wow.zamimg.com/modelviewer/classic/webthumbs/item/142/30606.webp" style="position:absolute; left:50%; top:2%; transform:translateX(-50%); height:85%; max-width:55%; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));" alt="sword"/>
+      <img class="sword-graphic" src="https://wow.zamimg.com/modelviewer/classic/webthumbs/item/142/30606.webp" style="position:absolute; left:50%; top:15%; transform:translateX(-50%); height:60%; max-width:60%; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));" alt="sword"/>
       <img class="hammer-graphic" src="https://wow.zamimg.com/modelviewer/live/webthumbs/item/60/664636.webp" style="position:absolute; right:0%; top:0%; transform:rotate(90deg); transform-origin:0% 100%; height:55%; max-width:40%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));" alt="hammer"/>
       <svg class="timing-gauge" viewBox="0 0 180 100" xmlns="http://www.w3.org/2000/svg" style="position:absolute; left:50%; top:-20%; transform:translateX(-50%); width:210px; height:128px; pointer-events:none; z-index:10;">
         <defs>
@@ -3000,9 +3000,9 @@ function startBlacksmithGame(spawnRect){
       indicator.setAttribute('cx', x.toFixed(1));
       indicator.setAttribute('cy', y.toFixed(1));
 
-      // Hammer swings from horizontal (top of swing) downward to the left
-      const swing = Math.sin(progress * Math.PI) * 85;
-      hammer.style.transform = `rotate(${90 + swing}deg)`;
+      // Hammer swings from upright downward to strike the sword
+      const swing = Math.sin(progress * Math.PI) * 135;
+      hammer.style.transform = `rotate(${swing - 90}deg)`;
 
       // Reset clickedInWindow when indicator returns to right side (angle < 30)
       if(angle < 30 && clickedInWindow){
