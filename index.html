@@ -2992,11 +2992,15 @@ function startBlacksmithGame(spawnRect){
       const elapsed = now - cycleStart;
       const progress = (elapsed / cycleTime) % 1;
 
-      // Indicator: swing from left to right, pause at right, return to left
+      // Indicator: pause at left, swing to right, pause at right, return to left
       let angle;
-      if (progress < 0.45) {
+      if (progress < 0.1) {
+        // Pause at left side (green zone)
+        angle = 180;
+      } else if (progress < 0.55) {
         // Swing from left to right
-        angle = 180 - (progress / 0.45) * 180;
+        const swingProgress = (progress - 0.1) / 0.45;
+        angle = 180 - (swingProgress * 180);
       } else if (progress < 0.9) {
         // Pause at right side
         angle = 0;
@@ -3040,9 +3044,13 @@ function startBlacksmithGame(spawnRect){
 
       // Calculate angle same way as animate function
       let angle;
-      if (progress < 0.45) {
+      if (progress < 0.1) {
+        // Pause at left side (green zone)
+        angle = 180;
+      } else if (progress < 0.55) {
         // Swing from left to right
-        angle = 180 - (progress / 0.45) * 180;
+        const swingProgress = (progress - 0.1) / 0.45;
+        angle = 180 - (swingProgress * 180);
       } else if (progress < 0.9) {
         // Pause at right side
         angle = 0;
@@ -3052,8 +3060,8 @@ function startBlacksmithGame(spawnRect){
         angle = returnProgress * 180;
       }
 
-      // Green zone is 170-180 degrees (LEFT side) during forward swing only
-      if(angle >= 170 && angle <= 180 && progress < 0.45){
+      // Green zone is 170-180 degrees (LEFT side) during pause at left
+      if(angle >= 170 && angle <= 180 && progress < 0.1){
         recordHit();
         createSparks();
       } else {
