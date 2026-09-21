@@ -2308,7 +2308,7 @@ async function saveCompSlot(){
   render();
 }
 async function removeCompSlot(groupIdx, slotIdx){
-  if(!testIsOfficer()){ showToast('Only officers can edit the roster', true); return; }
+  if(!testIsOfficer() && !testIsRaidLeader()){ showToast('Only officers can edit the roster', true); return; }
   const { error } = await sb.from('comp_slots').delete().eq('group_index', groupIdx).eq('slot_index', slotIdx);
   if(error){ showToast("Couldn't save â€” try again", true); return; }
   state.compSlots = state.compSlots.filter(s=>!(s.group_index===groupIdx && s.slot_index===slotIdx));
