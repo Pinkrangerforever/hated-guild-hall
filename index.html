@@ -1092,6 +1092,14 @@
     50%{ transform:rotate(-75deg); }
     100%{ transform:rotate(0deg); }
   }
+  @keyframes smokeDissolve{
+    0%{ opacity:0.8; transform:translate(0,0) scale(1); }
+    100%{ opacity:0; transform:translate(0,-40px) scale(1.5); }
+  }
+  @keyframes sparkPop{
+    0%{ opacity:1; transform:translate(0,0); }
+    100%{ opacity:0; transform:translate(var(--tx),var(--ty)); }
+  }
 
   .shop-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
   .sticker-shop-card { flex: 1; }
@@ -2925,8 +2933,8 @@ function startBlacksmithGame(spawnRect){
   forge.innerHTML = `
     <div style="position:relative; width:100%; height:100%;">
       <img class="anvil-graphic" src="https://housing-media.wowdb.com/decor/thumb/7425323.png" style="position:absolute; left:50%; bottom:0; transform:translateX(-50%); height:70%; max-width:90%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));" alt="anvil"/>
-      <img class="sword-graphic" src="https://wow.zamimg.com/modelviewer/classic/webthumbs/item/142/30606.webp" style="position:absolute; left:50%; top:10%; transform:translateX(-50%); height:55%; max-width:40%; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));" alt="sword"/>
-      <img class="hammer-graphic" src="https://wow.zamimg.com/modelviewer/live/webthumbs/item/60/664636.webp" style="position:absolute; right:0%; top:0%; transform:rotate(90deg); transform-origin:0% 100%; height:55%; max-width:40%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));" alt="hammer"/>
+      <img class="sword-graphic" src="https://wow.zamimg.com/modelviewer/classic/webthumbs/item/142/30606.webp" style="position:absolute; left:50%; top:8%; transform:translateX(-50%); height:65%; max-width:45%; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));" alt="sword"/>
+      <img class="hammer-graphic" src="https://wow.zamimg.com/modelviewer/live/webthumbs/item/60/664636.webp" style="position:absolute; right:0%; top:0%; transform:rotate(180deg); transform-origin:0% 100%; height:55%; max-width:40%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));" alt="hammer"/>
       <svg class="timing-gauge" viewBox="0 0 180 100" xmlns="http://www.w3.org/2000/svg" style="position:absolute; left:50%; top:-20%; transform:translateX(-50%); width:140px; height:85px; pointer-events:none; z-index:10;">
         <!-- Arc outline (charcoal grey) -->
         <path d="M 10 90 A 80 80 0 0 1 170 90" fill="none" stroke="#2a2a2a" stroke-width="12" stroke-linecap="round"/>
@@ -2943,6 +2951,7 @@ function startBlacksmithGame(spawnRect){
   `;
   layer.appendChild(forge);
 
+  const gameStartTime = performance.now();
   let gameState = {
     hits: 0,
     misses: 0,
@@ -2950,7 +2959,8 @@ function startBlacksmithGame(spawnRect){
     maxAttempts: 5,
     resolved: false,
     difficulty: 1,
-    hammerCycle: null
+    hammerCycle: null,
+    gameTimeout: null
   };
 
   const hammer = forge.querySelector('.hammer-graphic');
@@ -3006,19 +3016,48 @@ function startBlacksmithGame(spawnRect){
       clickedInWindow = true;
 
       const elapsed = performance.now() - cycleStart;
+      const progress = (elapsed / cycleTime) % 1;
+      const angle = Math.abs(Math.sin(progress * Math.PI)) * 180;
 
       if(animationId) cancelAnimationFrame(animationId);
       clearTimeout(gameState.hammerCycle);
       hammer.style.transform = 'rotate(0deg)';
 
-      if(elapsed >= hitWindowStart && elapsed <= hitWindowEnd){
+      // Green zone is 150-180 degrees (left side)
+      if(angle >= 150 && angle <= 180){
         recordHit();
+        createSparks();
       } else {
         recordMiss();
       }
     }
 
+    function createSparks(){
+      const swordPos = forge.querySelector('.sword-graphic').getBoundingClientRect();
+      const centerX = swordPos.left + swordPos.width / 2;
+      const centerY = swordPos.top + swordPos.height / 2;
+
+      for(let i = 0; i < 6; i++){
+        const spark = document.createElement('div');
+        const angle = (i / 6) * Math.PI * 2;
+        const dist = 20 + Math.random() * 15;
+        spark.style.cssText = `
+          position:fixed; left:${centerX}px; top:${centerY}px; width:4px; height:4px;
+          background:#ffcc00; border-radius:50%; pointer-events:none; z-index:100;
+          --tx:${Math.cos(angle)*dist}px; --ty:${Math.sin(angle)*dist}px;
+          animation:sparkPop 0.6s ease-out forwards;
+        `;
+        document.body.appendChild(spark);
+        setTimeout(()=>spark.remove(), 600);
+      }
+    }
+
     forge.addEventListener('click', handleClick, { once: true });
+
+    // 10 second timeout for game
+    gameState.gameTimeout = setTimeout(()=>{
+      if(!gameState.resolved) finishGame(false);
+    }, 10000);
   }
 
   function recordHit(){
@@ -3074,13 +3113,26 @@ function startBlacksmithGame(spawnRect){
     if(gameState.resolved) return;
     gameState.resolved = true;
     clearTimeout(gameState.hammerCycle);
+    clearTimeout(gameState.gameTimeout);
     hammer.style.animation = 'none';
     hammer.style.transform = 'rotate(0deg)';
+
+    // Create smoke animation
+    const smoke = document.createElement('div');
+    smoke.style.cssText = `
+      position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+      width:80px; height:80px; background:radial-gradient(circle, rgba(255,255,255,0.6) 0%, transparent 70%);
+      border-radius:50%; pointer-events:none; z-index:5;
+      animation:smokeDissolve 0.8s ease-out forwards;
+    `;
+    forge.appendChild(smoke);
 
     if(success){
       showFeedback('Success!', '#7fa363');
       showToast(`Forged ${item}! +${baseReward} Gold`);
       claimBlacksmithReward(baseReward);
+    } else {
+      showToast('Time\'s up!', true);
     }
 
     setTimeout(()=>{ if(forge.parentNode) forge.remove(); }, 1200);
