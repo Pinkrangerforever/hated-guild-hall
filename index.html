@@ -3772,12 +3772,12 @@ function renderLanding(){
                 const posY = s.position_y ?? 50;
                 const rotation = (Math.random() * 50) - 25;
                 const isOwner = state.session?.user?.id === s.placed_by_user_id;
-                const isRaidLeader = testIsRaidLeader();
+                const canManage = testCanManage();
                 return `
                 <div class="sticker-pin-group"
                      data-sticker-id="${esc(s.id)}"
                      data-owned="${isOwner}"
-                     data-draggable="${isRaidLeader}"
+                     data-draggable="${canManage}"
                      style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
                   <div class="sticker-pin"></div>
                   <div class="sticker-pin-shadow"></div>
@@ -4806,16 +4806,16 @@ function renderNews(){
               const posY = s.position_y ?? 50;
               const rotation = (Math.random() * 50) - 25; // Random -25 to +25 degrees
               const isOwner = state.session?.user?.id === s.placed_by_user_id;
-              const isRaidLeader = testIsRaidLeader();
+              const canManage = testCanManage();
               return `
               <div class="sticker-pin-group"
                    data-sticker-id="${esc(s.id)}"
                    data-owned="${isOwner}"
-                   data-draggable="${isRaidLeader}"
+                   data-draggable="${canManage}"
                    style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
                 <div class="sticker-pin"></div>
                 <div class="sticker-pin-shadow"></div>
-                ${ isRaidLeader ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">&times;</button>` : '' }
+                ${ canManage ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">&times;</button>` : '' }
                 <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
                 ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
                 <div class="sticker-placer">${esc(s.placed_by_name)}</div>
