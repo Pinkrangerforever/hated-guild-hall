@@ -852,6 +852,21 @@
     opacity:0.85;
     z-index:25;
   }
+  .comp-slot.name-custom-lightning::before {
+    content:'';
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    pointer-events:none;
+    background-image:url('lightning.gif');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    opacity:0.85;
+    z-index:25;
+  }
   .comp-slot.roster-border-uncommon{
     border:2px solid #1eff00 !important;
     border-radius:6px;
@@ -1659,6 +1674,7 @@ function getUserNameCustomization(userId){
       else if(meta.effect === 'star') nameCustom = 'name-custom-star';
       else if(meta.effect === 'shadow' || meta.effect === 'techno') nameCustom = 'name-custom-shadow';
       else if(meta.effect === 'anime') nameCustom = 'name-custom-anime';
+      else if(meta.effect === 'lightning') nameCustom = 'name-custom-lightning';
     }
   }
 
