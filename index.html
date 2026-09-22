@@ -1202,6 +1202,7 @@
   }
   .sticker-shop-card{ text-align:center; }
   .shop-sticker-preview{ width:100%; aspect-ratio:1; object-fit:cover; border-radius:3px; margin-bottom:8px; }
+  .shop-preview-thumbnail{ width:100%; height:80px; object-fit:cover; border-radius:3px; margin-bottom:8px; display:block; }
   /* Realistic cork board */
   .corkboard{
     flex:0 0 380px; padding:20px; border-radius:4px;
@@ -4204,9 +4205,11 @@ function renderShopModal(){
     if(state.editingShopItemId === item.id) return renderEditForm(item);
     const canAfford = gold >= item.cost;
     const owned = state.shopPurchases && state.shopPurchases.some(p => p.item_id === item.id && p.fulfilled);
+    const gifMap = {flame:'flame-bg.gif', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif'};
+    const previewImage = item.image_url || (item.category === 'name_customization' && gifMap[item.metadata?.effect]);
     return `
       <div class="shop-card ${item.active===false?'inactive':''}">
-        ${ item.image_url ? `<img src="${esc(item.image_url)}" alt="${esc(item.name)}" class="shop-sticker-preview" style="margin-bottom:8px;">` : '' }
+        ${ previewImage ? `<img src="${esc(previewImage)}" alt="${esc(item.name)}" class="shop-preview-thumbnail" style="width:100%; height:80px; object-fit:cover; border-radius:3px; margin-bottom:8px;">` : '' }
         <div class="shop-card-name">${esc(item.name)}</div>
         <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
         <div class="shop-card-footer">
