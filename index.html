@@ -2636,13 +2636,13 @@ async function claimSparkle(el){
     const { data, error } = await sb.rpc('claim_sparkle_gold');
     if(error || !data || !data.success) return;
 
-    // 25% chance for each event type
+    // 100% normal for testing (temporarily disabled mini-games)
     const rand = Math.random();
-    if(rand < 0.25) {
+    if(false && rand < 0.25) {
       return startBlacksmithGame(rect, data.pending_id);
-    } else if(rand < 0.5) {
+    } else if(false && rand < 0.5) {
       return startMurlocEvent(rect, data.pending_id);
-    } else if(rand < 0.75) {
+    } else if(false && rand < 0.75) {
       return startFishingEvent(rect, data.pending_id);
     }
 
