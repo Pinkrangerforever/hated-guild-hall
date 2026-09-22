@@ -2703,8 +2703,24 @@ async function claimSparkle(el){
   el.remove();
 
   try{
+    console.log('ðŸ” Calling claim_sparkle_gold RPC...');
     const { data, error } = await sb.rpc('claim_sparkle_gold');
-    if(error || !data || !data.success) return;
+    console.log('ðŸ“Š RPC Response - data:', data, 'error:', error);
+    if(error) {
+      console.error('âŒ RPC Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        fullError: JSON.stringify(error)
+      });
+      showToast('RPC Error: ' + (error.message || 'Unknown error'), true);
+      return;
+    }
+    if(!data || !data.success) {
+      console.error('âŒ RPC returned no success:', data);
+      return;
+    }
 
     // 25% chance for each of 4 events
     const rand = Math.random();
