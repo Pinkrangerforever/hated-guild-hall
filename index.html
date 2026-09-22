@@ -3953,18 +3953,22 @@ function bindDesktopNav(){
 
 function renderApp(){
   const officer = testCanManage();
-  const navItems = [
-    ['news','Home'],
-    ['calendar','Raid Calendar'],
-    ['roster','Roster'],
-    ['raidlogs','Raid Logs'],
-    ['strategies','Boss Strategies'],
-    ['guildbank','Guild Bank'],
-    ['loot','Loot Log'],
-    ['softres','Soft Res Links'],
-    ['gallery','Gallery'],
-    ['recruitment','Recruitment'],
-    ['settings','Settings'],
+  const navLinks = [
+    {id:'news', label:'Home'},
+    {id:'calendar', label:'Raid Calendar'},
+    {label:'Guild Resources', submenu:[
+      {id:'guildbank', label:'Guild Bank'},
+      {id:'loot', label:'Loot Log'},
+    ]},
+    {label:'Raiding Resources', submenu:[
+      {id:'roster', label:'Roster'},
+      {id:'raidlogs', label:'Raid Logs'},
+      {id:'strategies', label:'Boss Strategies'},
+      {id:'softres', label:'Soft Res Links'},
+    ]},
+    {id:'gallery', label:'Gallery'},
+    {id:'recruitment', label:'Recruitment'},
+    {id:'settings', label:'Settings'},
   ];
   return `
     <nav class="site-nav">
@@ -3973,9 +3977,21 @@ function renderApp(){
           <span class="nav-brand-icon">${guildIconHtml(128, 'appnav')}</span>
         </div>
         <div class="nav-links app-nav-links">
-          ${navItems.map(([key,label])=>`
-            <button class="nav-tab-btn ${state.tab===key?'active':''}" data-tab="${key}">${esc(label)}</button>
-          `).join('')}
+          ${navLinks.map(l=>{
+            if(l.submenu){
+              return `<div class="nav-dropdown" data-nav-dropdown="${esc(l.label)}">
+                <button type="button" class="nav-dropdown-btn">
+                  ${esc(l.label)}
+                  <span class="nav-dropdown-arrow">âˆ§</span>
+                </button>
+                <div class="nav-dropdown-menu">
+                  ${l.submenu.map(s=>`<button type="button" class="nav-dropdown-item" data-tab="${s.id}">${esc(s.label)}</button>`).join('')}
+                </div>
+              </div>`;
+            } else {
+              return `<button class="nav-tab-btn ${state.tab===l.id?'active':''}" data-tab="${l.id}">${esc(l.label)}</button>`;
+            }
+          }).join('')}
         </div>
         <div class="nav-cta-group">
           <span class="nav-user sans">${esc(myName())} <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span></span>
@@ -3992,10 +4008,18 @@ function renderApp(){
           <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span>
         </div>
         <button type="button" class="mobile-nav-link" id="open-shop-btn-mobile">Shop</button>
-        ${navItems.map(([key,label])=>`
-          <button type="button" class="mobile-nav-link ${state.tab===key?'active':''}" data-tab="${key}">${esc(label)}</button>
-        `).join('')}
-        ${ state.profile && state.profile.protected ? `<button type="button" class="mobile-nav-link ${state.tab==='admin'?'active':''}" data-tab="admin">Admin</button>` : '' }
+        ${navLinks.map(l=>{
+          if(l.submenu){
+            return `<div class="mobile-nav-dropdown" data-nav-dropdown="${esc(l.label)}">
+              <button type="button" class="mobile-nav-dropdown-btn">${esc(l.label)}</button>
+              <div class="mobile-nav-dropdown-items">
+                ${l.submenu.map(s=>`<button type="button" class="mobile-nav-link" data-tab="${s.id}">${esc(s.label)}</button>`).join('')}
+              </div>
+            </div>`;
+          } else {
+            return `<button type="button" class="mobile-nav-link ${state.tab===l.id?'active':''}" data-tab="${l.id}">${esc(l.label)}</button>`;
+          }
+        }).join('')}
       </div>
     </nav>
     <div class="main page-${state.tab}">
@@ -5220,7 +5244,7 @@ function renderAdmin(){
 }
 /* ---------------- bindings ---------------- */
 function bindApp(){
-  document.querySelectorAll('.nav-tab-btn, .mobile-nav-link[data-tab], .btn-nav-admin').forEach(btn=>{
+  document.querySelectorAll('.nav-tab-btn, .nav-dropdown-item[data-tab], .mobile-nav-link[data-tab], .btn-nav-admin').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       state.tab = btn.dataset.tab;
       state.modal = null;
