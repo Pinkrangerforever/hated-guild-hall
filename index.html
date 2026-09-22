@@ -2722,13 +2722,13 @@ async function claimSparkle(el){
       return;
     }
 
-    // 25% chance for each of 4 events
-    const rand = Math.random();
-    if(rand < 0.25) {
+    // Use the event type from RPC, not client-side random
+    console.log('âœ… Event type from RPC:', data.event);
+    if(data.event === 'blacksmith') {
       return startBlacksmithGame(rect, data.pending_id);
-    } else if(rand < 0.5) {
+    } else if(data.event === 'murloc') {
       return startMurlocEvent(rect, data.pending_id);
-    } else if(rand < 0.75) {
+    } else if(data.event === 'fishing') {
       return startFishingEvent(rect, data.pending_id);
     }
 
