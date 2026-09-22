@@ -478,13 +478,13 @@
     background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;
   }
   .nav-dropdown-btn:hover{ color:#fff; background:rgba(255,255,255,0.12); }
-  .nav-dropdown-arrow{
-    display:inline-block; width:0; height:0;
+  .nav-dropdown-btn::after{
+    content:""; display:inline-block; width:0; height:0;
     border-left:4px solid transparent; border-right:4px solid transparent;
     border-top:5px solid currentColor;
     margin-left:6px; transition:transform 0.2s ease;
   }
-  .nav-dropdown.open .nav-dropdown-arrow{ transform:scaleY(-1); }
+  .nav-dropdown.open .nav-dropdown-btn::after{ transform:scaleY(-1); }
   .nav-dropdown-menu{
     position:absolute; top:100%; left:0; min-width:180px;
     background:linear-gradient(135deg, #0f2a34 0%, #144450 100%);
@@ -1730,10 +1730,7 @@ function topNavBar(navLinks, opts){
         ${ navLinks.map(l=>{
           if(l.submenu){
             return `<div class="nav-dropdown" data-nav-dropdown="${esc(l.label)}">
-              <button type="button" class="nav-dropdown-btn">
-                ${esc(l.label)}
-                <span class="nav-dropdown-arrow"></span>
-              </button>
+              <button type="button" class="nav-dropdown-btn">${esc(l.label)}</button>
               <div class="nav-dropdown-menu">
                 ${l.submenu.map(s=>`<a href="#${s.id}" class="nav-dropdown-item">${esc(s.label)}</a>`).join('')}
               </div>
