@@ -5185,7 +5185,7 @@ function renderSettings(){
             const gifFile = gifMap[effect] || '';
             return `
             <button class="btn ${isActive ? 'primary' : 'secondary'}" type="button" data-set-name-custom="${p.item_id}" style="padding:12px; text-align:left; display:flex; gap:12px; align-items:flex-start;">
-              ${gifFile ? `<img src="${gifFile}" alt="" style="width:120px; height:120px; object-fit:cover; border-radius:3px; flex-shrink:0;">` : ''}
+              ${gifFile ? `<img src="${gifFile}" alt="" style="width:150px; height:60px; object-fit:cover; border-radius:3px; flex-shrink:0;">` : ''}
               <div style="flex:1;">
                 <div style="font-weight:600;">${esc(item?.name || 'Unknown')}</div>
                 <div class="muted" style="font-size:12px;">${esc(item?.description || '')}</div>
