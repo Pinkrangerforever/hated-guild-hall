@@ -2647,18 +2647,26 @@ async function claimSparkle(el){
     }
 
     // normal claim: update gold directly without full render to preserve video
-    if(data.total !== undefined && state.profile){
-      const oldGold = state.profile.gold || 0;
-      const awarded = Math.max(0, data.total - oldGold);
-      state.profile.gold = data.total;
-      // Update gold badge in DOM instead of calling render()
+    console.log('Normal claim - RPC data:', data);
+
+    if(data.awarded !== undefined && state.profile){
+      const awarded = data.awarded;
+      state.profile.gold = data.total || (state.profile.gold + awarded);
+
       const goldBadge = document.querySelector('.nav-gold-badge');
-      if(goldBadge) goldBadge.textContent = '⬥ ' + data.total;
+      if(goldBadge) goldBadge.textContent = '⬥ ' + (state.profile.gold || 0);
+
       if(awarded > 0){
         showGoldFloat(rect.left + rect.width/2, rect.top, awarded);
+        console.log('Gold popup shown:', awarded);
       }
+    } else {
+      console.error('Normal claim failed - data:', data, 'profile:', state.profile);
     }
-  }catch(e){ /* silent */ }
+  }catch(e){
+    console.error('claimSparkle error:', e);
+    showToast('Sparkle error: ' + e.message, true);
+  }
 }
 async function resolveSparkleEvent(pendingId, won, x, y){
   try{
