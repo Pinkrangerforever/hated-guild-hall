@@ -3982,10 +3982,7 @@ function renderApp(){
           ${navLinks.map(l=>{
             if(l.submenu){
               return `<div class="nav-dropdown" data-nav-dropdown="${esc(l.label)}">
-                <button type="button" class="nav-dropdown-btn">
-                  ${esc(l.label)}
-                  <span class="nav-dropdown-arrow">âˆ§</span>
-                </button>
+                <button type="button" class="nav-dropdown-btn">${esc(l.label)}</button>
                 <div class="nav-dropdown-menu">
                   ${l.submenu.map(s=>`<button type="button" class="nav-dropdown-item" data-tab="${s.id}">${esc(s.label)}</button>`).join('')}
                 </div>
