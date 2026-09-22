@@ -4800,6 +4800,7 @@ function renderRecruitmentTab(){
 /* ---------------- gallery + site image slots tab ---------------- */
 function renderGallery(){
   const canUpload = testIsOfficer() || testIsRaidLeader();
+  const officer = testIsOfficer();
   return `
     ${pageHeader('Gallery', 'Media', "Images officers have uploaded. Use them to customize the guild icon, the site background, and the class icons on the Roster page.")}
 
