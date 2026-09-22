@@ -3469,6 +3469,19 @@ async function saveStickerPrice(){
   render();
 }
 
+async function editStickerPrice(stickerId, currentPrice){
+  const newPrice = prompt(`Set sticker price (currently ${currentPrice} gold):`, currentPrice);
+  if(newPrice === null) return;
+  const price = parseInt(newPrice, 10);
+  if(isNaN(price) || price < 0){ showToast('Enter a valid price', true); return; }
+  const { data, error } = await sb.from('gallery_images').update({ sticker_price: price }).eq('id', stickerId).select().single();
+  if(error){ showToast("Couldn't save — try again", true); return; }
+  const idx = state.galleryImages.findIndex(g=>g.id===stickerId);
+  if(idx>=0) state.galleryImages[idx] = data;
+  showToast(`Sticker price updated to ${price} gold`);
+  render();
+}
+
 async function deleteSticker(stickerId){
   if(!confirm('Remove this sticker from the board?')) return;
   
@@ -4075,13 +4088,15 @@ function renderShopModal(){
   }
 
   function renderStickerCard(img){
-    const canAfford = gold >= stickerPrice;
+    const price = img.sticker_price != null ? img.sticker_price : stickerPrice;
+    const canAfford = gold >= price;
     return `
       <div class="shop-card sticker-shop-card">
         <img src="${esc(img.url)}" alt="${esc(img.caption||'')}" class="shop-sticker-preview">
         <div class="shop-card-name">${esc(img.caption||'Sticker')}</div>
         <div class="shop-card-footer">
-          <span class="nav-gold-badge">&#x1F4B0; ${stickerPrice}</span>
+          <span class="nav-gold-badge">&#x1F4B0; ${price}</span>
+          ${ officer ? `<button class="btn secondary" type="button" data-edit-sticker-price="${img.id}|${price}" style="font-size:11px; padding:4px 8px;">Edit</button>` : '' }
         </div>
         <button class="btn" type="button" data-buy-sticker="${img.id}" ${canAfford?'':'disabled'} style="width:100%; margin-top:10px;">
           ${ canAfford ? 'Place on Wall' : 'Not enough gold' }
@@ -5299,6 +5314,10 @@ function bindApp(){
   document.querySelectorAll('[data-refund-purchase]').forEach(b=>b.addEventListener('click', ()=>refundPurchase(b.dataset.refundPurchase, b.dataset.refundName)));
   document.querySelectorAll('[data-buy-rank]').forEach(b=>b.addEventListener('click', ()=>purchaseRank(b.dataset.buyRank)));
   document.querySelectorAll('[data-buy-sticker]').forEach(b=>b.addEventListener('click', ()=>purchaseSticker(b.dataset.buySticker)));
+  document.querySelectorAll('[data-edit-sticker-price]').forEach(b=>b.addEventListener('click', ()=>{
+    const [id, price] = b.dataset.editStickerPrice.split('|');
+    editStickerPrice(id, parseInt(price));
+  }));
   document.querySelectorAll('[data-delete-sticker]').forEach(b=>b.addEventListener('click', ()=>deleteSticker(b.dataset.deleteSticker)));
   document.querySelectorAll('[data-set-name-custom]').forEach(b=>b.addEventListener('click', ()=>setActiveNameCustomization(b.dataset.setNameCustom)));
   
