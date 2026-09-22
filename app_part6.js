@@ -156,13 +156,15 @@ function renderShopModal(){
   }
 
   function renderStickerCard(img){
-    const canAfford = gold >= stickerPrice;
+    const price = img.sticker_price != null ? img.sticker_price : stickerPrice;
+    const canAfford = gold >= price;
     return `
       <div class="shop-card sticker-shop-card">
         <img src="${esc(img.url)}" alt="${esc(img.caption||'')}" class="shop-sticker-preview">
         <div class="shop-card-name">${esc(img.caption||'Sticker')}</div>
         <div class="shop-card-footer">
-          <span class="nav-gold-badge">&#10022; ${stickerPrice}</span>
+          <span class="nav-gold-badge">&#10022; ${price}</span>
+          ${ officer ? `<button class="btn secondary" type="button" data-edit-sticker-price="${img.id}|${price}" style="font-size:11px; padding:4px 8px;">Edit</button>` : '' }
         </div>
         <button class="btn" type="button" data-buy-sticker="${img.id}" ${canAfford?'':'disabled'} style="width:100%; margin-top:10px;">
           ${ canAfford ? 'Place on Wall' : 'Not enough gold' }
