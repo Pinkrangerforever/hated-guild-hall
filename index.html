@@ -5180,10 +5180,16 @@ function renderSettings(){
           ${ nameCustomPurchases.map(p => {
             const item = state.shopItems?.find(i => i.id === p.item_id);
             const isActive = activeId === p.item_id;
+            const effect = item?.metadata?.effect || '';
+            const gifMap = {flame:'flame-bg.gif', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif'};
+            const gifFile = gifMap[effect] || '';
             return `
-            <button class="btn ${isActive ? 'primary' : 'secondary'}" type="button" data-set-name-custom="${p.item_id}" style="padding:12px; text-align:left;">
-              <div style="font-weight:600;">${esc(item?.name || 'Unknown')}</div>
-              <div class="muted" style="font-size:12px;">${esc(item?.description || '')}</div>
+            <button class="btn ${isActive ? 'primary' : 'secondary'}" type="button" data-set-name-custom="${p.item_id}" style="padding:12px; text-align:left; display:flex; gap:12px; align-items:flex-start;">
+              ${gifFile ? `<img src="${gifFile}" alt="" style="width:60px; height:60px; object-fit:cover; border-radius:3px; flex-shrink:0;">` : ''}
+              <div style="flex:1;">
+                <div style="font-weight:600;">${esc(item?.name || 'Unknown')}</div>
+                <div class="muted" style="font-size:12px;">${esc(item?.description || '')}</div>
+              </div>
             </button>`;
           }).join('')}
         </div>
