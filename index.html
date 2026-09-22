@@ -478,12 +478,8 @@
     background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;
   }
   .nav-dropdown-btn:hover{ color:#fff; background:rgba(255,255,255,0.12); }
-  .nav-dropdown-arrow{
-    display:inline-block; width:6px; height:6px; margin-left:4px;
-    border-right:2px solid currentColor; border-bottom:2px solid currentColor;
-    transform:rotate(-45deg); transition:transform 0.2s ease;
-  }
-  .nav-dropdown.open .nav-dropdown-arrow{ transform:rotate(135deg); }
+  .nav-dropdown-arrow{ margin-left:6px; font-size:11px; transition:transform 0.2s ease; display:inline-block; }
+  .nav-dropdown.open .nav-dropdown-arrow{ transform:rotate(180deg); }
   .nav-dropdown-menu{
     position:absolute; top:100%; left:0; min-width:180px;
     background:linear-gradient(135deg, #0f2a34 0%, #144450 100%);
@@ -1731,7 +1727,7 @@ function topNavBar(navLinks, opts){
             return `<div class="nav-dropdown" data-nav-dropdown="${esc(l.label)}">
               <button type="button" class="nav-dropdown-btn">
                 ${esc(l.label)}
-                <span class="nav-dropdown-arrow"></span>
+                <span class="nav-dropdown-arrow">></span>
               </button>
               <div class="nav-dropdown-menu">
                 ${l.submenu.map(s=>`<a href="#${s.id}" class="nav-dropdown-item">${esc(s.label)}</a>`).join('')}
