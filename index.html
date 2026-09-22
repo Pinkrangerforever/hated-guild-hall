@@ -4799,11 +4799,11 @@ function renderRecruitmentTab(){
 
 /* ---------------- gallery + site image slots tab ---------------- */
 function renderGallery(){
-  const officer = testIsOfficer();
+  const canUpload = testIsOfficer() || testIsRaidLeader();
   return `
     ${pageHeader('Gallery', 'Media', "Images officers have uploaded. Use them to customize the guild icon, the site background, and the class icons on the Roster page.")}
 
-    ${ officer ? `
+    ${ canUpload ? `
     <div class="panel style-glass">
       <h3 style="margin-bottom:14px;">Upload an image</h3>
       <label class="btn" style="cursor:pointer; display:inline-block;">Choose files<input type="file" accept="image/*" id="gallery-upload-input" multiple style="display:none;"></label>
