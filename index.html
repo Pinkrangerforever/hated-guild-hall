@@ -2740,7 +2740,7 @@ async function claimSparkle(el){
 }
 async function resolveSparkleEvent(pendingId, won, x, y){
   try{
-    const { data, error } = await sb.rpc('resolve_sparkle_event', { p_pending_id: pendingId, p_won: won });
+    const { data, error } = await sb.rpc('complete_mini_game', { data: JSON.stringify({ pending_id: pendingId, won: won }) });
     if(error || !data || !data.success) return;
     if(data.won){
       if(state.profile){
@@ -3268,7 +3268,7 @@ function startBlacksmithGame(spawnRect, pendingId){
 
 async function claimBlacksmithReward(pendingId, won, x, y){
   try{
-    const { data, error } = await sb.rpc('resolve_sparkle_event', { p_pending_id: pendingId, p_won: won });
+    const { data, error } = await sb.rpc('complete_mini_game', { data: JSON.stringify({ pending_id: pendingId, won: won }) });
     if(error || !data || !data.success) return;
 
     if(data.won){
