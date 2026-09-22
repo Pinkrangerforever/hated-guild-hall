@@ -2198,7 +2198,9 @@ async function loadGuildData(){
   const byId = {};
   (profilesRes.data||[]).forEach(p=>{ byId[p.id] = p; });
   state.profilesById = byId;
+  if(galleryRes.error) console.error('Gallery load error:', galleryRes.error);
   state.galleryImages = galleryRes.data || [];
+  console.log('Loaded gallery images:', state.galleryImages.length);
   const imgMap = {};
   (siteImagesRes.data||[]).forEach(row=>{ if(row.image_url) imgMap[row.slot_key] = row.image_url; });
   state.siteImages = imgMap;
@@ -2523,11 +2525,17 @@ async function uploadOneGalleryImage(file){
   const ext = (file.name.split('.').pop() || 'png').toLowerCase();
   const path = uid() + '.' + ext;
   const { error: uploadError } = await sb.storage.from(GALLERY_BUCKET).upload(path, file, { upsert: true });
-  if(uploadError) return false;
+  if(uploadError){
+    console.error('Storage upload error:', uploadError);
+    return false;
+  }
   const { data: pub } = sb.storage.from(GALLERY_BUCKET).getPublicUrl(path);
   const url = pub.publicUrl;
   const { data, error } = await sb.from('gallery_images').insert({ url, caption: file.name, uploaded_by: myName() }).select().single();
-  if(error) return false;
+  if(error){
+    console.error('Gallery insert error:', error);
+    return false;
+  }
   state.galleryImages = [data, ...state.galleryImages];
   return true;
 }
