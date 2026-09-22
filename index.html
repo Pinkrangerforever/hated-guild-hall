@@ -2266,7 +2266,7 @@ async function loadGuildData(){
     sb.from('gallery_images').select('*').order('created_at', { ascending:false }),
     sb.from('site_images').select('*'),
     sb.from('shop_items').select('*').order('cost'),
-    sb.from('shop_purchases').select('*').eq('fulfilled', true),
+    sb.from('shop_purchases').select('*').eq('user_id', state.session.user.id).eq('fulfilled', true),
     sb.from('stickers').select('*').order('placed_at', { ascending:false }),
   ]);
   if(settingsRes.data) state.settings = settingsRes.data;
