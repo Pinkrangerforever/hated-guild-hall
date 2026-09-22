@@ -749,7 +749,9 @@
   .comp-group-title{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:8px; text-align:center; }
   .comp-slot{
     display:flex; align-items:center; gap:8px; min-height:59px; padding:12px 16px; margin-bottom:8px;
-    background:rgba(207,154,68,0.04); border:1px solid rgba(207,154,68,0.12); border-radius:3px;
+    background:rgba(207,154,68,0.04); border:3px solid red !important; border-radius:3px;
+    position:relative;
+    overflow:visible;
   }
   .panel.style-dark-card .comp-slot {
     background:rgba(20,16,10,0.6);
@@ -803,7 +805,7 @@
     background-position:center;
     background-repeat:no-repeat;
     opacity:0.85;
-    z-index:5;
+    z-index:25;
   }
   .comp-slot.name-custom-star::before{
     content:'';
@@ -818,7 +820,7 @@
     background-position:center;
     background-repeat:no-repeat;
     opacity:0.85;
-    z-index:5;
+    z-index:25;
   }
   .comp-slot.name-custom-shadow::before{
     content:'';
@@ -833,7 +835,22 @@
     background-position:center;
     background-repeat:no-repeat;
     opacity:0.85;
-    z-index:5;
+    z-index:25;
+  }
+  .comp-slot.name-custom-anime::before {
+    content:'';
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    pointer-events:none;
+    background-image:url('anime-headphones.gif');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    opacity:0.85;
+    z-index:25;
   }
   .comp-slot.roster-border-uncommon{
     border:2px solid #1eff00 !important;
@@ -1641,6 +1658,7 @@ function getUserNameCustomization(userId){
       if(meta.effect === 'flame') nameCustom = 'name-custom-flame';
       else if(meta.effect === 'star') nameCustom = 'name-custom-star';
       else if(meta.effect === 'shadow' || meta.effect === 'techno') nameCustom = 'name-custom-shadow';
+      else if(meta.effect === 'anime') nameCustom = 'name-custom-anime';
     }
   }
 
@@ -2758,16 +2776,15 @@ async function resolveSparkleEvent(pendingId, won, x, y){
   try{
     const { data, error } = await sb.rpc('resolve_sparkle_event', { p_pending_id: pendingId, p_won: won });
     if(error || !data || !data.success) return;
-    if(data.won){
-      if(state.profile){
-        state.profile.gold = data.total;
-        // Update gold badge directly without full render to preserve video
-        const goldBadge = document.querySelector('.nav-gold-badge');
-        if(goldBadge) goldBadge.textContent = 'â¬¥ ' + data.total;
+    if(won && state.profile){
+      state.profile.gold = data.total;
+      const goldBadge = document.querySelector('.nav-gold-badge');
+      if(goldBadge) goldBadge.textContent = 'â¬¥ ' + data.total;
+      if(data.awarded !== undefined){
+        showGoldFloat(x, y, data.awarded);
       }
-      showGoldFloat(x, y, data.awarded);
     }
-    // loss: nothing to award â€” the calling minigame already shows its own "got away" message
+    // loss: no gold awarded, event marked complete, game shows its own "got away" message
   }catch(e){ /* silent */ }
 }
 
@@ -2852,13 +2869,13 @@ function startMurlocEvent(rect, pendingId){
     if(resolved) return;
     resolved = true;
     clearTimeout(timeoutId);
-    resolveSparkleEvent(pendingId, success, cx, cy);
     if(success){
-      container.remove();
+      showToast('Caught them all! +Gold earned');
     } else {
-      showToast('The murlocs got away with the gold!', true);
-      setTimeout(()=>{ if(container.parentNode) container.remove(); }, 400);
+      showToast('The murlocs got away!', true);
     }
+    resolveSparkleEvent(pendingId, success, cx, cy);
+    setTimeout(()=>{ if(container.parentNode) container.remove(); }, 400);
   }
 
   container.querySelectorAll('.murloc').forEach(m=>{
@@ -2990,18 +3007,18 @@ function startFishingEvent(rect, pendingId){
       gameResolved = true;
       resolved = true;
       clearTimeout(gameTimeout);
-      resolveSparkleEvent(pendingId, success, cx, cy);
-      gaugeWrap.remove();
       if(success){
+        showToast('You caught the Deviate Fish!');
         const jump = document.createElement('div');
         jump.className = 'fish-jump';
         jump.innerHTML = FISH_JUMP_SVG;
         pool.appendChild(jump);
         setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 800);
       } else {
-        showToast('The fish got away!', true);
+        showToast('The fish got away', true);
         setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 300);
       }
+      resolveSparkleEvent(pendingId, success, cx, cy);
     }
 
     gaugeWrap.querySelector('.fish-gauge-btn').addEventListener('click', ()=>{
@@ -3258,6 +3275,14 @@ function startBlacksmithGame(spawnRect, pendingId){
     hammer.style.animation = 'none';
     hammer.style.transform = 'rotate(0deg)';
 
+    // Show messages first (before resolver)
+    if(success){
+      showFeedback('Success!', '#7fa363');
+      showToast(`You forged Thunderfury!`);
+    } else {
+      showToast('YOU FUCKING BROKE IT!', true);
+    }
+
     // Create smoke animation
     const smoke = document.createElement('div');
     smoke.style.cssText = `
@@ -3268,37 +3293,11 @@ function startBlacksmithGame(spawnRect, pendingId){
     `;
     forge.appendChild(smoke);
 
-    if(success){
-      showFeedback('Success!', '#7fa363');
-      showToast(`Forged ${item}! +${baseReward} Gold`);
-      claimBlacksmithReward(pendingId, true, cx, cy);
-    } else {
-      showToast('Time\'s up!', true);
-    }
-
+    resolveSparkleEvent(pendingId, success, cx, cy);
     setTimeout(()=>{ if(forge.parentNode) forge.remove(); }, 1200);
   }
 
   runHammerCycle();
-}
-
-async function claimBlacksmithReward(pendingId, won, x, y){
-  try{
-    const { data, error } = await sb.rpc('resolve_sparkle_event', { p_pending_id: pendingId, p_won: won });
-    if(error || !data || !data.success) return;
-
-    if(data.won){
-      if(state.profile){
-        state.profile.gold = data.total;
-        // Update gold badge directly without full render
-        const goldBadge = document.querySelector('.nav-gold-badge');
-        if(goldBadge) goldBadge.textContent = 'â¬¥ ' + data.total;
-      }
-      if(data.awarded !== undefined && x !== undefined && y !== undefined){
-        showGoldFloat(x, y, data.awarded);
-      }
-    }
-  }catch(e){ console.error('Blacksmith reward claim error:', e); }
 }
 
 // Exposed as a debug/test hook: triggers a sparkle immediately instead of
@@ -4202,6 +4201,7 @@ function renderShopModal(){
     const owned = state.shopPurchases && state.shopPurchases.some(p => p.item_id === item.id && p.fulfilled);
     return `
       <div class="shop-card ${item.active===false?'inactive':''}">
+        ${ item.image_url ? `<img src="${esc(item.image_url)}" alt="${esc(item.name)}" class="shop-sticker-preview" style="margin-bottom:8px;">` : '' }
         <div class="shop-card-name">${esc(item.name)}</div>
         <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
         <div class="shop-card-footer">
