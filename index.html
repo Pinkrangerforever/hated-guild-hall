@@ -3475,7 +3475,11 @@ async function editStickerPrice(stickerId, currentPrice){
   const price = parseInt(newPrice, 10);
   if(isNaN(price) || price < 0){ showToast('Enter a valid price', true); return; }
   const { data, error } = await sb.from('gallery_images').update({ sticker_price: price }).eq('id', stickerId).select().single();
-  if(error){ showToast("Couldn't save — try again", true); return; }
+  if(error){
+    console.error('Sticker price update error:', error);
+    showToast("Couldn't save — try again", true);
+    return;
+  }
   const idx = state.galleryImages.findIndex(g=>g.id===stickerId);
   if(idx>=0) state.galleryImages[idx] = data;
   showToast(`Sticker price updated to ${price} gold`);
