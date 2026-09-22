@@ -1808,6 +1808,7 @@ function getEffectiveRole(){
 function testIsRaidLeader(){ return getEffectiveRole() === 'raidleader'; }
 function testIsOfficer(){ return getEffectiveRole() === 'officer'; }
 function testIsMember(){ return getEffectiveRole() === 'member'; }
+function testCanManage(){ return testIsOfficer() || testIsRaidLeader(); }
 
 function showToast(msg, isError){
   state.toast = msg;
@@ -3819,7 +3820,7 @@ function bindMobileNav(){
 }
 
 function renderApp(){
-  const officer = testIsOfficer();
+  const officer = testCanManage();
   const navItems = [
     ['news','Home'],
     ['calendar','Raid Calendar'],
@@ -3906,7 +3907,7 @@ function myRsvpFor(eventId){
 }
 
 function renderCalendar(){
-  const officer = testIsOfficer();
+  const officer = testCanManage();
   const y = state.calendarYear, m = state.calendarMonth;
   const first = firstWeekdayOfMonth(y,m);
   const numDays = daysInMonth(y,m);
@@ -3979,7 +3980,7 @@ function renderModal(){
 }
 
 function renderShopModal(){
-  const officer = testIsOfficer();
+  const officer = testCanManage();
   const gold = state.profile ? (state.profile.gold||0) : 0;
   const myLevel = state.profile ? (state.profile.discord_rank_level||0) : 0;
 
@@ -4191,7 +4192,7 @@ function renderAddEventModal(prefillDate){
 function renderEventDetailModal(eventId){
   const ev = state.events.find(e=>e.id===eventId);
   if(!ev) return '';
-  const officer = testIsOfficer();
+  const officer = testCanManage();
   const mine = myRsvpFor(ev.id);
   const groups = rsvpGroupsFor(ev.id);
   function nameList(arr){ return arr.length ? esc(arr.join(', ')) : '<span class="muted">nobody yet</span>'; }
@@ -4268,7 +4269,7 @@ function renderAssignSlotModal(groupIdx, slotIdx){
 
 /* ---------------- boss strategies tab ---------------- */
 function renderStrategies(){
-  const officer = testIsOfficer();
+  const officer = testCanManage();
   const nav = state.stratNav;
 
   if(nav.raidId && nav.bossId){
@@ -4405,7 +4406,7 @@ function renderStratBreadcrumb(raid, boss){
 
 /* ---------------- soft-res tab ---------------- */
 function renderSoftres(){
-  const officer = testIsOfficer();
+  const officer = testCanManage();
   return `
     ${pageHeader('Soft Res Links', 'Loot Rules', "Links to soft-reserve sheets for upcoming raids. Newest first.")}
 
@@ -4438,7 +4439,7 @@ function renderSoftres(){
 
 /* ---------------- roster tab: members + raid composition ---------------- */
 function renderRoster(){
-  const officer = testIsOfficer();
+  const officer = testCanManage();
   const isRaidLeader = testIsRaidLeader();
   const sel = state.selectedSpec;
   const allProfiles = Object.values(state.profilesById).sort((a,b)=> (a.character_name||a.discord_username||'').localeCompare(b.character_name||b.discord_username||''));
@@ -4547,7 +4548,7 @@ function renderRoster(){
 
 /* ---------------- loot log tab ---------------- */
 function renderLoot(){
-  const officer = testIsOfficer();
+  const officer = testCanManage();
   return `
     ${pageHeader('Loot Log', 'History', "A running record of what's dropped and who won it.")}
 
@@ -4590,7 +4591,7 @@ function renderLoot(){
 
 /* ---- render roster groups (for home page) ---- */
 function renderRosterGroups(){
-  const officer = testIsOfficer();
+  const officer = testCanManage();
   const isRaidLeader = testIsRaidLeader();
   const canEdit = officer || isRaidLeader;
 
@@ -4633,7 +4634,7 @@ function renderRosterGroups(){
 
 /* ---------------- news tab ---------------- */
 function renderNews(){
-  const officer = testIsOfficer();
+  const officer = testCanManage();
   return `
 
     <!-- Cork board + Video side-by-side layout -->
@@ -4775,7 +4776,7 @@ function renderNews(){
 
 /* ---------------- recruitment tab ---------------- */
 function renderRecruitmentTab(){
-  const officer = testIsOfficer();
+  const officer = testCanManage();
   const rec = state.settings;
   return `
     ${pageHeader('Recruitment', 'Public Notice', "This message is shown to anyone who visits before signing in.")}
@@ -4800,7 +4801,7 @@ function renderRecruitmentTab(){
 /* ---------------- gallery + site image slots tab ---------------- */
 function renderGallery(){
   const canUpload = testIsOfficer() || testIsRaidLeader();
-  const officer = testIsOfficer();
+  const officer = testCanManage();
   return `
     ${pageHeader('Gallery', 'Media', "Images officers have uploaded. Use them to customize the guild icon, the site background, and the class icons on the Roster page.")}
 
@@ -4914,8 +4915,8 @@ function renderGallery(){
             <div class="gallery-grid-item">
               <img src="${esc(g.url)}" alt="${esc(g.caption||'')}" loading="lazy">
               <div class="gallery-grid-caption">${esc(g.caption||'')}</div>
-              ${ officer ? `<button class="gallery-grid-delete" type="button" data-del-gallery="${g.id}" title="Delete">&times;</button>` : '' }
-              ${ officer ? `<button class="gallery-sticker-toggle ${g.is_sticker?'on':''}" type="button" data-toggle-sticker="${g.id}|${g.is_sticker?'1':''}" title="${g.is_sticker?'Available as a sticker — click to remove':'Not available as a sticker — click to enable'}">&#9733; ${g.is_sticker?'Sticker':'Not sticker'}</button>` : (g.is_sticker ? `<div class="gallery-sticker-badge">&#9733; Sticker</div>` : '') }
+              ${ testCanManage() ? `<button class="gallery-grid-delete" type="button" data-del-gallery="${g.id}" title="Delete">&times;</button>` : '' }
+              ${ testCanManage() ? `<button class="gallery-sticker-toggle ${g.is_sticker?'on':''}" type="button" data-toggle-sticker="${g.id}|${g.is_sticker?'1':''}" title="${g.is_sticker?'Available as a sticker — click to remove':'Not available as a sticker — click to enable'}">&#9733; ${g.is_sticker?'Sticker':'Not sticker'}</button>` : (g.is_sticker ? `<div class="gallery-sticker-badge">&#9733; Sticker</div>` : '') }
             </div>
           `).join('') }
         </div>
