@@ -4163,7 +4163,8 @@ function renderShopModal(){
   const rankItems = state.shopItems.filter(i=>i.category==='rank').sort((a,b)=>(a.rank_order||0)-(b.rank_order||0));
   const iconItems = state.shopItems.filter(i=>i.category==='discord_icon').sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const titleItems = state.shopItems.filter(i=>i.category==='discord_title').sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
-  const nameCustomItems = state.shopItems.filter(i=>i.category==='name_customization').sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const nameCustomItems = state.shopItems.filter(i=>i.category==='name_customization' && !i.name.includes('Border')).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const borderItems = state.shopItems.filter(i=>i.name.includes('Roster Name Border')).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const stickerImages = state.galleryImages.filter(g=>g.is_sticker);
   const isRaidLeader = testIsRaidLeader();
   const stickerPrice = state.settings.sticker_price != null ? state.settings.sticker_price : 25;
@@ -4210,6 +4211,38 @@ function renderShopModal(){
     return `
       <div class="shop-card ${item.active===false?'inactive':''}">
         ${ previewImage ? `<img src="${esc(previewImage)}" alt="${esc(item.name)}" class="shop-preview-thumbnail" style="width:100%; height:80px; object-fit:cover; border-radius:3px; margin-bottom:8px;">` : '' }
+        <div class="shop-card-name">${esc(item.name)}</div>
+        <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
+        <div class="shop-card-footer">
+          <span class="nav-gold-badge">&#x1F4B0; ${item.cost}</span>
+          ${ officer ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
+        </div>
+        ${ isRaidLeader ? `
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <button class="btn secondary" type="button" data-move-shop-item="${item.id}" data-direction="left" style="flex:1; padding:6px; font-size:12px;">Move Left</button>
+          <button class="btn secondary" type="button" data-move-shop-item="${item.id}" data-direction="right" style="flex:1; padding:6px; font-size:12px;">Move Right</button>
+        </div>` : '' }
+        ${ owned ? `<div class="shop-owned-badge">&#10003; Owned</div>` :
+          `<button class="btn" type="button" data-buy-shop-item="${item.id}" ${ (!canAfford || item.active===false) ? 'disabled' : '' } style="width:100%; margin-top:10px;">
+            ${ item.active===false ? 'Unavailable' : (canAfford ? 'Redeem' : 'Not enough gold') }
+          </button>`
+        }
+      </div>`;
+  }
+
+  function renderBorderCard(item){
+    if(state.editingShopItemId === item.id) return renderEditForm(item);
+    const canAfford = gold >= item.cost;
+    const owned = state.shopPurchases && state.shopPurchases.some(p => p.item_id === item.id && p.fulfilled);
+    const tier = item.metadata?.tier || 0;
+    const tierName = ['','uncommon','rare','epic','legendary'][tier];
+    const borderColors = {uncommon:'#1eff00', rare:'#0070dd', epic:'#a335ee', legendary:'#ff8000'};
+    const borderColor = borderColors[tierName] || '#666';
+    return `
+      <div class="shop-card ${item.active===false?'inactive':''}">
+        <div style="width:100%; height:80px; border-radius:3px; margin-bottom:8px; background:#222; border:3px solid ${borderColor}; box-shadow:0 0 15px ${borderColor}40, inset 0 0 8px ${borderColor}20; display:flex; align-items:center; justify-content:center;">
+          <div style="font-size:12px; color:${borderColor}; font-weight:700;">${tierName.toUpperCase()}</div>
+        </div>
         <div class="shop-card-name">${esc(item.name)}</div>
         <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
         <div class="shop-card-footer">
@@ -4292,6 +4325,12 @@ function renderShopModal(){
         <h4 class="shop-section-title">Roster Name Customization</h4>
         <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Make your roster name stand out with special effects and animations.</p>
         ${ nameCustomItems.length ? `<div class="shop-grid">${nameCustomItems.map(renderSimpleCard).join('')}</div>` : emptyState('No name customizations set up yet.') }
+      </div>
+
+      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
+        <h4 class="shop-section-title">Roster Name Borders</h4>
+        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Add a shimmering border around your roster name. Higher tiers have more vivid effects.</p>
+        ${ borderItems.length ? `<div class="shop-grid">${borderItems.map(renderBorderCard).join('')}</div>` : emptyState('No name borders set up yet.') }
       </div>
 
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
