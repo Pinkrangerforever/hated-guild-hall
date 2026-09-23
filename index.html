@@ -99,7 +99,7 @@
   .main.page-softres { max-width: 1200px; }
   .main.page-roster { max-width: 1400px; }
   .main.page-loot { max-width: 1200px; }
-  .main.page-news { max-width: 1200px; }
+  .main.page-news { max-width: 1600px; }
   .main.page-recruitment { max-width: 1200px; }
   .main.page-gallery { max-width: 1300px; }
   .main.page-guildbank { max-width: 1400px; }
@@ -4963,10 +4963,10 @@ function renderNews(){
       </div>
 
       <!-- Right Column: Raid Roster -->
-      <div style="flex:1; min-width:0;">
-        <div class="wow-box">
+      <div style="flex:1 1 auto; min-width:0;">
+        <div class="wow-box" style="width:100%;">
           <div class="wow-box-title">Raid Roster</div>
-          <div style="padding:20px;">
+          <div style="padding:20px; overflow-x:auto;">
             ${renderRosterGroups()}
           </div>
         </div>
