@@ -2011,11 +2011,9 @@ async function loadPublicShopItems(){
 
 async function loadShopPurchases(){
   if(!state.session || !state.session.user) return;
-  const { data } = await sb.from('shop_purchases').select('*').eq('user_id', state.session.user.id);
+  const { data } = await sb.from('shop_purchases').select('*').eq('fulfilled', true);
   state.shopPurchases = data || [];
-  console.log('Shop purchases loaded for user:', state.session.user.id);
-  console.log('Fulfilled purchases:', state.shopPurchases.filter(p=>p.fulfilled).map(p=>p.item_name));
-  console.log('Unfulfilled purchases:', state.shopPurchases.filter(p=>!p.fulfilled).map(p=>p.item_name));
+  console.log('Shop purchases loaded:', state.shopPurchases.length);
 }
 
 async function loadAdminPurchases(){
