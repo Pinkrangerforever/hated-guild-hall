@@ -1205,17 +1205,18 @@
   .shop-preview-thumbnail{ width:100%; height:80px; object-fit:cover; border-radius:3px; margin-bottom:8px; display:block; }
   /* Realistic cork board */
   .corkboard{
-    flex:0 0 auto; padding:0; border-radius:0;
+    flex:0 0 400px; padding:0; border-radius:0;
     background-image:url('corkboard.png');
-    background-size:contain;
+    background-size:100% 100%;
     background-position:center;
     background-repeat:no-repeat;
     box-shadow:0 4px 12px rgba(0,0,0,0.3);
     border:none;
     position:relative;
-    min-height:420px;
+    display:flex;
+    flex-direction:column;
+    aspect-ratio:16/10;
     overflow:hidden;
-    width:100%;
     margin-bottom:20px;
   }
   .corkboard::before{
@@ -1226,11 +1227,11 @@
   }
   .corkboard-title{
     font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:0.08em;
-    color:#5a4a38; margin-bottom:16px; text-shadow:1px 1px 0 rgba(255,255,255,0.2);
-    position:relative; z-index:2;
+    color:#5a4a38; text-shadow:1px 1px 0 rgba(255,255,255,0.2);
+    position:absolute; top:16px; left:16px; z-index:5;
   }
   .corkboard-stickers{
-    position:relative; width:100%; min-height:350px; perspective:600px;
+    position:absolute; top:0; left:0; right:0; bottom:0; width:100%; height:100%; perspective:600px;
   }
   .sticker-pin-group{
     position:absolute; 
@@ -3783,7 +3784,7 @@ function renderLanding(){
       <div style="display:flex; gap:24px; align-items:flex-start; margin-bottom:40px;">
         <!-- Corkboard on the left -->
         <div class="corkboard">
-          <div class="corkboard-title">Community Board</div>
+          <div class="corkboard-title">Guild Board</div>
           ${ state.stickers && state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
             <div class="corkboard-stickers">
               ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s)=>{
