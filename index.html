@@ -3868,9 +3868,12 @@ async function loadLayout(){
         Object.entries(layout).forEach(([id, style]) => {
           const el = document.getElementById(id);
           if(el) {
-            Object.assign(el.style, style);
-            // Only set position:absolute for modules, not for boxes
-            if(el.classList.contains('module')) {
+            // Apply saved styles (excluding type field)
+            const { type, ...styleProps } = style;
+            Object.assign(el.style, styleProps);
+
+            // Set position:absolute for both boxes and modules when they have saved positions
+            if(style.left || style.top) {
               el.style.position = 'absolute';
             }
           }
@@ -3902,8 +3905,10 @@ async function initLayoutSystem(){
   });
 
   resetBtn.addEventListener('click', () => {
-    localStorage.removeItem('guild-layout-modules');
-    location.reload();
+    // Clear saved layout from Supabase for all users
+    sb.from('guild_layout').delete().eq('guild_id', 'hated').then(() => {
+      location.reload();
+    });
   });
 
   const layoutContainer = document.getElementById('layout-container');
@@ -4079,7 +4084,22 @@ async function initLayoutSystem(){
 
   async function saveLayout(){
     const layout = {};
-    // Only save module positions, not box containers (boxes keep default sizes)
+
+    // Save box containers (resizable and movable)
+    document.querySelectorAll('.wow-box-container').forEach(el => {
+      if(el.id) {
+        layout[el.id] = {
+          left: el.style.left,
+          top: el.style.top,
+          width: el.style.width,
+          height: el.style.height,
+          zIndex: el.style.zIndex,
+          type: 'box'
+        };
+      }
+    });
+
+    // Save module positions (movable only)
     document.querySelectorAll('.module').forEach(el => {
       if(el.id) {
         layout[el.id] = {
@@ -4087,7 +4107,8 @@ async function initLayoutSystem(){
           top: el.style.top,
           width: el.style.width,
           height: el.style.height,
-          zIndex: el.style.zIndex
+          zIndex: el.style.zIndex,
+          type: 'module'
         };
       }
     });
