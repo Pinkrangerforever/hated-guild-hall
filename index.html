@@ -3852,26 +3852,41 @@ window._layoutState = {
   dragStartPos: { x: 0, y: 0 }
 };
 
-function loadLayout(){
-  const saved = localStorage.getItem('guild-layout-modules');
-  if(saved){
-    try {
-      const layout = JSON.parse(saved);
-      Object.entries(layout).forEach(([id, style]) => {
-        const el = document.getElementById(id);
-        // Skip title modules - they should stay at their initial position
-        if(el && !el.classList.contains('title-module')) {
-          Object.assign(el.style, style);
-          el.style.position = 'absolute';
-        }
-      });
-    } catch(e) {}
+async function loadLayout(){
+  try {
+    // Load layout from Supabase (shared for all users)
+    const { data, error } = await sb.from('guild_layout').select('layout_data').eq('guild_id', 'hated').single();
+
+    if(error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('Error loading layout:', error);
+      return;
+    }
+
+    if(data && data.layout_data){
+      try {
+        const layout = JSON.parse(data.layout_data);
+        Object.entries(layout).forEach(([id, style]) => {
+          const el = document.getElementById(id);
+          if(el) {
+            Object.assign(el.style, style);
+            // Only set position:absolute for modules, not for boxes
+            if(el.classList.contains('module')) {
+              el.style.position = 'absolute';
+            }
+          }
+        });
+      } catch(e) {
+        console.error('Error parsing layout:', e);
+      }
+    }
+  } catch(e) {
+    console.error('Error in loadLayout:', e);
   }
 }
 
-function initLayoutSystem(){
+async function initLayoutSystem(){
   // Load layout for ALL users (not just raid leaders)
-  loadLayout();
+  await loadLayout();
 
   // Only initialize drag/edit controls for raid leaders
   if(!testIsRaidLeader()) return;
@@ -4049,7 +4064,7 @@ function initLayoutSystem(){
     window._layoutState.dragType = null;
   });
 
-  function saveLayout(){
+  async function saveLayout(){
     const layout = {};
     document.querySelectorAll('.wow-box-container, .module').forEach(el => {
       if(el.id) {
@@ -4062,7 +4077,26 @@ function initLayoutSystem(){
         };
       }
     });
-    localStorage.setItem('guild-layout-modules', JSON.stringify(layout));
+
+    // Save to Supabase (shared for all users)
+    try {
+      const { error } = await sb.from('guild_layout').upsert({
+        guild_id: 'hated',
+        layout_data: JSON.stringify(layout),
+        updated_at: new Date().toISOString(),
+        updated_by: state.session?.user?.id
+      }, { onConflict: 'guild_id' });
+
+      if(error) {
+        console.error('Error saving layout:', error);
+        showToast('Failed to save layout', true);
+      } else {
+        showToast('Layout saved for everyone', false);
+      }
+    } catch(e) {
+      console.error('Error in saveLayout:', e);
+      showToast('Error saving layout', true);
+    }
   }
 }
 
@@ -5946,7 +5980,7 @@ function bindApp(){
   setupStickerDragHandlers();
 
   // Layout customization system - set up after each render
-  initLayoutSystem();
+  initLayoutSystem().catch(e => console.error('Error in initLayoutSystem:', e));
 
   const stickerPriceBtn = document.getElementById('save-sticker-price-btn');
   if(stickerPriceBtn) stickerPriceBtn.addEventListener('click', saveStickerPrice);
