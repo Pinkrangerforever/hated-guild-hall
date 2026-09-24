@@ -5257,7 +5257,7 @@ function renderNews(){
       </div>
 
       <!-- Feature cards content module -->
-      <div id="module-feature-cards" class="module" style="position:absolute; top:20px; left:20px; right:20px; height:auto; z-index:4; display:flex; gap:20px; flex-wrap:wrap; justify-content:space-around; cursor:move;">
+      <div id="module-feature-cards" class="module" style="position:absolute; top:20px; left:20px; width:calc(100% - 40px); height:auto; z-index:4; display:flex; gap:20px; flex-wrap:wrap; justify-content:space-around; cursor:move;">
 
         <button type="button" class="feature-card" data-home-card="calendar" style="flex:1; min-width:200px; max-width:300px; pointer-events:auto;">
           <div class="feature-icon">${crestSvg('hc1',34)}</div>
@@ -5325,7 +5325,7 @@ function renderNews(){
       </div>
     </div>` : ''}
 
-    <div style="background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px;">
+    <div id="module-announcements-display" class="module" style="background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; cursor:move;">
       ${ state.news.length ? state.news.map(n=>`
         <div class="list-item">
           <div style="flex:1;">
