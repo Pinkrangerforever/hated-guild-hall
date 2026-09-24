@@ -3902,7 +3902,7 @@ function initLayoutSystem(){
       if(!box) return;
       window._layoutState.dragging = box;
       window._layoutState.dragType = 'resize';
-      window._layoutState.resizeStart = { x: e.clientX, y: e.clientY };
+      window._layoutState.dragStart = { x: e.pageX, y: e.pageY };
       window._layoutState.resizeSize = { w: box.offsetWidth, h: box.offsetHeight };
       box.classList.add('dragging');
       return;
@@ -3977,6 +3977,14 @@ function initLayoutSystem(){
     // Store and clear flex layout to prevent children from reflowing during drag
     window._layoutState.dragOriginalDisplay = el.style.display;
     window._layoutState.dragOriginalFlexGap = el.style.gap;
+    window._layoutState.dragOriginalWidth = el.style.width;
+    window._layoutState.dragOriginalHeight = el.style.height;
+
+    // Lock width and height to prevent calc() from recalculating
+    const rect = el.getBoundingClientRect();
+    el.style.width = rect.width + 'px';
+    el.style.height = rect.height + 'px';
+
     if(el.style.display === 'flex' || window.getComputedStyle(el).display === 'flex'){
       el.style.display = 'block';
       el.style.gap = '0';
@@ -4006,12 +4014,16 @@ function initLayoutSystem(){
     const el = window._layoutState.dragging;
     el.classList.remove('dragging');
 
-    // Restore flex layout after drag
+    // Restore flex layout and dimensions after drag
     if(window._layoutState.dragOriginalDisplay !== undefined){
       el.style.display = window._layoutState.dragOriginalDisplay;
       el.style.gap = window._layoutState.dragOriginalFlexGap;
+      el.style.width = window._layoutState.dragOriginalWidth;
+      el.style.height = window._layoutState.dragOriginalHeight;
       window._layoutState.dragOriginalDisplay = undefined;
       window._layoutState.dragOriginalFlexGap = undefined;
+      window._layoutState.dragOriginalWidth = undefined;
+      window._layoutState.dragOriginalHeight = undefined;
     }
 
     saveLayout();
