@@ -3986,8 +3986,16 @@ function initLayoutSystem(){
     el.style.height = dragRect.height + 'px';
 
     if(el.style.display === 'flex' || window.getComputedStyle(el).display === 'flex'){
-      el.style.display = 'block';
       el.style.gap = '0';
+      el.style.flexWrap = 'nowrap';
+      el.style.justifyContent = 'flex-start';
+
+      // Store and set children to flex:none to prevent them from expanding
+      window._layoutState.dragChildrenFlexes = [];
+      Array.from(el.children).forEach(child => {
+        window._layoutState.dragChildrenFlexes.push(child.style.flex);
+        child.style.flex = 'none';
+      });
     }
   }
 
@@ -4024,6 +4032,15 @@ function initLayoutSystem(){
       window._layoutState.dragOriginalFlexGap = undefined;
       window._layoutState.dragOriginalWidth = undefined;
       window._layoutState.dragOriginalHeight = undefined;
+    }
+
+    // Restore children's flex properties
+    if(window._layoutState.dragChildrenFlexes){
+      const children = Array.from(el.children);
+      children.forEach((child, idx) => {
+        child.style.flex = window._layoutState.dragChildrenFlexes[idx] || '';
+      });
+      window._layoutState.dragChildrenFlexes = undefined;
     }
 
     saveLayout();
