@@ -4217,9 +4217,9 @@ async function initLayoutSystem(){
       }
     });
 
-    // Save module positions (movable only)
+    // Save module positions (movable only, excluding title modules)
     document.querySelectorAll('.module').forEach(el => {
-      if(el.id) {
+      if(el.id && !el.classList.contains('title-module')) {
         layout[el.id] = {
           left: el.style.left,
           top: el.style.top,
