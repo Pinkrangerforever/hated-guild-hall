@@ -4052,8 +4052,7 @@ function initLayoutSystem(){
   function saveLayout(){
     const layout = {};
     document.querySelectorAll('.wow-box-container, .module').forEach(el => {
-      // Skip title modules - they should always be at their initial position
-      if(el.id && !el.classList.contains('title-module')) {
+      if(el.id) {
         layout[el.id] = {
           left: el.style.left,
           top: el.style.top,
