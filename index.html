@@ -1257,11 +1257,6 @@
     width:auto;
     height:auto;
   }
-  #wow-box-1{ aspect-ratio: 700 / 520; width:700px; }
-  #wow-box-2{ aspect-ratio: 700 / 300; width:700px; }
-  #wow-box-3{ aspect-ratio: 900 / 520; width:900px; }
-  #wow-box-4{ aspect-ratio: auto; width:100%; }
-
   .wow-box{
     margin:0;
     padding:0;
@@ -1276,17 +1271,14 @@
   }
   .wow-box{
     background-image:url('wow-frame-wide.webp');
-    background-size:contain;
-    background-position:center;
+    background-size:auto;
+    background-position:top left;
     background-repeat:no-repeat;
     background-attachment:scroll;
-    position:absolute;
-    top:0;
-    left:0;
-    right:0;
-    bottom:0;
+    position:relative;
     z-index:1;
     pointer-events:none;
+    display:block;
   }
   .wow-box-title{
     position:relative;
