@@ -1240,10 +1240,16 @@
   .wow-box-container{
     position:relative;
     background:transparent;
+    cursor:move;
+    transition:box-shadow 0.2s ease;
+  }
+  .wow-box-container:hover{
+    box-shadow:0 8px 20px rgba(0,0,0,0.4);
   }
   .wow-box-container.dragging{
-    opacity:0.7;
-    box-shadow:0 20px 40px rgba(0,0,0,0.5);
+    opacity:0.9;
+    box-shadow:0 20px 40px rgba(0,0,0,0.7);
+    cursor:grabbing;
   }
   .wow-box{
     background-image:url('wow-frame-wide.webp');
@@ -1268,10 +1274,16 @@
   .module{
     position:relative;
     z-index:4;
+    cursor:move;
+    transition:box-shadow 0.2s ease;
+  }
+  .module:hover{
+    box-shadow:0 5px 15px rgba(0,0,0,0.4);
   }
   .module.dragging{
-    opacity:0.8;
-    box-shadow:0 10px 20px rgba(0,0,0,0.6);
+    opacity:0.9;
+    box-shadow:0 15px 30px rgba(0,0,0,0.7);
+    cursor:grabbing;
   }
   .draggable-column{
     cursor:move;
@@ -3851,23 +3863,8 @@ function initLayoutSystem(){
   document.addEventListener('mousedown', (e) => {
     if(window._layoutState.locked) return;
 
-    const boxHandle = e.target.closest('.wow-box-drag-handle');
-    const moduleHandle = e.target.closest('.module-drag-handle');
     const resizeHandle = e.target.closest('.wow-box-resize-handle');
-
-    if(boxHandle) {
-      const box = boxHandle.closest('.wow-box-container');
-      if(!box) return;
-      window._layoutState.dragging = box;
-      window._layoutState.dragType = 'box';
-      startDrag(e, box);
-    } else if(moduleHandle) {
-      const mod = moduleHandle.closest('.module');
-      if(!mod) return;
-      window._layoutState.dragging = mod;
-      window._layoutState.dragType = 'module';
-      startDrag(e, mod);
-    } else if(resizeHandle) {
+    if(resizeHandle) {
       e.preventDefault();
       const box = resizeHandle.closest('.wow-box-container');
       if(!box) return;
@@ -3876,6 +3873,29 @@ function initLayoutSystem(){
       window._layoutState.resizeStart = { x: e.clientX, y: e.clientY };
       window._layoutState.resizeSize = { w: box.offsetWidth, h: box.offsetHeight };
       box.classList.add('dragging');
+      return;
+    }
+
+    // Check if clicking on module (but not on buttons, inputs, etc)
+    if(!e.target.closest('button') && !e.target.closest('input') && !e.target.closest('textarea') && !e.target.closest('select')) {
+      const mod = e.target.closest('.module');
+      if(mod && mod.id) {
+        window._layoutState.dragging = mod;
+        window._layoutState.dragType = 'module';
+        startDrag(e, mod);
+        return;
+      }
+    }
+
+    // Check if clicking on wow-box container (but not on buttons, inputs, etc)
+    if(!e.target.closest('button') && !e.target.closest('input') && !e.target.closest('textarea') && !e.target.closest('select')) {
+      const box = e.target.closest('.wow-box-container');
+      if(box && box.id) {
+        window._layoutState.dragging = box;
+        window._layoutState.dragType = 'box';
+        startDrag(e, box);
+        return;
+      }
     }
   });
 
@@ -5168,10 +5188,10 @@ function renderNews(){
           <div class="wow-box"></div>
 
           <!-- Raid Roster Module -->
-          <div id="module-raid-roster" class="module" style="position:absolute; top:20px; left:20px; width:900px; height:auto; z-index:4; overflow-x:auto;">
+          <div id="module-raid-roster" class="module" style="position:absolute; top:20px; left:20px; width:900px; height:auto; z-index:4; overflow-x:auto; background:rgba(0,0,0,0.3); padding:16px; border:1px solid rgba(207,154,68,0.2); cursor:move;">
             ${testIsRaidLeader() ? '<div class="module-drag-handle" style="position:absolute; top:-22px; left:0; cursor:grab; color:var(--text-muted); font-size:10px; font-weight:600; user-select:none; z-index:10;">✋ Raid Roster</div>' : ''}
-            <div style="padding:0;">
-              <div class="wow-box-title" style="margin-bottom:12px;">Raid Roster</div>
+            <div style="width:100%;">
+              <div class="wow-box-title" style="margin-bottom:12px; margin-top:0;">Raid Roster</div>
               ${renderRosterGroups()}
             </div>
           </div>
