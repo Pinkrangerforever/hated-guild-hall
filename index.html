@@ -3920,6 +3920,11 @@ async function initLayoutSystem(){
   document.addEventListener('mousedown', (e) => {
     if(window._layoutState.locked) return;
 
+    // Check for interactive elements that should not trigger drag
+    const isInteractive = e.target.closest('button') || e.target.closest('input') ||
+                         e.target.closest('textarea') || e.target.closest('select') ||
+                         e.target.closest('a');
+
     const resizeHandle = e.target.closest('.wow-box-resize-handle');
     if(resizeHandle) {
       e.preventDefault();
@@ -3933,12 +3938,10 @@ async function initLayoutSystem(){
       return;
     }
 
-    // Check if clicking on module drag handle (title area)
-    // But skip raid roster (it's too large and covers the page)
-    const dragHandle = e.target.closest('.module-drag-handle');
-    if(dragHandle) {
-      const mod = dragHandle.closest('.module');
-      if(mod && mod.id && mod.id !== 'module-raid-roster' && mod.id !== 'module-raid-roster-title') {
+    // Allow dragging any module by clicking anywhere on it (unless clicking on interactive elements)
+    if(!isInteractive) {
+      const mod = e.target.closest('.module');
+      if(mod && mod.id) {
         window._layoutState.dragging = mod;
         window._layoutState.dragType = 'module';
         startDrag(e, mod);
@@ -3946,24 +3949,8 @@ async function initLayoutSystem(){
       }
     }
 
-    // Also allow dragging feature-cards module by clicking anywhere on it (for convenience)
-    const mod = e.target.closest('.module');
-    if(mod && mod.id === 'module-feature-cards') {
-      const clickedButton = e.target.closest('button');
-      const clickedInput = e.target.closest('input');
-      const clickedForm = e.target.closest('textarea') || e.target.closest('select');
-
-      // Drag feature-cards if not clicking on buttons/inputs
-      if(!clickedButton && !clickedInput && !clickedForm) {
-        window._layoutState.dragging = mod;
-        window._layoutState.dragType = 'module';
-        startDrag(e, mod);
-        return;
-      }
-    }
-
-    // Check if clicking on wow-box container (only in unlock mode, and not on buttons, inputs, etc)
-    if(!window._layoutState.locked && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('textarea') && !e.target.closest('select')) {
+    // Allow dragging any wow-box container by clicking anywhere on it (unless clicking on interactive elements)
+    if(!isInteractive) {
       const box = e.target.closest('.wow-box-container');
       if(box && box.id) {
         window._layoutState.dragging = box;
