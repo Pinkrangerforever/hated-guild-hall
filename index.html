@@ -3925,10 +3925,11 @@ async function initLayoutSystem(){
     }
 
     // Check if clicking on module drag handle (title area)
+    // But skip raid roster (it's too large and covers the page)
     const dragHandle = e.target.closest('.module-drag-handle');
     if(dragHandle) {
       const mod = dragHandle.closest('.module');
-      if(mod && mod.id) {
+      if(mod && mod.id && mod.id !== 'module-raid-roster' && mod.id !== 'module-raid-roster-title') {
         window._layoutState.dragging = mod;
         window._layoutState.dragType = 'module';
         startDrag(e, mod);
