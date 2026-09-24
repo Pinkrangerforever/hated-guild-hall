@@ -4038,6 +4038,9 @@ async function initLayoutSystem(){
     const el = window._layoutState.dragging;
     el.classList.remove('dragging');
 
+    // Save position BEFORE restoring flex properties (to avoid reflow issues)
+    saveLayout();
+
     // Restore flex layout and dimensions after drag
     if(window._layoutState.dragOriginalDisplay !== undefined){
       el.style.display = window._layoutState.dragOriginalDisplay;
@@ -4059,7 +4062,6 @@ async function initLayoutSystem(){
       window._layoutState.dragChildrenFlexes = undefined;
     }
 
-    saveLayout();
     window._layoutState.dragging = null;
     window._layoutState.dragType = null;
   });
