@@ -3941,20 +3941,22 @@ function initLayoutSystem(){
   function startDrag(e, el){
     window._layoutState.dragStart = { x: e.clientX, y: e.clientY };
 
-    // Get position relative to viewport, not document
+    // Get position relative to viewport
     const rect = el.getBoundingClientRect();
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
     window._layoutState.dragStartPos = {
-      x: rect.left + scrollLeft,
-      y: rect.top + scrollTop
+      x: rect.left,
+      y: rect.top
     };
+
     el.classList.add('dragging');
-    el.style.position = 'absolute';
-    el.style.zIndex = '100';
-    // Remove from document flow to prevent snap-back
     el.style.margin = '0';
+
+    // Use fixed positioning so element stays in viewport during drag
+    el.style.position = 'fixed';
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.top + 'px';
+    el.style.zIndex = '100';
   }
 
   document.addEventListener('mousemove', (e) => {
