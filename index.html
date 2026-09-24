@@ -5342,6 +5342,34 @@ function renderLoot(){
   `;
 }
 
+/* ---- update trophy case display ---- */
+function updateTrophyCaseDisplay(){
+  const trophy1 = document.getElementById('trophy-1st');
+  const trophy2 = document.getElementById('trophy-2nd');
+  const trophy3 = document.getElementById('trophy-3rd');
+
+  if(trophy1 && state.goldLeaderboard && state.goldLeaderboard[0]) {
+    trophy1.textContent = state.goldLeaderboard[0].character_name || state.goldLeaderboard[0].discord_username;
+  }
+  if(trophy2 && state.goldLeaderboard && state.goldLeaderboard[1]) {
+    trophy2.textContent = state.goldLeaderboard[1].character_name || state.goldLeaderboard[1].discord_username;
+  }
+  if(trophy3 && state.goldLeaderboard && state.goldLeaderboard[2]) {
+    trophy3.textContent = state.goldLeaderboard[2].character_name || state.goldLeaderboard[2].discord_username;
+  }
+}
+
+async function loadGoldLeaderboard(){
+  try {
+    const { data, error } = await sb.rpc('get_gold_leaderboard', { p_limit: 4 });
+    if(error) console.error('RPC error:', error);
+    if(!error && data) {
+      state.goldLeaderboard = data;
+      updateTrophyCaseDisplay();
+    }
+  } catch(e){ console.error('Leaderboard fetch failed:', e); }
+}
+
 /* ---- render roster groups (for home page) ---- */
 function renderRosterGroups(){
   const officer = testCanManage();
@@ -5467,18 +5495,20 @@ function renderNews(){
       <div id="module-trophy-case" class="module" style="position:absolute; top:520px; left:40px; width:600px; height:auto; cursor:move;">
         <div style="width:100%; padding:0; position:relative;">
           <div style="padding:0;">
-            <div style="display:flex; justify-content:space-around; margin-bottom:20px;">
-              <div style="text-align:center;">
-                <div style="font-size:32px; margin-bottom:8px;">🥇</div>
-                <div style="font-size:11px; color:#e8d7c3;">1st Place</div>
+            <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:20px; gap:20px;">
+              <div style="text-align:center; flex:1;">
+                <div id="trophy-2nd" style="font-size:14px; color:#e8d7c3; font-weight:600;">---</div>
+                <div style="font-size:11px; color:#a4926c; margin-top:4px;">2nd Place</div>
               </div>
-              <div style="text-align:center;">
-                <div style="font-size:32px; margin-bottom:8px;">🥈</div>
-                <div style="font-size:11px; color:#e8d7c3;">2nd Place</div>
+              <div style="color:#ffb347; font-size:20px;">—</div>
+              <div style="text-align:center; flex:1;">
+                <div id="trophy-1st" style="font-size:14px; color:#ffd700; font-weight:700;">---</div>
+                <div style="font-size:11px; color:#ffb347; margin-top:4px;">🥇 1st Place</div>
               </div>
-              <div style="text-align:center;">
-                <div style="font-size:32px; margin-bottom:8px;">🥉</div>
-                <div style="font-size:11px; color:#e8d7c3;">3rd Place</div>
+              <div style="color:#ffb347; font-size:20px;">—</div>
+              <div style="text-align:center; flex:1;">
+                <div id="trophy-3rd" style="font-size:14px; color:#e8d7c3; font-weight:600;">---</div>
+                <div style="font-size:11px; color:#a4926c; margin-top:4px;">3rd Place</div>
               </div>
             </div>
             <div style="background:rgba(0,0,0,0.3); border-top:1px solid #5a4a38; padding-top:12px;">
@@ -6135,6 +6165,9 @@ function bindApp(){
 
   // Layout customization system - set up after each render
   initLayoutSystem().catch(e => console.error('Error in initLayoutSystem:', e));
+
+  // Load gold leaderboard for trophy case display
+  loadGoldLeaderboard().catch(e => console.error('Error loading leaderboard:', e));
 
   const stickerPriceBtn = document.getElementById('save-sticker-price-btn');
   if(stickerPriceBtn) stickerPriceBtn.addEventListener('click', saveStickerPrice);
