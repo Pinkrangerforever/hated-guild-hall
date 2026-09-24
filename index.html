@@ -4332,6 +4332,10 @@ function renderApp(){
         <div class="nav-cta-group">
           <span class="nav-user sans">${esc(myName())} <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span></span>
           <span class="nav-gold-badge">&#x1F4B0; ${state.profile ? (state.profile.gold||0) : 0}</span>
+          ${ state.profile && state.profile.protected ? `
+            <button type="button" id="layout-lock-btn" class="btn-nav-outline" style="font-size:13px;">🔓 Layout</button>
+            <button type="button" id="layout-reset-btn" class="btn-nav-outline" style="font-size:13px;">↻ Reset</button>
+          ` : '' }
           <button type="button" class="btn-nav-outline" id="open-shop-btn">Shop</button>
           ${ state.profile && state.profile.protected ? `<button type="button" class="btn-nav-admin ${state.tab==='admin'?'active':''}" data-tab="admin">Admin</button>` : '' }
           <button class="btn-nav-outline" id="logout-btn" type="button">Sign Out</button>
@@ -5173,14 +5177,6 @@ function renderNews(){
   const officer = testCanManage();
   return `
 
-    <!-- Layout Control Panel (Raid Leader Only) -->
-    <div style="margin-bottom:24px; ${testIsRaidLeader() ? 'display:flex;' : 'display:none;'} padding:12px 16px; background:rgba(207,154,68,0.08); border:1px solid rgba(207,154,68,0.16); border-radius:4px; gap:12px; align-items:center;">
-      ${testIsRaidLeader() ? `
-        <span style="color:var(--text-muted); font-size:12px; font-weight:600;">Layout Customization:</span>
-        <button type="button" id="layout-lock-btn" style="padding:6px 12px; background:#4a3c2a; border:1px solid rgba(207,154,68,0.3); color:var(--text-normal); cursor:pointer; border-radius:3px; font-size:12px;">🔓 Unlock Layout</button>
-        <button type="button" id="layout-reset-btn" style="padding:6px 12px; background:#4a3c2a; border:1px solid rgba(207,154,68,0.3); color:var(--text-normal); cursor:pointer; border-radius:3px; font-size:12px;">↻ Reset Layout</button>
-      ` : '' }
-    </div>
 
     <!-- 2-Column Layout with Modules -->
     <div id="layout-container" style="display:flex; gap:40px; align-items:flex-start; padding:40px 40px 40px 0; margin-left:-20px; position:relative;">
