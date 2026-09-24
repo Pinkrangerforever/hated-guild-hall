@@ -5282,7 +5282,7 @@ function renderNews(){
     <p class="page-sub sans">Officer posts for lockout changes, loot rule updates, and anything else worth pinning.</p>
 
     ${ officer ? `
-    <div style="background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; margin-bottom:16px;">
+    <div id="module-announcements-form" class="module" style="background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; margin-bottom:16px; cursor:move;">
       <h3 style="margin-bottom:14px; color:var(--text-normal);">Post an announcement</h3>
       <div id="news-form">
         <div class="field"><label>Title</label><input name="title" placeholder="e.g. New loot council rules starting this week" required></div>
