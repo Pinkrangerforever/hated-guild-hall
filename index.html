@@ -5552,67 +5552,70 @@ function renderNews(){
         </button>
       </div>
 
-    </div>
-
-    <div class="eyebrow sans" style="position:relative; z-index:1;">Announcements</div>
-    <h2 class="page-title" style="position:relative; z-index:1;">News</h2>
-    <p class="page-sub sans" style="position:relative; z-index:1;">Officer posts for lockout changes, loot rule updates, and anything else worth pinning.</p>
-
-    ${ officer ? `
-    <div id="module-announcements-form" class="module" style="position:relative; z-index:1; background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; margin-bottom:16px; cursor:move;">
-      <h3 style="margin-bottom:14px; color:var(--text-normal);">Post an announcement</h3>
-      <div id="news-form">
-        <div class="field"><label>Title</label><input name="title" placeholder="e.g. New loot council rules starting this week" required></div>
-        <div class="field">
-          <label>Message</label>
-          <div class="rte-toolbar">
-            <button type="button" class="rte-btn" data-rte="bold" title="Bold"><strong>B</strong></button>
-            <button type="button" class="rte-btn" data-rte="italic" title="Italic"><em>I</em></button>
-            <button type="button" class="rte-btn" data-rte="underline" title="Underline"><u>U</u></button>
-            <button type="button" class="rte-btn" data-rte="strike" title="Strikethrough"><s>S</s></button>
-            <span class="rte-sep"></span>
-            <button type="button" class="rte-btn" data-rte="h1" title="Heading">H1</button>
-            <button type="button" class="rte-btn" data-rte="h2" title="Subheading">H2</button>
-            <span class="rte-sep"></span>
-            <button type="button" class="rte-btn" data-rte="ul" title="Bullet list">&#8226; List</button>
-            <button type="button" class="rte-btn" data-rte="ol" title="Numbered list">1. List</button>
-            <button type="button" class="rte-btn" data-rte="quote" title="Quote">&rdquo; Quote</button>
-            <button type="button" class="rte-btn" data-rte="code" title="Code">&lt;/&gt;</button>
-            <button type="button" class="rte-btn" data-rte="link" title="Link">Link</button>
-            <span class="rte-sep"></span>
-            <span class="rte-color-swatches">
-              <button type="button" class="rte-swatch" data-color="#cf9a44" style="background:#cf9a44" title="Gold"></button>
-              <button type="button" class="rte-swatch" data-color="#e0507a" style="background:#e0507a" title="Pink"></button>
-              <button type="button" class="rte-swatch" data-color="#c0433f" style="background:#c0433f" title="Red"></button>
-              <button type="button" class="rte-swatch" data-color="#6fa354" style="background:#6fa354" title="Green"></button>
-              <button type="button" class="rte-swatch" data-color="#5b8fc7" style="background:#5b8fc7" title="Blue"></button>
-              <button type="button" class="rte-swatch" data-color="#a77fd6" style="background:#a77fd6" title="Purple"></button>
-              <button type="button" class="rte-swatch" data-color="#f2f0e6" style="background:#f2f0e6" title="White"></button>
-            </span>
-          </div>
-          <textarea id="news-body-input" name="body" placeholder="Details go here..." required></textarea>
-          <div class="rte-hint sans">Supports **bold**, *italic*, __underline__, ~~strikethrough~~, # headings, - lists, &gt; quotes, &#96;code&#96;, [links](https://), and color.</div>
-        </div>
-        <div class="field">
-          <label>Preview</label>
-          <div id="news-preview" class="rte-preview"><span class="muted">Nothing to preview yet.</span></div>
-        </div>
-        <div id="news-error" class="field-error" style="display:none;"></div>
-        <button class="btn" type="button" id="news-form-btn">Post</button>
+      <!-- Announcements Title Module -->
+      <div id="module-announcements-title" class="module title-module" style="position:absolute; top:1160px; left:40px; width:auto; height:auto; cursor:move;">
+        <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">News</div>
       </div>
-    </div>` : ''}
 
-    <div id="module-announcements-display" class="module" style="position:relative; z-index:1; background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; cursor:move;">
-      ${ state.news.length ? state.news.map(n=>`
-        <div class="list-item">
-          <div style="flex:1;">
-            <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
-            <div class="muted"><span class="mono">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')}</span> &middot; ${esc(n.author||'')}</div>
-            <div style="margin-top:8px;">${renderRichText(n.body)}</div>
+      <!-- Announcements Form Module (Officers Only) -->
+      ${ officer ? `
+      <div id="module-announcements-form" class="module" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; cursor:move;">
+        <h3 style="margin-bottom:14px; color:var(--text-normal);">Post an announcement</h3>
+        <div id="news-form">
+          <div class="field"><label>Title</label><input name="title" placeholder="e.g. New loot council rules starting this week" required></div>
+          <div class="field">
+            <label>Message</label>
+            <div class="rte-toolbar">
+              <button type="button" class="rte-btn" data-rte="bold" title="Bold"><strong>B</strong></button>
+              <button type="button" class="rte-btn" data-rte="italic" title="Italic"><em>I</em></button>
+              <button type="button" class="rte-btn" data-rte="underline" title="Underline"><u>U</u></button>
+              <button type="button" class="rte-btn" data-rte="strike" title="Strikethrough"><s>S</s></button>
+              <span class="rte-sep"></span>
+              <button type="button" class="rte-btn" data-rte="h1" title="Heading">H1</button>
+              <button type="button" class="rte-btn" data-rte="h2" title="Subheading">H2</button>
+              <span class="rte-sep"></span>
+              <button type="button" class="rte-btn" data-rte="ul" title="Bullet list">&#8226; List</button>
+              <button type="button" class="rte-btn" data-rte="ol" title="Numbered list">1. List</button>
+              <button type="button" class="rte-btn" data-rte="quote" title="Quote">&rdquo; Quote</button>
+              <button type="button" class="rte-btn" data-rte="code" title="Code">&lt;/&gt;</button>
+              <button type="button" class="rte-btn" data-rte="link" title="Link">Link</button>
+              <span class="rte-sep"></span>
+              <span class="rte-color-swatches">
+                <button type="button" class="rte-swatch" data-color="#cf9a44" style="background:#cf9a44" title="Gold"></button>
+                <button type="button" class="rte-swatch" data-color="#e0507a" style="background:#e0507a" title="Pink"></button>
+                <button type="button" class="rte-swatch" data-color="#c0433f" style="background:#c0433f" title="Red"></button>
+                <button type="button" class="rte-swatch" data-color="#6fa354" style="background:#6fa354" title="Green"></button>
+                <button type="button" class="rte-swatch" data-color="#5b8fc7" style="background:#5b8fc7" title="Blue"></button>
+                <button type="button" class="rte-swatch" data-color="#a77fd6" style="background:#a77fd6" title="Purple"></button>
+                <button type="button" class="rte-swatch" data-color="#f2f0e6" style="background:#f2f0e6" title="White"></button>
+              </span>
+            </div>
+            <textarea id="news-body-input" name="body" placeholder="Details go here..." required></textarea>
+            <div class="rte-hint sans">Supports **bold**, *italic*, __underline__, ~~strikethrough~~, # headings, - lists, &gt; quotes, &#96;code&#96;, [links](https://), and color.</div>
           </div>
-          ${ officer ? `<button class="btn danger" data-del-news="${n.id}" style="flex-shrink:0;">Remove</button>` : '' }
+          <div class="field">
+            <label>Preview</label>
+            <div id="news-preview" class="rte-preview"><span class="muted">Nothing to preview yet.</span></div>
+          </div>
+          <div id="news-error" class="field-error" style="display:none;"></div>
+          <button class="btn" type="button" id="news-form-btn">Post</button>
         </div>
-      `).join('') : emptyState('No announcements yet.') }
+      </div>` : ''}
+
+      <!-- Announcements Display Module -->
+      <div id="module-announcements-display" class="module" style="position:absolute; top:${officer ? '1800px' : '1200px'}; left:40px; width:calc(100% - 80px); background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; cursor:move;">
+        ${ state.news.length ? state.news.map(n=>`
+          <div class="list-item">
+            <div style="flex:1;">
+              <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
+              <div class="muted"><span class="mono">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')}</span> &middot; ${esc(n.author||'')}</div>
+              <div style="margin-top:8px;">${renderRichText(n.body)}</div>
+            </div>
+            ${ officer ? `<button class="btn danger" data-del-news="${n.id}" style="flex-shrink:0;">Remove</button>` : '' }
+          </div>
+        `).join('') : emptyState('No announcements yet.') }
+      </div>
+
     </div>
   `;
 }
