@@ -3879,6 +3879,67 @@ function initLayoutSystem(){
     localStorage.setItem('guild-layout-positions', JSON.stringify(positions));
     window._layoutState.draggingColumn = null;
   });
+
+  // Column resize handlers
+  window._layoutState.resizingColumn = null;
+  window._layoutState.resizeStart = { x: 0, y: 0 };
+  window._layoutState.columnStartSize = { width: 0, height: 0 };
+
+  document.addEventListener('mousedown', (e) => {
+    if(window._layoutState.locked) return;
+    const handle = e.target.closest('.column-resize-handle');
+    if(!handle) return;
+    e.preventDefault();
+
+    const column = handle.closest('.draggable-column');
+    if(!column) return;
+
+    window._layoutState.resizingColumn = column;
+    window._layoutState.resizeStart = { x: e.clientX, y: e.clientY };
+    window._layoutState.columnStartSize = {
+      width: column.offsetWidth,
+      height: column.offsetHeight
+    };
+    column.classList.add('dragging');
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if(!window._layoutState.resizingColumn) return;
+
+    const dx = e.clientX - window._layoutState.resizeStart.x;
+    const dy = e.clientY - window._layoutState.resizeStart.y;
+
+    const col = window._layoutState.resizingColumn;
+    const newWidth = Math.max(400, window._layoutState.columnStartSize.width + dx);
+    const newHeight = Math.max(300, window._layoutState.columnStartSize.height + dy);
+
+    col.style.width = newWidth + 'px';
+    col.style.flex = 'none';
+    col.style.height = newHeight + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if(!window._layoutState.resizingColumn) return;
+
+    const col = window._layoutState.resizingColumn;
+    col.classList.remove('dragging');
+
+    // Save size
+    const positions = JSON.parse(localStorage.getItem('guild-layout-positions') || '{"left":{},"right":{}}');
+
+    if(col.id === 'col-left') {
+      positions.left.width = col.style.width;
+      positions.left.height = col.style.height;
+      positions.left.flex = col.style.flex;
+    } else {
+      positions.right.width = col.style.width;
+      positions.right.height = col.style.height;
+      positions.right.flex = col.style.flex;
+    }
+
+    localStorage.setItem('guild-layout-positions', JSON.stringify(positions));
+    window._layoutState.resizingColumn = null;
+  });
 }
 
 /* ---------------- top-level render ---------------- */
@@ -5002,7 +5063,10 @@ function renderNews(){
     <div id="layout-container" style="display:flex; gap:40px; align-items:flex-start; padding:40px 40px 40px 0; margin-left:-20px; position:relative;">
       <!-- Left Column: Guild Board + Trophy Case -->
       <div id="col-left" class="draggable-column" style="flex:0 0 700px; padding-left:20px; position:relative; transition:all 0.2s ease;">
-        ${testIsRaidLeader() ? '<div class="column-drag-handle" style="position:absolute; top:-20px; left:0; width:100%; height:16px; cursor:grab; color:var(--text-muted); font-size:10px; text-align:center;">⋯⋯⋯ DRAG ⋯⋯⋯</div>' : ''}
+        ${testIsRaidLeader() ? `
+          <div class="column-drag-handle" style="position:absolute; top:4px; left:8px; right:auto; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10;">⋮⋮ DRAG</div>
+          <div class="column-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10;"></div>
+        ` : ''}
         <!-- Corkboard -->
         <div class="corkboard" style="margin-bottom:40px; position:relative;">
           <div class="wow-box-title" style="position:relative; z-index:5; border:3px solid #8b6f47; border-bottom:3px solid #8b6f47;">Guild Board</div>
@@ -5064,7 +5128,10 @@ function renderNews(){
 
       <!-- Right Column: Raid Roster -->
       <div id="col-right" class="draggable-column" style="flex:1 1 auto; min-width:900px; position:relative; transition:all 0.2s ease;">
-        ${testIsRaidLeader() ? '<div class="column-drag-handle" style="position:absolute; top:-20px; left:0; width:100%; height:16px; cursor:grab; color:var(--text-muted); font-size:10px; text-align:center;">⋯⋯⋯ DRAG ⋯⋯⋯</div>' : ''}
+        ${testIsRaidLeader() ? `
+          <div class="column-drag-handle" style="position:absolute; top:4px; left:8px; right:auto; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10;">⋮⋮ DRAG</div>
+          <div class="column-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10;"></div>
+        ` : ''}
         <div class="wow-box" style="width:100%;">
           <div class="wow-box-title">Raid Roster</div>
           <div style="padding:20px; overflow-x:auto;">
