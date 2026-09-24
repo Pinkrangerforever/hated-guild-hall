@@ -1347,7 +1347,7 @@
     font-weight: 700;
     font-size: 12px;
     letter-spacing: 0.05em;
-    text-transform: uppercase;
+    text-transform: capitalize;
   }
   .module:hover{
     box-shadow:0 5px 15px rgba(0,0,0,0.4);
@@ -3944,8 +3944,10 @@ async function loadLayout(){
       }
     }
 
-    // Always sync title positions after layout loads (or if no layout exists)
-    setTimeout(() => syncTitlePositions(), 0);
+    // Only sync title positions for raid leaders (members use saved positions)
+    if(testIsRaidLeader()) {
+      setTimeout(() => syncTitlePositions(), 0);
+    }
   } catch(e) {
     console.error('Error in loadLayout:', e);
   }
@@ -4157,8 +4159,10 @@ async function initLayoutSystem(){
       const dy = e.pageY - dragStartY;
       currentContainer.style.left = (dragStartLeft + dx) + 'px';
       currentContainer.style.top = (dragStartTop + dy) + 'px';
-      // Sync titles as box is dragged
-      syncTitlePositions();
+      // Sync titles as box is dragged (raid leader only)
+      if(testIsRaidLeader()) {
+        syncTitlePositions();
+      }
       return;
     }
 
@@ -4178,8 +4182,10 @@ async function initLayoutSystem(){
     if(isResizingContainer || isDraggingContainer) {
       if(currentContainer) {
         currentContainer.classList.remove('dragging');
-        // Sync titles with new box position
-        syncTitlePositions();
+        // Sync titles with new box position (raid leader only)
+        if(testIsRaidLeader()) {
+          syncTitlePositions();
+        }
       }
       isResizingContainer = false;
       isDraggingContainer = false;
