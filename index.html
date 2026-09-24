@@ -3954,6 +3954,9 @@ async function loadLayout(){
 }
 
 function syncTitlePositions(){
+  // Members should never sync - they use saved positions only
+  if(!testIsRaidLeader()) return;
+
   // Only sync titles that don't have manually-set positions
   const titleBoxMap = {
     'module-guild-board-title': { box: 'wow-box-1', side: 'left' },
