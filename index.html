@@ -3955,7 +3955,7 @@ async function loadLayout(){
 }
 
 function syncTitlePositions(){
-  // Sync each title to its corresponding box's position
+  // Only sync titles that don't have manually-set positions
   const titleBoxMap = {
     'module-guild-board-title': { box: 'wow-box-1', side: 'left' },
     'module-trophy-case-title': { box: 'wow-box-2', side: 'left' },
@@ -3967,6 +3967,13 @@ function syncTitlePositions(){
     const box = document.getElementById(config.box);
 
     if(title && box) {
+      // Skip sync if title has explicit saved position (top/left/right set)
+      const hasExplicitPosition = title.style.top || title.style.left || title.style.right;
+      if(hasExplicitPosition) {
+        return; // Title was manually positioned and saved, don't override
+      }
+
+      // Sync to box position
       const boxTop = parseInt(box.style.top) || 0;
       const boxLeft = parseInt(box.style.left);
       const boxRight = parseInt(box.style.right);
@@ -4228,12 +4235,13 @@ async function initLayoutSystem(){
       }
     });
 
-    // Save module positions (movable only, excluding title modules)
+    // Save all module positions (including title modules)
     document.querySelectorAll('.module').forEach(el => {
-      if(el.id && !el.classList.contains('title-module')) {
+      if(el.id) {
         layout[el.id] = {
           left: el.style.left,
           top: el.style.top,
+          right: el.style.right,
           width: el.style.width,
           height: el.style.height,
           zIndex: el.style.zIndex,
