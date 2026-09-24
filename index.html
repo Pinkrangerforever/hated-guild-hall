@@ -1245,45 +1245,78 @@
     color:#5a4a38; text-shadow:1px 1px 0 rgba(255,255,255,0.2);
     position:absolute; top:16px; left:50%; transform:translateX(-50%); z-index:5;
   }
-  .wow-box-container{
-    position:relative;
-    background:transparent;
-    cursor:move;
-    transition:box-shadow 0.2s ease;
-    display:inline-block;
-    padding:0;
-    margin:0;
-    border:0;
-    width:auto;
-    height:auto;
+  /* WOW-BOX FRAME CONTAINER - Uses boilerplate pattern */
+  .wow-container {
+    position: absolute;
+    width: 400px;
+    height: 150px;
+    min-width: 150px;
+    min-height: 80px;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    cursor: grab;
+    display: inline-block;
+    line-height: 0;
+    user-select: none;
+    -webkit-user-select: none;
   }
-  .wow-box{
-    margin:0;
-    padding:0;
+  .wow-container:active {
+    cursor: grabbing;
   }
-  #wow-box-1{ width:700px; height:520px; }
-  #wow-box-2{ width:700px; height:300px; }
-  #wow-box-3{ width:900px; height:520px; }
-  #wow-box-4{ width:100%; height:auto; }
-  .wow-box-container:hover{
-    box-shadow:0 8px 20px rgba(0,0,0,0.4);
+  .wow-container.dragging {
+    opacity: 0.9;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.7);
   }
-  .wow-box-container.dragging{
-    opacity:0.9;
-    box-shadow:0 20px 40px rgba(0,0,0,0.7);
-    cursor:grabbing;
+  .wow-container.unlocked {
+    cursor: grab;
   }
-  .wow-box{
-    background-image:url('wow-frame-wide.webp');
-    background-size:auto;
-    background-position:top left;
-    background-repeat:no-repeat;
-    background-attachment:scroll;
-    position:relative;
-    z-index:1;
-    pointer-events:none;
-    display:block;
+  .wow-container.unlocked:hover {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
   }
+
+  /* Frame image fills exact container dimensions */
+  .wow-frame-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+    object-fit: fill;
+  }
+
+  /* Resize handle pinned to bottom-right */
+  .wow-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 16px;
+    height: 16px;
+    cursor: se-resize;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.2);
+    border-top-left-radius: 3px;
+    background-image: radial-gradient(circle, #fff 1px, transparent 1px);
+    background-size: 4px 4px;
+    display: none;
+  }
+  .wow-container.unlocked .wow-resize-handle {
+    display: block;
+  }
+  .wow-resize-handle:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Content area inside frame */
+  .wow-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    pointer-events: auto;
+  }
+
   .wow-box-title{
     position:relative;
     z-index:5;
@@ -3938,28 +3971,53 @@ async function initLayoutSystem(){
 
   const layoutContainer = document.getElementById('layout-container');
 
+  // WOW-CONTAINER DRAG AND RESIZE LOGIC
+  let isDraggingContainer = false;
+  let isResizingContainer = false;
+  let dragStartX, dragStartY, dragStartLeft, dragStartTop;
+  let resizeStartWidth, resizeStartHeight, resizeStartX, resizeStartY;
+  let currentContainer = null;
+
+  // Setup drag/resize for all wow-containers
   document.addEventListener('mousedown', (e) => {
     if(window._layoutState.locked) return;
 
-    // Check for interactive elements that should not trigger drag
+    const resizeHandle = e.target.closest('.wow-resize-handle');
+    if(resizeHandle) {
+      e.preventDefault();
+      isResizingContainer = true;
+      currentContainer = resizeHandle.closest('.wow-container');
+      if(!currentContainer) return;
+
+      resizeStartX = e.pageX;
+      resizeStartY = e.pageY;
+      resizeStartWidth = currentContainer.offsetWidth;
+      resizeStartHeight = currentContainer.offsetHeight;
+
+      currentContainer.classList.add('dragging');
+      return;
+    }
+
+    // Check if clicking on the frame itself (not interactive elements)
     const isInteractive = e.target.closest('button') || e.target.closest('input') ||
                          e.target.closest('textarea') || e.target.closest('select') ||
                          e.target.closest('a');
 
-    const resizeHandle = e.target.closest('.wow-box-resize-handle');
-    if(resizeHandle) {
-      e.preventDefault();
-      const box = resizeHandle.closest('.wow-box-container');
-      if(!box) return;
-      window._layoutState.dragging = box;
-      window._layoutState.dragType = 'resize';
-      window._layoutState.dragStart = { x: e.pageX, y: e.pageY };
-      window._layoutState.resizeSize = { w: box.offsetWidth, h: box.offsetHeight };
-      box.classList.add('dragging');
-      return;
+    if(!isInteractive) {
+      const container = e.target.closest('.wow-container');
+      if(container && container.classList.contains('unlocked')) {
+        isDraggingContainer = true;
+        currentContainer = container;
+        dragStartX = e.pageX;
+        dragStartY = e.pageY;
+        dragStartLeft = parseInt(currentContainer.style.left) || 0;
+        dragStartTop = parseInt(currentContainer.style.top) || 0;
+        currentContainer.classList.add('dragging');
+        return;
+      }
     }
 
-    // Allow dragging any module by clicking anywhere on it (unless clicking on interactive elements)
+    // Module dragging (existing logic)
     if(!isInteractive) {
       const mod = e.target.closest('.module');
       if(mod && mod.id) {
@@ -3969,32 +4027,18 @@ async function initLayoutSystem(){
         return;
       }
     }
-
-    // Allow dragging any wow-box container by clicking anywhere on it (unless clicking on interactive elements)
-    if(!isInteractive) {
-      const box = e.target.closest('.wow-box-container');
-      if(box && box.id) {
-        window._layoutState.dragging = box;
-        window._layoutState.dragType = 'box';
-        startDrag(e, box);
-        return;
-      }
-    }
   });
 
   function startDrag(e, el){
     window._layoutState.dragStart = { x: e.pageX, y: e.pageY };
 
-    // Get viewport position
     const rect = el.getBoundingClientRect();
     const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-    // Calculate document-relative position
     const docX = rect.left + scrollLeft;
     const docY = rect.top + scrollTop;
 
-    // Find the nearest positioned ancestor to account for position:relative parents
     let offsetParent = el.offsetParent;
     let parentDocX = 0;
     let parentDocY = 0;
@@ -4005,7 +4049,6 @@ async function initLayoutSystem(){
       parentDocY = parentRect.top + scrollTop;
     }
 
-    // Store position relative to the positioned ancestor (or document if none)
     window._layoutState.dragStartPos = {
       x: docX - parentDocX,
       y: docY - parentDocY
@@ -4018,13 +4061,11 @@ async function initLayoutSystem(){
     el.style.top = window._layoutState.dragStartPos.y + 'px';
     el.style.zIndex = '100';
 
-    // Store and clear flex layout to prevent children from reflowing during drag
     window._layoutState.dragOriginalDisplay = el.style.display;
     window._layoutState.dragOriginalFlexGap = el.style.gap;
     window._layoutState.dragOriginalWidth = el.style.width;
     window._layoutState.dragOriginalHeight = el.style.height;
 
-    // Lock width and height to prevent calc() from recalculating
     const dragRect = el.getBoundingClientRect();
     el.style.width = dragRect.width + 'px';
     el.style.height = dragRect.height + 'px';
@@ -4034,7 +4075,6 @@ async function initLayoutSystem(){
       el.style.flexWrap = 'nowrap';
       el.style.justifyContent = 'flex-start';
 
-      // Store and set children to flex:none to prevent them from expanding
       window._layoutState.dragChildrenFlexes = [];
       Array.from(el.children).forEach(child => {
         window._layoutState.dragChildrenFlexes.push(child.style.flex);
@@ -4044,29 +4084,52 @@ async function initLayoutSystem(){
   }
 
   document.addEventListener('mousemove', (e) => {
+    // Handle wow-container resize
+    if(isResizingContainer && currentContainer) {
+      const newW = Math.max(150, resizeStartWidth + (e.pageX - resizeStartX));
+      const newH = Math.max(80, resizeStartHeight + (e.pageY - resizeStartY));
+      currentContainer.style.width = newW + 'px';
+      currentContainer.style.height = newH + 'px';
+      return;
+    }
+
+    // Handle wow-container drag
+    if(isDraggingContainer && currentContainer) {
+      const dx = e.pageX - dragStartX;
+      const dy = e.pageY - dragStartY;
+      currentContainer.style.left = (dragStartLeft + dx) + 'px';
+      currentContainer.style.top = (dragStartTop + dy) + 'px';
+      return;
+    }
+
+    // Handle module drag (existing logic)
     if(!window._layoutState.dragging) return;
 
     const dx = e.pageX - window._layoutState.dragStart.x;
     const dy = e.pageY - window._layoutState.dragStart.y;
     const el = window._layoutState.dragging;
 
-    if(window._layoutState.dragType === 'resize') {
-      const newW = Math.max(400, window._layoutState.resizeSize.w + dx);
-      const newH = Math.max(300, window._layoutState.resizeSize.h + dy);
-      el.style.width = newW + 'px';
-      el.style.height = newH + 'px';
-    } else {
-      el.style.left = (window._layoutState.dragStartPos.x + dx) + 'px';
-      el.style.top = (window._layoutState.dragStartPos.y + dy) + 'px';
-    }
+    el.style.left = (window._layoutState.dragStartPos.x + dx) + 'px';
+    el.style.top = (window._layoutState.dragStartPos.y + dy) + 'px';
   });
 
   document.addEventListener('mouseup', () => {
+    // Stop container operations
+    if(isResizingContainer || isDraggingContainer) {
+      if(currentContainer) {
+        currentContainer.classList.remove('dragging');
+      }
+      isResizingContainer = false;
+      isDraggingContainer = false;
+      currentContainer = null;
+      return;
+    }
+
+    // Stop module drag (existing logic)
     if(!window._layoutState.dragging) return;
     const el = window._layoutState.dragging;
     el.classList.remove('dragging');
 
-    // Restore flex layout and dimensions after drag
     if(window._layoutState.dragOriginalDisplay !== undefined){
       el.style.display = window._layoutState.dragOriginalDisplay;
       el.style.gap = window._layoutState.dragOriginalFlexGap;
@@ -4078,7 +4141,6 @@ async function initLayoutSystem(){
       window._layoutState.dragOriginalHeight = undefined;
     }
 
-    // Restore children's flex properties
     if(window._layoutState.dragChildrenFlexes){
       const children = Array.from(el.children);
       children.forEach((child, idx) => {
@@ -4094,8 +4156,8 @@ async function initLayoutSystem(){
   async function saveLayout(){
     const layout = {};
 
-    // Save box containers (resizable and movable)
-    document.querySelectorAll('.wow-box-container').forEach(el => {
+    // Save wow-containers (resizable and movable)
+    document.querySelectorAll('.wow-container').forEach(el => {
       if(el.id) {
         layout[el.id] = {
           left: el.style.left,
@@ -4103,7 +4165,7 @@ async function initLayoutSystem(){
           width: el.style.width,
           height: el.style.height,
           zIndex: el.style.zIndex,
-          type: 'box'
+          type: 'container'
         };
       }
     });
@@ -5260,39 +5322,31 @@ function renderNews(){
     <!-- 2-Column Layout with Modules -->
     <div id="layout-container" style="display:flex; gap:40px; align-items:flex-start; padding:40px 40px 40px 0; margin-left:-20px; margin-top:24px; position:relative;">
 
-      <!-- Left Column -->
-      <div id="col-left" class="draggable-column" style="flex:0 0 700px; padding-left:20px; position:static; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0;">
+      <!-- Left Column (placeholder, boxes positioned absolutely in layout-container) -->
+      <div id="col-left" class="draggable-column" style="flex:0 0 700px; padding-left:20px; position:static; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0;"></div>
 
-        <!-- WOW-BOX 1: Guild Board (content container only) -->
-        <div id="wow-box-1" class="wow-box-container" style="position:static;">
-          ${testIsRaidLeader() ? `
-            <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10; pointer-events:auto; display:none;"></div>
-            <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10; pointer-events:auto;"></div>
-          ` : ''}
-          <div class="wow-box"></div>
-        </div>
+      <!-- Right Column (placeholder, boxes positioned absolutely in layout-container) -->
+      <div id="col-right" class="draggable-column" style="flex:1 1 auto; min-width:900px; position:static; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0;"></div>
 
-        <!-- WOW-BOX 2: Trophy Case (content container only) -->
-        <div id="wow-box-2" class="wow-box-container" style="position:static;">
-          ${testIsRaidLeader() ? `
-            <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10; pointer-events:auto; display:none;"></div>
-            <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10; pointer-events:auto;"></div>
-          ` : ''}
-          <div class="wow-box"></div>
-        </div>
+      <!-- WOW-BOX 1: Guild Board Frame -->
+      <div id="wow-box-1" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:0; left:0; width:700px; height:520px;">
+        <img src="wow-frame-wide.webp" alt="Frame" class="wow-frame-img">
+        <div class="wow-content"></div>
+        <div class="wow-resize-handle"></div>
       </div>
 
-      <!-- Right Column -->
-      <div id="col-right" class="draggable-column" style="flex:1 1 auto; min-width:900px; position:static; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0;">
+      <!-- WOW-BOX 2: Trophy Case Frame -->
+      <div id="wow-box-2" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:540px; left:0; width:700px; height:300px;">
+        <img src="wow-frame-wide.webp" alt="Frame" class="wow-frame-img">
+        <div class="wow-content"></div>
+        <div class="wow-resize-handle"></div>
+      </div>
 
-        <!-- WOW-BOX 3: Raid Roster (content container only) -->
-        <div id="wow-box-3" class="wow-box-container" style="position:static;">
-          ${testIsRaidLeader() ? `
-            <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10; pointer-events:auto; display:none;"></div>
-            <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10; pointer-events:auto;"></div>
-          ` : ''}
-          <div class="wow-box"></div>
-        </div>
+      <!-- WOW-BOX 3: Raid Roster Frame -->
+      <div id="wow-box-3" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:0; right:0; width:900px; height:520px;">
+        <img src="wow-frame-wide.webp" alt="Frame" class="wow-frame-img">
+        <div class="wow-content"></div>
+        <div class="wow-resize-handle"></div>
       </div>
 
       <!-- All Modules (positioned absolutely, independent of boxes) -->
@@ -5407,15 +5461,6 @@ function renderNews(){
         </button>
       </div>
 
-    </div>
-
-    <!-- Feature cards section - WOW-BOX 4 (content container only) -->
-    <div id="wow-box-4" class="wow-box-container" style="position:static; margin-top:40px;">
-      ${testIsRaidLeader() ? `
-        <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10; pointer-events:auto;">🔲 BOX</div>
-        <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10; pointer-events:auto;"></div>
-      ` : ''}
-      <div class="wow-box"></div>
     </div>
 
     <div class="eyebrow sans" style="position:relative; z-index:1;">Announcements</div>
