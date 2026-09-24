@@ -5255,141 +5255,133 @@ function renderNews(){
       <!-- Left Column -->
       <div id="col-left" class="draggable-column" style="flex:0 0 700px; padding-left:20px; position:static; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0;">
 
-        <!-- WOW-BOX 1: Guild Board Module -->
-        <div id="wow-box-1" class="wow-box-container" style="position:static; min-height:500px;">
+        <!-- WOW-BOX 1: Guild Board (content container only) -->
+        <div id="wow-box-1" class="wow-box-container" style="position:static; min-height:500px; pointer-events:none;">
           ${testIsRaidLeader() ? `
-            <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10;">🔲 BOX</div>
-            <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10;"></div>
+            <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10; pointer-events:auto;">🔲 BOX</div>
+            <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10; pointer-events:auto;"></div>
           ` : ''}
           <div class="wow-box"></div>
-
-          <!-- Guild Board Title Module -->
-          <div id="module-guild-board-title" class="module title-module" style="position:absolute; top:0px; left:20px; width:auto; height:auto; z-index:5; cursor:move;">
-            ${testIsRaidLeader() ? '<div class="module-drag-handle" style="cursor:grab; color:var(--text-muted); font-size:10px; font-weight:600; user-select:none;">✋ Title</div>' : ''}
-            <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Guild Board</div>
-          </div>
-
-          <!-- Guild Board Content Module -->
-          <div id="module-guild-board" class="module" style="width:600px; height:375px;">
-            <div class="corkboard" style="width:100%; height:100%; margin:0; position:relative;">
-              ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
-                <div class="corkboard-stickers">
-                  ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s)=>{
-                    const posX = s.position_x ?? 50;
-                    const posY = s.position_y ?? 50;
-                    const rotation = (Math.random() * 50) - 25;
-                    const isOwner = state.session?.user?.id === s.placed_by_user_id;
-                    const canManage = testCanManage();
-                    return `
-                    <div class="sticker-pin-group"
-                         data-sticker-id="${esc(s.id)}"
-                         data-owned="${isOwner}"
-                         data-draggable="${canManage}"
-                         style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
-                      <div class="sticker-pin"></div>
-                      <div class="sticker-pin-shadow"></div>
-                      ${ canManage ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">&times;</button>` : '' }
-                      <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
-                      ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
-                      <div class="sticker-placer">${esc(s.placed_by_name)}</div>
-                    </div>`;
-                  }).join('') }
-                </div>
-              ` : `<div style="padding:20px; text-align:center; color:var(--blurple); font-size:13px; font-weight:600;">Buy a sticker in the store!</div>` }
-            </div>
-          </div>
         </div>
 
-        <!-- WOW-BOX 2: Trophy Case Module -->
-        <div id="wow-box-2" class="wow-box-container" style="position:static; min-height:300px;">
+        <!-- WOW-BOX 2: Trophy Case (content container only) -->
+        <div id="wow-box-2" class="wow-box-container" style="position:static; min-height:300px; pointer-events:none;">
           ${testIsRaidLeader() ? `
-            <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10;">🔲 BOX</div>
-            <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10;"></div>
+            <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10; pointer-events:auto;">🔲 BOX</div>
+            <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10; pointer-events:auto;"></div>
           ` : ''}
           <div class="wow-box"></div>
-
-          <!-- Trophy Case Title Module -->
-          <div id="module-trophy-case-title" class="module title-module" style="position:absolute; top:0px; left:20px; width:auto; height:auto; z-index:5; cursor:move;">
-            ${testIsRaidLeader() ? '<div class="module-drag-handle" style="cursor:grab; color:var(--text-muted); font-size:10px; font-weight:600; user-select:none;">✋ Title</div>' : ''}
-            <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Trophy Case</div>
-          </div>
-
-          <!-- Trophy Case Content Module -->
-          <div id="module-trophy-case" class="module" style="width:600px; height:auto;">
-            <div style="width:100%; padding:0; position:relative;">
-              <div style="padding:0;">
-                <div style="display:flex; justify-content:space-around; margin-bottom:20px;">
-                  <div style="text-align:center;">
-                    <div style="font-size:32px; margin-bottom:8px;">🥇</div>
-                    <div style="font-size:11px; color:#e8d7c3;">1st Place</div>
-                  </div>
-                  <div style="text-align:center;">
-                    <div style="font-size:32px; margin-bottom:8px;">🥈</div>
-                    <div style="font-size:11px; color:#e8d7c3;">2nd Place</div>
-                  </div>
-                  <div style="text-align:center;">
-                    <div style="font-size:32px; margin-bottom:8px;">🥉</div>
-                    <div style="font-size:11px; color:#e8d7c3;">3rd Place</div>
-                  </div>
-                </div>
-                <div style="background:rgba(0,0,0,0.3); border-top:1px solid #5a4a38; padding-top:12px;">
-                  ${ state.goldLeaderboard && state.goldLeaderboard.slice(0, 5).map((p, i) => `
-                    <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,180,71,0.1); font-size:12px;">
-                      <span style="color:#e8d7c3;"><strong>${i + 1}.</strong> ${esc(p.character_name || p.discord_username)}</span>
-                      <span style="color:#ffb347;">${(p.gold_earned_total || 0).toLocaleString()}g</span>
-                    </div>
-                  `).join('') || '<div style="color:#999; text-align:center; padding:12px;">Loading...</div>'}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
       <!-- Right Column -->
       <div id="col-right" class="draggable-column" style="flex:1 1 auto; min-width:900px; position:static; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0;">
 
-        <!-- WOW-BOX 3: Raid Roster Module -->
-        <div id="wow-box-3" class="wow-box-container" style="position:static; min-height:600px; flex:1;">
+        <!-- WOW-BOX 3: Raid Roster (content container only) -->
+        <div id="wow-box-3" class="wow-box-container" style="position:static; min-height:600px; flex:1; pointer-events:none;">
           ${testIsRaidLeader() ? `
-            <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10;">🔲 BOX</div>
-            <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10;"></div>
+            <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10; pointer-events:auto;">🔲 BOX</div>
+            <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10; pointer-events:auto;"></div>
           ` : ''}
           <div class="wow-box"></div>
+        </div>
+      </div>
 
-          <!-- Raid Roster Title Module -->
-          <div id="module-raid-roster-title" class="module title-module" style="position:absolute; top:0px; left:20px; width:auto; height:auto; z-index:5; cursor:move;">
-            ${testIsRaidLeader() ? '<div class="module-drag-handle" style="cursor:grab; color:var(--text-muted); font-size:10px; font-weight:600; user-select:none;">✋ Title</div>' : ''}
-            <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Raid Roster</div>
-          </div>
+      <!-- All Modules (positioned absolutely, independent of boxes) -->
 
-          <!-- Raid Roster Content Module -->
-          <div id="module-raid-roster" class="module" style="width:100%; height:auto; overflow-x:auto; background:rgba(0,0,0,0.3); padding:16px; border:1px solid rgba(207,154,68,0.2); box-sizing:border-box;">
-            <div style="width:100%;">
-              ${renderRosterGroups()}
+      <!-- Guild Board Title Module -->
+      <div id="module-guild-board-title" class="module title-module" style="position:absolute; top:20px; left:40px; width:auto; height:auto; cursor:move;">
+        ${testIsRaidLeader() ? '<div class="module-drag-handle" style="cursor:grab; color:var(--text-muted); font-size:10px; font-weight:600; user-select:none;">✋ Title</div>' : ''}
+        <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Guild Board</div>
+      </div>
+
+      <!-- Guild Board Content Module -->
+      <div id="module-guild-board" class="module" style="position:absolute; top:60px; left:40px; width:600px; height:375px; cursor:move;">
+        <div class="corkboard" style="width:100%; height:100%; margin:0; position:relative;">
+          ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
+            <div class="corkboard-stickers">
+              ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s)=>{
+                const posX = s.position_x ?? 50;
+                const posY = s.position_y ?? 50;
+                const rotation = (Math.random() * 50) - 25;
+                const isOwner = state.session?.user?.id === s.placed_by_user_id;
+                const canManage = testCanManage();
+                return `
+                <div class="sticker-pin-group"
+                     data-sticker-id="${esc(s.id)}"
+                     data-owned="${isOwner}"
+                     data-draggable="${canManage}"
+                     style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
+                  <div class="sticker-pin"></div>
+                  <div class="sticker-pin-shadow"></div>
+                  ${ canManage ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">&times;</button>` : '' }
+                  <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
+                  ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
+                  <div class="sticker-placer">${esc(s.placed_by_name)}</div>
+                </div>`;
+              }).join('') }
+            </div>
+          ` : `<div style="padding:20px; text-align:center; color:var(--blurple); font-size:13px; font-weight:600;">Buy a sticker in the store!</div>` }
+        </div>
+      </div>
+
+      <!-- Trophy Case Title Module -->
+      <div id="module-trophy-case-title" class="module title-module" style="position:absolute; top:480px; left:40px; width:auto; height:auto; cursor:move;">
+        ${testIsRaidLeader() ? '<div class="module-drag-handle" style="cursor:grab; color:var(--text-muted); font-size:10px; font-weight:600; user-select:none;">✋ Title</div>' : ''}
+        <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Trophy Case</div>
+      </div>
+
+      <!-- Trophy Case Content Module -->
+      <div id="module-trophy-case" class="module" style="position:absolute; top:520px; left:40px; width:600px; height:auto; cursor:move;">
+        <div style="width:100%; padding:0; position:relative;">
+          <div style="padding:0;">
+            <div style="display:flex; justify-content:space-around; margin-bottom:20px;">
+              <div style="text-align:center;">
+                <div style="font-size:32px; margin-bottom:8px;">🥇</div>
+                <div style="font-size:11px; color:#e8d7c3;">1st Place</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:32px; margin-bottom:8px;">🥈</div>
+                <div style="font-size:11px; color:#e8d7c3;">2nd Place</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:32px; margin-bottom:8px;">🥉</div>
+                <div style="font-size:11px; color:#e8d7c3;">3rd Place</div>
+              </div>
+            </div>
+            <div style="background:rgba(0,0,0,0.3); border-top:1px solid #5a4a38; padding-top:12px;">
+              ${ state.goldLeaderboard && state.goldLeaderboard.slice(0, 5).map((p, i) => `
+                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,180,71,0.1); font-size:12px;">
+                  <span style="color:#e8d7c3;"><strong>${i + 1}.</strong> ${esc(p.character_name || p.discord_username)}</span>
+                  <span style="color:#ffb347;">${(p.gold_earned_total || 0).toLocaleString()}g</span>
+                </div>
+              `).join('') || '<div style="color:#999; text-align:center; padding:12px;">Loading...</div>'}
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Feature cards section - WOW-BOX 4 with draggable modules -->
-    <div id="wow-box-4" class="wow-box-container" style="position:static; margin-top:40px; min-height:280px; width:100%;">
-      ${testIsRaidLeader() ? `
-        <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10;">🔲 BOX</div>
-        <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10;"></div>
-      ` : ''}
-      <div class="wow-box"></div>
+      <!-- Raid Roster Title Module -->
+      <div id="module-raid-roster-title" class="module title-module" style="position:absolute; top:20px; right:40px; width:auto; height:auto; cursor:move;">
+        ${testIsRaidLeader() ? '<div class="module-drag-handle" style="cursor:grab; color:var(--text-muted); font-size:10px; font-weight:600; user-select:none;">✋ Title</div>' : ''}
+        <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Raid Roster</div>
+      </div>
+
+      <!-- Raid Roster Content Module -->
+      <div id="module-raid-roster" class="module" style="position:absolute; top:60px; right:40px; width:900px; height:auto; overflow-x:auto; background:rgba(0,0,0,0.3); padding:16px; border:1px solid rgba(207,154,68,0.2); box-sizing:border-box; cursor:move;">
+        <div style="width:100%;">
+          ${renderRosterGroups()}
+        </div>
+      </div>
 
       <!-- Feature Cards Title Module -->
-      <div id="module-feature-cards-title" class="module title-module" style="position:absolute; top:0px; left:20px; width:auto; height:auto; z-index:5; cursor:move;">
+      <div id="module-feature-cards-title" class="module title-module" style="position:absolute; top:800px; left:40px; width:auto; height:auto; cursor:move;">
         ${testIsRaidLeader() ? '<div class="module-drag-handle" style="cursor:grab; color:var(--text-muted); font-size:10px; font-weight:600; user-select:none;">✋ Title</div>' : ''}
         <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Feature Cards</div>
       </div>
 
-      <!-- Feature cards content module -->
-      <div id="module-feature-cards" class="module" style="width:calc(100% - 40px); height:auto; display:flex; gap:20px; flex-wrap:wrap; justify-content:space-around;">
-
+      <!-- Feature Cards Content Module -->
+      <div id="module-feature-cards" class="module" style="position:absolute; top:840px; left:40px; width:calc(100% - 80px); height:auto; display:flex; gap:20px; flex-wrap:wrap; justify-content:space-around; cursor:move;">
         <button type="button" class="feature-card" data-home-card="calendar" style="flex:1; min-width:200px; max-width:300px; pointer-events:auto;">
           <div class="feature-icon">${crestSvg('hc1',34)}</div>
           <h3>Raid Calendar</h3>
@@ -5406,14 +5398,24 @@ function renderNews(){
           <p class="sans">A running record of what's dropped and who won it, plus soft-res sheets for upcoming raids.</p>
         </button>
       </div>
+
     </div>
 
-    <div class="eyebrow sans">Announcements</div>
-    <h2 class="page-title">News</h2>
-    <p class="page-sub sans">Officer posts for lockout changes, loot rule updates, and anything else worth pinning.</p>
+    <!-- Feature cards section - WOW-BOX 4 (content container only) -->
+    <div id="wow-box-4" class="wow-box-container" style="position:static; margin-top:40px; min-height:280px; width:100%; pointer-events:none;">
+      ${testIsRaidLeader() ? `
+        <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10; pointer-events:auto;">🔲 BOX</div>
+        <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10; pointer-events:auto;"></div>
+      ` : ''}
+      <div class="wow-box"></div>
+    </div>
+
+    <div class="eyebrow sans" style="position:relative; z-index:1;">Announcements</div>
+    <h2 class="page-title" style="position:relative; z-index:1;">News</h2>
+    <p class="page-sub sans" style="position:relative; z-index:1;">Officer posts for lockout changes, loot rule updates, and anything else worth pinning.</p>
 
     ${ officer ? `
-    <div id="module-announcements-form" class="module" style="background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; margin-bottom:16px; cursor:move;">
+    <div id="module-announcements-form" class="module" style="position:relative; z-index:1; background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; margin-bottom:16px; cursor:move;">
       <h3 style="margin-bottom:14px; color:var(--text-normal);">Post an announcement</h3>
       <div id="news-form">
         <div class="field"><label>Title</label><input name="title" placeholder="e.g. New loot council rules starting this week" required></div>
@@ -5456,7 +5458,7 @@ function renderNews(){
       </div>
     </div>` : ''}
 
-    <div id="module-announcements-display" class="module" style="background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; cursor:move;">
+    <div id="module-announcements-display" class="module" style="position:relative; z-index:1; background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; cursor:move;">
       ${ state.news.length ? state.news.map(n=>`
         <div class="list-item">
           <div style="flex:1;">
