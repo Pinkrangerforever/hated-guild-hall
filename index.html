@@ -3973,6 +3973,14 @@ function initLayoutSystem(){
     el.style.left = window._layoutState.dragStartPos.x + 'px';
     el.style.top = window._layoutState.dragStartPos.y + 'px';
     el.style.zIndex = '100';
+
+    // Store and clear flex layout to prevent children from reflowing during drag
+    window._layoutState.dragOriginalDisplay = el.style.display;
+    window._layoutState.dragOriginalFlexGap = el.style.gap;
+    if(el.style.display === 'flex' || window.getComputedStyle(el).display === 'flex'){
+      el.style.display = 'block';
+      el.style.gap = '0';
+    }
   }
 
   document.addEventListener('mousemove', (e) => {
@@ -3997,6 +4005,15 @@ function initLayoutSystem(){
     if(!window._layoutState.dragging) return;
     const el = window._layoutState.dragging;
     el.classList.remove('dragging');
+
+    // Restore flex layout after drag
+    if(window._layoutState.dragOriginalDisplay !== undefined){
+      el.style.display = window._layoutState.dragOriginalDisplay;
+      el.style.gap = window._layoutState.dragOriginalFlexGap;
+      window._layoutState.dragOriginalDisplay = undefined;
+      window._layoutState.dragOriginalFlexGap = undefined;
+    }
+
     saveLayout();
     window._layoutState.dragging = null;
     window._layoutState.dragType = null;
