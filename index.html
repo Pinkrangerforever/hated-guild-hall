@@ -5495,7 +5495,7 @@ function renderNews(){
       <div id="module-trophy-case" class="module" style="position:absolute; top:520px; left:40px; width:600px; height:auto; cursor:move;">
         <div style="width:100%; padding:0; position:relative;">
           <div style="padding:0;">
-            <div style="display:flex; justify-content:center; align-items:flex-end; margin-bottom:20px; gap:50px;">
+            <div style="display:flex; justify-content:center; align-items:flex-end; gap:50px;">
               <div style="text-align:center;">
                 <img src="trophy-2nd-place.webp" alt="2nd Place Trophy" style="height:270px; margin-bottom:8px;">
                 <div id="trophy-2nd" style="font-size:13px; color:#c0c0c0; font-weight:700; text-align:center; min-width:110px;">---</div>
@@ -5508,14 +5508,6 @@ function renderNews(){
                 <img src="trophy-3rd-place.webp" alt="3rd Place Trophy" style="height:150px; margin-bottom:8px;">
                 <div id="trophy-3rd" style="font-size:12px; color:#cd7f32; font-weight:700; text-align:center; min-width:90px;">---</div>
               </div>
-            </div>
-            <div style="background:rgba(0,0,0,0.3); border-top:1px solid #5a4a38; padding-top:12px;">
-              ${ state.goldLeaderboard && state.goldLeaderboard.slice(0, 5).map((p, i) => `
-                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,180,71,0.1); font-size:12px;">
-                  <span style="color:#e8d7c3;"><strong>${i + 1}.</strong> ${esc(p.character_name || p.discord_username)}</span>
-                  <span style="color:#ffb347;">${(p.gold_earned_total || 0).toLocaleString()}g</span>
-                </div>
-              `).join('') || '<div style="color:#999; text-align:center; padding:12px;">Loading...</div>'}
             </div>
           </div>
         </div>
