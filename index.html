@@ -3941,15 +3941,30 @@ function initLayoutSystem(){
   function startDrag(e, el){
     window._layoutState.dragStart = { x: e.pageX, y: e.pageY };
 
-    // Get viewport position and convert to document coordinates
+    // Get viewport position
     const rect = el.getBoundingClientRect();
     const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-    // Store document-relative position for absolute positioning
+    // Calculate document-relative position
+    const docX = rect.left + scrollLeft;
+    const docY = rect.top + scrollTop;
+
+    // Find the nearest positioned ancestor to account for position:relative parents
+    let offsetParent = el.offsetParent;
+    let parentDocX = 0;
+    let parentDocY = 0;
+
+    if(offsetParent){
+      const parentRect = offsetParent.getBoundingClientRect();
+      parentDocX = parentRect.left + scrollLeft;
+      parentDocY = parentRect.top + scrollTop;
+    }
+
+    // Store position relative to the positioned ancestor (or document if none)
     window._layoutState.dragStartPos = {
-      x: rect.left + scrollLeft,
-      y: rect.top + scrollTop
+      x: docX - parentDocX,
+      y: docY - parentDocY
     };
 
     el.classList.add('dragging');
