@@ -743,9 +743,10 @@
   .spec-btn.readonly:hover{ filter:none; }
   .painted-icon{ filter: drop-shadow(0 1px 1.5px rgba(0,0,0,0.75)); }
 
-  .comp-groups{ display:grid; grid-template-columns:repeat(4, minmax(200px, 1fr)); gap:20px; width:900px; flex-shrink:0; }
+  .comp-groups{ display:grid; grid-template-columns:repeat(4, minmax(200px, 1fr)); gap:20px; width:900px; flex-shrink:0; grid-auto-rows:1fr; }
   @media (max-width:860px){ .comp-groups{ grid-template-columns:repeat(2, 1fr); } }
   @media (max-width:520px){ .comp-groups{ grid-template-columns:1fr; } }
+  .comp-group{ display:flex; flex-direction:column; height:100%; }
   .comp-group-title{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:8px; text-align:center; }
   .comp-slot{
     display:flex; align-items:center; gap:8px; min-height:59px; padding:12px 16px; margin-bottom:8px;
@@ -5201,20 +5202,29 @@ function renderNews(){
       </div>
     </div>
 
-    <!-- Feature cards section - below both -->
-    <div style="margin-bottom:32px;">
-      <div class="feature-cards">
-        <button type="button" class="feature-card" data-home-card="calendar">
+    <!-- Feature cards section - WOW-BOX 4 with draggable modules -->
+    <div id="wow-box-4" class="wow-box-container" style="position:relative; margin-top:40px; min-height:280px; width:100%;">
+      ${testIsRaidLeader() ? `
+        <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10;">🔲 BOX</div>
+        <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10;"></div>
+      ` : ''}
+      <div class="wow-box"></div>
+
+      <!-- Feature cards as modules -->
+      <div id="module-feature-cards" class="module" style="position:absolute; top:20px; left:20px; right:20px; height:auto; z-index:4; display:flex; gap:20px; flex-wrap:wrap; justify-content:space-around; cursor:move;">
+        ${testIsRaidLeader() ? '<div class="module-drag-handle" style="position:absolute; top:-22px; left:0; cursor:grab; color:var(--text-muted); font-size:10px; font-weight:600; user-select:none; z-index:10;">✋ Feature Cards</div>' : ''}
+
+        <button type="button" class="feature-card" data-home-card="calendar" style="flex:1; min-width:200px; max-width:300px; pointer-events:auto;">
           <div class="feature-icon">${crestSvg('hc1',34)}</div>
           <h3>Raid Calendar</h3>
           <p class="sans">A month-by-month view of every raid night. Click any event to mark yourself Going, Maybe, or Can't Make It.</p>
         </button>
-        <button type="button" class="feature-card" data-home-card="strategies">
+        <button type="button" class="feature-card" data-home-card="strategies" style="flex:1; min-width:200px; max-width:300px; pointer-events:auto;">
           <div class="feature-icon">${crestSvg('hc2',34)}</div>
           <h3>Boss Strategies</h3>
           <p class="sans">Positioning, cooldowns, and wipe triggers for every fight, organized by raid instance.</p>
         </button>
-        <button type="button" class="feature-card" data-home-card="loot">
+        <button type="button" class="feature-card" data-home-card="loot" style="flex:1; min-width:200px; max-width:300px; pointer-events:auto;">
           <div class="feature-icon">${crestSvg('hc3',34)}</div>
           <h3>Loot Log</h3>
           <p class="sans">A running record of what's dropped and who won it, plus soft-res sheets for upcoming raids.</p>
