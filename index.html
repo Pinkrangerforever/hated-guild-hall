@@ -3942,6 +3942,9 @@ async function loadLayout(){
             }
           }
         });
+
+        // After layout loads, sync title positions with their wow-boxes
+        syncTitlePositions();
       } catch(e) {
         console.error('Error parsing layout:', e);
       }
@@ -3949,6 +3952,36 @@ async function loadLayout(){
   } catch(e) {
     console.error('Error in loadLayout:', e);
   }
+}
+
+function syncTitlePositions(){
+  // Map each title to its corresponding box
+  const titleBoxMap = {
+    'module-guild-board-title': 'wow-box-1',
+    'module-trophy-case-title': 'wow-box-2',
+    'module-raid-roster-title': 'wow-box-3'
+  };
+
+  Object.entries(titleBoxMap).forEach(([titleId, boxId]) => {
+    const title = document.getElementById(titleId);
+    const box = document.getElementById(boxId);
+
+    if(title && box) {
+      const boxTop = parseInt(box.style.top) || parseInt(box.getAttribute('data-initial-top')) || 0;
+      const boxLeft = parseInt(box.style.left) || 0;
+      const boxRight = box.style.right || box.getAttribute('data-initial-right');
+
+      title.style.top = (boxTop + 20) + 'px';
+
+      if(boxRight) {
+        title.style.right = '40px';
+        title.style.left = 'auto';
+      } else {
+        title.style.left = (boxLeft + 40) + 'px';
+        title.style.right = 'auto';
+      }
+    }
+  });
 }
 
 async function initLayoutSystem(){
@@ -4109,6 +4142,8 @@ async function initLayoutSystem(){
       const dy = e.pageY - dragStartY;
       currentContainer.style.left = (dragStartLeft + dx) + 'px';
       currentContainer.style.top = (dragStartTop + dy) + 'px';
+      // Sync titles as box is dragged
+      syncTitlePositions();
       return;
     }
 
@@ -4128,6 +4163,8 @@ async function initLayoutSystem(){
     if(isResizingContainer || isDraggingContainer) {
       if(currentContainer) {
         currentContainer.classList.remove('dragging');
+        // Sync titles with new box position
+        syncTitlePositions();
       }
       isResizingContainer = false;
       isDraggingContainer = false;
