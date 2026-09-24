@@ -3942,8 +3942,8 @@ async function initLayoutSystem(){
       }
     }
 
-    // Check if clicking on wow-box container (but not on buttons, inputs, etc)
-    if(!e.target.closest('button') && !e.target.closest('input') && !e.target.closest('textarea') && !e.target.closest('select')) {
+    // Check if clicking on wow-box container (only in unlock mode, and not on buttons, inputs, etc)
+    if(!window._layoutState.locked && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('textarea') && !e.target.closest('select')) {
       const box = e.target.closest('.wow-box-container');
       if(box && box.id) {
         window._layoutState.dragging = box;
@@ -4068,7 +4068,8 @@ async function initLayoutSystem(){
 
   async function saveLayout(){
     const layout = {};
-    document.querySelectorAll('.wow-box-container, .module').forEach(el => {
+    // Only save module positions, not box containers (boxes keep default sizes)
+    document.querySelectorAll('.module').forEach(el => {
       if(el.id) {
         layout[el.id] = {
           left: el.style.left,
