@@ -3908,10 +3908,17 @@ function initLayoutSystem(){
       return;
     }
 
-    // Check if clicking on module (but not on buttons, inputs, etc)
-    if(!e.target.closest('button') && !e.target.closest('input') && !e.target.closest('textarea') && !e.target.closest('select')) {
-      const mod = e.target.closest('.module');
-      if(mod && mod.id) {
+    // Check if clicking on module (but allow dragging feature-cards module even with buttons inside)
+    const mod = e.target.closest('.module');
+    if(mod && mod.id) {
+      // Allow dragging if it's the feature-cards module, or if we're not clicking on interactive elements
+      const isFeatureCards = mod.id === 'module-feature-cards';
+      const clickedButton = e.target.closest('button');
+      const clickedInput = e.target.closest('input');
+      const clickedForm = e.target.closest('textarea') || e.target.closest('select');
+
+      // Drag module if: it's feature-cards (ignore inner buttons), OR no interactive elements were clicked
+      if(isFeatureCards || (!clickedButton && !clickedInput && !clickedForm)) {
         window._layoutState.dragging = mod;
         window._layoutState.dragType = 'module';
         startDrag(e, mod);
@@ -5267,8 +5274,8 @@ function renderNews(){
     <p class="page-sub sans">Officer posts for lockout changes, loot rule updates, and anything else worth pinning.</p>
 
     ${ officer ? `
-    <div class="panel style-glass">
-      <h3 style="margin-bottom:14px;">Post an announcement</h3>
+    <div style="background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; margin-bottom:16px;">
+      <h3 style="margin-bottom:14px; color:var(--text-normal);">Post an announcement</h3>
       <div id="news-form">
         <div class="field"><label>Title</label><input name="title" placeholder="e.g. New loot council rules starting this week" required></div>
         <div class="field">
@@ -5310,7 +5317,7 @@ function renderNews(){
       </div>
     </div>` : ''}
 
-    <div class="panel style-glass">
+    <div style="background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px;">
       ${ state.news.length ? state.news.map(n=>`
         <div class="list-item">
           <div style="flex:1;">
