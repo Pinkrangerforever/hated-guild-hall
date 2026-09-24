@@ -1265,6 +1265,7 @@
     z-index:3;
     width:100%;
     height:100%;
+    pointer-events:none;
   }
   .wow-box-title{
     position:relative;
@@ -5243,7 +5244,7 @@ function renderNews(){
       <div id="col-left" class="draggable-column" style="flex:0 0 700px; padding-left:20px; position:static; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0;">
 
         <!-- WOW-BOX 1: Guild Board (content container only) -->
-        <div id="wow-box-1" class="wow-box-container" style="position:static; min-height:500px; pointer-events:none;">
+        <div id="wow-box-1" class="wow-box-container" style="position:static; min-height:500px;">
           ${testIsRaidLeader() ? `
             <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10; pointer-events:auto;">🔲 BOX</div>
             <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10; pointer-events:auto;"></div>
@@ -5252,7 +5253,7 @@ function renderNews(){
         </div>
 
         <!-- WOW-BOX 2: Trophy Case (content container only) -->
-        <div id="wow-box-2" class="wow-box-container" style="position:static; min-height:300px; pointer-events:none;">
+        <div id="wow-box-2" class="wow-box-container" style="position:static; min-height:300px;">
           ${testIsRaidLeader() ? `
             <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10; pointer-events:auto;">🔲 BOX</div>
             <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10; pointer-events:auto;"></div>
@@ -5265,7 +5266,7 @@ function renderNews(){
       <div id="col-right" class="draggable-column" style="flex:1 1 auto; min-width:900px; position:static; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0;">
 
         <!-- WOW-BOX 3: Raid Roster (content container only) -->
-        <div id="wow-box-3" class="wow-box-container" style="position:static; min-height:600px; flex:1; pointer-events:none;">
+        <div id="wow-box-3" class="wow-box-container" style="position:static; min-height:600px; flex:1;">
           ${testIsRaidLeader() ? `
             <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10; pointer-events:auto;">🔲 BOX</div>
             <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10; pointer-events:auto;"></div>
@@ -5389,7 +5390,7 @@ function renderNews(){
     </div>
 
     <!-- Feature cards section - WOW-BOX 4 (content container only) -->
-    <div id="wow-box-4" class="wow-box-container" style="position:static; margin-top:40px; min-height:280px; width:100%; pointer-events:none;">
+    <div id="wow-box-4" class="wow-box-container" style="position:static; margin-top:40px; min-height:280px; width:100%;">
       ${testIsRaidLeader() ? `
         <div class="wow-box-drag-handle" style="position:absolute; top:4px; left:8px; cursor:grab; color:var(--text-muted); font-size:11px; font-weight:600; user-select:none; z-index:10; pointer-events:auto;">🔲 BOX</div>
         <div class="wow-box-resize-handle" style="position:absolute; bottom:0; right:0; width:20px; height:20px; cursor:se-resize; background:linear-gradient(135deg, transparent 50%, var(--blurple) 50%); opacity:0.4; z-index:10; pointer-events:auto;"></div>
