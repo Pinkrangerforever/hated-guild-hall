@@ -4091,7 +4091,7 @@ async function initLayoutSystem(){
 
       if(error) {
         console.error('Error saving layout:', error);
-        showToast('Failed to save layout', true);
+        showToast(`Failed to save layout: ${error.message || error.code || 'Unknown error'}`, true);
       } else {
         showToast('Layout saved for everyone', false);
       }
