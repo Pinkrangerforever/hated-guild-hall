@@ -743,7 +743,7 @@
   .spec-btn.readonly:hover{ filter:none; }
   .painted-icon{ filter: drop-shadow(0 1px 1.5px rgba(0,0,0,0.75)); }
 
-  .comp-groups{ display:grid; grid-template-columns:repeat(4, minmax(200px, 1fr)); gap:20px; width:900px; flex-shrink:0; grid-auto-rows:1fr; }
+  .comp-groups{ display:grid; grid-template-columns:repeat(4, minmax(200px, 1fr)); gap:20px; width:100%; max-width:900px; flex-shrink:0; grid-auto-rows:1fr; }
   @media (max-width:860px){ .comp-groups{ grid-template-columns:repeat(2, 1fr); } }
   @media (max-width:520px){ .comp-groups{ grid-template-columns:1fr; } }
   .comp-group{ display:flex; flex-direction:column; height:100%; }
@@ -5341,7 +5341,7 @@ function renderNews(){
           </div>
 
           <!-- Raid Roster Content Module -->
-          <div id="module-raid-roster" class="module" style="width:900px; height:auto; overflow-x:auto; background:rgba(0,0,0,0.3); padding:16px; border:1px solid rgba(207,154,68,0.2);">
+          <div id="module-raid-roster" class="module" style="width:100%; height:auto; overflow-x:auto; background:rgba(0,0,0,0.3); padding:16px; border:1px solid rgba(207,154,68,0.2); box-sizing:border-box;">
             <div style="width:100%;">
               ${renderRosterGroups()}
             </div>
