@@ -3820,9 +3820,10 @@ function setupStickerDragHandlers(){
 /* ---- Layout Customization System (Raid Leader) ---- */
 window._layoutState = {
   locked: true,
-  draggingColumn: null,
+  dragging: null,
+  dragType: null,
   dragStart: { x: 0, y: 0 },
-  columnStart: { x: 0, y: 0 }
+  dragStartPos: { x: 0, y: 0 }
 };
 
 function initLayoutSystem(){
@@ -3832,160 +3833,121 @@ function initLayoutSystem(){
   const resetBtn = document.getElementById('layout-reset-btn');
   if(!lockBtn || !resetBtn) return;
 
-  // Load saved layout
-  const saved = localStorage.getItem('guild-layout-positions');
-  if(saved){
-    try {
-      const positions = JSON.parse(saved);
-      const leftCol = document.getElementById('col-left');
-      const rightCol = document.getElementById('col-right');
-      if(leftCol && positions.left) Object.assign(leftCol.style, positions.left);
-      if(rightCol && positions.right) Object.assign(rightCol.style, positions.right);
-    } catch(e) {}
-  }
+  loadLayout();
 
-  // Lock/unlock button
   lockBtn.addEventListener('click', () => {
     window._layoutState.locked = !window._layoutState.locked;
-    const columns = document.querySelectorAll('.draggable-column');
-    columns.forEach(col => {
-      col.classList.toggle('dragging-enabled', !window._layoutState.locked);
-    });
     lockBtn.textContent = window._layoutState.locked ? '🔓 Unlock Layout' : '🔒 Lock Layout';
     lockBtn.classList.toggle('locked');
   });
 
-  // Reset button
   resetBtn.addEventListener('click', () => {
-    localStorage.removeItem('guild-layout-positions');
+    localStorage.removeItem('guild-layout-modules');
     location.reload();
   });
 
-  // Column drag handlers
+  const layoutContainer = document.getElementById('layout-container');
+
   document.addEventListener('mousedown', (e) => {
     if(window._layoutState.locked) return;
-    const handle = e.target.closest('.column-drag-handle');
-    if(!handle) return;
 
-    const column = handle.closest('.draggable-column');
-    if(!column) return;
+    const boxHandle = e.target.closest('.wow-box-drag-handle');
+    const moduleHandle = e.target.closest('.module-drag-handle');
+    const resizeHandle = e.target.closest('.wow-box-resize-handle');
 
-    window._layoutState.draggingColumn = column;
-    window._layoutState.dragStart = { x: e.clientX, y: e.clientY };
-    window._layoutState.columnStart = {
-      x: parseInt(column.style.left || '0'),
-      y: parseInt(column.style.top || '0')
-    };
-    column.classList.add('dragging');
-    column.style.position = 'relative';
+    if(boxHandle) {
+      const box = boxHandle.closest('.wow-box-container');
+      if(!box) return;
+      window._layoutState.dragging = box;
+      window._layoutState.dragType = 'box';
+      startDrag(e, box);
+    } else if(moduleHandle) {
+      const mod = moduleHandle.closest('.module');
+      if(!mod) return;
+      window._layoutState.dragging = mod;
+      window._layoutState.dragType = 'module';
+      startDrag(e, mod);
+    } else if(resizeHandle) {
+      e.preventDefault();
+      const box = resizeHandle.closest('.wow-box-container');
+      if(!box) return;
+      window._layoutState.dragging = box;
+      window._layoutState.dragType = 'resize';
+      window._layoutState.resizeStart = { x: e.clientX, y: e.clientY };
+      window._layoutState.resizeSize = { w: box.offsetWidth, h: box.offsetHeight };
+      box.classList.add('dragging');
+    }
   });
 
+  function startDrag(e, el){
+    window._layoutState.dragStart = { x: e.clientX, y: e.clientY };
+    window._layoutState.dragStartPos = {
+      x: parseInt(el.style.left || '0'),
+      y: parseInt(el.style.top || '0')
+    };
+    el.classList.add('dragging');
+    el.style.position = 'absolute';
+    el.style.zIndex = '100';
+  }
+
   document.addEventListener('mousemove', (e) => {
-    if(!window._layoutState.draggingColumn) return;
+    if(!window._layoutState.dragging) return;
 
     const dx = e.clientX - window._layoutState.dragStart.x;
     const dy = e.clientY - window._layoutState.dragStart.y;
+    const el = window._layoutState.dragging;
 
-    const col = window._layoutState.draggingColumn;
-    col.style.left = (window._layoutState.columnStart.x + dx) + 'px';
-    col.style.top = (window._layoutState.columnStart.y + dy) + 'px';
+    if(window._layoutState.dragType === 'resize') {
+      const newW = Math.max(400, window._layoutState.resizeSize.w + dx);
+      const newH = Math.max(300, window._layoutState.resizeSize.h + dy);
+      el.style.width = newW + 'px';
+      el.style.height = newH + 'px';
+    } else {
+      el.style.left = (window._layoutState.dragStartPos.x + dx) + 'px';
+      el.style.top = (window._layoutState.dragStartPos.y + dy) + 'px';
+    }
   });
 
   document.addEventListener('mouseup', () => {
-    if(!window._layoutState.draggingColumn) return;
+    if(!window._layoutState.dragging) return;
+    const el = window._layoutState.dragging;
+    el.classList.remove('dragging');
+    saveLayout();
+    window._layoutState.dragging = null;
+    window._layoutState.dragType = null;
+  });
 
-    const col = window._layoutState.draggingColumn;
-    col.classList.remove('dragging');
+  function loadLayout(){
+    const saved = localStorage.getItem('guild-layout-modules');
+    if(saved){
+      try {
+        const layout = JSON.parse(saved);
+        Object.entries(layout).forEach(([id, style]) => {
+          const el = document.getElementById(id);
+          if(el) {
+            Object.assign(el.style, style);
+            el.style.position = 'absolute';
+          }
+        });
+      } catch(e) {}
+    }
+  }
 
-    // Save position
-    const positions = {
-      left: {
-        left: col.id === 'col-left' ? col.style.left : undefined,
-        top: col.id === 'col-left' ? col.style.top : undefined
-      },
-      right: {
-        left: col.id === 'col-right' ? col.style.left : undefined,
-        top: col.id === 'col-right' ? col.style.top : undefined
+  function saveLayout(){
+    const layout = {};
+    document.querySelectorAll('.wow-box-container, .module').forEach(el => {
+      if(el.id) {
+        layout[el.id] = {
+          left: el.style.left,
+          top: el.style.top,
+          width: el.style.width,
+          height: el.style.height,
+          zIndex: el.style.zIndex
+        };
       }
-    };
-
-    const savedLeft = JSON.parse(localStorage.getItem('guild-layout-positions') || '{"left":{},"right":{}}').left || {};
-    const savedRight = JSON.parse(localStorage.getItem('guild-layout-positions') || '{"left":{},"right":{}}').right || {};
-
-    if(col.id === 'col-left') {
-      positions.left.left = col.style.left;
-      positions.left.top = col.style.top;
-      positions.right = savedRight;
-    } else {
-      positions.right.left = col.style.left;
-      positions.right.top = col.style.top;
-      positions.left = savedLeft;
-    }
-
-    localStorage.setItem('guild-layout-positions', JSON.stringify(positions));
-    window._layoutState.draggingColumn = null;
-  });
-
-  // Column resize handlers
-  window._layoutState.resizingColumn = null;
-  window._layoutState.resizeStart = { x: 0, y: 0 };
-  window._layoutState.columnStartSize = { width: 0, height: 0 };
-
-  document.addEventListener('mousedown', (e) => {
-    if(window._layoutState.locked) return;
-    const handle = e.target.closest('.column-resize-handle');
-    if(!handle) return;
-    e.preventDefault();
-
-    const column = handle.closest('.draggable-column');
-    if(!column) return;
-
-    window._layoutState.resizingColumn = column;
-    window._layoutState.resizeStart = { x: e.clientX, y: e.clientY };
-    window._layoutState.columnStartSize = {
-      width: column.offsetWidth,
-      height: column.offsetHeight
-    };
-    column.classList.add('dragging');
-  });
-
-  document.addEventListener('mousemove', (e) => {
-    if(!window._layoutState.resizingColumn) return;
-
-    const dx = e.clientX - window._layoutState.resizeStart.x;
-    const dy = e.clientY - window._layoutState.resizeStart.y;
-
-    const col = window._layoutState.resizingColumn;
-    const newWidth = Math.max(400, window._layoutState.columnStartSize.width + dx);
-    const newHeight = Math.max(300, window._layoutState.columnStartSize.height + dy);
-
-    col.style.width = newWidth + 'px';
-    col.style.flex = 'none';
-    col.style.height = newHeight + 'px';
-  });
-
-  document.addEventListener('mouseup', () => {
-    if(!window._layoutState.resizingColumn) return;
-
-    const col = window._layoutState.resizingColumn;
-    col.classList.remove('dragging');
-
-    // Save size
-    const positions = JSON.parse(localStorage.getItem('guild-layout-positions') || '{"left":{},"right":{}}');
-
-    if(col.id === 'col-left') {
-      positions.left.width = col.style.width;
-      positions.left.height = col.style.height;
-      positions.left.flex = col.style.flex;
-    } else {
-      positions.right.width = col.style.width;
-      positions.right.height = col.style.height;
-      positions.right.flex = col.style.flex;
-    }
-
-    localStorage.setItem('guild-layout-positions', JSON.stringify(positions));
-    window._layoutState.resizingColumn = null;
-  });
+    });
+    localStorage.setItem('guild-layout-modules', JSON.stringify(layout));
+  }
 }
 
 /* ---------------- top-level render ---------------- */
