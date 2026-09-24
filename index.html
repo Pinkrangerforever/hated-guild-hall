@@ -3859,7 +3859,8 @@ function loadLayout(){
       const layout = JSON.parse(saved);
       Object.entries(layout).forEach(([id, style]) => {
         const el = document.getElementById(id);
-        if(el) {
+        // Skip title modules - they should stay at their initial position
+        if(el && !el.classList.contains('title-module')) {
           Object.assign(el.style, style);
           el.style.position = 'absolute';
         }
@@ -4051,7 +4052,8 @@ function initLayoutSystem(){
   function saveLayout(){
     const layout = {};
     document.querySelectorAll('.wow-box-container, .module').forEach(el => {
-      if(el.id) {
+      // Skip title modules - they should always be at their initial position
+      if(el.id && !el.classList.contains('title-module')) {
         layout[el.id] = {
           left: el.style.left,
           top: el.style.top,
