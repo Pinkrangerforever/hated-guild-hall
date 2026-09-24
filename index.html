@@ -3940,13 +3940,21 @@ function initLayoutSystem(){
 
   function startDrag(e, el){
     window._layoutState.dragStart = { x: e.clientX, y: e.clientY };
+
+    // Get position relative to viewport, not document
+    const rect = el.getBoundingClientRect();
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
     window._layoutState.dragStartPos = {
-      x: parseInt(el.style.left || '0'),
-      y: parseInt(el.style.top || '0')
+      x: rect.left + scrollLeft,
+      y: rect.top + scrollTop
     };
     el.classList.add('dragging');
     el.style.position = 'absolute';
     el.style.zIndex = '100';
+    // Remove from document flow to prevent snap-back
+    el.style.margin = '0';
   }
 
   document.addEventListener('mousemove', (e) => {
@@ -5114,7 +5122,7 @@ function renderNews(){
     <div id="layout-container" style="display:flex; gap:40px; align-items:flex-start; padding:40px 40px 40px 0; margin-left:-20px; position:relative;">
 
       <!-- Left Column -->
-      <div id="col-left" class="draggable-column" style="flex:0 0 700px; padding-left:20px; position:relative; transition:all 0.2s ease; display:flex; flex-direction:column; gap:20px;">
+      <div id="col-left" class="draggable-column" style="flex:0 0 700px; padding-left:20px; position:relative; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0;">
 
         <!-- WOW-BOX 1: Guild Board Module -->
         <div id="wow-box-1" class="wow-box-container" style="position:relative; min-height:500px;">
@@ -5208,7 +5216,7 @@ function renderNews(){
       </div>
 
       <!-- Right Column -->
-      <div id="col-right" class="draggable-column" style="flex:1 1 auto; min-width:900px; position:relative; transition:all 0.2s ease; display:flex; flex-direction:column;">
+      <div id="col-right" class="draggable-column" style="flex:1 1 auto; min-width:900px; position:relative; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0;">
 
         <!-- WOW-BOX 3: Raid Roster Module -->
         <div id="wow-box-3" class="wow-box-container" style="position:relative; min-height:600px; flex:1;">
