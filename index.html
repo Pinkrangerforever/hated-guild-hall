@@ -3898,7 +3898,11 @@ async function initLayoutSystem(){
   const resetBtn = document.getElementById('layout-reset-btn');
   if(!lockBtn || !resetBtn) return;
 
-  lockBtn.addEventListener('click', () => {
+  lockBtn.addEventListener('click', async () => {
+    if(!window._layoutState.locked) {
+      // Locking: save current positions to Supabase
+      await saveLayout();
+    }
     window._layoutState.locked = !window._layoutState.locked;
     lockBtn.textContent = window._layoutState.locked ? '🔓 Unlock Layout' : '🔒 Lock Layout';
     lockBtn.classList.toggle('locked');
@@ -4053,9 +4057,6 @@ async function initLayoutSystem(){
     if(!window._layoutState.dragging) return;
     const el = window._layoutState.dragging;
     el.classList.remove('dragging');
-
-    // Save position BEFORE restoring flex properties (to avoid reflow issues)
-    saveLayout();
 
     // Restore flex layout and dimensions after drag
     if(window._layoutState.dragOriginalDisplay !== undefined){
