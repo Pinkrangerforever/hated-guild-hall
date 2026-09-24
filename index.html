@@ -3981,9 +3981,9 @@ function initLayoutSystem(){
     window._layoutState.dragOriginalHeight = el.style.height;
 
     // Lock width and height to prevent calc() from recalculating
-    const rect = el.getBoundingClientRect();
-    el.style.width = rect.width + 'px';
-    el.style.height = rect.height + 'px';
+    const dragRect = el.getBoundingClientRect();
+    el.style.width = dragRect.width + 'px';
+    el.style.height = dragRect.height + 'px';
 
     if(el.style.display === 'flex' || window.getComputedStyle(el).display === 'flex'){
       el.style.display = 'block';
