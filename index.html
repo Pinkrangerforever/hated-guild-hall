@@ -1005,14 +1005,19 @@
   .comp-extra-icon img{ width:100%; height:100%; object-fit:cover; display:block; }
 
   /* ---- layered site background ---- */
-  #bg-layer-texture, #bg-layer-image{
+  #bg-layer-texture{
     position:fixed; inset:0; z-index:-1; pointer-events:none;
-    background-position:center; background-attachment:fixed;
+    background-position:center; background-attachment:fixed; background-repeat:repeat;
     transition:opacity 0.15s ease;
     opacity:0;
   }
-  #bg-layer-texture{ background-repeat:repeat; }
-  #bg-layer-image{ background-repeat:no-repeat; background-size:contain; background-position:top center; }
+  #bg-layer-image{
+    position:absolute; top:0; left:0; width:100%; z-index:-1; pointer-events:none;
+    background-position:top center; background-attachment:scroll; background-repeat:no-repeat;
+    background-size:100% auto;
+    transition:opacity 0.15s ease;
+    opacity:0;
+  }
   body.bg-ready #bg-layer-texture, body.bg-ready #bg-layer-image{ opacity:1; }
 
   /* ---- sparkle gold system ---- */
