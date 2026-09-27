@@ -1274,7 +1274,7 @@
     line-height: 0;
     user-select: none;
     -webkit-user-select: none;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.5), 0 6px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 10px 25px rgba(0,0,0,0.5), 0 5px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
     transition: box-shadow 0.2s ease;
   }
   .wow-container:active {
@@ -1282,13 +1282,13 @@
   }
   .wow-container.dragging {
     opacity: 0.9;
-    box-shadow: 0 30px 60px rgba(0,0,0,0.8), 0 15px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+    box-shadow: 0 40px 80px rgba(0,0,0,0.9), 0 20px 50px rgba(0,0,0,0.6), 0 10px 25px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
   }
   .wow-container.unlocked {
     cursor: grab;
   }
   .wow-container.unlocked:hover {
-    box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+    box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 12px 30px rgba(0,0,0,0.5), 0 6px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
   }
 
   /* Frame image fills exact container dimensions */
@@ -1357,6 +1357,13 @@
     font-size: 12px;
     letter-spacing: 0.05em;
     text-transform: capitalize;
+  }
+  /* Hide module borders unless in editing mode (raid leader) */
+  .module{
+    border: none !important;
+  }
+  .layout-container.unlocked .module{
+    border: 1px solid rgba(207,154,68,0.2) !important;
   }
   .module:hover{
     box-shadow:0 5px 15px rgba(0,0,0,0.4);
@@ -5543,7 +5550,7 @@ function renderNews(){
       </div>
 
       <!-- Raid Roster Content Module -->
-      <div id="module-raid-roster" class="module" style="position:absolute; top:60px; right:40px; width:900px; height:auto; overflow-x:auto; background:rgba(0,0,0,0.3); padding:16px; border:1px solid rgba(207,154,68,0.2); box-sizing:border-box; cursor:move;">
+      <div id="module-raid-roster" class="module" style="position:absolute; top:60px; right:40px; width:820px; height:auto; overflow:hidden; background:rgba(0,0,0,0.3); padding:16px; border:1px solid rgba(207,154,68,0.2); box-sizing:border-box; cursor:move;">
         <div style="width:100%;">
           ${renderRosterGroups()}
         </div>
