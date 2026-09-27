@@ -1274,19 +1274,21 @@
     line-height: 0;
     user-select: none;
     -webkit-user-select: none;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5), 0 6px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: box-shadow 0.2s ease;
   }
   .wow-container:active {
     cursor: grabbing;
   }
   .wow-container.dragging {
     opacity: 0.9;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.8), 0 15px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
   }
   .wow-container.unlocked {
     cursor: grab;
   }
   .wow-container.unlocked:hover {
-    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
   }
 
   /* Frame image fills exact container dimensions */
