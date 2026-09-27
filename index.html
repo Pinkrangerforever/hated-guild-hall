@@ -2335,8 +2335,6 @@ async function onAuthResolved(){
       if(error) throw error;
       state.stickers = data || [];
       console.log('Loaded stickers:', state.stickers.length);
-      // Clean up expired stickers
-      await cleanupExpiredStickers();
     } catch(e) {
       console.error('Error loading news/stickers:', e);
       state.news = [];
@@ -2445,10 +2443,8 @@ async function loadGuildData(){
   ]);
   if(settingsRes.data) state.settings = settingsRes.data;
 
-  // Clean up expired stickers (older than 7 days)
   if(stickersRes.data) {
     state.stickers = stickersRes.data;
-    await cleanupExpiredStickers();
   }
   state.events = eventsRes.data || [];
   state.rsvps = rsvpsRes.data || [];
@@ -3774,23 +3770,6 @@ async function deleteSticker(stickerId){
   render();
 }
 
-async function cleanupExpiredStickers(){
-  if(!state.stickers || state.stickers.length === 0) return;
-
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-  for(const sticker of state.stickers){
-    if(sticker.placed_at){
-      const placedDate = new Date(sticker.placed_at);
-      if(placedDate < sevenDaysAgo){
-        const { error } = await sb.from('stickers').delete().eq('id', sticker.id);
-        if(!error) console.log(`Deleted expired sticker: ${sticker.id}`);
-        else if(error.message && !error.message.includes('403')) console.warn(`Failed to delete sticker: ${error.message}`);
-      }
-    }
-  }
-}
 
 function setupStickerDragHandlers(){
   let draggingSticker = null;
