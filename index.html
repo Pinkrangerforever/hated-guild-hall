@@ -5550,7 +5550,7 @@ function renderNews(){
       </div>
 
       <!-- Raid Roster Content Module -->
-      <div id="module-raid-roster" class="module" style="position:absolute; top:60px; right:40px; width:820px; height:auto; overflow:hidden; background:rgba(0,0,0,0.3); padding:16px; border:1px solid rgba(207,154,68,0.2); box-sizing:border-box; cursor:move;">
+      <div id="module-raid-roster" class="module" style="position:absolute; top:60px; right:40px; width:820px; height:auto; overflow:hidden; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box; cursor:move;">
         <div style="width:100%;">
           ${renderRosterGroups()}
         </div>
@@ -5577,7 +5577,7 @@ function renderNews(){
 
       <!-- Announcements Form Module (Officers Only) -->
       ${ officer ? `
-      <div id="module-announcements-form" class="module" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; cursor:move;">
+      <div id="module-announcements-form" class="module" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); background:var(--bg-card); border-radius:2px; padding:16px; cursor:move;">
         <h3 style="margin-bottom:14px; color:var(--text-normal);">Post an announcement</h3>
         <div id="news-form">
           <div class="field"><label>Title</label><input name="title" placeholder="e.g. New loot council rules starting this week" required></div>
@@ -5621,7 +5621,7 @@ function renderNews(){
       </div>` : ''}
 
       <!-- Announcements Display Module -->
-      <div id="module-announcements-display" class="module" style="position:absolute; top:${officer ? '1800px' : '1200px'}; left:40px; width:calc(100% - 80px); background:var(--bg-card); border:1px solid var(--divider); border-top:2px solid var(--divider-strong); border-radius:2px; padding:16px; cursor:move;">
+      <div id="module-announcements-display" class="module" style="position:absolute; top:${officer ? '1800px' : '1200px'}; left:40px; width:calc(100% - 80px); background:var(--bg-card); border-radius:2px; padding:16px; cursor:move;">
         ${ state.news.length ? state.news.map(n=>`
           <div class="list-item">
             <div style="flex:1;">
