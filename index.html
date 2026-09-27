@@ -3890,12 +3890,12 @@ function setupStickerDragHandlers(){
   document.addEventListener('mousemove', window._stickerMouseMove);
   document.addEventListener('mouseup', window._stickerMouseUp);
 
-  // Handle background image scrolling
+  // Handle background image scrolling (opposite direction for parallax effect)
   window.addEventListener('scroll', ()=>{
     const bgLayer = document.getElementById('bg-layer-image');
     if(bgLayer && bgLayer.style.backgroundImage){
       const scrollY = window.scrollY;
-      bgLayer.style.backgroundPosition = `center ${scrollY}px`;
+      bgLayer.style.backgroundPosition = `center ${-scrollY}px`;
     }
   });
 }
