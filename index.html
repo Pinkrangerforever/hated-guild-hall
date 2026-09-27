@@ -3786,6 +3786,7 @@ async function cleanupExpiredStickers(){
       if(placedDate < sevenDaysAgo){
         const { error } = await sb.from('stickers').delete().eq('id', sticker.id);
         if(!error) console.log(`Deleted expired sticker: ${sticker.id}`);
+        else if(error.message && !error.message.includes('403')) console.warn(`Failed to delete sticker: ${error.message}`);
       }
     }
   }
