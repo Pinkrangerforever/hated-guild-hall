@@ -1009,9 +1009,11 @@
     position:fixed; inset:0; z-index:-1; pointer-events:none;
     background-position:center; background-attachment:fixed;
     transition:opacity 0.15s ease;
+    opacity:0;
   }
   #bg-layer-texture{ background-repeat:repeat; }
   #bg-layer-image{ background-repeat:no-repeat; background-size:cover; }
+  body.bg-ready #bg-layer-texture, body.bg-ready #bg-layer-image{ opacity:1; }
 
   /* ---- sparkle gold system ---- */
   #sparkle-layer{ position:fixed; inset:0; pointer-events:none; z-index:9999999; }
@@ -4296,6 +4298,7 @@ function render(){
   if(state.view === 'landing'){ app.innerHTML = renderLanding(); bindLanding(); return; }
   app.innerHTML = renderApp();
   bindApp();
+  document.body.classList.add('bg-ready');
 }
 
 function renderLanding(){
