@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Guild hall for HATED â€” raid calendar, boss strategies, roster, loot log, and news.">
+<meta name="description" content="Guild hall for HATED  raid calendar, boss strategies, roster, loot log, and news.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120'%3E%3Cpath d='M50 4 L92 20 L92 55 C92 85 74 106 50 116 C26 106 8 85 8 55 L8 20 Z' fill='%231c170f' stroke='%23cf9a44' stroke-width='6'/%3E%3Cpath d='M50 40 L54.5 51.5 L67 52 L57 59.5 L60.5 71.5 L50 64 L39.5 71.5 L43 59.5 L33 52 L45.5 51.5 Z' fill='%23cf9a44'/%3E%3C/svg%3E">
 <title>Guild Hall</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -661,7 +661,7 @@
   @media (max-width:1150px){ .nav-hamburger{ display:block; } }
 
   /* Phone-width: the full row (brand + user badge + gold + shop/admin +
-     hamburger) doesn't fit no matter what â€” shrink the crest and move
+     hamburger) doesn't fit no matter what  shrink the crest and move
      everything but the essentials into the dropdown menu instead. */
   @media (max-width:600px){
     .nav-brand-icon img, .nav-brand-icon svg{ width:44px !important; height:44px !important; }
@@ -1598,7 +1598,7 @@
 <script>
 (function(){
 /* ============================================================
-   HATED Guild Hall â€” Supabase-backed build
+   HATED Guild Hall  Supabase-backed build
    ============================================================ */
 
 const SUPABASE_URL = 'https://dymlprrudprwyctjqqer.supabase.co';
@@ -1726,7 +1726,7 @@ const CLASS_SPECS = {
   druid:    { label:'Druid',    color:'#FF7D0A', specs:[{key:'balance',label:'Balance',glyph:'moonstar'},{key:'feral',label:'Feral',glyph:'claws'},{key:'restoration',label:'Restoration',glyph:'leaf'}] },
 };
 
-/* Original line-icon glyph set (not game assets) â€” inner SVG markup, rendered with
+/* Original line-icon glyph set (not game assets)  inner SVG markup, rendered with
    fill="none" stroke="currentColor" so each renders in its class color. */
 const GLYPHS = {
   sword: '<line x1="5" y1="19" x2="18" y2="6"/><line x1="13" y1="4" x2="20" y2="11"/><line x1="3" y1="17" x2="7" y2="21"/><circle cx="4" cy="19" r="1.3"/>',
@@ -2121,7 +2121,7 @@ async function boot(){
     applySiteBackground();
   }catch(e){ console.error('site image slots load failed', e); }
 
-  // Register the listener FIRST â€” if we call getSession() before this,
+  // Register the listener FIRST  if we call getSession() before this,
   // we can miss the SIGNED_IN event that fires right after an OAuth redirect.
   sb.auth.onAuthStateChange((_event, newSession)=>{
     state.session = newSession;
@@ -2245,7 +2245,7 @@ async function moveShopItem(itemId, direction){
         console.error(`Failed to update sort order for item ${id}:`, error);
         hasError = true;
       } else {
-        console.log(`  âœ“ Updated ${id}`);
+        console.log(`   Updated ${id}`);
       }
     }
 
@@ -2295,7 +2295,7 @@ async function refundPurchase(purchaseId, userName){
     const { data, error } = await sb.rpc('refund_shop_purchase', { p_purchase_id: purchaseId });
     if(error){
       console.error('Refund RPC error:', error, 'Data:', data);
-      showToast('Failed to refund â€” check console for details', true);
+      showToast('Failed to refund  check console for details', true);
       return;
     }
     if(data && !data.success){
@@ -2409,7 +2409,7 @@ async function syncDiscordRole(showFeedback){
       state.profile.role = data.role;
       state.profile.protected = !!data.protected;
       state.profilesById[state.profile.id] = state.profile;
-      if(showFeedback) showToast('Synced â€” you are now ' + (data.protected ? 'Raid Leader' : (data.role === 'officer' ? 'an Officer' : 'a Member')));
+      if(showFeedback) showToast('Synced  you are now ' + (data.protected ? 'Raid Leader' : (data.role === 'officer' ? 'an Officer' : 'a Member')));
       render();
     } else if(showFeedback){
       showToast('Discord roles are already up to date');
@@ -2485,7 +2485,7 @@ async function addEvent(){
   const errEl = document.getElementById('event-error');
   if(!title || !date){ errEl.textContent = 'Title and date are required.'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('events').insert({ title, date, time, instance, notes }).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   state.events = [...state.events, data].sort((a,b)=>a.date.localeCompare(b.date));
   state.modal = null;
   state.calendarYear = parseInt(date.slice(0,4),10);
@@ -2495,7 +2495,7 @@ async function addEvent(){
 }
 async function deleteEvent(id){
   const { error } = await sb.from('events').delete().eq('id', id);
-  if(error){ showToast("Couldn't remove â€” try again", true); return; }
+  if(error){ showToast("Couldn't remove  try again", true); return; }
   state.events = state.events.filter(e=>e.id!==id);
   state.rsvps = state.rsvps.filter(r=>r.event_id!==id);
   state.modal = null;
@@ -2505,7 +2505,7 @@ async function deleteEvent(id){
 async function setRsvp(eventId, status){
   const userId = state.session.user.id;
   const { error } = await sb.from('rsvps').upsert({ event_id: eventId, user_id: userId, status, updated_at: new Date().toISOString() });
-  if(error){ showToast("Couldn't save your RSVP â€” try again", true); return; }
+  if(error){ showToast("Couldn't save your RSVP  try again", true); return; }
   const idx = state.rsvps.findIndex(r=>r.event_id===eventId && r.user_id===userId);
   const row = { event_id: eventId, user_id: userId, status };
   if(idx>=0) state.rsvps[idx] = row; else state.rsvps.push(row);
@@ -2519,14 +2519,14 @@ async function addRaidInstance(){
   const errEl = document.getElementById('raid-add-error');
   if(!name){ errEl.textContent = 'Enter a raid name.'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('raids').insert({ name }).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   state.raids = [...state.raids, data].sort((a,b)=>a.name.localeCompare(b.name));
   showToast('Raid added');
   render();
 }
 async function deleteRaidInstance(raidId){
   const { error } = await sb.from('raids').delete().eq('id', raidId);
-  if(error){ showToast("Couldn't remove â€” try again", true); return; }
+  if(error){ showToast("Couldn't remove  try again", true); return; }
   state.raids = state.raids.filter(r=>r.id!==raidId);
   state.bosses = state.bosses.filter(b=>b.raid_id!==raidId);
   state.stratNav = { raidId:null, bossId:null };
@@ -2539,14 +2539,14 @@ async function addBoss(raidId){
   const errEl = document.getElementById('boss-add-error');
   if(!name){ errEl.textContent = 'Enter a boss name.'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('bosses').insert({ raid_id: raidId, name, notes:'' }).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   state.bosses = [...state.bosses, data];
   showToast('Boss added');
   render();
 }
 async function deleteBoss(bossId){
   const { error } = await sb.from('bosses').delete().eq('id', bossId);
-  if(error){ showToast("Couldn't remove â€” try again", true); return; }
+  if(error){ showToast("Couldn't remove  try again", true); return; }
   state.bosses = state.bosses.filter(b=>b.id!==bossId);
   state.stratNav.bossId = null;
   showToast('Boss removed');
@@ -2556,7 +2556,7 @@ async function saveBossNotes(){
   const bossId = state.stratNav.bossId;
   const notes = (document.getElementById('boss-notes-input').value||'').trim();
   const { data, error } = await sb.from('bosses').update({ notes }).eq('id', bossId).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   const idx = state.bosses.findIndex(b=>b.id===bossId);
   if(idx>=0) state.bosses[idx] = data;
   showToast('Notes saved');
@@ -2573,11 +2573,11 @@ async function uploadBossScreenshot(bossId, file){
   const ext = (file.name.split('.').pop() || 'png').toLowerCase();
   const path = `${bossId}.${ext}`;
   const { error: uploadError } = await sb.storage.from(BOSS_SCREENSHOT_BUCKET).upload(path, file, { upsert: true });
-  if(uploadError){ showToast("Couldn't upload â€” try again", true); return; }
+  if(uploadError){ showToast("Couldn't upload  try again", true); return; }
   const { data: pub } = sb.storage.from(BOSS_SCREENSHOT_BUCKET).getPublicUrl(path);
   const url = pub.publicUrl + '?t=' + Date.now();
   const { data, error } = await sb.from('bosses').update({ screenshot_url: url }).eq('id', bossId).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   const idx = state.bosses.findIndex(b=>b.id===bossId);
   if(idx>=0) state.bosses[idx] = data;
   showToast('Screenshot uploaded');
@@ -2585,7 +2585,7 @@ async function uploadBossScreenshot(bossId, file){
 }
 async function removeBossScreenshot(bossId){
   const { data, error } = await sb.from('bosses').update({ screenshot_url: null }).eq('id', bossId).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   const idx = state.bosses.findIndex(b=>b.id===bossId);
   if(idx>=0) state.bosses[idx] = data;
   render();
@@ -2600,14 +2600,14 @@ async function addSoftres(){
   if(!label || !url){ errEl.textContent = 'Label and link are both required.'; errEl.style.display='block'; return; }
   if(!/^https?:\/\//i.test(url)){ errEl.textContent = 'Link must start with http:// or https://'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('softres_links').insert({ label, url }).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   state.softresLinks = [data, ...state.softresLinks];
   showToast('Link added');
   render();
 }
 async function deleteSoftres(id){
   const { error } = await sb.from('softres_links').delete().eq('id', id);
-  if(error){ showToast("Couldn't remove â€” try again", true); return; }
+  if(error){ showToast("Couldn't remove  try again", true); return; }
   state.softresLinks = state.softresLinks.filter(s=>s.id!==id);
   render();
 }
@@ -2619,14 +2619,14 @@ async function addRaidplan(){
   if(!label || !url){ errEl.textContent = 'Label and link are both required.'; errEl.style.display='block'; return; }
   if(!/^https?:\/\//i.test(url)){ errEl.textContent = 'Link must start with http:// or https://'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('raidplan_links').insert({ label, url }).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   state.raidplanLinks = [data, ...state.raidplanLinks];
   showToast('Plan link added');
   render();
 }
 async function deleteRaidplan(id){
   const { error } = await sb.from('raidplan_links').delete().eq('id', id);
-  if(error){ showToast("Couldn't remove â€” try again", true); return; }
+  if(error){ showToast("Couldn't remove  try again", true); return; }
   state.raidplanLinks = state.raidplanLinks.filter(r=>r.id!==id);
   render();
 }
@@ -2657,7 +2657,7 @@ async function saveCompSlot(){
   if(!name){ errEl.textContent = 'Enter a raider name.'; errEl.style.display = 'block'; return; }
   const row = { group_index: groupIdx, slot_index: slotIdx, class_key: state.selectedSpec.classKey, spec_key: state.selectedSpec.specKey, character_name: name };
   const { data, error } = await sb.from('comp_slots').upsert(row, { onConflict: 'group_index,slot_index' }).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   const idx = state.compSlots.findIndex(s=>s.group_index===groupIdx && s.slot_index===slotIdx);
   if(idx>=0) state.compSlots[idx] = data; else state.compSlots.push(data);
   state.modal = null;
@@ -2667,7 +2667,7 @@ async function saveCompSlot(){
 async function removeCompSlot(groupIdx, slotIdx){
   if(!testIsOfficer() && !testIsRaidLeader()){ showToast('Only officers can edit the roster', true); return; }
   const { error } = await sb.from('comp_slots').delete().eq('group_index', groupIdx).eq('slot_index', slotIdx);
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   state.compSlots = state.compSlots.filter(s=>!(s.group_index===groupIdx && s.slot_index===slotIdx));
   state.modal = null;
   render();
@@ -2677,7 +2677,7 @@ async function toggleOfficer(profileId){
   if(!p) return;
   const newRole = p.role === 'officer' ? 'member' : 'officer';
   const { data, error } = await sb.from('profiles').update({ role: newRole }).eq('id', profileId).select().single();
-  if(error){ showToast("Couldn't update â€” try again", true); return; }
+  if(error){ showToast("Couldn't update  try again", true); return; }
   state.profilesById[profileId] = data;
   if(state.profile && state.profile.id === profileId) state.profile = data;
   showToast(data.character_name + ' is now ' + newRole);
@@ -2688,7 +2688,7 @@ async function saveMyName(){
   const name = (input.value||'').trim();
   if(!name) return;
   const { data, error } = await sb.from('profiles').update({ character_name: name }).eq('id', state.profile.id).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   state.profile = data;
   state.profilesById[data.id] = data;
   showToast('Name updated');
@@ -2705,14 +2705,14 @@ async function addLoot(){
   const errEl = document.getElementById('loot-error');
   if(!item || !winner){ errEl.textContent = 'Item and winner are both required.'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('loot_log').insert({ item, winner, boss, date }).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   state.loot = [data, ...state.loot];
   showToast('Loot logged');
   render();
 }
 async function deleteLoot(id){
   const { error } = await sb.from('loot_log').delete().eq('id', id);
-  if(error){ showToast("Couldn't remove â€” try again", true); return; }
+  if(error){ showToast("Couldn't remove  try again", true); return; }
   state.loot = state.loot.filter(l=>l.id!==id);
   render();
 }
@@ -2725,14 +2725,14 @@ async function addNews(){
   const errEl = document.getElementById('news-error');
   if(!title || !body){ errEl.textContent = 'Title and message are both required.'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('news').insert({ title, body, author: myName() }).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   state.news = [data, ...state.news];
   showToast('Posted');
   render();
 }
 async function deleteNews(id){
   const { error } = await sb.from('news').delete().eq('id', id);
-  if(error){ showToast("Couldn't remove â€” try again", true); return; }
+  if(error){ showToast("Couldn't remove  try again", true); return; }
   state.news = state.news.filter(n=>n.id!==id);
   render();
 }
@@ -2746,7 +2746,7 @@ async function saveRecruitment(){
   const patch = { recruitment_body, recruitment_roles };
   if(guild_name) patch.guild_name = guild_name;
   const { data, error } = await sb.from('guild_settings').update(patch).eq('id',1).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   state.settings = data;
   showToast('Recruitment page updated');
   render();
@@ -2776,7 +2776,7 @@ async function uploadGalleryImages(files){
   } else if(succeeded && failed){
     showToast(`Uploaded ${succeeded}, ${failed} skipped (bad file type or too large)`, true);
   } else {
-    showToast(“Couldn't upload - check file types and sizes (max ~50MB each)”, true);
+    showToast("Couldnt upload - check file types and sizes (max ~50MB each)", true);
   }
   render();
 }
@@ -2803,13 +2803,13 @@ async function uploadOneGalleryImage(file){
 }
 async function deleteGalleryImage(id){
   const { error } = await sb.from('gallery_images').delete().eq('id', id);
-  if(error){ showToast("Couldn't remove â€” try again", true); return; }
+  if(error){ showToast("Couldn't remove  try again", true); return; }
   state.galleryImages = state.galleryImages.filter(g=>g.id!==id);
   render();
 }
 async function toggleGalleryImageSticker(id, currentValue){
   const { data, error } = await sb.from('gallery_images').update({ is_sticker: !currentValue }).eq('id', id).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   const idx = state.galleryImages.findIndex(g=>g.id===id);
   if(idx>=0) state.galleryImages[idx] = data;
   showToast(data.is_sticker ? 'Available as a sticker now' : 'No longer available as a sticker');
@@ -2817,7 +2817,7 @@ async function toggleGalleryImageSticker(id, currentValue){
 }
 async function assignSiteImage(slotKey, url){
   const { error } = await sb.from('site_images').upsert({ slot_key: slotKey, image_url: url, updated_at: new Date().toISOString() }, { onConflict: 'slot_key' });
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   state.siteImages[slotKey] = url;
   applySiteBackground();
   state.modal = null;
@@ -2826,7 +2826,7 @@ async function assignSiteImage(slotKey, url){
 }
 async function clearSiteImage(slotKey){
   const { error } = await sb.from('site_images').upsert({ slot_key: slotKey, image_url: null, updated_at: new Date().toISOString() }, { onConflict: 'slot_key' });
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   delete state.siteImages[slotKey];
   applySiteBackground();
   render();
@@ -2893,11 +2893,11 @@ async function claimSparkle(el){
   el.remove();
 
   try{
-    console.log('ðŸ” Calling claim_sparkle_gold RPC...');
+    console.log(' Calling claim_sparkle_gold RPC...');
     const { data, error } = await sb.rpc('claim_sparkle_gold');
-    console.log('ðŸ“Š RPC Response - data:', data, 'error:', error);
+    console.log(' RPC Response - data:', data, 'error:', error);
     if(error) {
-      console.error('âŒ RPC Error details:', {
+      console.error(' RPC Error details:', {
         message: error.message,
         code: error.code,
         details: error.details,
@@ -2908,12 +2908,12 @@ async function claimSparkle(el){
       return;
     }
     if(!data || !data.success) {
-      console.error('âŒ RPC returned no success:', data);
+      console.error(' RPC returned no success:', data);
       return;
     }
 
     // Use the event type from RPC, not client-side random
-    console.log('âœ… Event type from RPC:', data.event);
+    console.log(' Event type from RPC:', data.event);
     if(data.event === 'blacksmith') {
       return startBlacksmithGame(rect, data.pending_id);
     } else if(data.event === 'murloc') {
@@ -2930,7 +2930,7 @@ async function claimSparkle(el){
       state.profile.gold = data.total || (state.profile.gold + awarded);
 
       const goldBadge = document.querySelector('.nav-gold-badge');
-      if(goldBadge) goldBadge.textContent = 'â¬¥ ' + (state.profile.gold || 0);
+      if(goldBadge) goldBadge.textContent = ' ' + (state.profile.gold || 0);
 
       if(awarded > 0){
         showGoldFloat(rect.left + rect.width/2, rect.top, awarded);
@@ -2951,7 +2951,7 @@ async function resolveSparkleEvent(pendingId, won, x, y){
     if(won && state.profile){
       state.profile.gold = data.total;
       const goldBadge = document.querySelector('.nav-gold-badge');
-      if(goldBadge) goldBadge.textContent = 'â¬¥ ' + data.total;
+      if(goldBadge) goldBadge.textContent = ' ' + data.total;
       if(data.awarded !== undefined){
         showGoldFloat(x, y, data.awarded);
       }
@@ -3027,7 +3027,7 @@ function startMurlocEvent(rect, pendingId){
   function hitMurloc(el){
     // Freeze the ongoing flee animation exactly where it is, then let a CSS
     // transition (not a keyframe animation) carry it smoothly into the hit
-    // reaction â€” avoids any visual "snap back" to full size on hit.
+    // reaction  avoids any visual "snap back" to full size on hit.
     const computed = window.getComputedStyle(el).transform;
     el.style.animation = 'none';
     el.style.transform = computed === 'none' ? '' : computed;
@@ -3473,7 +3473,7 @@ function startBlacksmithGame(spawnRect, pendingId){
 }
 
 // Exposed as a debug/test hook: triggers a sparkle immediately instead of
-// waiting for the real randomized interval. Harmless to expose â€” spawning a
+// waiting for the real randomized interval. Harmless to expose  spawning a
 // sparkle grants nothing by itself; only a server-verified claim does.
 window.spawnSparkle = spawnSparkle;
 
@@ -3493,13 +3493,13 @@ async function resetMemberCurrentGold(userId){
   
   const { data, error } = await sb.rpc('reset_member_current_gold', { p_user_id: userId, p_new_gold: newGold });
   if(error){ 
-    showToast("Couldn't reset current gold â€” " + (error.message || 'try again'), true);
+    showToast("Couldn't reset current gold  " + (error.message || 'try again'), true);
     console.error('Reset current gold error:', error);
     return;
   }
   
   if(!data || !data.success){
-    showToast("Couldn't reset current gold â€” " + (data?.reason || 'unknown error'), true);
+    showToast("Couldn't reset current gold  " + (data?.reason || 'unknown error'), true);
     return;
   }
   
@@ -3528,13 +3528,13 @@ async function resetMemberEarnedGold(userId){
   
   const { data, error } = await sb.rpc('reset_member_earned_gold', { p_user_id: userId, p_new_earned: newEarned });
   if(error){ 
-    showToast("Couldn't reset earned gold â€” " + (error.message || 'try again'), true);
+    showToast("Couldn't reset earned gold  " + (error.message || 'try again'), true);
     console.error('Reset earned gold error:', error);
     return;
   }
   
   if(!data || !data.success){
-    showToast("Couldn't reset earned gold â€” " + (data?.reason || 'unknown error'), true);
+    showToast("Couldn't reset earned gold  " + (data?.reason || 'unknown error'), true);
     return;
   }
   
@@ -3552,13 +3552,13 @@ async function openShop(){
   // Fetch top 4 gold earners
   try {
     const { data, error } = await sb.rpc('get_gold_leaderboard', { p_limit: 4 });
-    console.log('ðŸ† Leaderboard fetch:', { data, error });
+    console.log(' Leaderboard fetch:', { data, error });
     if(error) console.error('RPC error:', error);
     if(!error && data) {
       state.goldLeaderboard = data;
-      console.log('âœ… Leaderboard set:', state.goldLeaderboard);
+      console.log(' Leaderboard set:', state.goldLeaderboard);
     } else {
-      console.log('âš ï¸ No leaderboard data returned');
+      console.log(' No leaderboard data returned');
     }
   } catch(e){ console.error('Leaderboard fetch failed:', e); }
   
@@ -3567,7 +3567,7 @@ async function openShop(){
 }
 async function purchaseShopItem(itemId){
   const { data, error } = await sb.rpc('purchase_shop_item', { p_item_id: itemId });
-  if(error || !data){ showToast("Couldn't complete purchase â€” try again", true); return; }
+  if(error || !data){ showToast("Couldn't complete purchase  try again", true); return; }
   if(!data.success){
     const reasons = {
       insufficient_gold: "You don't have enough gold for that yet",
@@ -3586,7 +3586,7 @@ async function purchaseShopItem(itemId){
 }
 async function purchaseRank(itemId){
   const { data, error } = await sb.rpc('purchase_rank', { p_item_id: itemId });
-  if(error || !data){ showToast("Couldn't complete purchase â€” try again", true); return; }
+  if(error || !data){ showToast("Couldn't complete purchase  try again", true); return; }
   if(!data.success){
     const reasons = {
       insufficient_gold: "You don't have enough gold for that yet",
@@ -3640,13 +3640,13 @@ async function purchaseSticker(galleryImageId){
 
   if(error){
     console.error('Sticker purchase RPC error:', error);
-    showToast("Couldn't complete purchase â€” " + (error.message || 'try again'), true);
+    showToast("Couldn't complete purchase  " + (error.message || 'try again'), true);
     return;
   }
 
   if(!data){
     console.error('Sticker purchase returned no data');
-    showToast("Couldn't complete purchase â€” try again", true);
+    showToast("Couldn't complete purchase  try again", true);
     return;
   }
 
@@ -3717,7 +3717,7 @@ async function saveShopItem(itemId){
   const cost = parseInt(c.querySelector('[name=cost]').value, 10);
   if(!name || isNaN(cost) || cost < 0){ showToast('Enter a valid name and cost', true); return; }
   const { data, error } = await sb.from('shop_items').update({ name, description, cost }).eq('id', itemId).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   const idx = state.shopItems.findIndex(i=>i.id===itemId);
   if(idx>=0) state.shopItems[idx] = data;
   state.editingShopItemId = null;
@@ -3729,7 +3729,7 @@ async function saveStickerPrice(){
   const price = parseInt(input.value, 10);
   if(isNaN(price) || price < 0){ showToast('Enter a valid price', true); return; }
   const { data, error } = await sb.from('guild_settings').update({ sticker_price: price }).eq('id',1).select().single();
-  if(error){ showToast("Couldn't save â€” try again", true); return; }
+  if(error){ showToast("Couldn't save  try again", true); return; }
   state.settings = data;
   showToast('Sticker price updated');
   render();
@@ -3743,7 +3743,7 @@ async function editStickerPrice(stickerId, currentPrice){
   const { data, error } = await sb.from('gallery_images').update({ sticker_price: price }).eq('id', stickerId).select().single();
   if(error){
     console.error('Sticker price update error:', error);
-    showToast("Couldn't save â€” try again", true);
+    showToast("Couldn't save  try again", true);
     return;
   }
   const idx = state.galleryImages.findIndex(g=>g.id===stickerId);
@@ -3760,7 +3760,7 @@ async function deleteSticker(stickerId){
   });
   
   if(error || !data?.success){
-    showToast('Failed to delete sticker â€” only Raid Leaders can delete', true);
+    showToast('Failed to delete sticker  only Raid Leaders can delete', true);
     console.error('Delete error:', error);
     return;
   }
@@ -3887,9 +3887,9 @@ function setupStickerDragHandlers(){
 
     if(error) {
       console.error('Sticker position RPC error:', error);
-      showToast('Failed to save sticker position â€” ' + (error.message || 'try again'), true);
+      showToast('Failed to save sticker position  ' + (error.message || 'try again'), true);
     } else if(data === true || data?.success === true) {
-      console.log('âœ“ Sticker position saved:', { posX, posY });
+      console.log(' Sticker position saved:', { posX, posY });
     } else {
       console.error('Sticker position update returned failure:', data);
       showToast('Failed to save sticker position', true);
@@ -4021,7 +4021,7 @@ async function initLayoutSystem(){
       await saveLayout();
     }
     window._layoutState.locked = !window._layoutState.locked;
-    lockBtn.textContent = window._layoutState.locked ? '🔓 Unlock Layout' : '🔒 Lock Layout';
+    lockBtn.textContent = window._layoutState.locked ? ' Unlock Layout' : ' Lock Layout';
     lockBtn.classList.toggle('locked');
   });
 
@@ -4546,8 +4546,8 @@ function renderApp(){
           <span class="nav-user sans">${esc(myName())} <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span></span>
           <span class="nav-gold-badge">&#x1F4B0; ${state.profile ? (state.profile.gold||0) : 0}</span>
           ${ state.profile && state.profile.protected ? `
-            <button type="button" id="layout-lock-btn" class="btn-nav-outline" style="font-size:13px;">🔓 Layout</button>
-            <button type="button" id="layout-reset-btn" class="btn-nav-outline" style="font-size:13px;">↻ Reset</button>
+            <button type="button" id="layout-lock-btn" class="btn-nav-outline" style="font-size:13px;"> Layout</button>
+            <button type="button" id="layout-reset-btn" class="btn-nav-outline" style="font-size:13px;"> Reset</button>
           ` : '' }
           <button type="button" class="btn-nav-outline" id="open-shop-btn">Shop</button>
           ${ state.profile && state.profile.protected ? `<button type="button" class="btn-nav-admin ${state.tab==='admin'?'active':''}" data-tab="admin">Admin</button>` : '' }
@@ -4576,7 +4576,7 @@ function renderApp(){
       </div>
     </nav>
     <div class="main page-${state.tab}">
-      ${ getTestRole() ? `<div style="position:fixed; top:0; left:0; right:0; background:linear-gradient(90deg, #ff6b00, #ffb300); color:white; padding:10px 16px; text-align:center; font-weight:600; z-index:999; font-size:13px;">ðŸ”§ TEST MODE: Viewing as ${getTestRole().toUpperCase()}</div>` : '' }
+      ${ getTestRole() ? `<div style="position:fixed; top:0; left:0; right:0; background:linear-gradient(90deg, #ff6b00, #ffb300); color:white; padding:10px 16px; text-align:center; font-weight:600; z-index:999; font-size:13px;"> TEST MODE: Viewing as ${getTestRole().toUpperCase()}</div>` : '' }
       ${ state.toast ? `<div class="toast ${state.toastError?'toast-error':'toast-success'} sans" style="${getTestRole() ? 'margin-top:50px;' : ''}">${esc(state.toast)}</div>` : '' }
       ${ renderTab() }
       ${ renderModal() }
@@ -4878,12 +4878,12 @@ function renderShopModal(){
           </div>
         </div>` : '' }
         ${ stickerImages.length ? `<div class="shop-grid">${stickerImages.map(renderStickerCard).join('')}</div>` :
-          emptyState(officer ? 'No images are flagged as stickers yet â€” go to the Gallery to enable some.' : 'No stickers available yet.') }
+          emptyState(officer ? 'No images are flagged as stickers yet  go to the Gallery to enable some.' : 'No stickers available yet.') }
       </div>
 
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
         <h4 class="shop-section-title">Discord Rank Upgrades</h4>
-        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Purchase in order â€” each rank unlocks the next. The Discord bot will apply these automatically once it's connected.</p>
+        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Purchase in order  each rank unlocks the next. The Discord bot will apply these automatically once it's connected.</p>
         ${ rankItems.length ? `<div class="shop-grid">${rankItems.map(renderRankCard).join('')}</div>` : emptyState('No ranks set up yet.') }
       </div>
 
@@ -4991,7 +4991,7 @@ function renderAssignSlotModal(groupIdx, slotIdx){
   <div class="modal-backdrop" id="modal-backdrop">
     <div class="modal-panel" id="modal-panel">
       <div class="modal-header">
-        <h3>Group ${groupIdx+1} â€” Slot ${slotIdx+1}</h3>
+        <h3>Group ${groupIdx+1}  Slot ${slotIdx+1}</h3>
         <button class="modal-x" id="modal-close">&times;</button>
       </div>
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
@@ -5206,7 +5206,7 @@ function renderRoster(){
       <h3 style="margin-bottom:4px;">Raid Composition</h3>
       <p class="muted sans" style="margin-bottom:16px;">
         ${ (officer || isRaidLeader)
-          ? "Pick a class and spec below, then click a slot to assign a raider's name to it. Click a filled slot to reassign it, or use the Ã— to clear it."
+          ? "Pick a class and spec below, then click a slot to assign a raider's name to it. Click a filled slot to reassign it, or use the  to clear it."
           : "This is the current raid composition. Officers manage who's assigned to each spot." }
       </p>
 
@@ -5217,7 +5217,7 @@ function renderRoster(){
             ${ cls.specs.map(s=>`
               <button type="button" class="spec-btn ${sel && sel.classKey===classKey && sel.specKey===s.key ? 'selected':''}"
                 data-class="${classKey}" data-spec="${s.key}"
-                style="${specIconStyle(classKey)}" title="${esc(cls.label)} â€” ${esc(s.label)}">${specIconHtml(classKey, s.key)}</button>
+                style="${specIconStyle(classKey)}" title="${esc(cls.label)}  ${esc(s.label)}">${specIconHtml(classKey, s.key)}</button>
             `).join('') }
           </div>
         `).join('') }
@@ -5353,15 +5353,15 @@ function updateTrophyCaseDisplay(){
 
   if(trophy1 && state.goldLeaderboard && state.goldLeaderboard[0]) {
     trophy1.textContent = state.goldLeaderboard[0].character_name || state.goldLeaderboard[0].discord_username;
-    if(gold1) gold1.textContent = '💰 ' + (state.goldLeaderboard[0].gold_earned_total || 0).toLocaleString() + 'g';
+    if(gold1) gold1.textContent = ' ' + (state.goldLeaderboard[0].gold_earned_total || 0).toLocaleString() + 'g';
   }
   if(trophy2 && state.goldLeaderboard && state.goldLeaderboard[1]) {
     trophy2.textContent = state.goldLeaderboard[1].character_name || state.goldLeaderboard[1].discord_username;
-    if(gold2) gold2.textContent = '💰 ' + (state.goldLeaderboard[1].gold_earned_total || 0).toLocaleString() + 'g';
+    if(gold2) gold2.textContent = ' ' + (state.goldLeaderboard[1].gold_earned_total || 0).toLocaleString() + 'g';
   }
   if(trophy3 && state.goldLeaderboard && state.goldLeaderboard[2]) {
     trophy3.textContent = state.goldLeaderboard[2].character_name || state.goldLeaderboard[2].discord_username;
-    if(gold3) gold3.textContent = '💰 ' + (state.goldLeaderboard[2].gold_earned_total || 0).toLocaleString() + 'g';
+    if(gold3) gold3.textContent = ' ' + (state.goldLeaderboard[2].gold_earned_total || 0).toLocaleString() + 'g';
   }
 }
 
@@ -5529,13 +5529,13 @@ function renderNews(){
 
       <!-- Trophy Gold Value Modules (Individually Movable) -->
       <div id="module-trophy-1st-gold" class="module" style="position:absolute; top:790px; left:280px; width:auto; height:auto; cursor:move; z-index:500 !important;">
-        <div id="trophy-1st-gold" style="font-size:14px; font-weight:700; text-align:center; min-width:150px; color:#ffd700; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;">💰 0g</div>
+        <div id="trophy-1st-gold" style="font-size:14px; font-weight:700; text-align:center; min-width:150px; color:#ffd700; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;"> 0g</div>
       </div>
       <div id="module-trophy-2nd-gold" class="module" style="position:absolute; top:790px; left:80px; width:auto; height:auto; cursor:move; z-index:500 !important;">
-        <div id="trophy-2nd-gold" style="font-size:12px; font-weight:700; text-align:center; min-width:110px; color:#d0d0d0; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;">💰 0g</div>
+        <div id="trophy-2nd-gold" style="font-size:12px; font-weight:700; text-align:center; min-width:110px; color:#d0d0d0; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;"> 0g</div>
       </div>
       <div id="module-trophy-3rd-gold" class="module" style="position:absolute; top:790px; left:480px; width:auto; height:auto; cursor:move; z-index:500 !important;">
-        <div id="trophy-3rd-gold" style="font-size:11px; font-weight:700; text-align:center; min-width:90px; color:#daa520; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;">💰 0g</div>
+        <div id="trophy-3rd-gold" style="font-size:11px; font-weight:700; text-align:center; min-width:90px; color:#daa520; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;"> 0g</div>
       </div>
 
       <!-- Raid Roster Title Module -->
@@ -5756,7 +5756,7 @@ function renderGallery(){
               return `
               <div class="slot-spec-wrap">
                 <button type="button" class="spec-btn slot-spec-btn" data-choose-slot="${slotKey}"
-                  style="${specIconStyle(classKey)}" title="${esc(cls.label)} â€” ${esc(s.label)} (click to change)">${specIconHtml(classKey, s.key)}</button>
+                  style="${specIconStyle(classKey)}" title="${esc(cls.label)}  ${esc(s.label)} (click to change)">${specIconHtml(classKey, s.key)}</button>
                 ${ hasCustom ? `<button type="button" class="slot-spec-clear" data-clear-slot="${slotKey}" title="Revert to default icon">&times;</button>` : '' }
               </div>
             `;}).join('') }
@@ -5774,7 +5774,7 @@ function renderGallery(){
               <img src="${esc(g.url)}" alt="${esc(g.caption||'')}" loading="lazy">
               <div class="gallery-grid-caption">${esc(g.caption||'')}</div>
               ${ testCanManage() ? `<button class="gallery-grid-delete" type="button" data-del-gallery="${g.id}" title="Delete">&times;</button>` : '' }
-              ${ testCanManage() ? `<button class="gallery-sticker-toggle ${g.is_sticker?'on':''}" type="button" data-toggle-sticker="${g.id}|${g.is_sticker?'1':''}" title="${g.is_sticker?'Available as a sticker â€” click to remove':'Not available as a sticker â€” click to enable'}">&#9733; ${g.is_sticker?'Sticker':'Not sticker'}</button>` : (g.is_sticker ? `<div class="gallery-sticker-badge">&#9733; Sticker</div>` : '') }
+              ${ testCanManage() ? `<button class="gallery-sticker-toggle ${g.is_sticker?'on':''}" type="button" data-toggle-sticker="${g.id}|${g.is_sticker?'1':''}" title="${g.is_sticker?'Available as a sticker  click to remove':'Not available as a sticker  click to enable'}">&#9733; ${g.is_sticker?'Sticker':'Not sticker'}</button>` : (g.is_sticker ? `<div class="gallery-sticker-badge">&#9733; Sticker</div>` : '') }
             </div>
           `).join('') }
         </div>
@@ -5787,18 +5787,18 @@ function renderGallery(){
 /* ---------------- guild bank tab (placeholder) ---------------- */
 function renderGuildBank(){
   return `
-    ${pageHeader('Guild Bank', 'Coming Soon', "Guild bank inventory and donation tracking â€” this page is a placeholder for now.")}
+    ${pageHeader('Guild Bank', 'Coming Soon', "Guild bank inventory and donation tracking  this page is a placeholder for now.")}
     <div class="panel style-glass">
-      ${emptyState("This page isn't built out yet. Let's design what you want to track here â€” inventory, donations, or both â€” and I'll build it next.")}
+      ${emptyState("This page isn't built out yet. Let's design what you want to track here  inventory, donations, or both  and I'll build it next.")}
     </div>
   `;
 }
 
 function renderRaidLogs(){
   return `
-    ${pageHeader('Raid Logs', 'Coming Soon', "A place for raid log links or reports â€” this page is a placeholder for now.")}
+    ${pageHeader('Raid Logs', 'Coming Soon', "A place for raid log links or reports  this page is a placeholder for now.")}
     <div class="panel style-glass">
-      ${emptyState("This page isn't built out yet. Let me know what you'd like here â€” links to WarcraftLogs reports, an embedded log viewer, parse tracking â€” and I'll build it out.")}
+      ${emptyState("This page isn't built out yet. Let me know what you'd like here  links to WarcraftLogs reports, an embedded log viewer, parse tracking  and I'll build it out.")}
     </div>
   `;
 }
@@ -5821,7 +5821,7 @@ function renderSettings(){
 
     ${showDebugPanel ? `
     <div class="panel style-glass" style="background:linear-gradient(180deg, rgba(100,50,0,0.4), rgba(50,30,0,0.4)); border:1px solid rgba(200,100,50,0.3); margin-bottom:20px;">
-      <h3 style="margin-bottom:12px; color:#ffb300;">ðŸ”§ Debug Panel</h3>
+      <h3 style="margin-bottom:12px; color:#ffb300;"> Debug Panel</h3>
       <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Temporarily test the site as different roles without logging out.</p>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn ${!testRole ? 'primary' : 'secondary'}" type="button" id="test-role-actual" style="flex:1; min-width:120px;">Your Actual Role</button>
@@ -5894,7 +5894,7 @@ function renderAdmin(){
   if(state.adminPurchases === undefined || state.adminPurchases === null){
     loadAdminPurchases();
     return `
-      ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account â€” not even other officers can see this tab.")}
+      ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account  not even other officers can see this tab.")}
       <div class="panel style-glass">
         <p style="color:var(--text-muted);">Loading shop refunds...</p>
       </div>
@@ -5903,7 +5903,7 @@ function renderAdmin(){
 
   const purchases = state.adminPurchases;
   let html = `
-    ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account â€” not even other officers can see this tab.")}
+    ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account  not even other officers can see this tab.")}
     <div class="panel style-glass">
       <h2>Shop Refunds</h2>
       <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Manage and refund shop purchases in case of accidents or disputes.</p>
@@ -5934,7 +5934,7 @@ function renderAdmin(){
           <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-input); border-radius:4px;">
             <div style="flex:1;">
               <div style="color:var(--text-normal); font-weight:500;">${displayName}</div>
-              <div style="color:var(--text-muted); font-size:12px;">&#x1F4B0; ${p.cost_paid} gold Â· ${date}</div>
+              <div style="color:var(--text-muted); font-size:12px;">&#x1F4B0; ${p.cost_paid} gold  ${date}</div>
             </div>
             <button class="btn-small" data-refund-purchase="${p.id}" data-refund-name="${userName}" style="margin-left:12px;">Refund</button>
           </div>
@@ -6244,3 +6244,4 @@ boot();
 </script>
 </body>
 </html>
+
