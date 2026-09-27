@@ -2776,13 +2776,13 @@ async function uploadGalleryImages(files){
   } else if(succeeded && failed){
     showToast(`Uploaded ${succeeded}, ${failed} skipped (bad file type or too large)`, true);
   } else {
-    showToast("Couldn't upload â€” check file types and sizes (max ~8MB each)", true);
+    showToast(“Couldn't upload - check file types and sizes (max ~50MB each)”, true);
   }
   render();
 }
 async function uploadOneGalleryImage(file){
   if(!file || !file.type.startsWith('image/')) return false;
-  const MAX_BYTES = 8 * 1024 * 1024;
+  const MAX_BYTES = 50 * 1024 * 1024;
   if(file.size > MAX_BYTES) return false;
   const ext = (file.name.split('.').pop() || 'png').toLowerCase();
   const path = uid() + '.' + ext;
