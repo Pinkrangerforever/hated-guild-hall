@@ -3645,19 +3645,34 @@ async function saveMemberName(userId, newName){
     return;
   }
 
-  const { data, error } = await sb.from('profiles').update({ character_name: newName.trim() }).eq('id', userId);
+  const oldName = state.profilesById[userId]?.character_name;
+  const newNameTrimmed = newName.trim();
+
+  const { data, error } = await sb.from('profiles').update({ character_name: newNameTrimmed }).eq('id', userId);
   if(error){
     showToast("Couldn't rename member  " + (error.message || 'try again'), true);
     console.error('Rename member error:', error);
     return;
   }
 
+  // Update all comp slots with the old name to use new name
+  if(oldName && oldName !== newNameTrimmed){
+    const { error: slotError } = await sb.from('comp_slots').update({ character_name: newNameTrimmed }).eq('character_name', oldName);
+    if(slotError){
+      console.error('Error updating comp slots:', slotError);
+    } else {
+      state.compSlots = state.compSlots.map(slot =>
+        slot.character_name === oldName ? { ...slot, character_name: newNameTrimmed } : slot
+      );
+    }
+  }
+
   if(state.profilesById[userId]){
-    state.profilesById[userId].character_name = newName.trim();
+    state.profilesById[userId].character_name = newNameTrimmed;
   }
 
   state.modal = null;
-  showToast(`Member renamed to ${esc(newName)}`);
+  showToast(`Member renamed to ${esc(newName)} - all records updated`);
   render();
 }
 
