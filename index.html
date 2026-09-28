@@ -4406,12 +4406,8 @@ async function initLayoutSystem(){
   document.addEventListener('mousemove', (e) => {
     // Handle wow-container resize
     if(isResizingContainer && currentContainer) {
-      if(currentContainer.classList.contains('module')) {
-        // Module resize - only width
-        const newW = Math.max(300, resizeStartWidth + (e.pageX - resizeStartX));
-        currentContainer.style.width = newW + 'px';
-      } else if(currentContainer.classList.contains('guild-board-container')) {
-        // Guild board scale - both width and height scale by same factor
+      if(currentContainer.classList.contains('guild-board-container')) {
+        // Guild board scale - both width and height scale by same factor (check FIRST since it also has 'module' class)
         const deltaX = e.pageX - resizeStartX;
         const deltaY = e.pageY - resizeStartY;
         // Use diagonal magnitude for scaling
@@ -4426,6 +4422,10 @@ async function initLayoutSystem(){
 
         currentContainer.style.width = newW + 'px';
         currentContainer.style.height = newH + 'px';
+      } else if(currentContainer.classList.contains('module')) {
+        // Module resize - only width
+        const newW = Math.max(300, resizeStartWidth + (e.pageX - resizeStartX));
+        currentContainer.style.width = newW + 'px';
       } else {
         // WOW-container or titleplate resize - width and height
         const newW = Math.max(150, resizeStartWidth + (e.pageX - resizeStartX));
