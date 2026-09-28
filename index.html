@@ -1324,6 +1324,86 @@
     background-color: rgba(255, 255, 255, 0.5);
   }
 
+  /* TITLEPLATE FRAME CONTAINER */
+  .titleplate-container {
+    position: absolute;
+    width: 600px;
+    height: 120px;
+    min-width: 200px;
+    min-height: 60px;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    cursor: grab;
+    display: inline-block;
+    line-height: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    z-index: 100;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 10px 25px rgba(0,0,0,0.5), 0 5px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: box-shadow 0.2s ease;
+  }
+  .titleplate-container:active {
+    cursor: grabbing;
+  }
+  .titleplate-container.dragging {
+    opacity: 0.9;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.9), 0 20px 50px rgba(0,0,0,0.6), 0 10px 25px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .titleplate-container.unlocked {
+    cursor: grab;
+  }
+  .titleplate-container.unlocked:hover {
+    box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 12px 30px rgba(0,0,0,0.5), 0 6px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+
+  /* Titleplate frame image fills exact container dimensions */
+  .titleplate-frame-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+    object-fit: fill;
+  }
+
+  /* Titleplate content area */
+  .titleplate-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    z-index: 2;
+  }
+
+  /* Titleplate resize handle */
+  .titleplate-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 16px;
+    height: 16px;
+    cursor: se-resize;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.2);
+    border-top-left-radius: 3px;
+    background-image: radial-gradient(circle, #fff 1px, transparent 1px);
+    background-size: 4px 4px;
+    display: none;
+  }
+  .titleplate-container.unlocked .titleplate-resize-handle {
+    display: block;
+  }
+  .titleplate-resize-handle:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+
   /* Content area inside frame */
   .wow-content {
     position: absolute;
@@ -4068,6 +4148,23 @@ async function initLayoutSystem(){
       return;
     }
 
+    // Titleplate resize handle
+    const titleplateResizeHandle = e.target.closest('.titleplate-resize-handle');
+    if(titleplateResizeHandle) {
+      e.preventDefault();
+      isResizingContainer = true;
+      currentContainer = titleplateResizeHandle.closest('.titleplate-container');
+      if(!currentContainer) return;
+
+      resizeStartX = e.pageX;
+      resizeStartY = e.pageY;
+      resizeStartWidth = currentContainer.offsetWidth;
+      resizeStartHeight = currentContainer.offsetHeight;
+
+      currentContainer.classList.add('dragging');
+      return;
+    }
+
     // Check if clicking on the frame itself (not interactive elements)
     const isInteractive = e.target.closest('button') || e.target.closest('input') ||
                          e.target.closest('textarea') || e.target.closest('select') ||
@@ -4078,6 +4175,21 @@ async function initLayoutSystem(){
       if(container && container.classList.contains('unlocked')) {
         isDraggingContainer = true;
         currentContainer = container;
+        dragStartX = e.pageX;
+        dragStartY = e.pageY;
+        dragStartLeft = parseInt(currentContainer.style.left) || 0;
+        dragStartTop = parseInt(currentContainer.style.top) || 0;
+        currentContainer.classList.add('dragging');
+        return;
+      }
+    }
+
+    // Titleplate dragging
+    if(!isInteractive) {
+      const titleplate = e.target.closest('.titleplate-container');
+      if(titleplate && titleplate.classList.contains('unlocked')) {
+        isDraggingContainer = true;
+        currentContainer = titleplate;
         dragStartX = e.pageX;
         dragStartY = e.pageY;
         dragStartLeft = parseInt(currentContainer.style.left) || 0;
@@ -5461,6 +5573,29 @@ function renderNews(){
         <img src="wow-frame-wide.jpg" alt="Frame" class="wow-frame-img">
         <div class="wow-content"></div>
         <div class="wow-resize-handle"></div>
+      </div>
+
+      <!-- TITLEPLATE FRAMES (positioned absolutely, draggable & resizable) -->
+
+      <!-- Titleplate 1 -->
+      <div id="titleplate-1" class="titleplate-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:100px; left:100px; width:600px; height:120px;">
+        <img src="titleplate-frame.webp" alt="Frame" class="titleplate-frame-img">
+        <div class="titleplate-content"></div>
+        <div class="titleplate-resize-handle"></div>
+      </div>
+
+      <!-- Titleplate 2 -->
+      <div id="titleplate-2" class="titleplate-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:250px; left:100px; width:600px; height:120px;">
+        <img src="titleplate-frame.webp" alt="Frame" class="titleplate-frame-img">
+        <div class="titleplate-content"></div>
+        <div class="titleplate-resize-handle"></div>
+      </div>
+
+      <!-- Titleplate 3 -->
+      <div id="titleplate-3" class="titleplate-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:400px; left:100px; width:600px; height:120px;">
+        <img src="titleplate-frame.webp" alt="Frame" class="titleplate-frame-img">
+        <div class="titleplate-content"></div>
+        <div class="titleplate-resize-handle"></div>
       </div>
 
       <!-- All Modules (positioned absolutely, independent of boxes) -->
