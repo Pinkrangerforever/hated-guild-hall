@@ -1437,7 +1437,7 @@
     color: #ffd700;
     font-family: 'Cinzel', Georgia, 'Iowan Old Style', serif;
     font-weight: 900;
-    font-size: 32px;
+    font-size: 16px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     text-shadow:
@@ -1447,6 +1447,9 @@
       0 0 20px rgba(207,154,68,0.4);
     line-height: 1.2;
     margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   /* Hide module borders unless in editing mode (raid leader) */
   .module{
@@ -5623,7 +5626,7 @@ function renderNews(){
       <!-- All Modules (positioned absolutely, independent of boxes) -->
 
       <!-- Guild Board Title Module -->
-      <div id="module-guild-board-title" class="module title-module" style="position:absolute; width:auto; height:auto; cursor:move;">
+      <div id="module-guild-board-title" class="module title-module" style="position:absolute; width:350px; height:auto; cursor:move;">
         <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Guild Board</div>
       </div>
 
@@ -5658,7 +5661,7 @@ function renderNews(){
       </div>
 
       <!-- Trophy Case Title Module -->
-      <div id="module-trophy-case-title" class="module title-module" style="position:absolute; width:auto; height:auto; cursor:move;">
+      <div id="module-trophy-case-title" class="module title-module" style="position:absolute; width:350px; height:auto; cursor:move;">
         <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Trophy Case</div>
       </div>
 
@@ -5704,7 +5707,7 @@ function renderNews(){
       </div>
 
       <!-- Raid Roster Title Module -->
-      <div id="module-raid-roster-title" class="module title-module" style="position:absolute; width:auto; height:auto; cursor:move;">
+      <div id="module-raid-roster-title" class="module title-module" style="position:absolute; width:350px; height:auto; cursor:move;">
         <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Raid Roster</div>
       </div>
 
