@@ -1331,17 +1331,21 @@
     background: none;
     border: none;
     overflow: hidden;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4);
+    transition: box-shadow 0.2s ease;
   }
   .titleplate-container:active {
     cursor: grabbing;
   }
   .titleplate-container.dragging {
     opacity: 0.95;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 12px 30px rgba(0,0,0,0.5);
   }
   .titleplate-container.unlocked {
     cursor: grab;
   }
   .titleplate-container.unlocked:hover {
+    box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 10px 25px rgba(0,0,0,0.45);
   }
 
   /* Titleplate frame image fills exact container dimensions */
