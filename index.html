@@ -1910,7 +1910,7 @@ function guildIconHtml(size, id){
 }
 function getUserNameCustomization(userId){
   if(!userId) return { border: '', nameCustom: '' };
-  const purchases = state.shopPurchases && state.shopPurchases.filter(p=>p.user_id===userId && p.fulfilled);
+  const purchases = state.allShopPurchases && state.allShopPurchases.filter(p=>p.user_id===userId && p.fulfilled);
   if(!purchases || !purchases.length) return { border: '', nameCustom: '' };
 
   // Get highest tier border
@@ -2263,8 +2263,8 @@ async function loadPublicProfiles(){
 
 async function loadPublicShopPurchases(){
   const { data } = await sb.from('shop_purchases').select('*').eq('fulfilled', true);
-  state.shopPurchases = data || [];
-  console.log('Loaded shop purchases:', state.shopPurchases.length);
+  state.allShopPurchases = data || [];
+  console.log('Loaded all shop purchases:', state.allShopPurchases.length);
 }
 
 async function loadPublicShopItems(){
@@ -2274,8 +2274,16 @@ async function loadPublicShopItems(){
 }
 
 async function loadShopPurchases(){
-  if(!state.session || !state.session.user) return;
-  const { data } = await sb.from('shop_purchases').select('*').eq('fulfilled', true);
+  if(!state.session || !state.session.user) {
+    console.log('loadShopPurchases: skipping - no session');
+    return;
+  }
+  console.log('loadShopPurchases: fetching for user', state.session.user.id);
+  const { data, error } = await sb.from('shop_purchases').select('*').eq('user_id', state.session.user.id).eq('fulfilled', true);
+  if(error) {
+    console.error('loadShopPurchases error:', error);
+    return;
+  }
   state.shopPurchases = data || [];
   console.log('Shop purchases loaded:', state.shopPurchases.length);
 }
@@ -2458,6 +2466,7 @@ async function onAuthResolved(){
       if(state.profile){
         state.view = 'app';
         await loadGuildData();
+        await loadShopPurchases();
         if(window.location.hash){
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
@@ -2570,7 +2579,7 @@ async function loadGuildData(){
   (siteImagesRes.data||[]).forEach(row=>{ if(row.image_url) imgMap[row.slot_key] = row.image_url; });
   state.siteImages = imgMap;
   state.shopItems = shopRes.data || [];
-  state.shopPurchases = purchasesRes.data || [];
+  state.allShopPurchases = purchasesRes.data || [];
   state.stickers = stickersRes.data || [];
   applySiteBackground();
 }
