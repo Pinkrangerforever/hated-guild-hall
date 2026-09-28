@@ -639,7 +639,7 @@
   .rte-preview h2, .rte-preview h3, .rte-preview h4{ color:var(--text-normal); }
   .rte-preview a{ color:#dcb570; }
 
-  /* Announcement form resize handle */
+  /* Announcement display module resize handle */
   .announcement-resize-handle {
     position: absolute;
     right: 0;
@@ -654,7 +654,7 @@
     background-size: 4px 4px;
     display: none;
   }
-  #module-announcements-form.unlocked .announcement-resize-handle {
+  #module-announcements-display.unlocked .announcement-resize-handle {
     display: block;
   }
   .announcement-resize-handle:hover {
@@ -5953,8 +5953,7 @@ function renderNews(){
 
       <!-- Announcements Form Module (Officers Only) -->
       ${ officer ? `
-      <div id="module-announcements-form" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); overflow:visible; background:rgba(0,0,0,0.3); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move; position: relative;">
-        <div class="announcement-resize-handle"></div>
+      <div id="module-announcements-form" class="module" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); overflow:visible; background:rgba(0,0,0,0.3); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move;">
         <h3 style="margin-bottom:14px; color:var(--text-normal);">Post an announcement</h3>
         <div id="news-form">
           <div class="field"><label>Title</label><input id="news-title-input" name="title" placeholder="e.g. New loot council rules starting this week" required></div>
@@ -5996,7 +5995,8 @@ function renderNews(){
       </div>` : ''}
 
       <!-- Announcements Display Module -->
-      <div id="module-announcements-display" class="module" style="position:absolute; top:${officer ? '1800px' : '1200px'}; left:40px; width:calc(100% - 80px); overflow:visible; background:rgba(0,0,0,0.3); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move;">
+      <div id="module-announcements-display" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:${officer ? '1800px' : '1200px'}; left:40px; width:calc(100% - 80px); overflow:visible; background:linear-gradient(135deg, rgba(0,0,0,0.5) 0%, rgba(20,15,10,0.6) 100%); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move; position: relative; box-shadow: inset 0 0 20px rgba(0,0,0,0.4);">
+        <div class="announcement-resize-handle"></div>
         ${ state.news.length ? state.news.map(n=>`
           <div class="list-item">
             <div style="flex:1;">
@@ -6519,10 +6519,10 @@ function bindApp(){
     }));
   }
 
-  // Announcement form resize handle
-  const announcementForm = document.getElementById('module-announcements-form');
-  if(announcementForm && testIsRaidLeader()){
-    const resizeHandle = announcementForm.querySelector('.announcement-resize-handle');
+  // Announcement display module resize handle
+  const announcementDisplay = document.getElementById('module-announcements-display');
+  if(announcementDisplay && testIsRaidLeader()){
+    const resizeHandle = announcementDisplay.querySelector('.announcement-resize-handle');
     if(resizeHandle){
       let isResizing = false;
       let startX, startY, startWidth, startHeight;
@@ -6532,9 +6532,9 @@ function bindApp(){
         isResizing = true;
         startX = e.pageX;
         startY = e.pageY;
-        startWidth = announcementForm.offsetWidth;
-        startHeight = announcementForm.offsetHeight;
-        announcementForm.classList.add('dragging');
+        startWidth = announcementDisplay.offsetWidth;
+        startHeight = announcementDisplay.offsetHeight;
+        announcementDisplay.classList.add('dragging');
       });
 
       document.addEventListener('mousemove', (e)=>{
@@ -6543,13 +6543,13 @@ function bindApp(){
         const deltaY = e.pageY - startY;
         const newW = Math.max(400, startWidth + deltaX);
         const newH = Math.max(300, startHeight + deltaY);
-        announcementForm.style.width = newW + 'px';
-        announcementForm.style.height = newH + 'px';
+        announcementDisplay.style.width = newW + 'px';
+        announcementDisplay.style.height = newH + 'px';
       });
 
       document.addEventListener('mouseup', ()=>{
         isResizing = false;
-        announcementForm.classList.remove('dragging');
+        announcementDisplay.classList.remove('dragging');
       });
     }
   }
