@@ -5497,7 +5497,7 @@ function renderRoster(){
           <div style="flex:1;">
             <div style="display:flex; align-items:center; gap:8px;">
               <div style="font-weight:600;">${esc(p.character_name||p.discord_username||'Member')}</div>
-              ${ isRaidLeader ? `<button class="btn secondary" data-rename-member="${p.id}" style="font-size:11px; padding:4px 8px;">Rename</button>` : '' }
+              ${ isRaidLeader ? '<button class="btn secondary" data-rename-member="' + p.id + '" style="font-size:11px; padding:4px 8px;">Rename</button>' : '' }
             </div>
             <div class="muted sans" style="font-size:12px; margin-top:2px;">Gold: ${(p.gold||0).toLocaleString()} current | Earned: ${(p.gold_earned_total||0).toLocaleString()}</div>
           </div>
