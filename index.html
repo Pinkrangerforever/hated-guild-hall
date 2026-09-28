@@ -4230,28 +4230,23 @@ async function initLayoutSystem(){
       parentDocY = parentRect.top + scrollTop;
     }
 
-    const elX = docX - parentDocX;
-    const elY = docY - parentDocY;
+    // For transformed elements, work entirely in DOM coordinates
+    const currentLeft = parseInt(el.style.left) || 0;
+    const currentTop = parseInt(el.style.top) || 0;
 
-    // Calculate click offset within the element (where user clicked on it)
-    const clickOffsetX = e.pageX - docX;
-    const clickOffsetY = e.pageY - docY;
-
-    // Store both the element position and click offset
+    // Store starting position and mouse position for delta calculation
     window._layoutState.dragStartPos = {
-      x: elX,
-      y: elY
+      x: currentLeft,
+      y: currentTop
     };
-    window._layoutState.clickOffset = {
-      x: clickOffsetX,
-      y: clickOffsetY
+    window._layoutState.dragStartMouse = {
+      x: e.pageX,
+      y: e.pageY
     };
 
     el.classList.add('dragging');
     el.style.margin = '0';
     el.style.position = 'absolute';
-    el.style.left = (elX - clickOffsetX) + 'px';
-    el.style.top = (elY - clickOffsetY) + 'px';
     el.style.zIndex = '100';
 
     window._layoutState.dragOriginalDisplay = el.style.display;
@@ -4306,30 +4301,17 @@ async function initLayoutSystem(){
       return;
     }
 
-    // Handle module drag (existing logic)
+    // Handle module drag
     if(!window._layoutState.dragging) return;
 
     const el = window._layoutState.dragging;
 
-    // Calculate new position to keep click point under cursor
-    const newX = e.pageX - window._layoutState.clickOffset.x;
-    const newY = e.pageY - window._layoutState.clickOffset.y;
+    // Simple delta-based approach works with transforms
+    const dx = e.pageX - window._layoutState.dragStartMouse.x;
+    const dy = e.pageY - window._layoutState.dragStartMouse.y;
 
-    // Get parent position to convert to relative coordinates
-    let offsetParent = el.offsetParent;
-    if(offsetParent) {
-      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const parentRect = offsetParent.getBoundingClientRect();
-      const parentDocX = parentRect.left + scrollLeft;
-      const parentDocY = parentRect.top + scrollTop;
-
-      el.style.left = (newX - parentDocX) + 'px';
-      el.style.top = (newY - parentDocY) + 'px';
-    } else {
-      el.style.left = newX + 'px';
-      el.style.top = newY + 'px';
-    }
+    el.style.left = (window._layoutState.dragStartPos.x + dx) + 'px';
+    el.style.top = (window._layoutState.dragStartPos.y + dy) + 'px';
   });
 
   document.addEventListener('mouseup', () => {
