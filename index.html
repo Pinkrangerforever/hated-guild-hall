@@ -4153,6 +4153,9 @@ async function initLayoutSystem(){
   });
 
   resetBtn.addEventListener('click', () => {
+    if(!confirm('⚠️ Reset layout for ALL users? This will remove all saved module positions. Everyone will see the default layout on next refresh.')) {
+      return;
+    }
     // Clear saved layout from Supabase for all users
     sb.from('guild_layout').delete().eq('guild_id', 'hated').then(() => {
       location.reload();
