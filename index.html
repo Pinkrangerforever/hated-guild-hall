@@ -4411,17 +4411,19 @@ async function initLayoutSystem(){
         const newW = Math.max(300, resizeStartWidth + (e.pageX - resizeStartX));
         currentContainer.style.width = newW + 'px';
       } else if(currentContainer.classList.contains('guild-board-container')) {
-        // Guild board scale - maintain aspect ratio (scale up/down proportionally)
-        const aspectRatio = parseFloat(currentContainer.dataset.aspectRatio) || (1600 / 1000);
+        // Guild board scale - both width and height scale by same factor
         const deltaX = e.pageX - resizeStartX;
         const deltaY = e.pageY - resizeStartY;
-        // Use diagonal magnitude for true proportional scaling
+        // Use diagonal magnitude for scaling
         const magnitude = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
         const direction = (deltaX + deltaY) >= 0 ? 1 : -1;
         const scaleDelta = magnitude * direction;
 
-        const newW = Math.max(400, resizeStartWidth + scaleDelta);
-        const newH = Math.round(newW / aspectRatio);
+        // Apply scale factor to both dimensions
+        const scaleFactor = 1 + (scaleDelta / resizeStartWidth);
+        const newW = Math.max(400, Math.round(resizeStartWidth * scaleFactor));
+        const newH = Math.max(300, Math.round(resizeStartHeight * scaleFactor));
+
         currentContainer.style.width = newW + 'px';
         currentContainer.style.height = newH + 'px';
       } else {
