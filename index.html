@@ -1434,6 +1434,27 @@
     pointer-events: auto;
   }
 
+  .guild-board-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 20px;
+    height: 20px;
+    cursor: se-resize;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.2);
+    border-top-left-radius: 3px;
+    background-image: radial-gradient(circle, #fff 1px, transparent 1px);
+    background-size: 4px 4px;
+    display: none;
+  }
+  .guild-board-container.unlocked .guild-board-resize-handle {
+    display: block;
+  }
+  .guild-board-resize-handle:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+
   /* Content area inside frame */
   .wow-content {
     position: absolute;
@@ -4243,6 +4264,24 @@ async function initLayoutSystem(){
       return;
     }
 
+    // Guild board resize handle (maintains aspect ratio)
+    const guildBoardResizeHandle = e.target.closest('.guild-board-resize-handle');
+    if(guildBoardResizeHandle) {
+      e.preventDefault();
+      isResizingContainer = true;
+      currentContainer = guildBoardResizeHandle.closest('.guild-board-container');
+      if(!currentContainer) return;
+
+      resizeStartX = e.pageX;
+      resizeStartY = e.pageY;
+      resizeStartWidth = currentContainer.offsetWidth;
+      resizeStartHeight = currentContainer.offsetHeight;
+
+      currentContainer.classList.add('dragging');
+      currentContainer.dataset.aspectRatio = resizeStartWidth / resizeStartHeight;
+      return;
+    }
+
     // Module resize handle (roster)
     const moduleResizeHandle = e.target.closest('.module-resize-handle');
     if(moduleResizeHandle) {
@@ -4371,6 +4410,17 @@ async function initLayoutSystem(){
         // Module resize - only width
         const newW = Math.max(300, resizeStartWidth + (e.pageX - resizeStartX));
         currentContainer.style.width = newW + 'px';
+      } else if(currentContainer.classList.contains('guild-board-container')) {
+        // Guild board resize - maintain aspect ratio
+        const aspectRatio = parseFloat(currentContainer.dataset.aspectRatio) || (1600 / 1000);
+        const deltaX = e.pageX - resizeStartX;
+        const deltaY = e.pageY - resizeStartY;
+        const deltaDiag = Math.sqrt(deltaX * deltaX + deltaY * deltaY) * Math.sign(deltaX);
+
+        const newW = Math.max(400, resizeStartWidth + deltaDiag);
+        const newH = Math.round(newW / aspectRatio);
+        currentContainer.style.width = newW + 'px';
+        currentContainer.style.height = newH + 'px';
       } else {
         // WOW-container or titleplate resize - width and height
         const newW = Math.max(150, resizeStartWidth + (e.pageX - resizeStartX));
@@ -5731,6 +5781,7 @@ function renderNews(){
       <!-- Guild Board Frame Module -->
       <div id="module-guild-board" class="module guild-board-container" style="position:absolute; top:40px; left:40px; width:1600px; height:1000px; cursor:move;">
         <img src="guild-board-frame.webp" alt="Guild Board Frame" class="guild-board-frame-img">
+        <div class="guild-board-resize-handle"></div>
         <div class="guild-board-content">
           <div class="corkboard" style="width:100%; height:100%; margin:0; position:relative;">
             ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
