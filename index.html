@@ -4391,6 +4391,10 @@ async function initLayoutSystem(){
 
     // Module dragging (existing logic)
     if(!isInteractive) {
+      // Don't start drag if clicking on a resize handle
+      if(e.target.closest('.announcement-resize-handle')) {
+        return;
+      }
       const mod = e.target.closest('.module');
       if(mod && mod.id) {
         window._layoutState.dragging = mod;
@@ -6529,6 +6533,10 @@ function bindApp(){
       announcementDisplay = e.target.closest('.announcement-resize-handle')?.parentElement;
       if(!announcementDisplay) return;
       e.preventDefault();
+      e.stopPropagation();  // Prevent module drag logic from triggering
+      // Clear any drag state from initLayoutSystem so it doesn't interfere
+      window._layoutState.dragging = null;
+      window._layoutState.dragType = null;
       isResizing = true;
       startX = e.pageX;
       startY = e.pageY;
@@ -6540,6 +6548,7 @@ function bindApp(){
     const handleMouseMove = (e)=>{
       if(!isResizing || !announcementDisplay) return;
       e.preventDefault();
+      e.stopPropagation();  // Prevent other move handlers from interfering
       const deltaX = e.pageX - startX;
       const deltaY = e.pageY - startY;
       const newW = Math.max(400, startWidth + deltaX);
@@ -6550,6 +6559,7 @@ function bindApp(){
 
     const handleMouseUp = (e)=>{
       if(isResizing && announcementDisplay){
+        e.stopPropagation();  // Prevent other up handlers from interfering
         announcementDisplay.classList.remove('dragging');
       }
       isResizing = false;
