@@ -4230,16 +4230,28 @@ async function initLayoutSystem(){
       parentDocY = parentRect.top + scrollTop;
     }
 
+    const elX = docX - parentDocX;
+    const elY = docY - parentDocY;
+
+    // Calculate click offset within the element (where user clicked on it)
+    const clickOffsetX = e.pageX - docX;
+    const clickOffsetY = e.pageY - docY;
+
+    // Store both the element position and click offset
     window._layoutState.dragStartPos = {
-      x: docX - parentDocX,
-      y: docY - parentDocY
+      x: elX,
+      y: elY
+    };
+    window._layoutState.clickOffset = {
+      x: clickOffsetX,
+      y: clickOffsetY
     };
 
     el.classList.add('dragging');
     el.style.margin = '0';
     el.style.position = 'absolute';
-    el.style.left = window._layoutState.dragStartPos.x + 'px';
-    el.style.top = window._layoutState.dragStartPos.y + 'px';
+    el.style.left = (elX - clickOffsetX) + 'px';
+    el.style.top = (elY - clickOffsetY) + 'px';
     el.style.zIndex = '100';
 
     window._layoutState.dragOriginalDisplay = el.style.display;
@@ -4297,12 +4309,27 @@ async function initLayoutSystem(){
     // Handle module drag (existing logic)
     if(!window._layoutState.dragging) return;
 
-    const dx = e.pageX - window._layoutState.dragStart.x;
-    const dy = e.pageY - window._layoutState.dragStart.y;
     const el = window._layoutState.dragging;
 
-    el.style.left = (window._layoutState.dragStartPos.x + dx) + 'px';
-    el.style.top = (window._layoutState.dragStartPos.y + dy) + 'px';
+    // Calculate new position to keep click point under cursor
+    const newX = e.pageX - window._layoutState.clickOffset.x;
+    const newY = e.pageY - window._layoutState.clickOffset.y;
+
+    // Get parent position to convert to relative coordinates
+    let offsetParent = el.offsetParent;
+    if(offsetParent) {
+      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const parentRect = offsetParent.getBoundingClientRect();
+      const parentDocX = parentRect.left + scrollLeft;
+      const parentDocY = parentRect.top + scrollTop;
+
+      el.style.left = (newX - parentDocX) + 'px';
+      el.style.top = (newY - parentDocY) + 'px';
+    } else {
+      el.style.left = newX + 'px';
+      el.style.top = newY + 'px';
+    }
   });
 
   document.addEventListener('mouseup', () => {
@@ -4347,6 +4374,7 @@ async function initLayoutSystem(){
 
     window._layoutState.dragging = null;
     window._layoutState.dragType = null;
+    window._layoutState.clickOffset = null;
   });
 
   async function saveLayout(){
