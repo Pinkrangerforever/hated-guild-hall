@@ -3595,35 +3595,69 @@ async function resetMemberCurrentGold(userId){
 async function resetMemberEarnedGold(userId){
   const member = state.profilesById[userId];
   if(!member) return;
-  
+
   const memberName = member.character_name || member.discord_username || 'Member';
   const newEarnedStr = prompt(`Reset ${esc(memberName)}'s earned gold to how much? (default 0)`, '0');
   if(newEarnedStr === null) return;
-  
+
   const newEarned = parseInt(newEarnedStr, 10);
   if(isNaN(newEarned) || newEarned < 0){
     showToast('Invalid gold amount', true);
     return;
   }
-  
+
   const { data, error } = await sb.rpc('reset_member_earned_gold', { p_user_id: userId, p_new_earned: newEarned });
-  if(error){ 
+  if(error){
     showToast("Couldn't reset earned gold  " + (error.message || 'try again'), true);
     console.error('Reset earned gold error:', error);
     return;
   }
-  
+
   if(!data || !data.success){
     showToast("Couldn't reset earned gold  " + (data?.reason || 'unknown error'), true);
     return;
   }
-  
+
   if(state.profilesById[userId]){
     state.profilesById[userId].gold_earned_total = newEarned;
     if(userId === state.profile?.id) state.profile.gold_earned_total = newEarned;
   }
-  
+
   showToast(`${esc(memberName)}'s earned gold reset to ${newEarned}`);
+  render();
+}
+
+function openRenameMemberModal(userId){
+  const member = state.profilesById[userId];
+  if(!member) return;
+
+  state.modal = {
+    type: 'rename-member',
+    userId: userId,
+    currentName: member.character_name || member.discord_username || ''
+  };
+  render();
+}
+
+async function saveMemberName(userId, newName){
+  if(!newName || newName.trim() === ''){
+    showToast('Character name cannot be empty', true);
+    return;
+  }
+
+  const { data, error } = await sb.from('profiles').update({ character_name: newName.trim() }).eq('id', userId);
+  if(error){
+    showToast("Couldn't rename member  " + (error.message || 'try again'), true);
+    console.error('Rename member error:', error);
+    return;
+  }
+
+  if(state.profilesById[userId]){
+    state.profilesById[userId].character_name = newName.trim();
+  }
+
+  state.modal = null;
+  showToast(`Member renamed to ${esc(newName)}`);
   render();
 }
 
@@ -4842,6 +4876,7 @@ function renderModal(){
   if(state.modal.type === 'assign-slot') return renderAssignSlotModal(state.modal.groupIdx, state.modal.slotIdx);
   if(state.modal.type === 'pick-image') return renderPickImageModal(state.modal.slotKey);
   if(state.modal.type === 'shop') return renderShopModal();
+  if(state.modal.type === 'rename-member') return renderRenameMemberModal(state.modal.userId, state.modal.currentName);
   return '';
 }
 
@@ -5177,6 +5212,26 @@ function renderAssignSlotModal(groupIdx, slotIdx){
   </div>`;
 }
 
+function renderRenameMemberModal(userId, currentName){
+  return `
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-panel" id="modal-panel" style="max-width:500px;">
+      <div class="modal-header">
+        <h3>Rename Member</h3>
+        <button class="modal-close" id="modal-close" type="button">&times;</button>
+      </div>
+      <div style="margin-bottom:20px;">
+        <label>New character name</label>
+        <input id="rename-member-input" type="text" value="${esc(currentName)}" placeholder="Character name">
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" type="button" id="rename-member-save-btn">Save</button>
+        <button class="btn secondary" type="button" id="modal-close">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 /* ---------------- boss strategies tab ---------------- */
 function renderStrategies(){
   const officer = testCanManage();
@@ -5440,7 +5495,10 @@ function renderRoster(){
       ${ allProfiles.length ? allProfiles.map(p=>`
         <div class="list-item">
           <div style="flex:1;">
-            <div style="font-weight:600;">${esc(p.character_name||p.discord_username||'Member')}</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="font-weight:600;">${esc(p.character_name||p.discord_username||'Member')}</div>
+              ${ isRaidLeader ? `<button class="btn secondary" data-rename-member="${p.id}" style="font-size:11px; padding:4px 8px;">Rename</button>` : '' }
+            </div>
             <div class="muted sans" style="font-size:12px; margin-top:2px;">Gold: ${(p.gold||0).toLocaleString()} current | Earned: ${(p.gold_earned_total||0).toLocaleString()}</div>
           </div>
           <span class="badge ${p.protected ? 'role-raidlead' : (p.role==='officer'?'role-officer':'role-member')}" style="margin-right:10px;">${p.protected ? '&#9819; Raid Leader' : (p.role==='officer'?'Officer':'Member')}</span>
@@ -6228,6 +6286,7 @@ function bindApp(){
   document.querySelectorAll('[data-toggle-officer]').forEach(b=>b.addEventListener('click', ()=>toggleOfficer(b.dataset.toggleOfficer)));
   document.querySelectorAll('[data-reset-current-gold]').forEach(b=>b.addEventListener('click', ()=>resetMemberCurrentGold(b.dataset.resetCurrentGold)));
   document.querySelectorAll('[data-reset-earned-gold]').forEach(b=>b.addEventListener('click', ()=>resetMemberEarnedGold(b.dataset.resetEarnedGold)));
+  document.querySelectorAll('[data-rename-member]').forEach(b=>b.addEventListener('click', ()=>openRenameMemberModal(b.dataset.renameMember)));
   document.querySelectorAll('.spec-btn').forEach(b=>b.addEventListener('click', ()=>selectSpec(b.dataset.class, b.dataset.spec)));
   document.querySelectorAll('[data-slot-click]').forEach(el=>el.addEventListener('click', ()=>{
     const [gi,si] = el.dataset.slotClick.split('|').map(Number);
@@ -6248,6 +6307,15 @@ function bindApp(){
   if(assignClearBtn && state.modal && state.modal.type==='assign-slot'){
     const { groupIdx, slotIdx } = state.modal;
     assignClearBtn.addEventListener('click', ()=>removeCompSlot(groupIdx, slotIdx));
+  }
+
+  const renameSaveBtn = document.getElementById('rename-member-save-btn');
+  if(renameSaveBtn && state.modal && state.modal.type==='rename-member'){
+    const newNameInput = document.getElementById('rename-member-input');
+    if(newNameInput){
+      renameSaveBtn.addEventListener('click', ()=>saveMemberName(state.modal.userId, newNameInput.value));
+      newNameInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') saveMemberName(state.modal.userId, newNameInput.value); });
+    }
   }
 
   const lootBtn = document.getElementById('loot-form-btn');
