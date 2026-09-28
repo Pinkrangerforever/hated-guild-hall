@@ -639,6 +639,60 @@
   .rte-preview h2, .rte-preview h3, .rte-preview h4{ color:var(--text-normal); }
   .rte-preview a{ color:#dcb570; }
 
+  /* Announcement form resize handle */
+  .announcement-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 20px;
+    height: 20px;
+    cursor: se-resize;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.2);
+    border-top-left-radius: 3px;
+    background-image: radial-gradient(circle, #fff 1px, transparent 1px);
+    background-size: 4px 4px;
+    display: none;
+  }
+  #module-announcements-form.unlocked .announcement-resize-handle {
+    display: block;
+  }
+  .announcement-resize-handle:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Live news editor */
+  .news-editor {
+    background: var(--bg-input);
+    border: 1px solid var(--divider-strong);
+    border-radius: 2px;
+    padding: 12px 14px;
+    min-height: 120px;
+    font-size: 14px;
+    color: var(--text-normal);
+    font-family: inherit;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .news-formatting-options {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .news-formatting-options select {
+    padding: 4px 8px;
+    font-size: 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--divider);
+    color: var(--text-normal);
+    border-radius: 2px;
+  }
+
   /* ---- boss strategy tree ---- */
   .strat-breadcrumb{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); margin-bottom:4px; }
   .strat-breadcrumb button{ background:none; border:none; color:var(--text-muted); font-size:12px; padding:2px 0; text-decoration:underline; }
@@ -2857,13 +2911,18 @@ async function deleteLoot(id){
 /* ---------------- news ---------------- */
 async function addNews(){
   const c = document.getElementById('news-form');
-  const title = (c.querySelector('[name=title]').value||'').trim();
-  const body = (document.getElementById('news-body-input').value||'').trim();
+  const title = (document.getElementById('news-title-input').value||'').trim();
+  const bodyEl = document.getElementById('news-body-input');
+  const body = (bodyEl.innerText||'').trim();
+  const bodyHtml = bodyEl.innerHTML.trim();
   const errEl = document.getElementById('news-error');
   if(!title || !body){ errEl.textContent = 'Title and message are both required.'; errEl.style.display='block'; return; }
-  const { data, error } = await sb.from('news').insert({ title, body, author: myName() }).select().single();
+  const { data, error } = await sb.from('news').insert({ title, body: bodyHtml, author: myName() }).select().single();
   if(error){ showToast("Couldn't save  try again", true); return; }
   state.news = [data, ...state.news];
+  document.getElementById('news-title-input').value = '';
+  bodyEl.innerHTML = '';
+  errEl.style.display = 'none';
   showToast('Posted');
   render();
 }
@@ -5894,43 +5953,42 @@ function renderNews(){
 
       <!-- Announcements Form Module (Officers Only) -->
       ${ officer ? `
-      <div id="module-announcements-form" class="module" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); overflow:visible; background:rgba(0,0,0,0.3); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move;">
+      <div id="module-announcements-form" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); overflow:visible; background:rgba(0,0,0,0.3); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move; position: relative;">
+        <div class="announcement-resize-handle"></div>
         <h3 style="margin-bottom:14px; color:var(--text-normal);">Post an announcement</h3>
         <div id="news-form">
-          <div class="field"><label>Title</label><input name="title" placeholder="e.g. New loot council rules starting this week" required></div>
+          <div class="field"><label>Title</label><input id="news-title-input" name="title" placeholder="e.g. New loot council rules starting this week" required></div>
           <div class="field">
             <label>Message</label>
-            <div class="rte-toolbar">
-              <button type="button" class="rte-btn" data-rte="bold" title="Bold"><strong>B</strong></button>
-              <button type="button" class="rte-btn" data-rte="italic" title="Italic"><em>I</em></button>
-              <button type="button" class="rte-btn" data-rte="underline" title="Underline"><u>U</u></button>
-              <button type="button" class="rte-btn" data-rte="strike" title="Strikethrough"><s>S</s></button>
-              <span class="rte-sep"></span>
-              <button type="button" class="rte-btn" data-rte="h1" title="Heading">H1</button>
-              <button type="button" class="rte-btn" data-rte="h2" title="Subheading">H2</button>
-              <span class="rte-sep"></span>
-              <button type="button" class="rte-btn" data-rte="ul" title="Bullet list">&#8226; List</button>
-              <button type="button" class="rte-btn" data-rte="ol" title="Numbered list">1. List</button>
-              <button type="button" class="rte-btn" data-rte="quote" title="Quote">&rdquo; Quote</button>
-              <button type="button" class="rte-btn" data-rte="code" title="Code">&lt;/&gt;</button>
-              <button type="button" class="rte-btn" data-rte="link" title="Link">Link</button>
+            <div class="news-formatting-options">
+              <select id="news-font-family" title="Font">
+                <option value="inherit">Font</option>
+                <option value="Georgia, serif">Georgia</option>
+                <option value="'Arial', sans-serif">Arial</option>
+                <option value="'Courier New', monospace">Monospace</option>
+              </select>
+              <select id="news-font-size" title="Font Size">
+                <option value="14px">Size</option>
+                <option value="12px">Small</option>
+                <option value="14px">Normal</option>
+                <option value="16px">Large</option>
+                <option value="18px">XLarge</option>
+              </select>
+              <button type="button" id="news-bold-btn" class="rte-btn" title="Bold"><strong>B</strong></button>
+              <button type="button" id="news-italic-btn" class="rte-btn" title="Italic"><em>I</em></button>
+              <button type="button" id="news-underline-btn" class="rte-btn" title="Underline"><u>U</u></button>
               <span class="rte-sep"></span>
               <span class="rte-color-swatches">
-                <button type="button" class="rte-swatch" data-color="#cf9a44" style="background:#cf9a44" title="Gold"></button>
-                <button type="button" class="rte-swatch" data-color="#e0507a" style="background:#e0507a" title="Pink"></button>
-                <button type="button" class="rte-swatch" data-color="#c0433f" style="background:#c0433f" title="Red"></button>
-                <button type="button" class="rte-swatch" data-color="#6fa354" style="background:#6fa354" title="Green"></button>
-                <button type="button" class="rte-swatch" data-color="#5b8fc7" style="background:#5b8fc7" title="Blue"></button>
-                <button type="button" class="rte-swatch" data-color="#a77fd6" style="background:#a77fd6" title="Purple"></button>
-                <button type="button" class="rte-swatch" data-color="#f2f0e6" style="background:#f2f0e6" title="White"></button>
+                <button type="button" class="news-color-swatch" data-color="#f2f0e6" style="background:#f2f0e6" title="White"></button>
+                <button type="button" class="news-color-swatch" data-color="#cf9a44" style="background:#cf9a44" title="Gold"></button>
+                <button type="button" class="news-color-swatch" data-color="#e0507a" style="background:#e0507a" title="Pink"></button>
+                <button type="button" class="news-color-swatch" data-color="#c0433f" style="background:#c0433f" title="Red"></button>
+                <button type="button" class="news-color-swatch" data-color="#6fa354" style="background:#6fa354" title="Green"></button>
+                <button type="button" class="news-color-swatch" data-color="#5b8fc7" style="background:#5b8fc7" title="Blue"></button>
+                <button type="button" class="news-color-swatch" data-color="#a77fd6" style="background:#a77fd6" title="Purple"></button>
               </span>
             </div>
-            <textarea id="news-body-input" name="body" placeholder="Details go here..." required></textarea>
-            <div class="rte-hint sans">Supports **bold**, *italic*, __underline__, ~~strikethrough~~, # headings, - lists, &gt; quotes, &#96;code&#96;, [links](https://), and color.</div>
-          </div>
-          <div class="field">
-            <label>Preview</label>
-            <div id="news-preview" class="rte-preview"><span class="muted">Nothing to preview yet.</span></div>
+            <div id="news-body-input" class="news-editor" contenteditable="true" placeholder="Your message appears here with live formatting..."></div>
           </div>
           <div id="news-error" class="field-error" style="display:none;"></div>
           <button class="btn" type="button" id="news-form-btn">Post</button>
@@ -5944,7 +6002,7 @@ function renderNews(){
             <div style="flex:1;">
               <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
               <div class="muted"><span class="mono">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')}</span> &middot; ${esc(n.author||'')}</div>
-              <div style="margin-top:8px;">${renderRichText(n.body)}</div>
+              <div style="margin-top:8px; line-height:1.5;">${n.body || renderRichText(n.body)}</div>
             </div>
             ${ officer ? `<button class="btn danger" data-del-news="${n.id}" style="flex-shrink:0;">Remove</button>` : '' }
           </div>
@@ -6419,23 +6477,81 @@ function bindApp(){
   if(newsBtn) newsBtn.addEventListener('click', addNews);
   document.querySelectorAll('[data-del-news]').forEach(b=>b.addEventListener('click', ()=>deleteNews(b.dataset.delNews)));
 
+  // Live announcement formatting
   const newsBodyInput = document.getElementById('news-body-input');
-  const newsPreview = document.getElementById('news-preview');
-  function updateNewsPreview(){
-    if(!newsBodyInput || !newsPreview) return;
-    const val = newsBodyInput.value.trim();
-    newsPreview.innerHTML = val ? renderRichText(val) : '<span class="muted">Nothing to preview yet.</span>';
-  }
+  const newsFontFamily = document.getElementById('news-font-family');
+  const newsFontSize = document.getElementById('news-font-size');
+  const newsBoldBtn = document.getElementById('news-bold-btn');
+  const newsItalicBtn = document.getElementById('news-italic-btn');
+  const newsUnderlineBtn = document.getElementById('news-underline-btn');
+
   if(newsBodyInput){
-    newsBodyInput.addEventListener('input', updateNewsPreview);
-    document.querySelectorAll('[data-rte]').forEach(b=>b.addEventListener('click', ()=>{
-      rteApply('news-body-input', b.dataset.rte, '#cf9a44');
-      updateNewsPreview();
+    // Font family selector
+    if(newsFontFamily) newsFontFamily.addEventListener('change', (e)=>{
+      if(e.target.value !== 'inherit') document.execCommand('fontName', false, e.target.value);
+      newsBodyInput.focus();
+    });
+
+    // Font size selector
+    if(newsFontSize) newsFontSize.addEventListener('change', (e)=>{
+      if(e.target.value !== '14px'){
+        const selection = window.getSelection();
+        if(selection.rangeCount) {
+          const range = selection.getRangeAt(0);
+          const span = document.createElement('span');
+          span.style.fontSize = e.target.value;
+          span.appendChild(range.extractContents());
+          range.insertNode(span);
+        }
+      }
+      newsBodyInput.focus();
+    });
+
+    // Bold/Italic/Underline buttons
+    if(newsBoldBtn) newsBoldBtn.addEventListener('click', ()=>{ document.execCommand('bold'); newsBodyInput.focus(); });
+    if(newsItalicBtn) newsItalicBtn.addEventListener('click', ()=>{ document.execCommand('italic'); newsBodyInput.focus(); });
+    if(newsUnderlineBtn) newsUnderlineBtn.addEventListener('click', ()=>{ document.execCommand('underline'); newsBodyInput.focus(); });
+
+    // Color swatches
+    document.querySelectorAll('.news-color-swatch').forEach(sw=>sw.addEventListener('click', ()=>{
+      document.execCommand('foreColor', false, sw.dataset.color);
+      newsBodyInput.focus();
     }));
-    document.querySelectorAll('.rte-swatch').forEach(sw=>sw.addEventListener('click', ()=>{
-      rteApply('news-body-input', 'color', sw.dataset.color);
-      updateNewsPreview();
-    }));
+  }
+
+  // Announcement form resize handle
+  const announcementForm = document.getElementById('module-announcements-form');
+  if(announcementForm && testIsRaidLeader()){
+    const resizeHandle = announcementForm.querySelector('.announcement-resize-handle');
+    if(resizeHandle){
+      let isResizing = false;
+      let startX, startY, startWidth, startHeight;
+
+      resizeHandle.addEventListener('mousedown', (e)=>{
+        e.preventDefault();
+        isResizing = true;
+        startX = e.pageX;
+        startY = e.pageY;
+        startWidth = announcementForm.offsetWidth;
+        startHeight = announcementForm.offsetHeight;
+        announcementForm.classList.add('dragging');
+      });
+
+      document.addEventListener('mousemove', (e)=>{
+        if(!isResizing) return;
+        const deltaX = e.pageX - startX;
+        const deltaY = e.pageY - startY;
+        const newW = Math.max(400, startWidth + deltaX);
+        const newH = Math.max(300, startHeight + deltaY);
+        announcementForm.style.width = newW + 'px';
+        announcementForm.style.height = newH + 'px';
+      });
+
+      document.addEventListener('mouseup', ()=>{
+        isResizing = false;
+        announcementForm.classList.remove('dragging');
+      });
+    }
   }
 
   const recBtn = document.getElementById('rec-form-btn');
