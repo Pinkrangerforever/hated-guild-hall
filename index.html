@@ -4360,6 +4360,20 @@ async function initLayoutSystem(){
       }
     });
 
+    // Save titleplate-containers (resizable and movable)
+    document.querySelectorAll('.titleplate-container').forEach(el => {
+      if(el.id) {
+        layout[el.id] = {
+          left: el.style.left,
+          top: el.style.top,
+          width: el.style.width,
+          height: el.style.height,
+          zIndex: el.style.zIndex,
+          type: 'titleplate'
+        };
+      }
+    });
+
     // Save all module positions (including title modules)
     document.querySelectorAll('.module').forEach(el => {
       if(el.id) {
