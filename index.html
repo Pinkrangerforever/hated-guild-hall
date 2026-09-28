@@ -5779,7 +5779,7 @@ function renderNews(){
       <!-- All Modules (positioned absolutely, independent of boxes) -->
 
       <!-- Guild Board Frame Module -->
-      <div id="module-guild-board" class="module guild-board-container" style="position:absolute; top:40px; left:40px; width:1600px; height:1000px; cursor:move;">
+      <div id="module-guild-board" class="module guild-board-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:40px; left:40px; width:1600px; height:1000px; cursor:move;">
         <img src="guild-board-frame.webp" alt="Guild Board Frame" class="guild-board-frame-img">
         <div class="guild-board-resize-handle"></div>
         <div class="guild-board-content">
