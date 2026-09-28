@@ -4415,10 +4415,12 @@ async function initLayoutSystem(){
         const aspectRatio = parseFloat(currentContainer.dataset.aspectRatio) || (1600 / 1000);
         const deltaX = e.pageX - resizeStartX;
         const deltaY = e.pageY - resizeStartY;
-        // Use average of X and Y movement for proportional scaling
-        const avgDelta = (deltaX + deltaY) / 2;
+        // Use diagonal magnitude for true proportional scaling
+        const magnitude = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const direction = (deltaX + deltaY) >= 0 ? 1 : -1;
+        const scaleDelta = magnitude * direction;
 
-        const newW = Math.max(400, resizeStartWidth + avgDelta);
+        const newW = Math.max(400, resizeStartWidth + scaleDelta);
         const newH = Math.round(newW / aspectRatio);
         currentContainer.style.width = newW + 'px';
         currentContainer.style.height = newH + 'px';
