@@ -6520,39 +6520,46 @@ function bindApp(){
   }
 
   // Announcement display module resize handle
-  const announcementDisplay = document.getElementById('module-announcements-display');
-  if(announcementDisplay && testIsRaidLeader()){
-    const resizeHandle = announcementDisplay.querySelector('.announcement-resize-handle');
-    if(resizeHandle){
-      let isResizing = false;
-      let startX, startY, startWidth, startHeight;
+  (()=>{
+    let isResizing = false;
+    let announcementDisplay = null;
+    let startX, startY, startWidth, startHeight;
 
-      resizeHandle.addEventListener('mousedown', (e)=>{
-        e.preventDefault();
-        isResizing = true;
-        startX = e.pageX;
-        startY = e.pageY;
-        startWidth = announcementDisplay.offsetWidth;
-        startHeight = announcementDisplay.offsetHeight;
-        announcementDisplay.classList.add('dragging');
-      });
+    const handleMouseDown = (e)=>{
+      announcementDisplay = e.target.closest('.announcement-resize-handle')?.parentElement;
+      if(!announcementDisplay) return;
+      e.preventDefault();
+      isResizing = true;
+      startX = e.pageX;
+      startY = e.pageY;
+      startWidth = announcementDisplay.offsetWidth;
+      startHeight = announcementDisplay.offsetHeight;
+      announcementDisplay.classList.add('dragging');
+    };
 
-      document.addEventListener('mousemove', (e)=>{
-        if(!isResizing) return;
-        const deltaX = e.pageX - startX;
-        const deltaY = e.pageY - startY;
-        const newW = Math.max(400, startWidth + deltaX);
-        const newH = Math.max(300, startHeight + deltaY);
-        announcementDisplay.style.width = newW + 'px';
-        announcementDisplay.style.height = newH + 'px';
-      });
+    const handleMouseMove = (e)=>{
+      if(!isResizing || !announcementDisplay) return;
+      e.preventDefault();
+      const deltaX = e.pageX - startX;
+      const deltaY = e.pageY - startY;
+      const newW = Math.max(400, startWidth + deltaX);
+      const newH = Math.max(300, startHeight + deltaY);
+      announcementDisplay.style.width = newW + 'px';
+      announcementDisplay.style.height = newH + 'px';
+    };
 
-      document.addEventListener('mouseup', ()=>{
-        isResizing = false;
+    const handleMouseUp = (e)=>{
+      if(isResizing && announcementDisplay){
         announcementDisplay.classList.remove('dragging');
-      });
-    }
-  }
+      }
+      isResizing = false;
+      announcementDisplay = null;
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  })();
 
   const recBtn = document.getElementById('rec-form-btn');
   if(recBtn) recBtn.addEventListener('click', saveRecruitment);
