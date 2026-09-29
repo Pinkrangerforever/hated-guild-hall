@@ -5999,7 +5999,7 @@ function renderNews(){
       </div>` : ''}
 
       <!-- Announcements Display Module -->
-      <div id="module-announcements-display" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:${officer ? '1800px' : '1200px'}; left:40px; width:calc(100% - 80px); overflow:visible; background:linear-gradient(135deg, rgba(20,15,10,0.8) 0%, rgba(10,8,5,0.9) 100%); border:1px solid rgba(207,154,68,0.3); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move; position:relative; box-shadow:inset 0 0 30px rgba(207,154,68,0.1), 0 0 40px rgba(207,154,68,0.15) inset, 0 0 60px rgba(207,154,68,0.08);">
+      <div id="module-announcements-display" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:${officer ? '1800px' : '1200px'}; left:40px; width:calc(100% - 80px); overflow:visible; background:linear-gradient(180deg, rgba(25,18,10,0.7) 0%, rgba(15,10,5,0.85) 100%); border:2px solid rgba(139,100,60,0.4); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move; position:relative; box-shadow:inset 0 0 20px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.4); backdrop-filter:blur(2px);">
         <div class="announcement-resize-handle"></div>
         ${ state.news.length ? state.news.map(n=>`
           <div class="list-item">
