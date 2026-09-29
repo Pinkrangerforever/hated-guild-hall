@@ -857,7 +857,7 @@
     right:0;
     bottom:0;
     pointer-events:none;
-    background-image:url('flame-bg.gif');
+    background-image:url('flame-bg.webp');
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
@@ -5295,7 +5295,7 @@ function renderShopModal(){
     if(state.editingShopItemId === item.id) return renderEditForm(item);
     const canAfford = gold >= item.cost;
     const owned = state.shopPurchases && state.shopPurchases.some(p => p.item_id === item.id && p.fulfilled);
-    const gifMap = {flame:'flame-bg.gif', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif'};
+    const gifMap = {flame:'flame-bg.webp', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif'};
     const previewImage = item.image_url || (item.category === 'name_customization' && gifMap[item.metadata?.effect]);
     return `
       <div class="shop-card ${item.active===false?'inactive':''}">
@@ -6459,7 +6459,7 @@ function renderSettings(){
             const item = state.shopItems?.find(i => i.id === p.item_id);
             const isActive = activeId === p.item_id;
             const effect = item?.metadata?.effect || '';
-            const gifMap = {flame:'flame-bg.gif', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif'};
+            const gifMap = {flame:'flame-bg.webp', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif'};
             const gifFile = gifMap[effect] || '';
             return `
             <button class="btn ${isActive ? 'primary' : 'secondary'}" type="button" data-set-name-custom="${p.item_id}" style="padding:12px; text-align:left; display:flex; gap:12px; align-items:flex-start;">
