@@ -1573,38 +1573,6 @@
     50% { transform: translateY(-4px); }
   }
 
-  /* Horizontal divider resize handle */
-  .divider-horizontal-resize-handle {
-    position: absolute;
-    right: -18px;
-    bottom: -18px;
-    width: 32px;
-    height: 32px;
-    cursor: nwse-resize;
-    background: rgba(207,154,68,0.2);
-    border: 1px solid rgba(207,154,68,0.4);
-    border-radius: 3px;
-    transition: background 0.2s, border-color 0.2s;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-  }
-  .layout-container.unlocked #module-divider-line-horizontal .divider-horizontal-resize-handle {
-    display: flex;
-  }
-  .divider-horizontal-resize-handle:hover {
-    background: rgba(207,154,68,0.35);
-    border-color: rgba(207,154,68,0.6);
-  }
-  .divider-horizontal-resize-handle::before {
-    content: '';
-    width: 18px;
-    height: 3px;
-    background: rgba(207,154,68,0.5);
-    border-radius: 1px;
-  }
-
   /* Divider module styling */
   .divider-line-container {
     position: absolute !important;
@@ -4517,7 +4485,7 @@ async function initLayoutSystem(){
     // Module dragging (existing logic)
     if(!isInteractive) {
       // Don't start drag if clicking on a resize handle
-      if(e.target.closest('.announcement-resize-handle') || e.target.closest('.divider-resize-handle') || e.target.closest('.divider-horizontal-resize-handle') || e.target.closest('.trophy-image-resize-handle')) {
+      if(e.target.closest('.announcement-resize-handle') || e.target.closest('.divider-resize-handle') || e.target.closest('.trophy-image-resize-handle')) {
         return;
       }
       const mod = e.target.closest('.module');
@@ -5973,7 +5941,7 @@ function renderNews(){
 
       <!-- Vertical Decorative Divider Line (Raid Leaders Only) -->
       ${ testIsRaidLeader() ? `
-      <div class="divider-line-container module ${testIsRaidLeader() ? 'unlocked' : ''}" id="module-divider-line-vertical" style="position:absolute; top:400px; left:50%; width:24px; height:200px; transform:translateX(-50%); z-index:50;">
+      <div class="divider-line-container module" id="module-divider-line-vertical" style="position:absolute; top:400px; left:50%; width:24px; height:200px; transform:translateX(-50%); z-index:50;">
         <img src="Divider-line-Vertical.png" alt="Divider Line" style="width:100%; height:100%; object-fit:stretch; display:block;">
         <div class="divider-resize-handle"></div>
       </div>
@@ -5981,9 +5949,9 @@ function renderNews(){
 
       <!-- Horizontal Decorative Divider Line (Raid Leaders Only) -->
       ${ testIsRaidLeader() ? `
-      <div class="divider-line-container module ${testIsRaidLeader() ? 'unlocked' : ''}" id="module-divider-line-horizontal" style="position:absolute; top:600px; left:50px; width:300px; height:24px; z-index:50; opacity:1;">
-        <img src="Divider-line-Horizontal.png" alt="Horizontal Divider" style="width:100%; height:100%; object-fit:stretch; display:block; opacity:1;">
-        <div class="divider-horizontal-resize-handle"></div>
+      <div class="divider-line-container module" id="module-divider-line-horizontal" style="position:absolute; top:600px; left:50px; width:300px; height:24px; z-index:50;">
+        <img src="Divider-line-Horizontal.png" alt="Horizontal Divider" style="width:100%; height:100%; object-fit:stretch; display:block;">
+        <div class="divider-resize-handle"></div>
       </div>
       ` : '' }
 
@@ -6094,22 +6062,6 @@ function renderNews(){
           <p class="sans">A running record of what's dropped and who won it, plus soft-res sheets for upcoming raids.</p>
         </button>
       </div>
-
-      <!-- Vertical Decorative Divider Line (Raid Leaders Only) -->
-      ${ testIsRaidLeader() ? `
-      <div class="divider-line-container module" id="module-divider-line-vertical" style="position:absolute; top:400px; left:50%; width:24px; height:200px; transform:translateX(-50%); z-index:50;">
-        <img src="Divider-line-Vertical.png" alt="Divider Line" style="width:100%; height:100%; object-fit:stretch; display:block;">
-        <div class="divider-resize-handle"></div>
-      </div>
-      ` : '' }
-
-      <!-- Horizontal Decorative Divider Line (Raid Leaders Only) -->
-      ${ testIsRaidLeader() ? `
-      <div class="divider-line-container module" id="module-divider-line-horizontal" style="position:absolute; top:600px; left:50px; width:300px; height:24px; z-index:50;">
-        <img src="Divider-line-Horizontal.png" alt="Horizontal Divider" style="width:100%; height:100%; object-fit:stretch; display:block;">
-        <div class="divider-horizontal-resize-handle"></div>
-      </div>
-      ` : '' }
 
       <!-- Announcements Form Module (Officers Only) -->
       ${ officer ? `
@@ -6724,53 +6676,6 @@ function bindApp(){
     document.addEventListener('mousedown', handleDividerMouseDown);
     document.addEventListener('mousemove', handleDividerMouseMove);
     document.addEventListener('mouseup', handleDividerMouseUp);
-  })();
-
-  // Horizontal divider line resize handle (width and height)
-  (()=>{
-    let isResizing = false;
-    let dividerHorizontal = null;
-    let startX, startY, startWidth, startHeight;
-
-    const handleDividerHorizontalMouseDown = (e)=>{
-      dividerHorizontal = e.target.closest('.divider-horizontal-resize-handle')?.parentElement;
-      if(!dividerHorizontal) return;
-      e.preventDefault();
-      e.stopPropagation();
-      window._layoutState.dragging = null;
-      window._layoutState.dragType = null;
-      isResizing = true;
-      startX = e.pageX;
-      startY = e.pageY;
-      startWidth = dividerHorizontal.offsetWidth;
-      startHeight = dividerHorizontal.offsetHeight;
-      dividerHorizontal.classList.add('dragging');
-    };
-
-    const handleDividerHorizontalMouseMove = (e)=>{
-      if(!isResizing || !dividerHorizontal) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const deltaX = e.pageX - startX;
-      const deltaY = e.pageY - startY;
-      const newW = Math.max(50, startWidth + deltaX);
-      const newH = Math.max(4, startHeight + deltaY);
-      dividerHorizontal.style.width = newW + 'px';
-      dividerHorizontal.style.height = newH + 'px';
-    };
-
-    const handleDividerHorizontalMouseUp = (e)=>{
-      if(isResizing && dividerHorizontal){
-        e.stopPropagation();
-        dividerHorizontal.classList.remove('dragging');
-      }
-      isResizing = false;
-      dividerHorizontal = null;
-    };
-
-    document.addEventListener('mousedown', handleDividerHorizontalMouseDown);
-    document.addEventListener('mousemove', handleDividerHorizontalMouseMove);
-    document.addEventListener('mouseup', handleDividerHorizontalMouseUp);
   })();
 
   // Trophy case resize handle
