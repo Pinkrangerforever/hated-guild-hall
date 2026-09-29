@@ -4783,9 +4783,22 @@ async function initLayoutSystem(){
       }
     });
 
+    // Save announcements display module (resizable)
+    const announcementsDisplay = document.getElementById('module-announcements-display');
+    if(announcementsDisplay) {
+      layout['module-announcements-display'] = {
+        left: announcementsDisplay.style.left,
+        top: announcementsDisplay.style.top,
+        width: announcementsDisplay.style.width,
+        height: announcementsDisplay.style.height,
+        zIndex: announcementsDisplay.style.zIndex,
+        type: 'module'
+      };
+    }
+
     // Save all module positions (including title modules)
     document.querySelectorAll('.module').forEach(el => {
-      if(el.id) {
+      if(el.id && el.id !== 'module-announcements-display') {
         layout[el.id] = {
           left: el.style.left,
           top: el.style.top,
