@@ -1614,8 +1614,8 @@
     border-radius: 2px;
   }
 
-  /* Trophy case resize handle */
-  .trophy-case-resize-handle {
+  /* Trophy image resize handles */
+  .trophy-image-resize-handle {
     position: absolute;
     right: -18px;
     bottom: -18px;
@@ -1631,14 +1631,16 @@
     justify-content: center;
     z-index: 200 !important;
   }
-  .layout-container.unlocked .module .trophy-case-resize-handle {
+  .layout-container.unlocked #module-trophy-1st-image .trophy-image-resize-handle,
+  .layout-container.unlocked #module-trophy-2nd-image .trophy-image-resize-handle,
+  .layout-container.unlocked #module-trophy-3rd-image .trophy-image-resize-handle {
     display: flex !important;
   }
-  .trophy-case-resize-handle:hover {
+  .trophy-image-resize-handle:hover {
     background: rgba(207,154,68,0.35);
     border-color: rgba(207,154,68,0.6);
   }
-  .trophy-case-resize-handle::before {
+  .trophy-image-resize-handle::before {
     content: '';
     width: 18px;
     height: 3px;
@@ -4483,7 +4485,7 @@ async function initLayoutSystem(){
     // Module dragging (existing logic)
     if(!isInteractive) {
       // Don't start drag if clicking on a resize handle
-      if(e.target.closest('.announcement-resize-handle') || e.target.closest('.divider-resize-handle') || e.target.closest('.trophy-case-resize-handle')) {
+      if(e.target.closest('.announcement-resize-handle') || e.target.closest('.divider-resize-handle') || e.target.closest('.trophy-image-resize-handle')) {
         return;
       }
       const mod = e.target.closest('.module');
@@ -5976,20 +5978,22 @@ function renderNews(){
         <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Trophy Case</div>
       </div>
 
-      <!-- Trophy Case Content Module -->
-      <div id="module-trophy-case" class="module" style="position:absolute; top:520px; left:40px; width:600px; height:420px; cursor:move; border:1px solid rgba(207,154,68,0.2);">
-        <div class="trophy-case-resize-handle"></div>
-        <div style="width:100%; height:100%; padding:0; position:relative; overflow:hidden; display:flex; align-items:flex-end; justify-content:center; gap:50px;">
-          <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
-            <img src="trophy-2nd-place.webp" alt="2nd Place Trophy" style="height:auto; max-height:90%; width:auto; margin-bottom:8px;">
-          </div>
-          <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
-            <img src="trophy-champion.webp" alt="Champion Trophy" style="height:auto; max-height:90%; width:auto; margin-bottom:8px;">
-          </div>
-          <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
-            <img src="trophy-3rd-place.webp" alt="3rd Place Trophy" style="height:auto; max-height:90%; width:auto; margin-bottom:8px;">
-          </div>
-        </div>
+      <!-- Trophy 1st Place (Champion) - Resizable -->
+      <div id="module-trophy-1st-image" class="module" style="position:absolute; top:520px; left:280px; width:160px; height:420px; cursor:move;">
+        <div class="trophy-image-resize-handle"></div>
+        <img src="trophy-champion.webp" alt="Champion Trophy" style="width:100%; height:100%; object-fit:contain; display:block;">
+      </div>
+
+      <!-- Trophy 2nd Place - Resizable -->
+      <div id="module-trophy-2nd-image" class="module" style="position:absolute; top:520px; left:80px; width:140px; height:380px; cursor:move;">
+        <div class="trophy-image-resize-handle"></div>
+        <img src="trophy-2nd-place.webp" alt="2nd Place Trophy" style="width:100%; height:100%; object-fit:contain; display:block;">
+      </div>
+
+      <!-- Trophy 3rd Place - Resizable -->
+      <div id="module-trophy-3rd-image" class="module" style="position:absolute; top:520px; left:480px; width:120px; height:280px; cursor:move;">
+        <div class="trophy-image-resize-handle"></div>
+        <img src="trophy-3rd-place.webp" alt="3rd Place Trophy" style="width:100%; height:100%; object-fit:contain; display:block;">
       </div>
 
       <!-- Trophy Name Modules (Individually Movable) -->
@@ -6711,6 +6715,53 @@ function bindApp(){
     document.addEventListener('mousedown', handleTrophyCaseMouseDown);
     document.addEventListener('mousemove', handleTrophyCaseMouseMove);
     document.addEventListener('mouseup', handleTrophyCaseMouseUp);
+  })();
+
+  // Trophy image resize handles
+  (()=>{
+    let isResizing = false;
+    let trophyImage = null;
+    let startX, startY, startWidth, startHeight;
+
+    const handleTrophyImageMouseDown = (e)=>{
+      trophyImage = e.target.closest('.trophy-image-resize-handle')?.parentElement;
+      if(!trophyImage) return;
+      e.preventDefault();
+      e.stopPropagation();
+      window._layoutState.dragging = null;
+      window._layoutState.dragType = null;
+      isResizing = true;
+      startX = e.pageX;
+      startY = e.pageY;
+      startWidth = trophyImage.offsetWidth;
+      startHeight = trophyImage.offsetHeight;
+      trophyImage.classList.add('dragging');
+    };
+
+    const handleTrophyImageMouseMove = (e)=>{
+      if(!isResizing || !trophyImage) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const deltaX = e.pageX - startX;
+      const deltaY = e.pageY - startY;
+      const newW = Math.max(80, startWidth + deltaX);
+      const newH = Math.max(100, startHeight + deltaY);
+      trophyImage.style.width = newW + 'px';
+      trophyImage.style.height = newH + 'px';
+    };
+
+    const handleTrophyImageMouseUp = (e)=>{
+      if(isResizing && trophyImage){
+        e.stopPropagation();
+        trophyImage.classList.remove('dragging');
+      }
+      isResizing = false;
+      trophyImage = null;
+    };
+
+    document.addEventListener('mousedown', handleTrophyImageMouseDown);
+    document.addEventListener('mousemove', handleTrophyImageMouseMove);
+    document.addEventListener('mouseup', handleTrophyImageMouseUp);
   })();
 
   // Announcement display module resize handle
