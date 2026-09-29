@@ -5039,7 +5039,9 @@ function renderLanding(){
   return `
   ${topNavBar(navLinks, {guildName: state.settings.guild_name, showRecruit:true})}
 
-  ${newsSection}
+  <div style="width:100%; max-width:1700px; margin:0 auto;">
+    ${newsSection}
+  </div>
 
   <div class="marketing-section" id="recruiting" style="padding-bottom:100px;">
     <div class="panel hero-panel" style="max-width:640px; margin:0 auto;">
