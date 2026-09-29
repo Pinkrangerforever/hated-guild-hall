@@ -1617,22 +1617,22 @@
   /* Trophy case resize handle */
   .trophy-case-resize-handle {
     position: absolute;
-    right: -16px;
-    bottom: -16px;
-    width: 32px;
-    height: 32px;
+    right: -18px;
+    bottom: -18px;
+    width: 36px;
+    height: 36px;
     cursor: nwse-resize;
-    background: rgba(207,154,68,0.2);
-    border: 1px solid rgba(207,154,68,0.4);
+    background: rgba(207,154,68,0.3);
+    border: 2px solid rgba(207,154,68,0.6);
     border-radius: 3px;
     transition: background 0.2s, border-color 0.2s;
-    display: none;
+    display: none !important;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    z-index: 200 !important;
   }
-  .layout-container.unlocked #module-trophy-case .trophy-case-resize-handle {
-    display: flex;
+  .layout-container.unlocked .module .trophy-case-resize-handle {
+    display: flex !important;
   }
   .trophy-case-resize-handle:hover {
     background: rgba(207,154,68,0.35);
@@ -5977,7 +5977,7 @@ function renderNews(){
       </div>
 
       <!-- Trophy Case Content Module -->
-      <div id="module-trophy-case" class="module" style="position:absolute; top:520px; left:40px; width:600px; height:420px; cursor:move;">
+      <div id="module-trophy-case" class="module" style="position:absolute; top:520px; left:40px; width:600px; height:420px; cursor:move; border:1px solid rgba(207,154,68,0.2);">
         <div class="trophy-case-resize-handle"></div>
         <div style="width:100%; height:100%; padding:0; position:relative; overflow:hidden; display:flex; align-items:flex-end; justify-content:center; gap:50px;">
           <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
