@@ -1590,26 +1590,32 @@
   .divider-resize-handle {
     position: absolute;
     left: 50%;
-    bottom: -8px;
+    bottom: -12px;
     transform: translateX(-50%);
-    width: 24px;
-    height: 16px;
+    width: 32px;
+    height: 20px;
     cursor: ns-resize;
     display: none;
+    background: rgba(207,154,68,0.15);
+    border: 1px solid rgba(207,154,68,0.3);
+    border-radius: 3px;
+    transition: background 0.2s;
+  }
+  .divider-resize-handle:hover {
+    background: rgba(207,154,68,0.25);
+    border-color: rgba(207,154,68,0.5);
   }
   .layout-container.unlocked .divider-line-container .divider-resize-handle {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .divider-resize-handle::before {
     content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 16px;
-    height: 2px;
-    background: rgba(207,154,68,0.5);
-    border-radius: 1px;
+    width: 18px;
+    height: 3px;
+    background: rgba(207,154,68,0.6);
+    border-radius: 2px;
   }
 
   /* Text shadows for announcement content */
@@ -6014,14 +6020,14 @@ function renderNews(){
 
       <!-- Decorative Divider Line (Raid Leaders Only) -->
       ${ testIsRaidLeader() ? `
-      <div class="divider-line-container module" id="module-divider-line" style="position:absolute; top:400px; left:50%; width:2px; height:200px; transform:translateX(-50%); z-index:50;">
+      <div class="divider-line-container module" id="module-divider-line" style="position:absolute; top:400px; left:50%; width:4px; height:200px; transform:translateX(-50%); z-index:50;">
         <svg viewBox="0 0 10 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
           <!-- Top arrow point -->
-          <polygon points="5,0 0,12 10,12" fill="rgba(207,154,68,0.6)"/>
+          <polygon points="5,0 0,12 10,12" fill="rgba(207,154,68,0.9)"/>
           <!-- Main line -->
-          <line x1="5" y1="12" x2="5" y2="188" stroke="rgba(207,154,68,0.5)" stroke-width="2"/>
+          <line x1="5" y1="12" x2="5" y2="188" stroke="rgba(207,154,68,0.85)" stroke-width="3"/>
           <!-- Bottom arrow point -->
-          <polygon points="5,200 0,188 10,188" fill="rgba(207,154,68,0.6)"/>
+          <polygon points="5,200 0,188 10,188" fill="rgba(207,154,68,0.9)"/>
         </svg>
         <div class="divider-resize-handle"></div>
       </div>
