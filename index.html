@@ -1599,6 +1599,11 @@
   #module-raid-roster.unlocked .roster-resize-handle {
     display: flex;
   }
+
+  /* Hide scrollbar arrows on roster */
+  #module-raid-roster::-webkit-scrollbar-button {
+    display: none;
+  }
   .roster-resize-handle:hover {
     background: rgba(207,154,68,0.35);
     border-color: rgba(207,154,68,0.8);
@@ -6020,7 +6025,7 @@ function renderNews(){
         <img src="wow-frame-wide.jpg" alt="Frame" class="wow-frame-img">
         <div class="wow-content"></div>
         <div class="wow-resize-handle"></div>
-        <img src="roster-gryphon-icon.png" alt="Gryphon" style="position:absolute; top:-40px; right:-40px; width:80px; height:80px; display:block;">
+        <img src="roster-gryphon-icon.png" alt="Gryphon" style="position:absolute; top:-40px; right:-20px; width:80px; height:80px; display:block;">
       </div>
 
       <!-- TITLEPLATE FRAMES (positioned absolutely, draggable & resizable) -->
