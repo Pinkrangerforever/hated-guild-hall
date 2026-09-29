@@ -5974,19 +5974,19 @@ function renderNews(){
       </div>
 
       <!-- Trophy Case Content Module -->
-      <div id="module-trophy-case" class="module" style="position:absolute; top:520px; left:40px; width:600px; height:auto; cursor:move;">
+      <div id="module-trophy-case" class="module" style="position:absolute; top:520px; left:40px; width:600px; height:420px; cursor:move;">
         <div class="trophy-case-resize-handle"></div>
-        <div style="width:100%; padding:0; position:relative;">
+        <div style="width:100%; height:100%; padding:0; position:relative; overflow:hidden;">
           <div style="padding:0;">
-            <div style="display:flex; justify-content:center; align-items:flex-end; gap:50px;">
-              <div style="text-align:center; position:relative;">
-                <img src="trophy-2nd-place.webp" alt="2nd Place Trophy" style="height:365px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:center; align-items:flex-end; gap:50px; height:100%;">
+              <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
+                <img src="trophy-2nd-place.webp" alt="2nd Place Trophy" style="height:auto; max-height:90%; width:auto; margin-bottom:8px;">
               </div>
-              <div style="text-align:center; position:relative;">
-                <img src="trophy-champion.webp" alt="Champion Trophy" style="height:405px; margin-bottom:8px;">
+              <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
+                <img src="trophy-champion.webp" alt="Champion Trophy" style="height:auto; max-height:90%; width:auto; margin-bottom:8px;">
               </div>
-              <div style="text-align:center; position:relative;">
-                <img src="trophy-3rd-place.webp" alt="3rd Place Trophy" style="height:202px; margin-bottom:8px;">
+              <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
+                <img src="trophy-3rd-place.webp" alt="3rd Place Trophy" style="height:auto; max-height:90%; width:auto; margin-bottom:8px;">
               </div>
             </div>
           </div>
