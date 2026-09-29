@@ -1626,10 +1626,13 @@
     border: 1px solid rgba(207,154,68,0.4);
     border-radius: 3px;
     transition: background 0.2s, border-color 0.2s;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     z-index: 100;
+  }
+  .layout-container.unlocked #module-trophy-case .trophy-case-resize-handle {
+    display: flex;
   }
   .trophy-case-resize-handle:hover {
     background: rgba(207,154,68,0.35);
@@ -5976,19 +5979,15 @@ function renderNews(){
       <!-- Trophy Case Content Module -->
       <div id="module-trophy-case" class="module" style="position:absolute; top:520px; left:40px; width:600px; height:420px; cursor:move;">
         <div class="trophy-case-resize-handle"></div>
-        <div style="width:100%; height:100%; padding:0; position:relative; overflow:hidden;">
-          <div style="padding:0;">
-            <div style="display:flex; justify-content:center; align-items:flex-end; gap:50px; height:100%;">
-              <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
-                <img src="trophy-2nd-place.webp" alt="2nd Place Trophy" style="height:auto; max-height:90%; width:auto; margin-bottom:8px;">
-              </div>
-              <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
-                <img src="trophy-champion.webp" alt="Champion Trophy" style="height:auto; max-height:90%; width:auto; margin-bottom:8px;">
-              </div>
-              <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
-                <img src="trophy-3rd-place.webp" alt="3rd Place Trophy" style="height:auto; max-height:90%; width:auto; margin-bottom:8px;">
-              </div>
-            </div>
+        <div style="width:100%; height:100%; padding:0; position:relative; overflow:hidden; display:flex; align-items:flex-end; justify-content:center; gap:50px;">
+          <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
+            <img src="trophy-2nd-place.webp" alt="2nd Place Trophy" style="height:auto; max-height:90%; width:auto; margin-bottom:8px;">
+          </div>
+          <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
+            <img src="trophy-champion.webp" alt="Champion Trophy" style="height:auto; max-height:90%; width:auto; margin-bottom:8px;">
+          </div>
+          <div style="text-align:center; position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
+            <img src="trophy-3rd-place.webp" alt="3rd Place Trophy" style="height:auto; max-height:90%; width:auto; margin-bottom:8px;">
           </div>
         </div>
       </div>
