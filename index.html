@@ -97,20 +97,9 @@
   .logout-link{ color:#dcb570; cursor:pointer; text-decoration:none; background:none; border:none; padding:0; font-size:12px; font-family:inherit; }
   .logout-link:hover{ text-decoration:underline; }
 
-  .main{ max-width:1400px; margin:0 auto; margin-left:232px; padding:140px 40px 32px 40px; }
+  .main{ max-width:none; margin:0; margin-left:232px; padding:140px 0 32px 0; overflow:visible !important; width:calc(100% - 232px); }
   
-  /* Per-page width customization */
-  .main.page-calendar { max-width: 1400px; }
-  .main.page-strategies { max-width: 1400px; }
-  .main.page-softres { max-width: 1200px; }
-  .main.page-roster { max-width: 1400px; }
-  .main.page-loot { max-width: 1200px; }
-  .main.page-news { max-width: 1600px; }
-  .main.page-recruitment { max-width: 1200px; }
-  .main.page-gallery { max-width: 1300px; }
-  .main.page-guildbank { max-width: 1400px; }
-  .main.page-raidlogs { max-width: 1200px; }
-  .main.page-admin { max-width: 1300px; }
+  /* Per-page width customization - ALL REMOVED TO ALLOW FULL WIDTH */
   .eyebrow{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--blurple); margin-bottom:8px; }
   .main .eyebrow{ margin-top:12px; }
   .page-title{ font-size:26px; margin-bottom:6px; font-weight:700; }
@@ -455,7 +444,10 @@
   html{ scroll-behavior:smooth; }
   .site-nav{
     position:fixed; top:44px; left:16px; right:16px; z-index:999999;
-    background:linear-gradient(90deg, #0b2027 0%, #123641 60%, #17424e 100%);
+    background-image:url('nav-bg.jpg');
+    background-position:center;
+    background-size:cover;
+    background-repeat:no-repeat;
     border:1px solid #c6af8d;
     border-radius:14px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.45);
@@ -494,7 +486,10 @@
   .nav-dropdown.open .nav-dropdown-btn::after{ transform:scaleY(-1); }
   .nav-dropdown-menu{
     position:absolute; top:100%; left:0; min-width:180px;
-    background:linear-gradient(135deg, #0f2a34 0%, #144450 100%);
+    background-image:url('nav-bg.jpg');
+    background-position:center;
+    background-size:cover;
+    background-repeat:no-repeat;
     border:1px solid #c6af8d; border-radius:8px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.6);
     opacity:0; visibility:hidden; transform:translateY(-8px);
@@ -644,6 +639,60 @@
   .rte-preview h2, .rte-preview h3, .rte-preview h4{ color:var(--text-normal); }
   .rte-preview a{ color:#dcb570; }
 
+  /* Announcement display module resize handle */
+  .announcement-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 20px;
+    height: 20px;
+    cursor: se-resize;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.2);
+    border-top-left-radius: 3px;
+    background-image: radial-gradient(circle, #fff 1px, transparent 1px);
+    background-size: 4px 4px;
+    display: none;
+  }
+  #module-announcements-display.unlocked .announcement-resize-handle {
+    display: block;
+  }
+  .announcement-resize-handle:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Live news editor */
+  .news-editor {
+    background: var(--bg-input);
+    border: 1px solid var(--divider-strong);
+    border-radius: 2px;
+    padding: 12px 14px;
+    min-height: 120px;
+    font-size: 14px;
+    color: var(--text-normal);
+    font-family: inherit;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .news-formatting-options {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .news-formatting-options select {
+    padding: 4px 8px;
+    font-size: 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--divider);
+    color: var(--text-normal);
+    border-radius: 2px;
+  }
+
   /* ---- boss strategy tree ---- */
   .strat-breadcrumb{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); margin-bottom:4px; }
   .strat-breadcrumb button{ background:none; border:none; color:var(--text-muted); font-size:12px; padding:2px 0; text-decoration:underline; }
@@ -750,7 +799,7 @@
   .spec-btn.readonly:hover{ filter:none; }
   .painted-icon{ filter: drop-shadow(0 1px 1.5px rgba(0,0,0,0.75)); }
 
-  .comp-groups{ display:grid; grid-template-columns:repeat(4, minmax(200px, 1fr)); gap:20px; width:100%; max-width:900px; flex-shrink:0; grid-auto-rows:1fr; }
+  .comp-groups{ display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; width:100%; grid-auto-rows:1fr; overflow:visible; }
   @media (max-width:860px){ .comp-groups{ grid-template-columns:repeat(2, 1fr); } }
   @media (max-width:520px){ .comp-groups{ grid-template-columns:1fr; } }
   .comp-group{ display:flex; flex-direction:column; height:100%; }
@@ -1223,12 +1272,7 @@
   /* Realistic cork board */
   .corkboard{
     padding:0; border-radius:0;
-    background-image:url('corkboard.png');
-    background-size:100% 100%;
-    background-position:center;
-    background-repeat:no-repeat;
     background-color:transparent;
-    box-shadow:0 4px 12px rgba(0,0,0,0.3);
     border:none;
     position:relative;
     display:flex;
@@ -1264,10 +1308,6 @@
   /* WOW-BOX FRAME CONTAINER - Uses boilerplate pattern */
   .wow-container {
     position: absolute;
-    width: 400px;
-    height: 150px;
-    min-width: 150px;
-    min-height: 80px;
     padding: 0;
     margin: 0;
     box-sizing: border-box;
@@ -1335,26 +1375,25 @@
     margin: 0;
     box-sizing: border-box;
     cursor: grab;
-    display: inline-block;
-    line-height: 0;
     user-select: none;
     -webkit-user-select: none;
-    z-index: 100;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 10px 25px rgba(0,0,0,0.5), 0 5px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
-    transition: box-shadow 0.2s ease;
+    background: none;
+    border: none !important;
+    overflow: hidden;
+  }
+  .layout-container.unlocked .titleplate-container {
+    border: 1px solid rgba(207,154,68,0.2) !important;
   }
   .titleplate-container:active {
     cursor: grabbing;
   }
   .titleplate-container.dragging {
     opacity: 0.9;
-    box-shadow: 0 40px 80px rgba(0,0,0,0.9), 0 20px 50px rgba(0,0,0,0.6), 0 10px 25px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.7);
+    cursor: grabbing;
   }
   .titleplate-container.unlocked {
     cursor: grab;
-  }
-  .titleplate-container.unlocked:hover {
-    box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 12px 30px rgba(0,0,0,0.5), 0 6px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
   }
 
   /* Titleplate frame image fills exact container dimensions */
@@ -1364,22 +1403,16 @@
     display: block;
     pointer-events: none;
     object-fit: fill;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    outline: none;
+    box-shadow: none !important;
   }
 
   /* Titleplate content area */
   .titleplate-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: auto;
-    z-index: 2;
+    display: none;
   }
 
   /* Titleplate resize handle */
@@ -1401,6 +1434,78 @@
     display: block;
   }
   .titleplate-resize-handle:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* GUILD BOARD FRAME */
+  .guild-board-container {
+    position: absolute;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    cursor: move;
+    user-select: none;
+    -webkit-user-select: none;
+    background: none;
+    border: none !important;
+    overflow: hidden;
+  }
+  .layout-container.unlocked .guild-board-container {
+    border: 1px solid rgba(207,154,68,0.2) !important;
+  }
+  .guild-board-container:active {
+    cursor: grabbing;
+  }
+  .guild-board-container.dragging {
+    opacity: 0.9;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.7);
+    cursor: grabbing;
+  }
+  .guild-board-container.unlocked {
+    cursor: grab;
+  }
+
+  .guild-board-frame-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+    object-fit: fill;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    outline: none;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));
+  }
+
+  .guild-board-content {
+    position: absolute;
+    top: 70px;
+    left: 50px;
+    right: 50px;
+    bottom: 40px;
+    overflow: hidden;
+    pointer-events: auto;
+  }
+
+  .guild-board-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 20px;
+    height: 20px;
+    cursor: se-resize;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.2);
+    border-top-left-radius: 3px;
+    background-image: radial-gradient(circle, #fff 1px, transparent 1px);
+    background-size: 4px 4px;
+    display: none;
+  }
+  .guild-board-container.unlocked .guild-board-resize-handle {
+    display: block;
+  }
+  .guild-board-resize-handle:hover {
     background-color: rgba(255, 255, 255, 0.5);
   }
 
@@ -1434,7 +1539,7 @@
     z-index:500 !important;
   }
   .title-module .wow-box-title{
-    color: #ffd700;
+    color: #c6af8d;
     font-family: 'Cinzel', Georgia, 'Iowan Old Style', serif;
     font-weight: 900;
     font-size: 16px;
@@ -1456,6 +1561,131 @@
   .layout-container.unlocked .module{
     border: 1px solid rgba(207,154,68,0.2) !important;
   }
+  /* Allow announcement modules to use their custom border styling */
+  #module-announcements-display,
+  #module-announcements-form{
+    border: 3px solid rgba(207,154,68,0.5) !important;
+    animation: announcementFloat 3s ease-in-out infinite;
+  }
+
+  @keyframes announcementFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-4px); }
+  }
+
+  /* Horizontal divider resize handle */
+  .divider-horizontal-resize-handle {
+    position: absolute;
+    right: -18px;
+    bottom: -18px;
+    width: 32px;
+    height: 32px;
+    cursor: nwse-resize;
+    background: rgba(207,154,68,0.2);
+    border: 1px solid rgba(207,154,68,0.4);
+    border-radius: 3px;
+    transition: background 0.2s, border-color 0.2s;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .layout-container.unlocked #module-divider-line-horizontal .divider-horizontal-resize-handle {
+    display: flex;
+  }
+  .divider-horizontal-resize-handle:hover {
+    background: rgba(207,154,68,0.35);
+    border-color: rgba(207,154,68,0.6);
+  }
+  .divider-horizontal-resize-handle::before {
+    content: '';
+    width: 18px;
+    height: 3px;
+    background: rgba(207,154,68,0.5);
+    border-radius: 1px;
+  }
+
+  /* Divider module styling */
+  .divider-line-container {
+    position: absolute !important;
+    cursor: grab;
+    user-select: none;
+  }
+  .divider-line-container:active {
+    cursor: grabbing;
+  }
+  .divider-line-container svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 8px rgba(207,154,68,0.4));
+  }
+  .divider-resize-handle {
+    position: absolute;
+    right: -16px;
+    bottom: -16px;
+    width: 32px;
+    height: 32px;
+    cursor: nwse-resize;
+    background: rgba(207,154,68,0.2);
+    border: 1px solid rgba(207,154,68,0.4);
+    border-radius: 3px;
+    transition: background 0.2s, border-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .divider-resize-handle:hover {
+    background: rgba(207,154,68,0.35);
+    border-color: rgba(207,154,68,0.6);
+  }
+  .divider-resize-handle::before {
+    content: '';
+    width: 18px;
+    height: 3px;
+    background: rgba(207,154,68,0.7);
+    border-radius: 2px;
+  }
+
+  /* Trophy image resize handles */
+  .trophy-image-resize-handle {
+    position: absolute;
+    right: -18px;
+    bottom: -18px;
+    width: 36px;
+    height: 36px;
+    cursor: nwse-resize;
+    background: rgba(207,154,68,0.3);
+    border: 2px solid rgba(207,154,68,0.6);
+    border-radius: 3px;
+    transition: background 0.2s, border-color 0.2s;
+    display: none !important;
+    align-items: center;
+    justify-content: center;
+    z-index: 200 !important;
+  }
+  .layout-container.unlocked #module-trophy-1st-image .trophy-image-resize-handle,
+  .layout-container.unlocked #module-trophy-2nd-image .trophy-image-resize-handle,
+  .layout-container.unlocked #module-trophy-3rd-image .trophy-image-resize-handle {
+    display: flex !important;
+  }
+  .trophy-image-resize-handle:hover {
+    background: rgba(207,154,68,0.35);
+    border-color: rgba(207,154,68,0.6);
+  }
+  .trophy-image-resize-handle::before {
+    content: '';
+    width: 18px;
+    height: 3px;
+    background: rgba(207,154,68,0.7);
+    border-radius: 2px;
+  }
+
+  /* Text shadows for announcement content */
+  #module-announcements-display .list-item > div > div:first-child,
+  #module-announcements-form h3{
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6),
+                 0 0 12px rgba(207,154,68,0.3);
+  }
   .module:hover{
     /* No hover effect to prevent visible outline boxes */
   }
@@ -1466,32 +1696,6 @@
   }
   .title-module.dragging{
     box-shadow: inset 0 1px 0 rgba(207,154,68,0.25), inset 0 -1px 0 rgba(0,0,0,0.5), 0 5px 15px rgba(0,0,0,0.9) !important;
-  }
-  .draggable-column{
-    cursor:move;
-    position:relative;
-    min-height:500px;
-    display:flex;
-    flex-direction:column;
-  }
-  .draggable-column.dragging{
-    opacity:0.7;
-    box-shadow:0 20px 40px rgba(0,0,0,0.5);
-  }
-  .draggable-column > .wow-box-title{
-    position:relative;
-    z-index:5;
-  }
-  .draggable-column > .wow-box{
-    position:absolute;
-    top:0;
-    left:0;
-    right:0;
-    bottom:0;
-  }
-  .draggable-column > div:not(.wow-box):not(.column-drag-handle):not(.column-resize-handle){
-    position:relative;
-    z-index:4;
   }
   .column-drag-handle{
     user-select:none;
@@ -2832,13 +3036,18 @@ async function deleteLoot(id){
 /* ---------------- news ---------------- */
 async function addNews(){
   const c = document.getElementById('news-form');
-  const title = (c.querySelector('[name=title]').value||'').trim();
-  const body = (document.getElementById('news-body-input').value||'').trim();
+  const title = (document.getElementById('news-title-input').value||'').trim();
+  const bodyEl = document.getElementById('news-body-input');
+  const body = (bodyEl.innerText||'').trim();
+  const bodyHtml = bodyEl.innerHTML.trim();
   const errEl = document.getElementById('news-error');
   if(!title || !body){ errEl.textContent = 'Title and message are both required.'; errEl.style.display='block'; return; }
-  const { data, error } = await sb.from('news').insert({ title, body, author: myName() }).select().single();
+  const { data, error } = await sb.from('news').insert({ title, body: bodyHtml, author: myName() }).select().single();
   if(error){ showToast("Couldn't save  try again", true); return; }
   state.news = [data, ...state.news];
+  document.getElementById('news-title-input').value = '';
+  bodyEl.innerHTML = '';
+  errEl.style.display = 'none';
   showToast('Posted');
   render();
 }
@@ -3627,35 +3836,84 @@ async function resetMemberCurrentGold(userId){
 async function resetMemberEarnedGold(userId){
   const member = state.profilesById[userId];
   if(!member) return;
-  
+
   const memberName = member.character_name || member.discord_username || 'Member';
   const newEarnedStr = prompt(`Reset ${esc(memberName)}'s earned gold to how much? (default 0)`, '0');
   if(newEarnedStr === null) return;
-  
+
   const newEarned = parseInt(newEarnedStr, 10);
   if(isNaN(newEarned) || newEarned < 0){
     showToast('Invalid gold amount', true);
     return;
   }
-  
+
   const { data, error } = await sb.rpc('reset_member_earned_gold', { p_user_id: userId, p_new_earned: newEarned });
-  if(error){ 
+  if(error){
     showToast("Couldn't reset earned gold  " + (error.message || 'try again'), true);
     console.error('Reset earned gold error:', error);
     return;
   }
-  
+
   if(!data || !data.success){
     showToast("Couldn't reset earned gold  " + (data?.reason || 'unknown error'), true);
     return;
   }
-  
+
   if(state.profilesById[userId]){
     state.profilesById[userId].gold_earned_total = newEarned;
     if(userId === state.profile?.id) state.profile.gold_earned_total = newEarned;
   }
-  
+
   showToast(`${esc(memberName)}'s earned gold reset to ${newEarned}`);
+  render();
+}
+
+function openRenameMemberModal(userId){
+  const member = state.profilesById[userId];
+  if(!member) return;
+
+  state.modal = {
+    type: 'rename-member',
+    userId: userId,
+    currentName: member.character_name || member.discord_username || ''
+  };
+  render();
+}
+
+async function saveMemberName(userId, newName){
+  if(!newName || newName.trim() === ''){
+    showToast('Character name cannot be empty', true);
+    return;
+  }
+
+  const oldName = state.profilesById[userId]?.character_name;
+  const newNameTrimmed = newName.trim();
+
+  const { data, error } = await sb.from('profiles').update({ character_name: newNameTrimmed }).eq('id', userId);
+  if(error){
+    showToast("Couldn't rename member  " + (error.message || 'try again'), true);
+    console.error('Rename member error:', error);
+    return;
+  }
+
+  // Update all comp slots with the old name to use new name
+  if(oldName && oldName !== newNameTrimmed){
+    const { error: slotError } = await sb.from('comp_slots').update({ character_name: newNameTrimmed }).eq('character_name', oldName);
+    if(slotError){
+      console.error('Error updating comp slots:', slotError);
+    } else {
+      state.compSlots = state.compSlots.map(slot =>
+        slot.character_name === oldName ? { ...slot, character_name: newNameTrimmed } : slot
+      );
+    }
+  }
+
+  if(state.profilesById[userId]){
+    state.profilesById[userId].character_name = newNameTrimmed;
+  }
+
+  state.modal = null;
+  showToast(`Member renamed to ${esc(newName)} - all records updated`);
   render();
 }
 
@@ -4036,6 +4294,11 @@ async function loadLayout(){
           if(el) {
             // Apply saved styles (excluding type field)
             const { type, ...styleProps } = style;
+            // Don't restore width/height for roster module - use its fixed dimensions
+            if(id === 'module-raid-roster') {
+              delete styleProps.width;
+              delete styleProps.height;
+            }
             Object.assign(el.style, styleProps);
 
             // Set position:absolute for both boxes and modules when they have saved positions
@@ -4064,7 +4327,6 @@ function syncTitlePositions(){
 
   // Only sync titles that don't have manually-set positions
   const titleBoxMap = {
-    'module-guild-board-title': { box: 'wow-box-1', side: 'left' },
     'module-trophy-case-title': { box: 'wow-box-2', side: 'left' },
     'module-raid-roster-title': { box: 'wow-box-3', side: 'right' }
   };
@@ -4131,6 +4393,9 @@ async function initLayoutSystem(){
   });
 
   resetBtn.addEventListener('click', () => {
+    if(!confirm('⚠️ Reset layout for ALL users? This will remove all saved module positions. Everyone will see the default layout on next refresh.')) {
+      return;
+    }
     // Clear saved layout from Supabase for all users
     sb.from('guild_layout').delete().eq('guild_id', 'hated').then(() => {
       location.reload();
@@ -4183,6 +4448,38 @@ async function initLayoutSystem(){
       return;
     }
 
+    // Guild board resize handle (maintains aspect ratio)
+    const guildBoardResizeHandle = e.target.closest('.guild-board-resize-handle');
+    if(guildBoardResizeHandle) {
+      e.preventDefault();
+      isResizingContainer = true;
+      currentContainer = guildBoardResizeHandle.closest('.guild-board-container');
+      if(!currentContainer) return;
+
+      resizeStartX = e.pageX;
+      resizeStartY = e.pageY;
+      resizeStartWidth = currentContainer.offsetWidth;
+      resizeStartHeight = currentContainer.offsetHeight;
+
+      currentContainer.classList.add('dragging');
+      currentContainer.dataset.aspectRatio = resizeStartWidth / resizeStartHeight;
+      return;
+    }
+
+    // Module resize handle (roster)
+    const moduleResizeHandle = e.target.closest('.module-resize-handle');
+    if(moduleResizeHandle) {
+      e.preventDefault();
+      isResizingContainer = true;
+      currentContainer = moduleResizeHandle.closest('.module');
+      if(!currentContainer) return;
+
+      resizeStartX = e.pageX;
+      resizeStartWidth = currentContainer.offsetWidth;
+      currentContainer.classList.add('dragging');
+      return;
+    }
+
     // Check if clicking on the frame itself (not interactive elements)
     const isInteractive = e.target.closest('button') || e.target.closest('input') ||
                          e.target.closest('textarea') || e.target.closest('select') ||
@@ -4219,6 +4516,10 @@ async function initLayoutSystem(){
 
     // Module dragging (existing logic)
     if(!isInteractive) {
+      // Don't start drag if clicking on a resize handle
+      if(e.target.closest('.announcement-resize-handle') || e.target.closest('.divider-resize-handle') || e.target.closest('.divider-horizontal-resize-handle') || e.target.closest('.trophy-image-resize-handle')) {
+        return;
+      }
       const mod = e.target.closest('.module');
       if(mod && mod.id) {
         window._layoutState.dragging = mod;
@@ -4249,16 +4550,23 @@ async function initLayoutSystem(){
       parentDocY = parentRect.top + scrollTop;
     }
 
+    // For transformed elements, work entirely in DOM coordinates
+    const currentLeft = parseInt(el.style.left) || 0;
+    const currentTop = parseInt(el.style.top) || 0;
+
+    // Store starting position and mouse position for delta calculation
     window._layoutState.dragStartPos = {
-      x: docX - parentDocX,
-      y: docY - parentDocY
+      x: currentLeft,
+      y: currentTop
+    };
+    window._layoutState.dragStartMouse = {
+      x: e.pageX,
+      y: e.pageY
     };
 
     el.classList.add('dragging');
     el.style.margin = '0';
     el.style.position = 'absolute';
-    el.style.left = window._layoutState.dragStartPos.x + 'px';
-    el.style.top = window._layoutState.dragStartPos.y + 'px';
     el.style.zIndex = '100';
 
     window._layoutState.dragOriginalDisplay = el.style.display;
@@ -4286,10 +4594,33 @@ async function initLayoutSystem(){
   document.addEventListener('mousemove', (e) => {
     // Handle wow-container resize
     if(isResizingContainer && currentContainer) {
-      const newW = Math.max(150, resizeStartWidth + (e.pageX - resizeStartX));
-      const newH = Math.max(80, resizeStartHeight + (e.pageY - resizeStartY));
-      currentContainer.style.width = newW + 'px';
-      currentContainer.style.height = newH + 'px';
+      if(currentContainer.classList.contains('guild-board-container')) {
+        // Guild board scale - both width and height scale by same factor (check FIRST since it also has 'module' class)
+        const deltaX = e.pageX - resizeStartX;
+        const deltaY = e.pageY - resizeStartY;
+        // Use diagonal magnitude for scaling
+        const magnitude = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const direction = (deltaX + deltaY) >= 0 ? 1 : -1;
+        const scaleDelta = magnitude * direction;
+
+        // Apply scale factor to both dimensions
+        const scaleFactor = 1 + (scaleDelta / resizeStartWidth);
+        const newW = Math.max(400, Math.round(resizeStartWidth * scaleFactor));
+        const newH = Math.max(300, Math.round(resizeStartHeight * scaleFactor));
+
+        currentContainer.style.width = newW + 'px';
+        currentContainer.style.height = newH + 'px';
+      } else if(currentContainer.classList.contains('module')) {
+        // Module resize - only width
+        const newW = Math.max(300, resizeStartWidth + (e.pageX - resizeStartX));
+        currentContainer.style.width = newW + 'px';
+      } else {
+        // WOW-container or titleplate resize - width and height
+        const newW = Math.max(150, resizeStartWidth + (e.pageX - resizeStartX));
+        const newH = Math.max(80, resizeStartHeight + (e.pageY - resizeStartY));
+        currentContainer.style.width = newW + 'px';
+        currentContainer.style.height = newH + 'px';
+      }
       return;
     }
 
@@ -4306,12 +4637,14 @@ async function initLayoutSystem(){
       return;
     }
 
-    // Handle module drag (existing logic)
+    // Handle module drag
     if(!window._layoutState.dragging) return;
 
-    const dx = e.pageX - window._layoutState.dragStart.x;
-    const dy = e.pageY - window._layoutState.dragStart.y;
     const el = window._layoutState.dragging;
+
+    // Simple delta-based approach works with transforms
+    const dx = e.pageX - window._layoutState.dragStartMouse.x;
+    const dy = e.pageY - window._layoutState.dragStartMouse.y;
 
     el.style.left = (window._layoutState.dragStartPos.x + dx) + 'px';
     el.style.top = (window._layoutState.dragStartPos.y + dy) + 'px';
@@ -4359,6 +4692,7 @@ async function initLayoutSystem(){
 
     window._layoutState.dragging = null;
     window._layoutState.dragType = null;
+    window._layoutState.clickOffset = null;
   });
 
   async function saveLayout(){
@@ -4395,12 +4729,14 @@ async function initLayoutSystem(){
     // Save all module positions (including title modules)
     document.querySelectorAll('.module').forEach(el => {
       if(el.id) {
+        // Don't save width/height for roster module - let it use its fixed dimensions
+        const isRosterModule = el.id === 'module-raid-roster';
         layout[el.id] = {
           left: el.style.left,
           top: el.style.top,
           right: el.style.right,
-          width: el.style.width,
-          height: el.style.height,
+          width: isRosterModule ? '' : el.style.width,
+          height: isRosterModule ? '' : el.style.height,
           zIndex: el.style.zIndex,
           type: 'module'
         };
@@ -4472,7 +4808,6 @@ function renderLanding(){
 
   // Get the news section content (same as logged-in page)
   const newsSection = `
-    <div class="main page-news" style="max-width:1400px; margin:0 auto; padding:140px 40px 32px 40px;">
       <!-- News section from logged-in home page -->
       <div style="display:flex; gap:24px; align-items:flex-start; margin-bottom:40px;">
         <!-- Corkboard on the left -->
@@ -4837,6 +5172,7 @@ function renderModal(){
   if(state.modal.type === 'assign-slot') return renderAssignSlotModal(state.modal.groupIdx, state.modal.slotIdx);
   if(state.modal.type === 'pick-image') return renderPickImageModal(state.modal.slotKey);
   if(state.modal.type === 'shop') return renderShopModal();
+  if(state.modal.type === 'rename-member') return renderRenameMemberModal(state.modal.userId, state.modal.currentName);
   return '';
 }
 
@@ -5172,6 +5508,26 @@ function renderAssignSlotModal(groupIdx, slotIdx){
   </div>`;
 }
 
+function renderRenameMemberModal(userId, currentName){
+  return `
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-panel" id="modal-panel" style="max-width:500px;">
+      <div class="modal-header">
+        <h3>Rename Member</h3>
+        <button class="modal-close" id="modal-close" type="button">&times;</button>
+      </div>
+      <div style="margin-bottom:20px;">
+        <label>New character name</label>
+        <input id="rename-member-input" type="text" value="${esc(currentName)}" placeholder="Character name">
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" type="button" id="rename-member-save-btn">Save</button>
+        <button class="btn secondary" type="button" id="modal-close">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 /* ---------------- boss strategies tab ---------------- */
 function renderStrategies(){
   const officer = testCanManage();
@@ -5435,7 +5791,10 @@ function renderRoster(){
       ${ allProfiles.length ? allProfiles.map(p=>`
         <div class="list-item">
           <div style="flex:1;">
-            <div style="font-weight:600;">${esc(p.character_name||p.discord_username||'Member')}</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="font-weight:600;">${esc(p.character_name||p.discord_username||'Member')}</div>
+              ${ isRaidLeader ? '<button class="btn secondary" data-rename-member="' + p.id + '" style="font-size:11px; padding:4px 8px;">Rename</button>' : '' }
+            </div>
             <div class="muted sans" style="font-size:12px; margin-top:2px;">Gold: ${(p.gold||0).toLocaleString()} current | Earned: ${(p.gold_earned_total||0).toLocaleString()}</div>
           </div>
           <span class="badge ${p.protected ? 'role-raidlead' : (p.role==='officer'?'role-officer':'role-member')}" style="margin-right:10px;">${p.protected ? '&#9819; Raid Leader' : (p.role==='officer'?'Officer':'Member')}</span>
@@ -5577,21 +5936,8 @@ function renderNews(){
   return `
 
 
-    <!-- 2-Column Layout with Modules -->
-    <div id="layout-container" style="display:flex; gap:40px; align-items:flex-start; padding:40px 40px 40px 0; margin-left:-20px; margin-top:24px; position:relative;">
-
-      <!-- Left Column (placeholder, boxes positioned absolutely in layout-container) -->
-      <div id="col-left" class="draggable-column" style="flex:0 0 700px; padding-left:20px; position:static; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0;"></div>
-
-      <!-- Right Column (placeholder, boxes positioned absolutely in layout-container) -->
-      <div id="col-right" class="draggable-column" style="flex:1 1 auto; min-width:900px; position:static; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0;"></div>
-
-      <!-- WOW-BOX 1: Guild Board Frame -->
-      <div id="wow-box-1" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:0; left:0; width:700px; height:520px;">
-        <img src="wow-frame-wide.jpg" alt="Frame" class="wow-frame-img">
-        <div class="wow-content"></div>
-        <div class="wow-resize-handle"></div>
-      </div>
+    <!-- Modules Container (everything positioned absolutely) -->
+    <div id="layout-container" style="position:relative; width:100%; min-width:1700px; height:auto; overflow:visible; margin-top:24px; padding:40px 0;">
 
       <!-- WOW-BOX 2: Trophy Case Frame -->
       <div id="wow-box-2" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:540px; left:0; width:700px; height:300px;">
@@ -5601,7 +5947,7 @@ function renderNews(){
       </div>
 
       <!-- WOW-BOX 3: Raid Roster Frame -->
-      <div id="wow-box-3" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:0; right:0; width:900px; height:520px;">
+      <div id="wow-box-3" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:0; right:20px; width:calc(100% - 40px); max-width:920px; height:520px;">
         <img src="wow-frame-wide.jpg" alt="Frame" class="wow-frame-img">
         <div class="wow-content"></div>
         <div class="wow-resize-handle"></div>
@@ -5618,13 +5964,6 @@ function renderNews(){
 
       <!-- Titleplate 2 -->
       <div id="titleplate-2" class="titleplate-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:250px; left:100px; width:600px; height:120px;">
-        <img src="titleplate-frame.webp" alt="Frame" class="titleplate-frame-img">
-        <div class="titleplate-content"></div>
-        <div class="titleplate-resize-handle"></div>
-      </div>
-
-      <!-- Titleplate 3 -->
-      <div id="titleplate-3" class="titleplate-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:400px; left:100px; width:600px; height:120px;">
         <img src="titleplate-frame.webp" alt="Frame" class="titleplate-frame-img">
         <div class="titleplate-content"></div>
         <div class="titleplate-resize-handle"></div>
@@ -5648,38 +5987,37 @@ function renderNews(){
       </div>
       ` : '' }
 
-      <!-- Guild Board Title Module -->
-      <div id="module-guild-board-title" class="module title-module" style="position:absolute; width:600px; height:auto; cursor:move;">
-        <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Guild Board</div>
-      </div>
-
-      <!-- Guild Board Content Module -->
-      <div id="module-guild-board" class="module" style="position:absolute; top:60px; left:40px; width:600px; height:375px; overflow:hidden; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box; cursor:move;">
-        <div class="corkboard" style="width:100%; height:100%; margin:0; position:relative;">
-          ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
-            <div class="corkboard-stickers">
-              ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s)=>{
-                const posX = s.position_x ?? 50;
-                const posY = s.position_y ?? 50;
-                const rotation = (Math.random() * 50) - 25;
-                const isOwner = state.session?.user?.id === s.placed_by_user_id;
-                const canManage = testCanManage();
-                return `
-                <div class="sticker-pin-group"
-                     data-sticker-id="${esc(s.id)}"
-                     data-owned="${isOwner}"
-                     data-draggable="${canManage}"
-                     style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
-                  <div class="sticker-pin"></div>
-                  <div class="sticker-pin-shadow"></div>
-                  ${ canManage ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">&times;</button>` : '' }
-                  <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
-                  ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
-                  <div class="sticker-placer">${esc(s.placed_by_name)}</div>
-                </div>`;
-              }).join('') }
-            </div>
-          ` : `<div style="padding:20px; text-align:center; color:var(--blurple); font-size:13px; font-weight:600;">Buy a sticker in the store!</div>` }
+      <!-- Guild Board Frame Module -->
+      <div id="module-guild-board" class="module guild-board-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:40px; left:40px; width:1600px; height:1000px; cursor:move;">
+        <img src="guild-board-frame.webp" alt="Guild Board Frame" class="guild-board-frame-img">
+        <div class="guild-board-resize-handle"></div>
+        <div class="guild-board-content">
+          <div class="corkboard" style="width:100%; height:100%; margin:0; position:relative;">
+            ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
+              <div class="corkboard-stickers">
+                ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s)=>{
+                  const posX = s.position_x ?? 50;
+                  const posY = s.position_y ?? 50;
+                  const rotation = (Math.random() * 50) - 25;
+                  const isOwner = state.session?.user?.id === s.placed_by_user_id;
+                  const canManage = testCanManage();
+                  return `
+                  <div class="sticker-pin-group"
+                       data-sticker-id="${esc(s.id)}"
+                       data-owned="${isOwner}"
+                       data-draggable="${canManage}"
+                       style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
+                    <div class="sticker-pin"></div>
+                    <div class="sticker-pin-shadow"></div>
+                    ${ canManage ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">&times;</button>` : '' }
+                    <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
+                    ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
+                    <div class="sticker-placer">${esc(s.placed_by_name)}</div>
+                  </div>`;
+                }).join('') }
+              </div>
+            ` : `<div style="padding:20px; text-align:center; color:var(--blurple); font-size:13px; font-weight:600;">Buy a sticker in the store!</div>` }
+          </div>
         </div>
       </div>
 
@@ -5688,23 +6026,22 @@ function renderNews(){
         <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Trophy Case</div>
       </div>
 
-      <!-- Trophy Case Content Module -->
-      <div id="module-trophy-case" class="module" style="position:absolute; top:520px; left:40px; width:600px; height:auto; cursor:move;">
-        <div style="width:100%; padding:0; position:relative;">
-          <div style="padding:0;">
-            <div style="display:flex; justify-content:center; align-items:flex-end; gap:50px;">
-              <div style="text-align:center; position:relative;">
-                <img src="trophy-2nd-place.webp" alt="2nd Place Trophy" style="height:365px; margin-bottom:8px;">
-              </div>
-              <div style="text-align:center; position:relative;">
-                <img src="trophy-champion.webp" alt="Champion Trophy" style="height:405px; margin-bottom:8px;">
-              </div>
-              <div style="text-align:center; position:relative;">
-                <img src="trophy-3rd-place.webp" alt="3rd Place Trophy" style="height:202px; margin-bottom:8px;">
-              </div>
-            </div>
-          </div>
-        </div>
+      <!-- Trophy 1st Place (Champion) - Resizable -->
+      <div id="module-trophy-1st-image" class="module" style="position:absolute; top:520px; left:280px; width:160px; height:420px; cursor:move;">
+        <div class="trophy-image-resize-handle"></div>
+        <img src="trophy-champion.webp" alt="Champion Trophy" style="width:100%; height:100%; object-fit:contain; display:block;">
+      </div>
+
+      <!-- Trophy 2nd Place - Resizable -->
+      <div id="module-trophy-2nd-image" class="module" style="position:absolute; top:520px; left:80px; width:140px; height:380px; cursor:move;">
+        <div class="trophy-image-resize-handle"></div>
+        <img src="trophy-2nd-place.webp" alt="2nd Place Trophy" style="width:100%; height:100%; object-fit:contain; display:block;">
+      </div>
+
+      <!-- Trophy 3rd Place - Resizable -->
+      <div id="module-trophy-3rd-image" class="module" style="position:absolute; top:520px; left:480px; width:120px; height:280px; cursor:move;">
+        <div class="trophy-image-resize-handle"></div>
+        <img src="trophy-3rd-place.webp" alt="3rd Place Trophy" style="width:100%; height:100%; object-fit:contain; display:block;">
       </div>
 
       <!-- Trophy Name Modules (Individually Movable) -->
@@ -5730,15 +6067,13 @@ function renderNews(){
       </div>
 
       <!-- Raid Roster Title Module -->
-      <div id="module-raid-roster-title" class="module title-module" style="position:absolute; width:600px; height:auto; cursor:move;">
+      <div id="module-raid-roster-title" class="module title-module" style="position:absolute; width:600px; height:auto; cursor:move; transform:scale(0.85); transform-origin:top right;">
         <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Raid Roster</div>
       </div>
 
       <!-- Raid Roster Content Module -->
-      <div id="module-raid-roster" class="module" style="position:absolute; top:60px; right:40px; width:820px; height:auto; overflow:hidden; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box; cursor:move;">
-        <div style="width:100%;">
-          ${renderRosterGroups()}
-        </div>
+      <div id="module-raid-roster" class="module" style="position:absolute; top:60px; right:20px; width:calc(100% - 40px); max-width:900px; height:auto; overflow:visible; background:rgba(0,0,0,0.3); padding:16px; box-sizing:content-box; cursor:move; transform:scale(0.85); transform-origin:top right;">
+        ${renderRosterGroups()}
       </div>
 
       <!-- Feature Cards Content Module -->
@@ -5760,45 +6095,59 @@ function renderNews(){
         </button>
       </div>
 
+      <!-- Vertical Decorative Divider Line (Raid Leaders Only) -->
+      ${ testIsRaidLeader() ? `
+      <div class="divider-line-container module" id="module-divider-line-vertical" style="position:absolute; top:400px; left:50%; width:24px; height:200px; transform:translateX(-50%); z-index:50;">
+        <img src="Divider-line-Vertical.png" alt="Divider Line" style="width:100%; height:100%; object-fit:stretch; display:block;">
+        <div class="divider-resize-handle"></div>
+      </div>
+      ` : '' }
+
+      <!-- Horizontal Decorative Divider Line (Raid Leaders Only) -->
+      ${ testIsRaidLeader() ? `
+      <div class="divider-line-container module" id="module-divider-line-horizontal" style="position:absolute; top:600px; left:50px; width:300px; height:24px; z-index:50;">
+        <img src="Divider-line-Horizontal.png" alt="Horizontal Divider" style="width:100%; height:100%; object-fit:stretch; display:block;">
+        <div class="divider-horizontal-resize-handle"></div>
+      </div>
+      ` : '' }
+
       <!-- Announcements Form Module (Officers Only) -->
       ${ officer ? `
-      <div id="module-announcements-form" class="module" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); overflow:hidden; background:rgba(0,0,0,0.3); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move;">
-        <h3 style="margin-bottom:14px; color:var(--text-normal);">Post an announcement</h3>
+      <div id="module-announcements-form" class="module" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); overflow:visible; background:linear-gradient(135deg, rgba(50,50,50,0.85) 0%, rgba(40,40,40,0.9) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box; cursor:move; box-shadow:inset 0 0 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.2), 0 0 25px rgba(207,154,68,0.35), 0 0 50px rgba(207,154,68,0.2);">
+        <h3 style="margin-bottom:14px; color:var(--text-normal); text-shadow:0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(207,154,68,0.3);">Post an announcement</h3>
         <div id="news-form">
-          <div class="field"><label>Title</label><input name="title" placeholder="e.g. New loot council rules starting this week" required></div>
+          <div class="field"><label>Title</label><input id="news-title-input" name="title" placeholder="e.g. New loot council rules starting this week" required></div>
           <div class="field">
             <label>Message</label>
-            <div class="rte-toolbar">
-              <button type="button" class="rte-btn" data-rte="bold" title="Bold"><strong>B</strong></button>
-              <button type="button" class="rte-btn" data-rte="italic" title="Italic"><em>I</em></button>
-              <button type="button" class="rte-btn" data-rte="underline" title="Underline"><u>U</u></button>
-              <button type="button" class="rte-btn" data-rte="strike" title="Strikethrough"><s>S</s></button>
-              <span class="rte-sep"></span>
-              <button type="button" class="rte-btn" data-rte="h1" title="Heading">H1</button>
-              <button type="button" class="rte-btn" data-rte="h2" title="Subheading">H2</button>
-              <span class="rte-sep"></span>
-              <button type="button" class="rte-btn" data-rte="ul" title="Bullet list">&#8226; List</button>
-              <button type="button" class="rte-btn" data-rte="ol" title="Numbered list">1. List</button>
-              <button type="button" class="rte-btn" data-rte="quote" title="Quote">&rdquo; Quote</button>
-              <button type="button" class="rte-btn" data-rte="code" title="Code">&lt;/&gt;</button>
-              <button type="button" class="rte-btn" data-rte="link" title="Link">Link</button>
+            <div class="news-formatting-options">
+              <select id="news-font-family" title="Font">
+                <option value="inherit">Font</option>
+                <option value="Georgia, serif">Georgia</option>
+                <option value="'Arial', sans-serif">Arial</option>
+                <option value="'Courier New', monospace">Monospace</option>
+              </select>
+              <select id="news-font-size" title="Font Size">
+                <option value="14px">Size</option>
+                <option value="12px">Small</option>
+                <option value="14px">Normal</option>
+                <option value="16px">Large</option>
+                <option value="18px">XLarge</option>
+              </select>
+              <button type="button" id="news-bold-btn" class="rte-btn" title="Bold"><strong>B</strong></button>
+              <button type="button" id="news-italic-btn" class="rte-btn" title="Italic"><em>I</em></button>
+              <button type="button" id="news-underline-btn" class="rte-btn" title="Underline"><u>U</u></button>
               <span class="rte-sep"></span>
               <span class="rte-color-swatches">
-                <button type="button" class="rte-swatch" data-color="#cf9a44" style="background:#cf9a44" title="Gold"></button>
-                <button type="button" class="rte-swatch" data-color="#e0507a" style="background:#e0507a" title="Pink"></button>
-                <button type="button" class="rte-swatch" data-color="#c0433f" style="background:#c0433f" title="Red"></button>
-                <button type="button" class="rte-swatch" data-color="#6fa354" style="background:#6fa354" title="Green"></button>
-                <button type="button" class="rte-swatch" data-color="#5b8fc7" style="background:#5b8fc7" title="Blue"></button>
-                <button type="button" class="rte-swatch" data-color="#a77fd6" style="background:#a77fd6" title="Purple"></button>
-                <button type="button" class="rte-swatch" data-color="#f2f0e6" style="background:#f2f0e6" title="White"></button>
+                <button type="button" class="news-color-swatch" data-color="#f2f0e6" style="background:#f2f0e6" title="White"></button>
+                <button type="button" class="news-color-swatch" data-color="#cf9a44" style="background:#cf9a44" title="Gold"></button>
+                <button type="button" class="news-color-swatch" data-color="#e0507a" style="background:#e0507a" title="Pink"></button>
+                <button type="button" class="news-color-swatch" data-color="#c0433f" style="background:#c0433f" title="Red"></button>
+                <button type="button" class="news-color-swatch" data-color="#6fa354" style="background:#6fa354" title="Green"></button>
+                <button type="button" class="news-color-swatch" data-color="#5b8fc7" style="background:#5b8fc7" title="Blue"></button>
+                <button type="button" class="news-color-swatch" data-color="#a77fd6" style="background:#a77fd6" title="Purple"></button>
               </span>
             </div>
-            <textarea id="news-body-input" name="body" placeholder="Details go here..." required></textarea>
-            <div class="rte-hint sans">Supports **bold**, *italic*, __underline__, ~~strikethrough~~, # headings, - lists, &gt; quotes, &#96;code&#96;, [links](https://), and color.</div>
-          </div>
-          <div class="field">
-            <label>Preview</label>
-            <div id="news-preview" class="rte-preview"><span class="muted">Nothing to preview yet.</span></div>
+            <div id="news-body-input" class="news-editor" contenteditable="true" placeholder="Your message appears here with live formatting..."></div>
           </div>
           <div id="news-error" class="field-error" style="display:none;"></div>
           <button class="btn" type="button" id="news-form-btn">Post</button>
@@ -5806,20 +6155,20 @@ function renderNews(){
       </div>` : ''}
 
       <!-- Announcements Display Module -->
-      <div id="module-announcements-display" class="module" style="position:absolute; top:${officer ? '1800px' : '1200px'}; left:40px; width:calc(100% - 80px); overflow:hidden; background:rgba(0,0,0,0.3); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move;">
+      <div id="module-announcements-display" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:${officer ? '1800px' : '1200px'}; left:40px; width:calc(100% - 80px); overflow:visible; background:linear-gradient(135deg, rgba(50,50,50,0.85) 0%, rgba(40,40,40,0.9) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box; cursor:move; box-shadow:inset 0 0 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.2), 0 0 25px rgba(207,154,68,0.35), 0 0 50px rgba(207,154,68,0.2);">
+        <div class="announcement-resize-handle"></div>
         ${ state.news.length ? state.news.map(n=>`
           <div class="list-item">
             <div style="flex:1;">
               <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
               <div class="muted"><span class="mono">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')}</span> &middot; ${esc(n.author||'')}</div>
-              <div style="margin-top:8px;">${renderRichText(n.body)}</div>
+              <div style="margin-top:8px; line-height:1.5;">${n.body || renderRichText(n.body)}</div>
             </div>
             ${ officer ? `<button class="btn danger" data-del-news="${n.id}" style="flex-shrink:0;">Remove</button>` : '' }
           </div>
         `).join('') : emptyState('No announcements yet.') }
       </div>
 
-    </div>
   `;
 }
 
@@ -6248,6 +6597,7 @@ function bindApp(){
   document.querySelectorAll('[data-toggle-officer]').forEach(b=>b.addEventListener('click', ()=>toggleOfficer(b.dataset.toggleOfficer)));
   document.querySelectorAll('[data-reset-current-gold]').forEach(b=>b.addEventListener('click', ()=>resetMemberCurrentGold(b.dataset.resetCurrentGold)));
   document.querySelectorAll('[data-reset-earned-gold]').forEach(b=>b.addEventListener('click', ()=>resetMemberEarnedGold(b.dataset.resetEarnedGold)));
+  document.querySelectorAll('[data-rename-member]').forEach(b=>b.addEventListener('click', ()=>openRenameMemberModal(b.dataset.renameMember)));
   document.querySelectorAll('.spec-btn').forEach(b=>b.addEventListener('click', ()=>selectSpec(b.dataset.class, b.dataset.spec)));
   document.querySelectorAll('[data-slot-click]').forEach(el=>el.addEventListener('click', ()=>{
     const [gi,si] = el.dataset.slotClick.split('|').map(Number);
@@ -6270,6 +6620,15 @@ function bindApp(){
     assignClearBtn.addEventListener('click', ()=>removeCompSlot(groupIdx, slotIdx));
   }
 
+  const renameSaveBtn = document.getElementById('rename-member-save-btn');
+  if(renameSaveBtn && state.modal && state.modal.type==='rename-member'){
+    const newNameInput = document.getElementById('rename-member-input');
+    if(newNameInput){
+      renameSaveBtn.addEventListener('click', ()=>saveMemberName(state.modal.userId, newNameInput.value));
+      newNameInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') saveMemberName(state.modal.userId, newNameInput.value); });
+    }
+  }
+
   const lootBtn = document.getElementById('loot-form-btn');
   if(lootBtn) lootBtn.addEventListener('click', addLoot);
   document.querySelectorAll('[data-del-loot]').forEach(b=>b.addEventListener('click', ()=>deleteLoot(b.dataset.delLoot)));
@@ -6278,24 +6637,283 @@ function bindApp(){
   if(newsBtn) newsBtn.addEventListener('click', addNews);
   document.querySelectorAll('[data-del-news]').forEach(b=>b.addEventListener('click', ()=>deleteNews(b.dataset.delNews)));
 
+  // Live announcement formatting
   const newsBodyInput = document.getElementById('news-body-input');
-  const newsPreview = document.getElementById('news-preview');
-  function updateNewsPreview(){
-    if(!newsBodyInput || !newsPreview) return;
-    const val = newsBodyInput.value.trim();
-    newsPreview.innerHTML = val ? renderRichText(val) : '<span class="muted">Nothing to preview yet.</span>';
-  }
+  const newsFontFamily = document.getElementById('news-font-family');
+  const newsFontSize = document.getElementById('news-font-size');
+  const newsBoldBtn = document.getElementById('news-bold-btn');
+  const newsItalicBtn = document.getElementById('news-italic-btn');
+  const newsUnderlineBtn = document.getElementById('news-underline-btn');
+
   if(newsBodyInput){
-    newsBodyInput.addEventListener('input', updateNewsPreview);
-    document.querySelectorAll('[data-rte]').forEach(b=>b.addEventListener('click', ()=>{
-      rteApply('news-body-input', b.dataset.rte, '#cf9a44');
-      updateNewsPreview();
-    }));
-    document.querySelectorAll('.rte-swatch').forEach(sw=>sw.addEventListener('click', ()=>{
-      rteApply('news-body-input', 'color', sw.dataset.color);
-      updateNewsPreview();
+    // Font family selector
+    if(newsFontFamily) newsFontFamily.addEventListener('change', (e)=>{
+      if(e.target.value !== 'inherit') document.execCommand('fontName', false, e.target.value);
+      newsBodyInput.focus();
+    });
+
+    // Font size selector
+    if(newsFontSize) newsFontSize.addEventListener('change', (e)=>{
+      if(e.target.value !== '14px'){
+        const selection = window.getSelection();
+        if(selection.rangeCount) {
+          const range = selection.getRangeAt(0);
+          const span = document.createElement('span');
+          span.style.fontSize = e.target.value;
+          span.appendChild(range.extractContents());
+          range.insertNode(span);
+        }
+      }
+      newsBodyInput.focus();
+    });
+
+    // Bold/Italic/Underline buttons
+    if(newsBoldBtn) newsBoldBtn.addEventListener('click', ()=>{ document.execCommand('bold'); newsBodyInput.focus(); });
+    if(newsItalicBtn) newsItalicBtn.addEventListener('click', ()=>{ document.execCommand('italic'); newsBodyInput.focus(); });
+    if(newsUnderlineBtn) newsUnderlineBtn.addEventListener('click', ()=>{ document.execCommand('underline'); newsBodyInput.focus(); });
+
+    // Color swatches
+    document.querySelectorAll('.news-color-swatch').forEach(sw=>sw.addEventListener('click', ()=>{
+      document.execCommand('foreColor', false, sw.dataset.color);
+      newsBodyInput.focus();
     }));
   }
+
+  // Vertical divider line resize handle (width and height)
+  (()=>{
+    let isResizing = false;
+    let dividerLine = null;
+    let startX, startY, startWidth, startHeight;
+
+    const handleDividerMouseDown = (e)=>{
+      dividerLine = e.target.closest('.divider-resize-handle')?.parentElement;
+      if(!dividerLine) return;
+      e.preventDefault();
+      e.stopPropagation();
+      window._layoutState.dragging = null;
+      window._layoutState.dragType = null;
+      isResizing = true;
+      startX = e.pageX;
+      startY = e.pageY;
+      startWidth = dividerLine.offsetWidth;
+      startHeight = dividerLine.offsetHeight;
+      dividerLine.classList.add('dragging');
+    };
+
+    const handleDividerMouseMove = (e)=>{
+      if(!isResizing || !dividerLine) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const deltaX = e.pageX - startX;
+      const deltaY = e.pageY - startY;
+      const newW = Math.max(4, startWidth + deltaX);
+      const newH = Math.max(50, startHeight + deltaY);
+      dividerLine.style.width = newW + 'px';
+      dividerLine.style.height = newH + 'px';
+    };
+
+    const handleDividerMouseUp = (e)=>{
+      if(isResizing && dividerLine){
+        e.stopPropagation();
+        dividerLine.classList.remove('dragging');
+      }
+      isResizing = false;
+      dividerLine = null;
+    };
+
+    document.addEventListener('mousedown', handleDividerMouseDown);
+    document.addEventListener('mousemove', handleDividerMouseMove);
+    document.addEventListener('mouseup', handleDividerMouseUp);
+  })();
+
+  // Horizontal divider line resize handle (width and height)
+  (()=>{
+    let isResizing = false;
+    let dividerHorizontal = null;
+    let startX, startY, startWidth, startHeight;
+
+    const handleDividerHorizontalMouseDown = (e)=>{
+      dividerHorizontal = e.target.closest('.divider-horizontal-resize-handle')?.parentElement;
+      if(!dividerHorizontal) return;
+      e.preventDefault();
+      e.stopPropagation();
+      window._layoutState.dragging = null;
+      window._layoutState.dragType = null;
+      isResizing = true;
+      startX = e.pageX;
+      startY = e.pageY;
+      startWidth = dividerHorizontal.offsetWidth;
+      startHeight = dividerHorizontal.offsetHeight;
+      dividerHorizontal.classList.add('dragging');
+    };
+
+    const handleDividerHorizontalMouseMove = (e)=>{
+      if(!isResizing || !dividerHorizontal) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const deltaX = e.pageX - startX;
+      const deltaY = e.pageY - startY;
+      const newW = Math.max(50, startWidth + deltaX);
+      const newH = Math.max(4, startHeight + deltaY);
+      dividerHorizontal.style.width = newW + 'px';
+      dividerHorizontal.style.height = newH + 'px';
+    };
+
+    const handleDividerHorizontalMouseUp = (e)=>{
+      if(isResizing && dividerHorizontal){
+        e.stopPropagation();
+        dividerHorizontal.classList.remove('dragging');
+      }
+      isResizing = false;
+      dividerHorizontal = null;
+    };
+
+    document.addEventListener('mousedown', handleDividerHorizontalMouseDown);
+    document.addEventListener('mousemove', handleDividerHorizontalMouseMove);
+    document.addEventListener('mouseup', handleDividerHorizontalMouseUp);
+  })();
+
+  // Trophy case resize handle
+  (()=>{
+    let isResizing = false;
+    let trophyCase = null;
+    let startX, startY, startWidth, startHeight;
+
+    const handleTrophyCaseMouseDown = (e)=>{
+      trophyCase = e.target.closest('.trophy-case-resize-handle')?.parentElement;
+      if(!trophyCase) return;
+      e.preventDefault();
+      e.stopPropagation();
+      window._layoutState.dragging = null;
+      window._layoutState.dragType = null;
+      isResizing = true;
+      startX = e.pageX;
+      startY = e.pageY;
+      startWidth = trophyCase.offsetWidth;
+      startHeight = trophyCase.offsetHeight;
+      trophyCase.classList.add('dragging');
+    };
+
+    const handleTrophyCaseMouseMove = (e)=>{
+      if(!isResizing || !trophyCase) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const deltaX = e.pageX - startX;
+      const deltaY = e.pageY - startY;
+      const newW = Math.max(300, startWidth + deltaX);
+      const newH = Math.max(200, startHeight + deltaY);
+      trophyCase.style.width = newW + 'px';
+      trophyCase.style.height = newH + 'px';
+    };
+
+    const handleTrophyCaseMouseUp = (e)=>{
+      if(isResizing && trophyCase){
+        e.stopPropagation();
+        trophyCase.classList.remove('dragging');
+      }
+      isResizing = false;
+      trophyCase = null;
+    };
+
+    document.addEventListener('mousedown', handleTrophyCaseMouseDown);
+    document.addEventListener('mousemove', handleTrophyCaseMouseMove);
+    document.addEventListener('mouseup', handleTrophyCaseMouseUp);
+  })();
+
+  // Trophy image resize handles
+  (()=>{
+    let isResizing = false;
+    let trophyImage = null;
+    let startX, startY, startWidth, startHeight;
+
+    const handleTrophyImageMouseDown = (e)=>{
+      trophyImage = e.target.closest('.trophy-image-resize-handle')?.parentElement;
+      if(!trophyImage) return;
+      e.preventDefault();
+      e.stopPropagation();
+      window._layoutState.dragging = null;
+      window._layoutState.dragType = null;
+      isResizing = true;
+      startX = e.pageX;
+      startY = e.pageY;
+      startWidth = trophyImage.offsetWidth;
+      startHeight = trophyImage.offsetHeight;
+      trophyImage.classList.add('dragging');
+    };
+
+    const handleTrophyImageMouseMove = (e)=>{
+      if(!isResizing || !trophyImage) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const deltaX = e.pageX - startX;
+      const deltaY = e.pageY - startY;
+      const newW = Math.max(80, startWidth + deltaX);
+      const newH = Math.max(100, startHeight + deltaY);
+      trophyImage.style.width = newW + 'px';
+      trophyImage.style.height = newH + 'px';
+    };
+
+    const handleTrophyImageMouseUp = (e)=>{
+      if(isResizing && trophyImage){
+        e.stopPropagation();
+        trophyImage.classList.remove('dragging');
+      }
+      isResizing = false;
+      trophyImage = null;
+    };
+
+    document.addEventListener('mousedown', handleTrophyImageMouseDown);
+    document.addEventListener('mousemove', handleTrophyImageMouseMove);
+    document.addEventListener('mouseup', handleTrophyImageMouseUp);
+  })();
+
+  // Announcement display module resize handle
+  (()=>{
+    let isResizing = false;
+    let announcementDisplay = null;
+    let startX, startY, startWidth, startHeight;
+
+    const handleMouseDown = (e)=>{
+      announcementDisplay = e.target.closest('.announcement-resize-handle')?.parentElement;
+      if(!announcementDisplay) return;
+      e.preventDefault();
+      e.stopPropagation();  // Prevent module drag logic from triggering
+      // Clear any drag state from initLayoutSystem so it doesn't interfere
+      window._layoutState.dragging = null;
+      window._layoutState.dragType = null;
+      isResizing = true;
+      startX = e.pageX;
+      startY = e.pageY;
+      startWidth = announcementDisplay.offsetWidth;
+      startHeight = announcementDisplay.offsetHeight;
+      announcementDisplay.classList.add('dragging');
+    };
+
+    const handleMouseMove = (e)=>{
+      if(!isResizing || !announcementDisplay) return;
+      e.preventDefault();
+      e.stopPropagation();  // Prevent other move handlers from interfering
+      const deltaX = e.pageX - startX;
+      const deltaY = e.pageY - startY;
+      const newW = Math.max(400, startWidth + deltaX);
+      const newH = Math.max(300, startHeight + deltaY);
+      announcementDisplay.style.width = newW + 'px';
+      announcementDisplay.style.height = newH + 'px';
+    };
+
+    const handleMouseUp = (e)=>{
+      if(isResizing && announcementDisplay){
+        e.stopPropagation();  // Prevent other up handlers from interfering
+        announcementDisplay.classList.remove('dragging');
+      }
+      isResizing = false;
+      announcementDisplay = null;
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  })();
 
   const recBtn = document.getElementById('rec-form-btn');
   if(recBtn) recBtn.addEventListener('click', saveRecruitment);
