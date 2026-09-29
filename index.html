@@ -1614,6 +1614,35 @@
     border-radius: 2px;
   }
 
+  /* Trophy case resize handle */
+  .trophy-case-resize-handle {
+    position: absolute;
+    right: -16px;
+    bottom: -16px;
+    width: 32px;
+    height: 32px;
+    cursor: nwse-resize;
+    background: rgba(207,154,68,0.2);
+    border: 1px solid rgba(207,154,68,0.4);
+    border-radius: 3px;
+    transition: background 0.2s, border-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .trophy-case-resize-handle:hover {
+    background: rgba(207,154,68,0.35);
+    border-color: rgba(207,154,68,0.6);
+  }
+  .trophy-case-resize-handle::before {
+    content: '';
+    width: 18px;
+    height: 3px;
+    background: rgba(207,154,68,0.7);
+    border-radius: 2px;
+  }
+
   /* Text shadows for announcement content */
   #module-announcements-display .list-item > div > div:first-child,
   #module-announcements-form h3{
@@ -4451,7 +4480,7 @@ async function initLayoutSystem(){
     // Module dragging (existing logic)
     if(!isInteractive) {
       // Don't start drag if clicking on a resize handle
-      if(e.target.closest('.announcement-resize-handle') || e.target.closest('.divider-resize-handle')) {
+      if(e.target.closest('.announcement-resize-handle') || e.target.closest('.divider-resize-handle') || e.target.closest('.trophy-case-resize-handle')) {
         return;
       }
       const mod = e.target.closest('.module');
@@ -5946,6 +5975,7 @@ function renderNews(){
 
       <!-- Trophy Case Content Module -->
       <div id="module-trophy-case" class="module" style="position:absolute; top:520px; left:40px; width:600px; height:auto; cursor:move;">
+        <div class="trophy-case-resize-handle"></div>
         <div style="width:100%; padding:0; position:relative;">
           <div style="padding:0;">
             <div style="display:flex; justify-content:center; align-items:flex-end; gap:50px;">
@@ -6635,6 +6665,53 @@ function bindApp(){
     document.addEventListener('mousedown', handleDividerMouseDown);
     document.addEventListener('mousemove', handleDividerMouseMove);
     document.addEventListener('mouseup', handleDividerMouseUp);
+  })();
+
+  // Trophy case resize handle
+  (()=>{
+    let isResizing = false;
+    let trophyCase = null;
+    let startX, startY, startWidth, startHeight;
+
+    const handleTrophyCaseMouseDown = (e)=>{
+      trophyCase = e.target.closest('.trophy-case-resize-handle')?.parentElement;
+      if(!trophyCase) return;
+      e.preventDefault();
+      e.stopPropagation();
+      window._layoutState.dragging = null;
+      window._layoutState.dragType = null;
+      isResizing = true;
+      startX = e.pageX;
+      startY = e.pageY;
+      startWidth = trophyCase.offsetWidth;
+      startHeight = trophyCase.offsetHeight;
+      trophyCase.classList.add('dragging');
+    };
+
+    const handleTrophyCaseMouseMove = (e)=>{
+      if(!isResizing || !trophyCase) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const deltaX = e.pageX - startX;
+      const deltaY = e.pageY - startY;
+      const newW = Math.max(300, startWidth + deltaX);
+      const newH = Math.max(200, startHeight + deltaY);
+      trophyCase.style.width = newW + 'px';
+      trophyCase.style.height = newH + 'px';
+    };
+
+    const handleTrophyCaseMouseUp = (e)=>{
+      if(isResizing && trophyCase){
+        e.stopPropagation();
+        trophyCase.classList.remove('dragging');
+      }
+      isResizing = false;
+      trophyCase = null;
+    };
+
+    document.addEventListener('mousedown', handleTrophyCaseMouseDown);
+    document.addEventListener('mousemove', handleTrophyCaseMouseMove);
+    document.addEventListener('mouseup', handleTrophyCaseMouseUp);
   })();
 
   // Announcement display module resize handle
