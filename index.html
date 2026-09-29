@@ -2685,6 +2685,8 @@ async function onAuthResolved(){
         if(window.location.hash){
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
+        // Load layout BEFORE rendering so elements have correct positions from the start
+        await loadLayout();
         syncDiscordRole(); // fire-and-forget: re-renders itself once it resolves
         startSparkleSystem();
       } else {
@@ -4287,6 +4289,9 @@ window._layoutState = {
   dragStartPos: { x: 0, y: 0 }
 };
 
+// Global cache for layout data to apply at render time
+let layoutCache = null;
+
 async function loadLayout(){
   try {
     // Load layout from Supabase (shared for all users)
@@ -4299,20 +4304,9 @@ async function loadLayout(){
 
     if(data && data.layout_data){
       try {
-        const layout = JSON.parse(data.layout_data);
-        Object.entries(layout).forEach(([id, style]) => {
-          const el = document.getElementById(id);
-          if(el) {
-            // Apply saved styles (excluding type field)
-            const { type, ...styleProps } = style;
-            Object.assign(el.style, styleProps);
-
-            // Set position:absolute for both boxes and modules when they have saved positions
-            if(style.left || style.top || style.right) {
-              el.style.position = 'absolute';
-            }
-          }
-        });
+        layoutCache = JSON.parse(data.layout_data);
+        // Apply to DOM if elements exist (for post-render updates)
+        applyLayoutStyles(layoutCache);
       } catch(e) {
         console.error('Error parsing layout:', e);
       }
@@ -4325,6 +4319,27 @@ async function loadLayout(){
   } catch(e) {
     console.error('Error in loadLayout:', e);
   }
+}
+
+function applyLayoutStyles(layout) {
+  if(!layout) return;
+  Object.entries(layout).forEach(([id, style]) => {
+    const el = document.getElementById(id);
+    if(el) {
+      const { type, ...styleProps } = style;
+      Object.assign(el.style, styleProps);
+      if(style.left || style.top || style.right) {
+        el.style.position = 'absolute';
+      }
+    }
+  });
+}
+
+function getLayoutStyleString(elementId) {
+  if(!layoutCache || !layoutCache[elementId]) return '';
+  const style = layoutCache[elementId];
+  const { type, ...styleProps } = style;
+  return Object.entries(styleProps).map(([k, v]) => `${k}:${v}`).join(';');
 }
 
 function syncTitlePositions(){
@@ -4379,7 +4394,13 @@ function syncTitlePositions(){
 
 async function initLayoutSystem(){
   // Load layout for ALL users (not just raid leaders)
-  await loadLayout();
+  // If layout was already loaded before render, just apply to DOM elements that now exist
+  if(!layoutCache) {
+    await loadLayout();
+  } else {
+    // Layout was already cached, just apply to DOM elements
+    applyLayoutStyles(layoutCache);
+  }
 
   // Only initialize drag/edit controls for raid leaders
   if(!testIsRaidLeader()) return;
@@ -5953,14 +5974,14 @@ function renderNews(){
     <div id="layout-container" style="position:relative; width:100%; min-width:1700px; height:auto; overflow:visible; margin-top:24px; padding:40px 0;">
 
       <!-- WOW-BOX 2: Trophy Case Frame -->
-      <div id="wow-box-2" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:540px; left:0; width:700px; height:300px;">
+      <div id="wow-box-2" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:540px; left:0; width:700px; height:300px; ${getLayoutStyleString('wow-box-2')}">
         <img src="wow-frame-wide.jpg" alt="Frame" class="wow-frame-img">
         <div class="wow-content"></div>
         <div class="wow-resize-handle"></div>
       </div>
 
       <!-- WOW-BOX 3: Raid Roster Frame -->
-      <div id="wow-box-3" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:0; right:20px; width:calc(100% - 40px); max-width:920px; height:520px;">
+      <div id="wow-box-3" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:0; right:20px; width:calc(100% - 40px); max-width:920px; height:520px; ${getLayoutStyleString('wow-box-3')}">
         <img src="wow-frame-wide.jpg" alt="Frame" class="wow-frame-img">
         <div class="wow-content"></div>
         <div class="wow-resize-handle"></div>
@@ -5969,14 +5990,14 @@ function renderNews(){
       <!-- TITLEPLATE FRAMES (positioned absolutely, draggable & resizable) -->
 
       <!-- Titleplate 1 -->
-      <div id="titleplate-1" class="titleplate-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:100px; left:100px; width:600px; height:120px;">
+      <div id="titleplate-1" class="titleplate-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:100px; left:100px; width:600px; height:120px; ${getLayoutStyleString('titleplate-1')}">
         <img src="titleplate-frame.webp" alt="Frame" class="titleplate-frame-img">
         <div class="titleplate-content"></div>
         <div class="titleplate-resize-handle"></div>
       </div>
 
       <!-- Titleplate 2 -->
-      <div id="titleplate-2" class="titleplate-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:250px; left:100px; width:600px; height:120px;">
+      <div id="titleplate-2" class="titleplate-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:250px; left:100px; width:600px; height:120px; ${getLayoutStyleString('titleplate-2')}">
         <img src="titleplate-frame.webp" alt="Frame" class="titleplate-frame-img">
         <div class="titleplate-content"></div>
         <div class="titleplate-resize-handle"></div>
@@ -5985,19 +6006,19 @@ function renderNews(){
       <!-- All Modules (positioned absolutely, independent of boxes) -->
 
       <!-- Vertical Decorative Divider Line -->
-      <div class="divider-line-container module ${testIsRaidLeader() ? 'unlocked' : ''}" id="module-divider-line-vertical" style="position:absolute; top:400px; left:50%; width:24px; height:200px; transform:translateX(-50%); z-index:50;">
+      <div class="divider-line-container module ${testIsRaidLeader() ? 'unlocked' : ''}" id="module-divider-line-vertical" style="position:absolute; top:400px; left:50%; width:24px; height:200px; transform:translateX(-50%); z-index:50; ${getLayoutStyleString('module-divider-line-vertical')}">
         <img src="Divider-line-Vertical.png" alt="Divider Line" style="width:100%; height:100%; object-fit:stretch; display:block;">
         <div class="divider-resize-handle"></div>
       </div>
 
       <!-- Horizontal Decorative Divider Line -->
-      <div class="divider-line-container module ${testIsRaidLeader() ? 'unlocked' : ''}" id="module-divider-line-horizontal" style="position:absolute; top:600px; left:50px; width:300px; height:24px; z-index:50;">
+      <div class="divider-line-container module ${testIsRaidLeader() ? 'unlocked' : ''}" id="module-divider-line-horizontal" style="position:absolute; top:600px; left:50px; width:300px; height:24px; z-index:50; ${getLayoutStyleString('module-divider-line-horizontal')}">
         <img src="Divider-line-Horizontal.png" alt="Horizontal Divider" style="width:100%; height:100%; object-fit:stretch; display:block;">
         <div class="divider-resize-handle"></div>
       </div>
 
       <!-- Guild Board Frame Module -->
-      <div id="module-guild-board" class="module guild-board-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:40px; left:40px; width:1600px; height:1000px; cursor:move;">
+      <div id="module-guild-board" class="module guild-board-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:40px; left:40px; width:1600px; height:1000px; cursor:move; ${getLayoutStyleString('module-guild-board')}">
         <img src="guild-board-frame.webp" alt="Guild Board Frame" class="guild-board-frame-img">
         <div class="guild-board-resize-handle"></div>
         <div class="guild-board-content">
@@ -6031,63 +6052,63 @@ function renderNews(){
       </div>
 
       <!-- Trophy Case Title Module -->
-      <div id="module-trophy-case-title" class="module title-module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; width:600px; height:auto; cursor:move;">
+      <div id="module-trophy-case-title" class="module title-module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; width:600px; height:auto; cursor:move; ${getLayoutStyleString('module-trophy-case-title')}">
         <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Trophy Case</div>
       </div>
 
       <!-- Trophy 1st Place (Champion) - Resizable -->
-      <div id="module-trophy-1st-image" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:520px; left:280px; width:160px; height:420px; cursor:move;">
+      <div id="module-trophy-1st-image" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:520px; left:280px; width:160px; height:420px; cursor:move; ${getLayoutStyleString('module-trophy-1st-image')}">
         <div class="trophy-image-resize-handle"></div>
         <img src="trophy-champion.webp" alt="Champion Trophy" style="width:100%; height:100%; object-fit:contain; display:block;">
       </div>
 
       <!-- Trophy 2nd Place - Resizable -->
-      <div id="module-trophy-2nd-image" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:520px; left:80px; width:140px; height:380px; cursor:move;">
+      <div id="module-trophy-2nd-image" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:520px; left:80px; width:140px; height:380px; cursor:move; ${getLayoutStyleString('module-trophy-2nd-image')}">
         <div class="trophy-image-resize-handle"></div>
         <img src="trophy-2nd-place.webp" alt="2nd Place Trophy" style="width:100%; height:100%; object-fit:contain; display:block;">
       </div>
 
       <!-- Trophy 3rd Place - Resizable -->
-      <div id="module-trophy-3rd-image" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:520px; left:480px; width:120px; height:280px; cursor:move;">
+      <div id="module-trophy-3rd-image" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:520px; left:480px; width:120px; height:280px; cursor:move; ${getLayoutStyleString('module-trophy-3rd-image')}">
         <div class="trophy-image-resize-handle"></div>
         <img src="trophy-3rd-place.webp" alt="3rd Place Trophy" style="width:100%; height:100%; object-fit:contain; display:block;">
       </div>
 
       <!-- Trophy Name Modules (Individually Movable) -->
-      <div id="module-trophy-1st-name" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:750px; left:280px; width:auto; height:auto; cursor:move; z-index:500 !important;">
+      <div id="module-trophy-1st-name" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:750px; left:280px; width:auto; height:auto; cursor:move; z-index:500 !important; ${getLayoutStyleString('module-trophy-1st-name')}">
         <div id="trophy-1st" style="font-size:18px; font-weight:800; text-align:center; min-width:150px; color:#fff; text-shadow:0 3px 8px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.6), 0 0 1px rgba(255,200,0,0.4); letter-spacing:0.5px; text-transform:uppercase;">---</div>
       </div>
-      <div id="module-trophy-2nd-name" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:750px; left:80px; width:auto; height:auto; cursor:move; z-index:500 !important;">
+      <div id="module-trophy-2nd-name" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:750px; left:80px; width:auto; height:auto; cursor:move; z-index:500 !important; ${getLayoutStyleString('module-trophy-2nd-name')}">
         <div id="trophy-2nd" style="font-size:15px; font-weight:800; text-align:center; min-width:110px; color:#f0f0f0; text-shadow:0 2px 6px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6), 0 0 1px rgba(192,192,192,0.3); letter-spacing:0.5px; text-transform:uppercase;">---</div>
       </div>
-      <div id="module-trophy-3rd-name" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:750px; left:480px; width:auto; height:auto; cursor:move; z-index:500 !important;">
+      <div id="module-trophy-3rd-name" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:750px; left:480px; width:auto; height:auto; cursor:move; z-index:500 !important; ${getLayoutStyleString('module-trophy-3rd-name')}">
         <div id="trophy-3rd" style="font-size:13px; font-weight:800; text-align:center; min-width:90px; color:#ffd89b; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6), 0 0 1px rgba(205,127,50,0.4); letter-spacing:0.5px; text-transform:uppercase;">---</div>
       </div>
 
       <!-- Trophy Gold Value Modules (Individually Movable) -->
-      <div id="module-trophy-1st-gold" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:790px; left:280px; width:auto; height:auto; cursor:move; z-index:500 !important;">
+      <div id="module-trophy-1st-gold" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:790px; left:280px; width:auto; height:auto; cursor:move; z-index:500 !important; ${getLayoutStyleString('module-trophy-1st-gold')}">
         <div id="trophy-1st-gold" style="font-size:14px; font-weight:700; text-align:center; min-width:150px; color:#ffd700; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;"> 0g</div>
       </div>
-      <div id="module-trophy-2nd-gold" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:790px; left:80px; width:auto; height:auto; cursor:move; z-index:500 !important;">
+      <div id="module-trophy-2nd-gold" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:790px; left:80px; width:auto; height:auto; cursor:move; z-index:500 !important; ${getLayoutStyleString('module-trophy-2nd-gold')}">
         <div id="trophy-2nd-gold" style="font-size:12px; font-weight:700; text-align:center; min-width:110px; color:#d0d0d0; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;"> 0g</div>
       </div>
-      <div id="module-trophy-3rd-gold" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:790px; left:480px; width:auto; height:auto; cursor:move; z-index:500 !important;">
+      <div id="module-trophy-3rd-gold" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:790px; left:480px; width:auto; height:auto; cursor:move; z-index:500 !important; ${getLayoutStyleString('module-trophy-3rd-gold')}">
         <div id="trophy-3rd-gold" style="font-size:11px; font-weight:700; text-align:center; min-width:90px; color:#daa520; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;"> 0g</div>
       </div>
 
       <!-- Raid Roster Title Module -->
-      <div id="module-raid-roster-title" class="module title-module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; width:auto; height:auto; cursor:move;">
+      <div id="module-raid-roster-title" class="module title-module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; width:auto; height:auto; cursor:move; ${getLayoutStyleString('module-raid-roster-title')}">
         <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Raid Roster</div>
       </div>
 
       <!-- Raid Roster Content Module -->
-      <div id="module-raid-roster" class="module roster-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:60px; right:20px; width:900px; height:520px; overflow:auto; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box; cursor:move; z-index:50;">
+      <div id="module-raid-roster" class="module roster-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:60px; right:20px; width:900px; height:520px; overflow:auto; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box; cursor:move; z-index:50; ${getLayoutStyleString('module-raid-roster')}">
         <div class="roster-resize-handle"></div>
         ${renderRosterGroups()}
       </div>
 
       <!-- Feature Cards Content Module -->
-      <div id="module-feature-cards" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:840px; left:40px; width:calc(100% - 80px); height:auto; display:flex; gap:20px; flex-wrap:wrap; justify-content:space-around; overflow:hidden; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box; cursor:move;">
+      <div id="module-feature-cards" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:840px; left:40px; width:calc(100% - 80px); height:auto; display:flex; gap:20px; flex-wrap:wrap; justify-content:space-around; overflow:hidden; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box; cursor:move; ${getLayoutStyleString('module-feature-cards')}">
         <button type="button" class="feature-card" data-home-card="calendar" style="flex:1; min-width:200px; max-width:300px; pointer-events:auto;">
           <div class="feature-icon">${crestSvg('hc1',34)}</div>
           <h3>Raid Calendar</h3>
@@ -6107,7 +6128,7 @@ function renderNews(){
 
       <!-- Announcements Form Module (Officers Only) -->
       ${ officer ? `
-      <div id="module-announcements-form" class="module" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); overflow:visible; background:linear-gradient(135deg, rgba(50,50,50,0.85) 0%, rgba(40,40,40,0.9) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box; cursor:move; box-shadow:inset 0 0 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.2), 0 0 25px rgba(207,154,68,0.35), 0 0 50px rgba(207,154,68,0.2);">
+      <div id="module-announcements-form" class="module" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); overflow:visible; background:linear-gradient(135deg, rgba(50,50,50,0.85) 0%, rgba(40,40,40,0.9) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box; cursor:move; box-shadow:inset 0 0 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.2), 0 0 25px rgba(207,154,68,0.35), 0 0 50px rgba(207,154,68,0.2); ${getLayoutStyleString('module-announcements-form')}">
         <h3 style="margin-bottom:14px; color:var(--text-normal); text-shadow:0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(207,154,68,0.3);">Post an announcement</h3>
         <div id="news-form">
           <div class="field"><label>Title</label><input id="news-title-input" name="title" placeholder="e.g. New loot council rules starting this week" required></div>
