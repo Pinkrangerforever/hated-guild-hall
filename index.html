@@ -4396,6 +4396,15 @@ async function initLayoutSystem(){
     window._layoutState.locked = !window._layoutState.locked;
     lockBtn.textContent = window._layoutState.locked ? ' Unlock Layout' : ' Lock Layout';
     lockBtn.classList.toggle('locked');
+
+    // Toggle .unlocked class on all modules to show/hide resize handles
+    document.querySelectorAll('.module').forEach(mod => {
+      if(window._layoutState.locked) {
+        mod.classList.remove('unlocked');
+      } else {
+        mod.classList.add('unlocked');
+      }
+    });
   });
 
   resetBtn.addEventListener('click', () => {
