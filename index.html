@@ -1589,32 +1589,28 @@
   }
   .divider-resize-handle {
     position: absolute;
-    left: 50%;
-    bottom: -12px;
-    transform: translateX(-50%);
+    right: -16px;
+    bottom: -16px;
     width: 32px;
-    height: 20px;
-    cursor: ns-resize;
-    display: none;
-    background: rgba(207,154,68,0.15);
-    border: 1px solid rgba(207,154,68,0.3);
+    height: 32px;
+    cursor: nwse-resize;
+    background: rgba(207,154,68,0.2);
+    border: 1px solid rgba(207,154,68,0.4);
     border-radius: 3px;
-    transition: background 0.2s;
-  }
-  .divider-resize-handle:hover {
-    background: rgba(207,154,68,0.25);
-    border-color: rgba(207,154,68,0.5);
-  }
-  .layout-container.unlocked .divider-line-container .divider-resize-handle {
+    transition: background 0.2s, border-color 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+  .divider-resize-handle:hover {
+    background: rgba(207,154,68,0.35);
+    border-color: rgba(207,154,68,0.6);
   }
   .divider-resize-handle::before {
     content: '';
     width: 18px;
     height: 3px;
-    background: rgba(207,154,68,0.6);
+    background: rgba(207,154,68,0.7);
     border-radius: 2px;
   }
 
@@ -6023,11 +6019,11 @@ function renderNews(){
       <div class="divider-line-container module" id="module-divider-line" style="position:absolute; top:400px; left:50%; width:4px; height:200px; transform:translateX(-50%); z-index:50;">
         <svg viewBox="0 0 10 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
           <!-- Top arrow point -->
-          <polygon points="5,0 0,12 10,12" fill="rgba(207,154,68,0.9)"/>
+          <polygon points="5,0 0,12 10,12" fill="rgba(207,154,68,1)"/>
           <!-- Main line -->
-          <line x1="5" y1="12" x2="5" y2="188" stroke="rgba(207,154,68,0.85)" stroke-width="3"/>
+          <line x1="5" y1="12" x2="5" y2="188" stroke="rgba(207,154,68,1)" stroke-width="3"/>
           <!-- Bottom arrow point -->
-          <polygon points="5,200 0,188 10,188" fill="rgba(207,154,68,0.9)"/>
+          <polygon points="5,200 0,188 10,188" fill="rgba(207,154,68,1)"/>
         </svg>
         <div class="divider-resize-handle"></div>
       </div>
@@ -6601,11 +6597,11 @@ function bindApp(){
     }));
   }
 
-  // Divider line resize handle
+  // Divider line resize handle (width and height)
   (()=>{
     let isResizing = false;
     let dividerLine = null;
-    let startY, startHeight;
+    let startX, startY, startWidth, startHeight;
 
     const handleDividerMouseDown = (e)=>{
       dividerLine = e.target.closest('.divider-resize-handle')?.parentElement;
@@ -6615,7 +6611,9 @@ function bindApp(){
       window._layoutState.dragging = null;
       window._layoutState.dragType = null;
       isResizing = true;
+      startX = e.pageX;
       startY = e.pageY;
+      startWidth = dividerLine.offsetWidth;
       startHeight = dividerLine.offsetHeight;
       dividerLine.classList.add('dragging');
     };
@@ -6624,8 +6622,11 @@ function bindApp(){
       if(!isResizing || !dividerLine) return;
       e.preventDefault();
       e.stopPropagation();
+      const deltaX = e.pageX - startX;
       const deltaY = e.pageY - startY;
+      const newW = Math.max(4, startWidth + deltaX);
       const newH = Math.max(50, startHeight + deltaY);
+      dividerLine.style.width = newW + 'px';
       dividerLine.style.height = newH + 'px';
     };
 
