@@ -1612,6 +1612,22 @@
   #module-raid-roster::-webkit-scrollbar-button {
     display: none;
   }
+
+  /* Shop poster resize handle */
+  .shop-poster-resize-handle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .shop-poster-resize-handle:hover {
+    background: rgba(207,154,68,0.35);
+    border-color: rgba(207,154,68,0.8);
+  }
+  #module-shop-poster.unlocked .shop-poster-resize-handle {
+    display: flex;
+  }
   .roster-resize-handle:hover {
     background: rgba(207,154,68,0.35);
     border-color: rgba(207,154,68,0.8);
@@ -6235,6 +6251,12 @@ function renderNews(){
         `).join('') : emptyState('No announcements yet.') }
       </div>
 
+      <!-- Shop Sticker Poster Module -->
+      <div id="module-shop-poster" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:2000px; left:50%; transform:translateX(-50%); width:280px; height:380px; cursor:move; ${getLayoutStyleString('module-shop-poster')}">
+        <img src="shop-sticker-poster.webp" alt="Shop Sticker Poster" style="width:100%; height:100%; object-fit:contain; display:block;">
+        <div style="position:absolute; bottom:-18px; right:-18px; width:36px; height:36px; background:rgba(207,154,68,0.2); border:2px solid rgba(207,154,68,0.6); border-radius:3px; cursor:nwse-resize;" class="shop-poster-resize-handle"></div>
+      </div>
+
   `;
 }
 
@@ -6931,6 +6953,53 @@ function bindApp(){
     document.addEventListener('mousedown', handleRosterMouseDown);
     document.addEventListener('mousemove', handleRosterMouseMove);
     document.addEventListener('mouseup', handleRosterMouseUp);
+  })();
+
+  // Shop poster module resize handle
+  (()=>{
+    let isResizing = false;
+    let shopPoster = null;
+    let startX, startY, startWidth, startHeight;
+
+    const handleMouseDown = (e)=>{
+      shopPoster = e.target.closest('.shop-poster-resize-handle')?.parentElement;
+      if(!shopPoster) return;
+      e.preventDefault();
+      e.stopPropagation();
+      window._layoutState.dragging = null;
+      window._layoutState.dragType = null;
+      isResizing = true;
+      startX = e.pageX;
+      startY = e.pageY;
+      startWidth = shopPoster.offsetWidth;
+      startHeight = shopPoster.offsetHeight;
+      shopPoster.classList.add('dragging');
+    };
+
+    const handleMouseMove = (e)=>{
+      if(!isResizing || !shopPoster) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const deltaX = e.pageX - startX;
+      const deltaY = e.pageY - startY;
+      const newW = Math.max(200, startWidth + deltaX);
+      const newH = Math.max(250, startHeight + deltaY);
+      shopPoster.style.width = newW + 'px';
+      shopPoster.style.height = newH + 'px';
+    };
+
+    const handleMouseUp = (e)=>{
+      if(isResizing && shopPoster){
+        e.stopPropagation();
+        shopPoster.classList.remove('dragging');
+      }
+      isResizing = false;
+      shopPoster = null;
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   })();
 
   // Announcement display module resize handle
