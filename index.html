@@ -232,7 +232,7 @@
   .badge.maybe{ background:var(--yellow-bg); color:var(--yellow); border-color:rgba(207,154,68,0.35); }
   .badge.out{ background:var(--red-bg); color:var(--red); border-color:rgba(176,82,79,0.35); }
   .badge.role-officer{ background:rgba(207,154,68,0.16); color:#e0c07f; border-color:rgba(207,154,68,0.35); }
-  .badge.role-raidlead{ background:rgba(207,154,68,0.28); color:#fff3d6; border-color:rgba(207,154,68,0.7); font-weight:800; }
+  .badge.role-raidlead{ background:linear-gradient(135deg, rgba(207,154,68,0.4) 0%, rgba(207,154,68,0.3) 100%); color:#fff3d6; border-color:rgba(207,154,68,0.9); font-weight:800; box-shadow:0 0 8px rgba(207,154,68,0.5); }
   .badge.role-member{ background:rgba(255,255,255,0.05); color:var(--text-muted); border-color:var(--divider-strong); }
 
   table{ width:100%; border-collapse:collapse; font-size:14px; }
@@ -513,12 +513,20 @@
   .btn-nav-outline{
     font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
     color:#cfe3e6; background:linear-gradient(135deg, rgba(50,50,50,0.85) 0%, rgba(40,40,40,0.9) 100%); border:1px solid rgba(207,227,230,0.4); border-radius:2px; padding:8px 14px;
+    transition:all 0.2s ease;
   }
-  .btn-nav-outline:hover{ background:linear-gradient(135deg, rgba(60,60,60,0.95) 0%, rgba(50,50,50,1) 100%); text-decoration:none; }
-  .btn-nav-admin{
+  .btn-nav-outline:hover{ background:linear-gradient(135deg, rgba(60,60,60,0.95) 0%, rgba(50,50,50,1) 100%); text-decoration:none; transform:scale(1.05); }
+  .btn-nav-admin,
+  #logout-btn{
     font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
     color:#f5ddb5; background:rgba(176,82,79,0.6); border:1px solid rgba(176,82,79,0.8); border-radius:2px; padding:8px 14px;
-    transition:background 0.15s ease;
+    transition:all 0.2s ease;
+  }
+  .btn-nav-admin:hover,
+  #logout-btn:hover{
+    background:rgba(200,100,95,0.8);
+    border-color:rgba(176,82,79,1);
+    transform:scale(1.05);
   }
   .btn-nav-admin:hover{ background:rgba(207,154,68,0.26); }
   .btn-nav-admin.active{ background:rgba(207,154,68,0.32); border-color:#f0dfb4; }
