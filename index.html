@@ -4327,7 +4327,12 @@ function applyLayoutStyles(layout) {
     const el = document.getElementById(id);
     if(el) {
       const { type, ...styleProps } = style;
-      Object.assign(el.style, styleProps);
+      // Remove type field before applying styles
+      Object.entries(styleProps).forEach(([prop, value]) => {
+        if(value) {
+          el.style[prop] = value;
+        }
+      });
       if(style.left || style.top || style.right) {
         el.style.position = 'absolute';
       }
@@ -4339,7 +4344,7 @@ function getLayoutStyleString(elementId) {
   if(!layoutCache || !layoutCache[elementId]) return '';
   const style = layoutCache[elementId];
   const { type, ...styleProps } = style;
-  return Object.entries(styleProps).map(([k, v]) => `${k}:${v}`).join(';');
+  return Object.entries(styleProps).filter(([k, v]) => v).map(([k, v]) => `${k}:${v}`).join(';');
 }
 
 function syncTitlePositions(){
@@ -4758,6 +4763,21 @@ async function initLayoutSystem(){
           height: el.style.height,
           zIndex: el.style.zIndex,
           type: 'titleplate'
+        };
+      }
+    });
+
+    // Save divider line containers (with transform support)
+    document.querySelectorAll('.divider-line-container').forEach(el => {
+      if(el.id) {
+        layout[el.id] = {
+          left: el.style.left,
+          top: el.style.top,
+          width: el.style.width,
+          height: el.style.height,
+          transform: el.style.transform,
+          zIndex: el.style.zIndex,
+          type: 'divider'
         };
       }
     });
