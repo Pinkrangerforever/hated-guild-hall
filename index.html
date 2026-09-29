@@ -5975,21 +5975,17 @@ function renderNews(){
 
       <!-- All Modules (positioned absolutely, independent of boxes) -->
 
-      <!-- Vertical Decorative Divider Line (Raid Leaders Only) -->
-      ${ testIsRaidLeader() ? `
-      <div class="divider-line-container module" id="module-divider-line-vertical" style="position:absolute; top:400px; left:50%; width:24px; height:200px; transform:translateX(-50%); z-index:50;">
+      <!-- Vertical Decorative Divider Line -->
+      <div class="divider-line-container module ${testIsRaidLeader() ? 'unlocked' : ''}" id="module-divider-line-vertical" style="position:absolute; top:400px; left:50%; width:24px; height:200px; transform:translateX(-50%); z-index:50;">
         <img src="Divider-line-Vertical.png" alt="Divider Line" style="width:100%; height:100%; object-fit:stretch; display:block;">
         <div class="divider-resize-handle"></div>
       </div>
-      ` : '' }
 
-      <!-- Horizontal Decorative Divider Line (Raid Leaders Only) -->
-      ${ testIsRaidLeader() ? `
-      <div class="divider-line-container module" id="module-divider-line-horizontal" style="position:absolute; top:600px; left:50px; width:300px; height:24px; z-index:50;">
+      <!-- Horizontal Decorative Divider Line -->
+      <div class="divider-line-container module ${testIsRaidLeader() ? 'unlocked' : ''}" id="module-divider-line-horizontal" style="position:absolute; top:600px; left:50px; width:300px; height:24px; z-index:50;">
         <img src="Divider-line-Horizontal.png" alt="Horizontal Divider" style="width:100%; height:100%; object-fit:stretch; display:block;">
         <div class="divider-resize-handle"></div>
       </div>
-      ` : '' }
 
       <!-- Guild Board Frame Module -->
       <div id="module-guild-board" class="module guild-board-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:40px; left:40px; width:1600px; height:1000px; cursor:move;">
@@ -6026,7 +6022,7 @@ function renderNews(){
       </div>
 
       <!-- Trophy Case Title Module -->
-      <div id="module-trophy-case-title" class="module title-module" style="position:absolute; width:600px; height:auto; cursor:move;">
+      <div id="module-trophy-case-title" class="module title-module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; width:600px; height:auto; cursor:move;">
         <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Trophy Case</div>
       </div>
 
@@ -6049,29 +6045,29 @@ function renderNews(){
       </div>
 
       <!-- Trophy Name Modules (Individually Movable) -->
-      <div id="module-trophy-1st-name" class="module" style="position:absolute; top:750px; left:280px; width:auto; height:auto; cursor:move; z-index:500 !important;">
+      <div id="module-trophy-1st-name" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:750px; left:280px; width:auto; height:auto; cursor:move; z-index:500 !important;">
         <div id="trophy-1st" style="font-size:18px; font-weight:800; text-align:center; min-width:150px; color:#fff; text-shadow:0 3px 8px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.6), 0 0 1px rgba(255,200,0,0.4); letter-spacing:0.5px; text-transform:uppercase;">---</div>
       </div>
-      <div id="module-trophy-2nd-name" class="module" style="position:absolute; top:750px; left:80px; width:auto; height:auto; cursor:move; z-index:500 !important;">
+      <div id="module-trophy-2nd-name" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:750px; left:80px; width:auto; height:auto; cursor:move; z-index:500 !important;">
         <div id="trophy-2nd" style="font-size:15px; font-weight:800; text-align:center; min-width:110px; color:#f0f0f0; text-shadow:0 2px 6px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6), 0 0 1px rgba(192,192,192,0.3); letter-spacing:0.5px; text-transform:uppercase;">---</div>
       </div>
-      <div id="module-trophy-3rd-name" class="module" style="position:absolute; top:750px; left:480px; width:auto; height:auto; cursor:move; z-index:500 !important;">
+      <div id="module-trophy-3rd-name" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:750px; left:480px; width:auto; height:auto; cursor:move; z-index:500 !important;">
         <div id="trophy-3rd" style="font-size:13px; font-weight:800; text-align:center; min-width:90px; color:#ffd89b; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6), 0 0 1px rgba(205,127,50,0.4); letter-spacing:0.5px; text-transform:uppercase;">---</div>
       </div>
 
       <!-- Trophy Gold Value Modules (Individually Movable) -->
-      <div id="module-trophy-1st-gold" class="module" style="position:absolute; top:790px; left:280px; width:auto; height:auto; cursor:move; z-index:500 !important;">
+      <div id="module-trophy-1st-gold" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:790px; left:280px; width:auto; height:auto; cursor:move; z-index:500 !important;">
         <div id="trophy-1st-gold" style="font-size:14px; font-weight:700; text-align:center; min-width:150px; color:#ffd700; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;"> 0g</div>
       </div>
-      <div id="module-trophy-2nd-gold" class="module" style="position:absolute; top:790px; left:80px; width:auto; height:auto; cursor:move; z-index:500 !important;">
+      <div id="module-trophy-2nd-gold" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:790px; left:80px; width:auto; height:auto; cursor:move; z-index:500 !important;">
         <div id="trophy-2nd-gold" style="font-size:12px; font-weight:700; text-align:center; min-width:110px; color:#d0d0d0; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;"> 0g</div>
       </div>
-      <div id="module-trophy-3rd-gold" class="module" style="position:absolute; top:790px; left:480px; width:auto; height:auto; cursor:move; z-index:500 !important;">
+      <div id="module-trophy-3rd-gold" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:790px; left:480px; width:auto; height:auto; cursor:move; z-index:500 !important;">
         <div id="trophy-3rd-gold" style="font-size:11px; font-weight:700; text-align:center; min-width:90px; color:#daa520; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;"> 0g</div>
       </div>
 
       <!-- Raid Roster Title Module -->
-      <div id="module-raid-roster-title" class="module title-module" style="position:absolute; width:auto; height:auto; cursor:move;">
+      <div id="module-raid-roster-title" class="module title-module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; width:auto; height:auto; cursor:move;">
         <div class="wow-box-title" style="position:relative; z-index:5; margin:0;">Raid Roster</div>
       </div>
 
@@ -6082,7 +6078,7 @@ function renderNews(){
       </div>
 
       <!-- Feature Cards Content Module -->
-      <div id="module-feature-cards" class="module" style="position:absolute; top:840px; left:40px; width:calc(100% - 80px); height:auto; display:flex; gap:20px; flex-wrap:wrap; justify-content:space-around; overflow:hidden; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box; cursor:move;">
+      <div id="module-feature-cards" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:840px; left:40px; width:calc(100% - 80px); height:auto; display:flex; gap:20px; flex-wrap:wrap; justify-content:space-around; overflow:hidden; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box; cursor:move;">
         <button type="button" class="feature-card" data-home-card="calendar" style="flex:1; min-width:200px; max-width:300px; pointer-events:auto;">
           <div class="feature-icon">${crestSvg('hc1',34)}</div>
           <h3>Raid Calendar</h3>
