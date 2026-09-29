@@ -4906,7 +4906,7 @@ function renderLanding(){
   // Get the news section content (same as logged-in page)
   const newsSection = `
       <!-- Modules Container (positioned layout like home page) -->
-      <div id="layout-container" style="position:relative; width:100%; min-width:1700px; height:auto; min-height:2500px; overflow:visible; margin-top:24px; padding:40px 0;">
+      <div id="layout-container" style="position:relative; width:100%; max-width:1700px; height:auto; min-height:2500px; overflow:visible; margin:24px auto 0; padding:40px 0;">
 
       <!-- Guild Board Frame Module -->
       <div id="module-guild-board" class="module guild-board-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:40px; left:40px; width:1600px; height:1000px; cursor:move; ${getLayoutStyleString('module-guild-board')}">
@@ -5039,9 +5039,7 @@ function renderLanding(){
   return `
   ${topNavBar(navLinks, {guildName: state.settings.guild_name, showRecruit:true})}
 
-  <div style="width:100%; max-width:1700px; margin:0 auto;">
-    ${newsSection}
-  </div>
+  ${newsSection}
 
   <div class="marketing-section" id="recruiting" style="padding-bottom:100px;">
     <div class="panel hero-panel" style="max-width:640px; margin:0 auto;">
