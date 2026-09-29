@@ -4588,7 +4588,7 @@ async function initLayoutSystem(){
     // Module dragging (existing logic)
     if(!isInteractive) {
       // Don't start drag if clicking on a resize handle
-      if(e.target.closest('.announcement-resize-handle') || e.target.closest('.divider-resize-handle') || e.target.closest('.trophy-image-resize-handle') || e.target.closest('.roster-resize-handle')) {
+      if(e.target.closest('.announcement-resize-handle') || e.target.closest('.divider-resize-handle') || e.target.closest('.trophy-image-resize-handle') || e.target.closest('.roster-resize-handle') || e.target.closest('.shop-poster-resize-handle')) {
         return;
       }
       const mod = e.target.closest('.module');
@@ -6982,8 +6982,8 @@ function bindApp(){
       e.stopPropagation();
       const deltaX = e.pageX - startX;
       const deltaY = e.pageY - startY;
-      const newW = Math.max(80, startWidth + deltaX);
-      const newH = Math.max(100, startHeight + deltaY);
+      const newW = Math.max(40, startWidth + deltaX);
+      const newH = Math.max(50, startHeight + deltaY);
       shopPoster.style.width = newW + 'px';
       shopPoster.style.height = newH + 'px';
     };
@@ -6992,6 +6992,7 @@ function bindApp(){
       if(isResizing && shopPoster){
         e.stopPropagation();
         shopPoster.classList.remove('dragging');
+        saveLayout();
       }
       isResizing = false;
       shopPoster = null;
