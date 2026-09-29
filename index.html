@@ -1577,11 +1577,10 @@
   .divider-horizontal-resize-handle {
     position: absolute;
     right: -18px;
-    bottom: 50%;
-    transform: translateY(50%);
+    bottom: -18px;
     width: 32px;
     height: 32px;
-    cursor: ew-resize;
+    cursor: nwse-resize;
     background: rgba(207,154,68,0.2);
     border: 1px solid rgba(207,154,68,0.4);
     border-radius: 3px;
@@ -1600,8 +1599,8 @@
   }
   .divider-horizontal-resize-handle::before {
     content: '';
-    width: 3px;
-    height: 18px;
+    width: 18px;
+    height: 3px;
     background: rgba(207,154,68,0.5);
     border-radius: 1px;
   }
@@ -6090,7 +6089,7 @@ function renderNews(){
 
       <!-- Horizontal Decorative Divider Line (Raid Leaders Only) -->
       ${ testIsRaidLeader() ? `
-      <div class="divider-line-horizontal-container module" id="module-divider-line-horizontal" style="position:absolute; top:600px; left:50px; width:300px; height:24px; z-index:50;">
+      <div class="divider-line-horizontal-container module" id="module-divider-line-horizontal" style="position:absolute; top:600px; left:50px; width:300px; height:24px; z-index:50; cursor:move;">
         <img src="Divider-line-Horizontal.png" alt="Horizontal Divider" style="width:100%; height:100%; object-fit:stretch; display:block;">
         <div class="divider-horizontal-resize-handle"></div>
       </div>
@@ -6711,11 +6710,11 @@ function bindApp(){
     document.addEventListener('mouseup', handleDividerMouseUp);
   })();
 
-  // Horizontal divider line resize handle (width only)
+  // Horizontal divider line resize handle (width and height)
   (()=>{
     let isResizing = false;
     let dividerHorizontal = null;
-    let startX, startWidth;
+    let startX, startY, startWidth, startHeight;
 
     const handleDividerHorizontalMouseDown = (e)=>{
       dividerHorizontal = e.target.closest('.divider-horizontal-resize-handle')?.parentElement;
@@ -6726,7 +6725,9 @@ function bindApp(){
       window._layoutState.dragType = null;
       isResizing = true;
       startX = e.pageX;
+      startY = e.pageY;
       startWidth = dividerHorizontal.offsetWidth;
+      startHeight = dividerHorizontal.offsetHeight;
       dividerHorizontal.classList.add('dragging');
     };
 
@@ -6735,8 +6736,11 @@ function bindApp(){
       e.preventDefault();
       e.stopPropagation();
       const deltaX = e.pageX - startX;
+      const deltaY = e.pageY - startY;
       const newW = Math.max(50, startWidth + deltaX);
+      const newH = Math.max(4, startHeight + deltaY);
       dividerHorizontal.style.width = newW + 'px';
+      dividerHorizontal.style.height = newH + 'px';
     };
 
     const handleDividerHorizontalMouseUp = (e)=>{
