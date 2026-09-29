@@ -1564,7 +1564,7 @@
   /* Allow announcement modules to use their custom border styling */
   #module-announcements-display,
   #module-announcements-form{
-    border: 1px solid rgba(207,154,68,0.15) !important;
+    border: 1px solid rgba(150,100,200,0.2) !important;
   }
   .module:hover{
     /* No hover effect to prevent visible outline boxes */
@@ -5962,7 +5962,7 @@ function renderNews(){
 
       <!-- Announcements Form Module (Officers Only) -->
       ${ officer ? `
-      <div id="module-announcements-form" class="module" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); overflow:visible; background:rgba(30,20,10,0.4); border:1px solid rgba(207,154,68,0.15); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move; box-shadow:inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.3); backdrop-filter:blur(12px);">
+      <div id="module-announcements-form" class="module" style="position:absolute; top:1200px; left:40px; width:calc(100% - 80px); overflow:visible; background:linear-gradient(135deg, rgba(20,15,25,0.8) 0%, rgba(15,10,20,0.9) 100%); border:1px solid rgba(150,100,200,0.2); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move; box-shadow:inset 0 0 20px rgba(100,60,150,0.08), 0 0 40px rgba(207,154,68,0.1) inset;">
         <h3 style="margin-bottom:14px; color:var(--text-normal);">Post an announcement</h3>
         <div id="news-form">
           <div class="field"><label>Title</label><input id="news-title-input" name="title" placeholder="e.g. New loot council rules starting this week" required></div>
@@ -6004,7 +6004,7 @@ function renderNews(){
       </div>` : ''}
 
       <!-- Announcements Display Module -->
-      <div id="module-announcements-display" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:${officer ? '1800px' : '1200px'}; left:40px; width:calc(100% - 80px); overflow:visible; background:rgba(30,20,10,0.4); border:1px solid rgba(207,154,68,0.15); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move; box-shadow:inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.3); backdrop-filter:blur(12px);">
+      <div id="module-announcements-display" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:${officer ? '1800px' : '1200px'}; left:40px; width:calc(100% - 80px); overflow:visible; background:linear-gradient(135deg, rgba(20,15,25,0.8) 0%, rgba(15,10,20,0.9) 100%); border:1px solid rgba(150,100,200,0.2); border-radius:2px; padding:16px; box-sizing:border-box; cursor:move; box-shadow:inset 0 0 20px rgba(100,60,150,0.08), 0 0 40px rgba(207,154,68,0.1) inset;">
         <div class="announcement-resize-handle"></div>
         ${ state.news.length ? state.news.map(n=>`
           <div class="list-item">
