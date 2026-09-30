@@ -1319,10 +1319,10 @@
     padding:8px 16px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;
   }
   .pool-click-hint:hover{ background:rgba(0,0,0,0.75); }
-  .fish-gauge-wrap{ position:absolute; left:50%; bottom:-80px; transform:translateX(-50%); width:80px; height:60px; }
+  .fish-gauge-wrap{ position:absolute; left:50%; bottom:-80px; transform:translateX(-50%); width:160px; height:120px; }
   .fish-gauge-btn{ background:none; border:none; padding:0; cursor:pointer; width:100%; display:block; }
   .fish-gauge-btn svg{ width:100%; height:auto; display:block; }
-  .fish-needle{ transform-origin:80px 76px; animation-name:needleSweep; animation-timing-function:linear; animation-iteration-count:infinite; }
+  .fish-needle{ transform-origin:160px 152px; animation-name:needleSweep; animation-timing-function:linear; animation-iteration-count:infinite; }
   .fish-gauge-hint{
     display:block; text-align:center; font-size:10px; font-weight:700; color:#fff3d6;
     text-shadow:0 2px 4px rgba(0,0,0,0.8); margin-top:-6px;
@@ -3570,8 +3570,11 @@ function buildFishGaugeMarkup(zoneStart, zoneEnd){
   const zonePath = arcPath(80, 76, 64, zoneStart, zoneEnd);
   return '<button type="button" class="fish-gauge-btn">' +
     '<svg viewBox="0 0 160 86" xmlns="http://www.w3.org/2000/svg">' +
-      '<path d="' + trackPath + '" fill="none" stroke="#0d2833" stroke-width="13" stroke-linecap="round"/>' +
-      '<path d="' + zonePath + '" fill="none" stroke="#3fd06b" stroke-width="13" stroke-linecap="round"/>' +
+      '<defs>' +
+        '<pattern id="arcTexture" patternUnits="userSpaceOnUse" width="4" height="4"><line x1="0" y1="0" x2="4" y2="4" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/><line x1="4" y1="0" x2="0" y2="4" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/></pattern>' +
+      '</defs>' +
+      '<path d="' + trackPath + '" fill="url(#arcTexture)" stroke="#0d2833" stroke-width="13" stroke-linecap="round"/>' +
+      '<path d="' + zonePath + '" fill="url(#arcTexture)" stroke="#3fd06b" stroke-width="13" stroke-linecap="round"/>' +
       '<line class="fish-needle" x1="80" y1="76" x2="80" y2="14" stroke="#fff3d6" stroke-width="4" stroke-linecap="round"/>' +
       '<circle cx="80" cy="76" r="6" fill="#f0dfb4" stroke="#8a6a2e" stroke-width="1.5"/>' +
     '</svg>' +
