@@ -5069,7 +5069,7 @@ function renderLanding(){
   ${newsSection}
 
   <div id="recruiting" style="position:absolute; left:40px; width:900px; padding-bottom:100px; margin-top:50px;">
-    <div class="panel hero-panel" style="width:100%;">
+    <div style="width:100%; padding:20px; background:transparent;">
       <div class="eyebrow gold-text">Recruiting</div>
       ${ rec.recruitment_roles ? `<p class="sans" style="font-size:13px; font-weight:700; color:#e8c26c; margin-bottom:8px;">Open roles: ${esc(rec.recruitment_roles)}</p>` : '' }
       <p class="sans" style="font-size:14px; line-height:1.6; color:var(--text-muted);">${ rec.recruitment_body ? esc(rec.recruitment_body).replace(/\n/g,'<br>') : 'No recruitment notice posted yet.' }</p>
