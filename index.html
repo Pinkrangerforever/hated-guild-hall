@@ -1289,9 +1289,9 @@
   @keyframes fishJump{
     0%{ transform:translate(-50%,-50%) translateY(10px) scale(0.5) rotate(0deg); opacity:0; }
     12%{ opacity:1; }
-    45%{ transform:translate(-50%,-50%) translateY(-48px) scale(1) rotate(-18deg); opacity:1; }
-    75%{ transform:translate(-50%,-50%) translateY(-48px) scale(1) rotate(12deg); opacity:1; }
-    100%{ transform:translate(-50%,-50%) translateY(6px) scale(0.55) rotate(24deg); opacity:0; }
+    45%{ transform:translate(-50%,-50%) translateY(-48px) scale(1) rotate(0deg); opacity:1; }
+    75%{ transform:translate(-50%,-50%) translateY(-48px) scale(1) rotate(0deg); opacity:1; }
+    100%{ transform:translate(-50%,-50%) translateY(6px) scale(0.55) rotate(0deg); opacity:0; }
   }
   .fishing-pool{
     position:absolute; width:120px; height:120px; pointer-events:auto;
@@ -1317,7 +1317,8 @@
     text-shadow:0 2px 4px rgba(0,0,0,0.8); margin-top:-6px;
   }
   .fish-jump{
-    position:absolute; left:50%; top:38%; width:60px; height:40px;
+    position:absolute; left:50%; top:38%; width:120px; height:80px;
+    background-size:contain; background-repeat:no-repeat; background-position:center;
     animation:fishJump 0.85s ease-out forwards;
   }
 
@@ -3643,7 +3644,7 @@ function startFishingEvent(rect, pendingId){
         showToast('You caught the Deviate Fish!');
         const jump = document.createElement('div');
         jump.className = 'fish-jump';
-        jump.innerHTML = FISH_JUMP_SVG;
+        jump.style.backgroundImage = "url('fishing-fish.png')";
         pool.appendChild(jump);
         setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 800);
       } else {
