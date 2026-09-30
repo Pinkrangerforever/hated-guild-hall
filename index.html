@@ -3529,32 +3529,7 @@ window.__FISHING_GAME_MS = 6000;  // total time allowed once the gauge starts
 const FISHING_ZONE_WIDTH_DEG = 26;
 const FISHING_IDLE_TIMEOUT_MS = 6000; // time allowed before clicking the pond itself
 
-const POND_SVG = `<svg class="pond-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <radialGradient id="pondWaterGrad" cx="38%" cy="30%" r="75%">
-      <stop offset="0%" stop-color="#6fc7e0"/>
-      <stop offset="55%" stop-color="#2a7a9e"/>
-      <stop offset="100%" stop-color="#154a63"/>
-    </radialGradient>
-  </defs>
-  <g fill="#8a8175" stroke="#54503f" stroke-width="1.5">
-    <ellipse cx="60" cy="10" rx="12" ry="7"/>
-    <ellipse cx="84" cy="16" rx="10" ry="7"/>
-    <ellipse cx="102" cy="34" rx="11" ry="7" transform="rotate(30 102 34)"/>
-    <ellipse cx="110" cy="60" rx="10" ry="7"/>
-    <ellipse cx="102" cy="86" rx="11" ry="7" transform="rotate(-30 102 86)"/>
-    <ellipse cx="84" cy="104" rx="10" ry="7"/>
-    <ellipse cx="60" cy="110" rx="12" ry="7"/>
-    <ellipse cx="36" cy="104" rx="10" ry="7"/>
-    <ellipse cx="18" cy="86" rx="11" ry="7" transform="rotate(30 18 86)"/>
-    <ellipse cx="10" cy="60" rx="10" ry="7"/>
-    <ellipse cx="18" cy="34" rx="11" ry="7" transform="rotate(-30 18 34)"/>
-    <ellipse cx="36" cy="16" rx="10" ry="7"/>
-  </g>
-  <circle cx="60" cy="60" r="46" fill="url(#pondWaterGrad)" stroke="#0d3245" stroke-width="2"/>
-  <path d="M28 34 Q40 20 28 8" fill="none" stroke="#3fd06b" stroke-width="4" stroke-linecap="round"/>
-  <path d="M20 40 Q28 28 18 18" fill="none" stroke="#3fd06b" stroke-width="4" stroke-linecap="round"/>
-</svg>`;
+const POND_SVG = `<img class="pond-svg" src="fishing-pond.png" style="width:100%; height:100%; object-fit:contain;" alt="Fishing pond"/>`;
 
 const FISH_JUMP_SVG = `<svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
   <path d="M6 20 Q18 4 40 10 Q50 12 54 20 Q44 22 40 30 Q18 36 6 20 Z" fill="#e0a94a" stroke="#8a5a20" stroke-width="1.5"/>
