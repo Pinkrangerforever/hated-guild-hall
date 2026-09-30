@@ -277,8 +277,8 @@
     to{ transform:translateY(0); opacity:1; }
   }
   .toast{
-    position:absolute; top:18px; right:18px; background:#100d09; color:var(--text-normal);
-    padding:10px 16px 10px 14px; border-radius:2px; font-size:13px;
+    position:fixed; top:54px; left:50%; transform:translateX(-50%); background:#100d09; color:var(--text-normal);
+    padding:12px 20px 12px 16px; border-radius:4px; font-size:14px; z-index:1000;
     box-shadow:0 8px 20px rgba(0,0,0,0.5); z-index:50; border:1px solid var(--divider-strong);
     display:flex; align-items:center; gap:8px;
     animation:toastSlideIn 0.25s ease-out;
@@ -2526,7 +2526,7 @@ function showToast(msg, isError){
   state.toast = msg;
   state.toastError = !!isError;
   render();
-  setTimeout(()=>{ state.toast=null; render(); }, 2200);
+  setTimeout(()=>{ state.toast=null; render(); }, 7000);
 }
 function applySiteBackground(){
   const fgUrl = state.siteImages['site_background'];
