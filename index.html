@@ -1302,6 +1302,17 @@
     position:absolute; inset:6px; border-radius:50%; border:2px solid rgba(140,200,255,0.6);
     animation:poolRipple 1.8s ease-out infinite;
   }
+  .pond-fish{
+    position:absolute; width:70px; height:70px; top:50%; left:50%;
+    transform:translate(-50%, -50%); pointer-events:none;
+    animation:fishWiggle 2s ease-in-out infinite;
+  }
+  @keyframes fishWiggle{
+    0%, 100%{ transform:translate(-50%, -50%) rotateZ(0deg) translateY(0px); }
+    25%{ transform:translate(-50%, -50%) rotateZ(-3deg) translateY(-4px); }
+    50%{ transform:translate(-50%, -50%) rotateZ(0deg) translateY(2px); }
+    75%{ transform:translate(-50%, -50%) rotateZ(3deg) translateY(-4px); }
+  }
   .pool-click-hint{
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
     background:rgba(0,0,0,0.55); color:#fff3d6; border:2px solid #f0dfb4; border-radius:20px;
@@ -3579,6 +3590,7 @@ function startFishingEvent(rect, pendingId){
   pool.innerHTML =
     '<span class="pool-ripple"></span>' +
     POND_SVG +
+    '<img class="pond-fish" src="pond-fish.png" alt="Fish"/>' +
     '<button type="button" class="pool-click-hint">Click to fish!</button>';
   layer.appendChild(pool);
 
