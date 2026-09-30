@@ -947,6 +947,21 @@
     opacity:0.85;
     z-index:25;
   }
+  .comp-slot.name-custom-conecold::before {
+    content:'';
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    pointer-events:none;
+    background-image:url('cone-cold-bg.gif');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    opacity:0.85;
+    z-index:25;
+  }
   .comp-slot.roster-border-uncommon{
     border:2px solid #1eff00 !important;
     border-radius:6px;
@@ -2201,6 +2216,7 @@ function getUserNameCustomization(userId){
       else if(meta.effect === 'anime') nameCustom = 'name-custom-anime';
       else if(meta.effect === 'lightning') nameCustom = 'name-custom-lightning';
       else if(meta.effect === 'gofast') nameCustom = 'name-custom-gofast';
+      else if(meta.effect === 'conecold') nameCustom = 'name-custom-conecold';
     }
   }
 
@@ -5355,7 +5371,7 @@ function renderShopModal(){
     if(state.editingShopItemId === item.id) return renderEditForm(item);
     const canAfford = gold >= item.cost;
     const owned = state.shopPurchases && state.shopPurchases.some(p => p.item_id === item.id && p.fulfilled);
-    const gifMap = {flame:'flame-bg.gif', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif', gofast:'go-fast-bg.gif'};
+    const gifMap = {flame:'flame-bg.gif', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif', gofast:'go-fast-bg.gif', conecold:'cone-cold-bg.gif'};
     const previewImage = item.image_url || (item.category === 'name_customization' && gifMap[item.metadata?.effect]);
     return `
       <div class="shop-card ${item.active===false?'inactive':''}">
@@ -6525,7 +6541,7 @@ function renderSettings(){
             const item = state.shopItems?.find(i => i.id === p.item_id);
             const isActive = activeId === p.item_id;
             const effect = item?.metadata?.effect || '';
-            const gifMap = {flame:'flame-bg.gif', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif', gofast:'go-fast-bg.gif'};
+            const gifMap = {flame:'flame-bg.gif', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif', gofast:'go-fast-bg.gif', conecold:'cone-cold-bg.gif'};
             const gifFile = gifMap[effect] || '';
             return `
             <button class="btn ${isActive ? 'primary' : 'secondary'}" type="button" data-set-name-custom="${p.item_id}" style="padding:12px; text-align:left; display:flex; gap:12px; align-items:flex-start;">
