@@ -1294,7 +1294,7 @@
     100%{ transform:translate(-50%,-50%) translateY(6px) scale(0.55) rotate(0deg); opacity:0; }
   }
   .fishing-pool{
-    position:absolute; width:120px; height:120px; pointer-events:auto;
+    position:absolute; width:240px; height:240px; pointer-events:auto;
     animation:poolAppear 0.4s cubic-bezier(.3,1.5,.4,1) both;
   }
   .pond-svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
@@ -3574,8 +3574,8 @@ function startFishingEvent(rect, pendingId){
   const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
   const pool = document.createElement('div');
   pool.className = 'fishing-pool';
-  pool.style.left = (cx - 60) + 'px';
-  pool.style.top = (cy - 60) + 'px';
+  pool.style.left = (cx - 120) + 'px';
+  pool.style.top = (cy - 120) + 'px';
   pool.innerHTML =
     '<span class="pool-ripple"></span>' +
     POND_SVG +
