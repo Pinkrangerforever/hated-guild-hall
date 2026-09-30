@@ -1330,7 +1330,7 @@
   .fish-jump{
     position:absolute; left:50%; top:38%; width:120px; height:80px;
     background-size:contain; background-repeat:no-repeat; background-position:center;
-    animation:fishJump 0.85s ease-out forwards;
+    animation:fishJump 1.4s ease-out forwards;
   }
 
   .blacksmith-forge{
@@ -3636,7 +3636,7 @@ function startFishingEvent(rect, pendingId){
         jump.className = 'fish-jump';
         jump.style.backgroundImage = "url('fishing-fish.png')";
         pool.appendChild(jump);
-        setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 800);
+        setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 1400);
       } else {
         showToast('The fish got away', true);
         setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 300);
