@@ -3566,17 +3566,17 @@ function arcPath(cx, cy, r, startAngle, endAngle){
   return 'M' + p1.x.toFixed(2) + ',' + p1.y.toFixed(2) + ' A' + r + ',' + r + ' 0 ' + largeArc + ' 1 ' + p2.x.toFixed(2) + ',' + p2.y.toFixed(2);
 }
 function buildFishGaugeMarkup(zoneStart, zoneEnd){
-  const trackPath = arcPath(80, 76, 64, -90, 90);
-  const zonePath = arcPath(80, 76, 64, zoneStart, zoneEnd);
+  const trackPath = arcPath(160, 152, 128, -90, 90);
+  const zonePath = arcPath(160, 152, 128, zoneStart, zoneEnd);
   return '<button type="button" class="fish-gauge-btn">' +
-    '<svg viewBox="0 0 160 86" xmlns="http://www.w3.org/2000/svg">' +
+    '<svg viewBox="0 0 320 172" xmlns="http://www.w3.org/2000/svg">' +
       '<defs>' +
-        '<pattern id="arcTexture" patternUnits="userSpaceOnUse" width="4" height="4"><line x1="0" y1="0" x2="4" y2="4" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/><line x1="4" y1="0" x2="0" y2="4" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/></pattern>' +
+        '<pattern id="arcTexture" patternUnits="userSpaceOnUse" width="8" height="8"><line x1="0" y1="0" x2="8" y2="8" stroke="rgba(0,0,0,0.3)" stroke-width="1"/><line x1="8" y1="0" x2="0" y2="8" stroke="rgba(0,0,0,0.3)" stroke-width="1"/></pattern>' +
       '</defs>' +
-      '<path d="' + trackPath + '" fill="url(#arcTexture)" stroke="#0d2833" stroke-width="13" stroke-linecap="round"/>' +
-      '<path d="' + zonePath + '" fill="url(#arcTexture)" stroke="#3fd06b" stroke-width="13" stroke-linecap="round"/>' +
-      '<line class="fish-needle" x1="80" y1="76" x2="80" y2="14" stroke="#fff3d6" stroke-width="4" stroke-linecap="round"/>' +
-      '<circle cx="80" cy="76" r="6" fill="#f0dfb4" stroke="#8a6a2e" stroke-width="1.5"/>' +
+      '<path d="' + trackPath + '" fill="url(#arcTexture)" stroke="#0d2833" stroke-width="26" stroke-linecap="round"/>' +
+      '<path d="' + zonePath + '" fill="url(#arcTexture)" stroke="#3fd06b" stroke-width="26" stroke-linecap="round"/>' +
+      '<line class="fish-needle" x1="160" y1="152" x2="160" y2="28" stroke="#fff3d6" stroke-width="8" stroke-linecap="round"/>' +
+      '<circle cx="160" cy="152" r="12" fill="#f0dfb4" stroke="#8a6a2e" stroke-width="3"/>' +
     '</svg>' +
     '<span class="fish-gauge-hint">Click when the line is in the green!</span>' +
   '</button>';
