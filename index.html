@@ -3483,19 +3483,14 @@ function stopSparkleSystem(){
 }
 function scheduleSparkle(){
   const delay = SPARKLE_MIN_MS + Math.random() * (SPARKLE_MAX_MS - SPARKLE_MIN_MS);
-  console.log('sparkle scheduled in', Math.round(delay/1000), 'seconds');
   __sparkleInterval = setTimeout(()=>{
     spawnSparkle();
     scheduleSparkle();
   }, delay);
 }
 function spawnSparkle(){
-  console.log('spawning sparkle');
   const layer = document.getElementById('sparkle-layer');
-  if(!layer) {
-    console.log('sparkle-layer not found!');
-    return;
-  }
+  if(!layer) return;
   const el = document.createElement('button');
   el.type = 'button';
   el.className = 'sparkle';
@@ -3509,11 +3504,9 @@ function spawnSparkle(){
     '<span class="sparkle-dot d1"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + dotStar + '</svg></span>' +
     '<span class="sparkle-dot d2"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + dotStar + '</svg></span>';
   el.addEventListener('click', ()=>{
-    console.log('sparkle clicked');
     claimSparkle(el);
   });
   layer.appendChild(el);
-  console.log('sparkle added to DOM');
   setTimeout(()=>{ if(el.parentNode) el.remove(); }, SPARKLE_LIFETIME_MS);
 }
 async function claimSparkle(el){
