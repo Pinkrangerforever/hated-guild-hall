@@ -1393,6 +1393,35 @@
     animation:fishJump 1.4s ease-out forwards;
   }
 
+  .gold-leaderboard-widget{
+    background:linear-gradient(180deg, rgba(40,32,20,0.9), rgba(25,18,10,0.95));
+    border:1px solid rgba(207,154,68,0.3);
+    border-radius:4px;
+    padding:16px;
+  }
+  .gold-leaderboard-widget-title{
+    font-size:14px; font-weight:800; color:#f0dfb4; margin-bottom:12px; text-align:center;
+  }
+  .gold-leaderboard-entries{
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .leaderboard-entry{
+    display:flex; align-items:center; gap:12px; padding:8px;
+    background:rgba(0,0,0,0.3); border-radius:3px; border:1px solid rgba(207,154,68,0.15);
+  }
+  .leaderboard-rank{
+    font-size:12px; font-weight:700; color:#dcb570; min-width:30px; text-align:center;
+  }
+  .leaderboard-nameplate{
+    flex:1; display:flex; align-items:center; gap:8px;
+  }
+  .leaderboard-name-slot{
+    position:relative; width:120px; height:32px;
+  }
+  .leaderboard-gold{
+    font-size:12px; font-weight:700; color:#ffd700; min-width:70px; text-align:right; white-space:nowrap;
+  }
+
   .blacksmith-forge{
     position:absolute; width:120px; height:120px; pointer-events:auto;
     animation:poolAppear 0.4s cubic-bezier(.3,1.5,.4,1) both;
@@ -6148,6 +6177,44 @@ function renderRosterGroups(){
   `;
 }
 
+/* ---- gold leaderboard widget ---- */
+function renderGoldLeaderboard(){
+  const profiles = Object.values(state.profilesById || {});
+  const withGold = profiles.filter(p => (p.earned_gold || 0) > 0).sort((a, b) => (b.earned_gold || 0) - (a.earned_gold || 0));
+
+  if(withGold.length === 0) return '<div class="gold-leaderboard-widget"><div class="gold-leaderboard-widget-title">Gold Leaderboard</div><p style="text-align:center; color:var(--text-muted); font-size:12px;">No earners yet</p></div>';
+
+  const entries = withGold.map((profile, idx) => {
+    const rank = idx + 1;
+    const customization = getUserNameCustomization(profile.id);
+    const slotClasses = [
+      customization.border,
+      customization.nameCustom
+    ].filter(Boolean).join(' ');
+
+    return `
+      <div class="leaderboard-entry">
+        <div class="leaderboard-rank">#${rank}</div>
+        <div class="leaderboard-nameplate">
+          <div class="comp-slot ${slotClasses}" style="width:120px; height:28px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:12px; font-weight:600; overflow:hidden;">
+            ${esc(profile.character_name)}
+          </div>
+        </div>
+        <div class="leaderboard-gold">${(profile.earned_gold || 0).toLocaleString()}g</div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="gold-leaderboard-widget">
+      <div class="gold-leaderboard-widget-title">💰 Gold Leaderboard</div>
+      <div class="gold-leaderboard-entries">
+        ${entries}
+      </div>
+    </div>
+  `;
+}
+
 /* ---------------- news tab ---------------- */
 function renderNews(){
   const officer = testCanManage();
@@ -6280,6 +6347,12 @@ function renderNews(){
       </div>
       <div id="module-trophy-3rd-gold" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:790px; left:480px; width:auto; height:auto; cursor:move; z-index:500 !important; ${getLayoutStyleString('module-trophy-3rd-gold')}">
         <div id="trophy-3rd-gold" style="font-size:11px; font-weight:700; text-align:center; min-width:90px; color:#daa520; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;"> 0g</div>
+      </div>
+
+      <!-- Gold Leaderboard Widget -->
+      <div id="module-gold-leaderboard" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:880px; left:40px; width:280px; cursor:move; ${getLayoutStyleString('module-gold-leaderboard')}">
+        ${renderGoldLeaderboard()}
+        <div class="leaderboard-resize-handle"></div>
       </div>
 
       <!-- Raid Roster Title Module -->
