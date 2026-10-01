@@ -1393,10 +1393,14 @@
     animation:fishJump 1.4s ease-out forwards;
   }
 
+  #gold-leaderboard-sidebar{
+    position:fixed; left:0; top:54px; width:280px; height:calc(100vh - 54px);
+    background:linear-gradient(180deg, rgba(40,32,20,0.95), rgba(25,18,10,0.98));
+    border-right:1px solid rgba(207,154,68,0.3);
+    overflow-y:auto; z-index:100;
+    padding:16px 0;
+  }
   .gold-leaderboard-widget{
-    background:linear-gradient(180deg, rgba(40,32,20,0.9), rgba(25,18,10,0.95));
-    border:1px solid rgba(207,154,68,0.3);
-    border-radius:4px;
     padding:16px;
   }
   .gold-leaderboard-widget-title{
@@ -1406,20 +1410,12 @@
     display:flex; flex-direction:column; gap:8px;
   }
   .leaderboard-entry{
-    display:flex; align-items:center; gap:12px; padding:8px;
+    display:flex; align-items:center; gap:8px; padding:6px 12px;
     background:rgba(0,0,0,0.3); border-radius:3px; border:1px solid rgba(207,154,68,0.15);
+    margin:0 12px 8px 12px;
   }
   .leaderboard-rank{
-    font-size:12px; font-weight:700; color:#dcb570; min-width:30px; text-align:center;
-  }
-  .leaderboard-nameplate{
-    flex:1; display:flex; align-items:center; gap:8px;
-  }
-  .leaderboard-name-slot{
-    position:relative; width:120px; height:32px;
-  }
-  .leaderboard-gold{
-    font-size:12px; font-weight:700; color:#ffd700; min-width:70px; text-align:right; white-space:nowrap;
+    font-size:11px; font-weight:700; color:#dcb570; min-width:24px; text-align:center;
   }
 
   .blacksmith-forge{
@@ -5309,6 +5305,9 @@ function renderApp(){
         }).join('')}
       </div>
     </nav>
+    <div id="gold-leaderboard-sidebar">
+      ${renderGoldLeaderboard()}
+    </div>
     <div class="main page-${state.tab}">
       ${ getTestRole() ? `<div style="position:fixed; top:0; left:0; right:0; background:linear-gradient(90deg, #ff6b00, #ffb300); color:white; padding:10px 16px; text-align:center; font-weight:600; z-index:999; font-size:13px;"> TEST MODE: Viewing as ${getTestRole().toUpperCase()}</div>` : '' }
       ${ state.toast ? `<div class="toast ${state.toastError?'toast-error':'toast-success'} sans" style="${getTestRole() ? 'margin-top:50px;' : ''}">${esc(state.toast)}</div>` : '' }
@@ -6195,12 +6194,9 @@ function renderGoldLeaderboard(){
     return `
       <div class="leaderboard-entry">
         <div class="leaderboard-rank">#${rank}</div>
-        <div class="leaderboard-nameplate">
-          <div class="comp-slot ${slotClasses}" style="width:120px; height:28px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:12px; font-weight:600; overflow:hidden;">
-            ${esc(profile.character_name)}
-          </div>
+        <div class="comp-slot ${slotClasses}" style="flex:1; height:24px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10px; font-weight:600; overflow:hidden; text-overflow:ellipsis;">
+          ${esc(profile.character_name)}
         </div>
-        <div class="leaderboard-gold">${(profile.earned_gold || 0).toLocaleString()}g</div>
       </div>
     `;
   }).join('');
@@ -6347,12 +6343,6 @@ function renderNews(){
       </div>
       <div id="module-trophy-3rd-gold" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:790px; left:480px; width:auto; height:auto; cursor:move; z-index:500 !important; ${getLayoutStyleString('module-trophy-3rd-gold')}">
         <div id="trophy-3rd-gold" style="font-size:11px; font-weight:700; text-align:center; min-width:90px; color:#daa520; text-shadow:0 2px 5px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6); letter-spacing:0.3px;"> 0g</div>
-      </div>
-
-      <!-- Gold Leaderboard Widget -->
-      <div id="module-gold-leaderboard" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="position:absolute; top:880px; left:40px; width:280px; cursor:move; ${getLayoutStyleString('module-gold-leaderboard')}">
-        ${renderGoldLeaderboard()}
-        <div class="leaderboard-resize-handle"></div>
       </div>
 
       <!-- Raid Roster Title Module -->
