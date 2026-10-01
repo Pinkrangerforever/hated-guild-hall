@@ -6187,12 +6187,20 @@ function renderGoldLeaderboard(){
     ].filter(Boolean).join(' ');
 
     let bgColor = '';
-    if(rank === 1) bgColor = 'rgba(255, 215, 0, 0.15)';
-    else if(rank === 2) bgColor = 'rgba(192, 192, 192, 0.15)';
-    else if(rank === 3) bgColor = 'rgba(205, 127, 50, 0.15)';
+    let boxShadow = '';
+    if(rank === 1) {
+      bgColor = 'rgba(255, 215, 0, 0.35)';
+      boxShadow = 'inset 0 1px 2px rgba(255, 255, 255, 0.4), 0 0 8px rgba(255, 215, 0, 0.2)';
+    } else if(rank === 2) {
+      bgColor = 'rgba(192, 192, 192, 0.35)';
+      boxShadow = 'inset 0 1px 2px rgba(255, 255, 255, 0.4), 0 0 8px rgba(192, 192, 192, 0.2)';
+    } else if(rank === 3) {
+      bgColor = 'rgba(205, 127, 50, 0.35)';
+      boxShadow = 'inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 0 8px rgba(205, 127, 50, 0.2)';
+    }
 
     return `
-      <div class="leaderboard-entry" style="align-items:flex-start; gap:4px; background-color:${bgColor}; padding:8px; border-radius:4px;">
+      <div class="leaderboard-entry" style="align-items:flex-start; gap:4px; background-color:${bgColor}; padding:8px; border-radius:4px; box-shadow:${boxShadow};">
         <div class="leaderboard-rank" style="flex-shrink:0;">#${rank}</div>
         <div style="flex:1; min-width:0;">
           <div class="comp-slot ${slotClasses}" style="height:24px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10px; font-weight:600; overflow:hidden; text-overflow:ellipsis; position:relative;">
