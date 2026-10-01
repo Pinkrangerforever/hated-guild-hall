@@ -1417,11 +1417,49 @@
     font-size:11px; font-weight:700; color:#dcb570; min-width:24px; text-align:center;
   }
   .leaderboard-entry.rank-top-3{
-    animation:leaderboardShimmer 2s ease-in-out infinite;
+    position:relative;
+    overflow:hidden;
+    animation:metallicShimmer 2.8s ease-in-out infinite;
+    will-change:background-position,box-shadow;
+    transform:translateZ(0);
+    backface-visibility:hidden;
   }
-  @keyframes leaderboardShimmer{
-    0%, 100%{ background-color:var(--entry-bg); box-shadow:var(--entry-glow-1); }
-    50%{ background-color:var(--entry-bg-bright); box-shadow:var(--entry-glow-2); }
+  .leaderboard-entry.rank-top-3::before{
+    content:'';
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    background:linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.4) 50%, transparent 75%);
+    animation:shimmerStreak 2.8s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes metallicShimmer{
+    0%{
+      background-position:-1000px 0;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 8px var(--entry-glow-1);
+    }
+    50%{
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.5), 0 8px 16px rgba(207,154,68,0.6);
+    }
+    100%{
+      background-position:1000px 0;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 8px var(--entry-glow-1);
+    }
+  }
+  @keyframes shimmerStreak{
+    0%{
+      transform:translateX(-100%) skewX(-20deg);
+      opacity:0;
+    }
+    50%{
+      opacity:1;
+    }
+    100%{
+      transform:translateX(100%) skewX(-20deg);
+      opacity:0;
+    }
   }
 
   .blacksmith-forge{
@@ -6193,41 +6231,34 @@ function renderGoldLeaderboard(){
       customization.nameCustom
     ].filter(Boolean).join(' ');
 
-    let bgColor = '';
-    let bgColorBright = '';
+    let bgGradient = '';
     let boxShadow = '';
-    let boxShadowBright = '';
     let rankSparkle = '';
     let isTopRank = false;
 
     if(rank === 1) {
-      bgColor = 'rgba(255, 215, 0, 0.35)';
-      bgColorBright = 'rgba(255, 215, 0, 0.5)';
-      boxShadow = 'inset 0 1px 2px rgba(255, 255, 255, 0.4), 0 0 8px rgba(255, 215, 0, 0.2)';
-      boxShadowBright = 'inset 0 1px 2px rgba(255, 255, 255, 0.6), 0 0 12px rgba(255, 215, 0, 0.4)';
+      bgGradient = 'linear-gradient(90deg, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0.2) 25%, rgba(240,223,180,0.7) 50%, rgba(255,215,0,0.2) 75%, rgba(255,215,0,0.3) 100%)';
+      boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 8px rgba(255,215,0,0.2)';
       rankSparkle = '✨ #1 ✨';
       isTopRank = true;
     } else if(rank === 2) {
-      bgColor = 'rgba(192, 192, 192, 0.35)';
-      bgColorBright = 'rgba(192, 192, 192, 0.5)';
-      boxShadow = 'inset 0 1px 2px rgba(255, 255, 255, 0.4), 0 0 8px rgba(192, 192, 192, 0.2)';
-      boxShadowBright = 'inset 0 1px 2px rgba(255, 255, 255, 0.6), 0 0 12px rgba(192, 192, 192, 0.4)';
+      bgGradient = 'linear-gradient(90deg, rgba(192,192,192,0.3) 0%, rgba(192,192,192,0.2) 25%, rgba(240,240,240,0.7) 50%, rgba(192,192,192,0.2) 75%, rgba(192,192,192,0.3) 100%)';
+      boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 8px rgba(192,192,192,0.2)';
       rankSparkle = '✨ #2 ✨';
       isTopRank = true;
     } else if(rank === 3) {
-      bgColor = 'rgba(205, 127, 50, 0.35)';
-      bgColorBright = 'rgba(205, 127, 50, 0.5)';
-      boxShadow = 'inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 0 8px rgba(205, 127, 50, 0.2)';
-      boxShadowBright = 'inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 0 12px rgba(205, 127, 50, 0.4)';
+      bgGradient = 'linear-gradient(90deg, rgba(205,127,50,0.3) 0%, rgba(205,127,50,0.2) 25%, rgba(230,170,80,0.7) 50%, rgba(205,127,50,0.2) 75%, rgba(205,127,50,0.3) 100%)';
+      boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 8px rgba(205,127,50,0.2)';
       rankSparkle = '✨ #3 ✨';
       isTopRank = true;
     }
 
     const entryClass = isTopRank ? 'rank-top-3' : '';
-    const cssVars = isTopRank ? `--entry-bg:${bgColor}; --entry-bg-bright:${bgColorBright}; --entry-glow-1:${boxShadow}; --entry-glow-2:${boxShadowBright};` : '';
+    const cssVars = isTopRank ? `--entry-glow-1:${boxShadow};` : '';
+    const bgStyle = isTopRank ? `background:${bgGradient}; background-size:200% 100%;` : `background-color:rgba(0,0,0,0.3);`;
 
     return `
-      <div class="leaderboard-entry ${entryClass}" style="align-items:flex-start; gap:4px; background-color:${bgColor}; padding:8px; border-radius:4px; box-shadow:${boxShadow}; ${cssVars}">
+      <div class="leaderboard-entry ${entryClass}" style="align-items:flex-start; gap:4px; ${bgStyle} padding:8px; border-radius:4px; box-shadow:${boxShadow}; ${cssVars}">
         <div class="leaderboard-rank" style="flex-shrink:0;">${rankSparkle || '#' + rank}</div>
         <div style="flex:1; min-width:0;">
           <div class="comp-slot ${slotClasses}" style="height:24px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10px; font-weight:600; overflow:hidden; text-overflow:ellipsis; position:relative;">
