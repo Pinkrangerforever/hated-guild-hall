@@ -1876,7 +1876,7 @@
     position: absolute !important;
     cursor: grab;
     user-select: none;
-    filter: drop-shadow(0 0 12px rgba(100, 180, 220, 0.6)) drop-shadow(0 0 24px rgba(100, 180, 220, 0.3));
+    filter: drop-shadow(0 0 12px rgba(100, 180, 220, 0.25)) drop-shadow(0 0 24px rgba(100, 180, 220, 0.1));
   }
   .divider-line-container:active {
     cursor: grabbing;
@@ -6245,12 +6245,18 @@ function renderGoldLeaderboard(){
       isTopRank = true;
     }
 
+    let animationDelay = '';
+    if(rank === 1) animationDelay = '0s';
+    else if(rank === 2) animationDelay = '1.5s';
+    else if(rank === 3) animationDelay = '3s';
+
     const entryClass = isTopRank ? 'rank-top-3' : '';
     const cssVars = isTopRank ? `--entry-glow-1:${boxShadow};` : '';
     const bgStyle = isTopRank ? `background:${bgGradient}; background-size:200% 100%;` : `background-color:rgba(0,0,0,0.3);`;
+    const animDelay = isTopRank ? `animation-delay:${animationDelay};` : '';
 
     return `
-      <div class="leaderboard-entry ${entryClass}" style="align-items:flex-start; gap:4px; ${bgStyle} padding:8px; border-radius:4px; box-shadow:${boxShadow}; ${cssVars}">
+      <div class="leaderboard-entry ${entryClass}" style="align-items:flex-start; gap:4px; ${bgStyle} padding:8px; border-radius:4px; box-shadow:${boxShadow}; ${cssVars} ${animDelay}">
         <div class="leaderboard-rank" style="flex-shrink:0;">${rankSparkle || '#' + rank}</div>
         <div style="flex:1; min-width:0;">
           <div class="comp-slot ${slotClasses}" style="height:24px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10px; font-weight:600; overflow:hidden; text-overflow:ellipsis; position:relative;">
