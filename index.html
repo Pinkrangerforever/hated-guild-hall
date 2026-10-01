@@ -1394,14 +1394,14 @@
   }
 
   #gold-leaderboard-sidebar{
-    position:fixed; left:0; top:54px; width:280px; height:calc(100vh - 54px);
-    background:linear-gradient(180deg, rgba(40,32,20,0.95), rgba(25,18,10,0.98));
-    border-right:1px solid rgba(207,154,68,0.3);
-    overflow-y:auto; z-index:100;
-    padding:16px 0;
+    width:280px;
+    background:linear-gradient(180deg, rgba(40,32,20,0.9), rgba(25,18,10,0.95));
+    border:1px solid rgba(207,154,68,0.3);
+    border-radius:4px;
+    padding:16px;
   }
   .gold-leaderboard-widget{
-    padding:16px;
+    padding:0;
   }
   .gold-leaderboard-widget-title{
     font-size:14px; font-weight:800; color:#f0dfb4; margin-bottom:12px; text-align:center;
@@ -1410,9 +1410,8 @@
     display:flex; flex-direction:column; gap:8px;
   }
   .leaderboard-entry{
-    display:flex; align-items:center; gap:8px; padding:6px 12px;
+    display:flex; align-items:center; gap:8px; padding:6px 8px;
     background:rgba(0,0,0,0.3); border-radius:3px; border:1px solid rgba(207,154,68,0.15);
-    margin:0 12px 8px 12px;
   }
   .leaderboard-rank{
     font-size:11px; font-weight:700; color:#dcb570; min-width:24px; text-align:center;
@@ -5305,9 +5304,6 @@ function renderApp(){
         }).join('')}
       </div>
     </nav>
-    <div id="gold-leaderboard-sidebar">
-      ${renderGoldLeaderboard()}
-    </div>
     <div class="main page-${state.tab}">
       ${ getTestRole() ? `<div style="position:fixed; top:0; left:0; right:0; background:linear-gradient(90deg, #ff6b00, #ffb300); color:white; padding:10px 16px; text-align:center; font-weight:600; z-index:999; font-size:13px;"> TEST MODE: Viewing as ${getTestRole().toUpperCase()}</div>` : '' }
       ${ state.toast ? `<div class="toast ${state.toastError?'toast-error':'toast-success'} sans" style="${getTestRole() ? 'margin-top:50px;' : ''}">${esc(state.toast)}</div>` : '' }
@@ -6219,6 +6215,11 @@ function renderNews(){
 
     <!-- Modules Container (everything positioned absolutely) -->
     <div id="layout-container" style="position:relative; width:100%; min-width:1700px; height:auto; min-height:2500px; overflow:visible; margin-top:24px; padding:40px 0;">
+
+      <!-- Gold Leaderboard Sidebar (left float) -->
+      <div id="gold-leaderboard-sidebar" style="float:left; margin-right:20px; margin-bottom:20px;">
+        ${renderGoldLeaderboard()}
+      </div>
 
       <!-- WOW-BOX 2: Trophy Case Frame -->
       <div id="wow-box-2" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:540px; left:0; width:700px; height:300px; ${getLayoutStyleString('wow-box-2')}">
