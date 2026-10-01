@@ -1416,6 +1416,13 @@
   .leaderboard-rank{
     font-size:11px; font-weight:700; color:#dcb570; min-width:24px; text-align:center;
   }
+  .leaderboard-entry.rank-top-3{
+    animation:leaderboardShimmer 2s ease-in-out infinite;
+  }
+  @keyframes leaderboardShimmer{
+    0%, 100%{ background-color:var(--entry-bg); box-shadow:var(--entry-glow-1); }
+    50%{ background-color:var(--entry-bg-bright); box-shadow:var(--entry-glow-2); }
+  }
 
   .blacksmith-forge{
     position:absolute; width:120px; height:120px; pointer-events:auto;
@@ -6187,21 +6194,41 @@ function renderGoldLeaderboard(){
     ].filter(Boolean).join(' ');
 
     let bgColor = '';
+    let bgColorBright = '';
     let boxShadow = '';
+    let boxShadowBright = '';
+    let rankSparkle = '';
+    let isTopRank = false;
+
     if(rank === 1) {
       bgColor = 'rgba(255, 215, 0, 0.35)';
+      bgColorBright = 'rgba(255, 215, 0, 0.5)';
       boxShadow = 'inset 0 1px 2px rgba(255, 255, 255, 0.4), 0 0 8px rgba(255, 215, 0, 0.2)';
+      boxShadowBright = 'inset 0 1px 2px rgba(255, 255, 255, 0.6), 0 0 12px rgba(255, 215, 0, 0.4)';
+      rankSparkle = '✨ #1 ✨';
+      isTopRank = true;
     } else if(rank === 2) {
       bgColor = 'rgba(192, 192, 192, 0.35)';
+      bgColorBright = 'rgba(192, 192, 192, 0.5)';
       boxShadow = 'inset 0 1px 2px rgba(255, 255, 255, 0.4), 0 0 8px rgba(192, 192, 192, 0.2)';
+      boxShadowBright = 'inset 0 1px 2px rgba(255, 255, 255, 0.6), 0 0 12px rgba(192, 192, 192, 0.4)';
+      rankSparkle = '✨ #2 ✨';
+      isTopRank = true;
     } else if(rank === 3) {
       bgColor = 'rgba(205, 127, 50, 0.35)';
+      bgColorBright = 'rgba(205, 127, 50, 0.5)';
       boxShadow = 'inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 0 8px rgba(205, 127, 50, 0.2)';
+      boxShadowBright = 'inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 0 12px rgba(205, 127, 50, 0.4)';
+      rankSparkle = '✨ #3 ✨';
+      isTopRank = true;
     }
 
+    const entryClass = isTopRank ? 'rank-top-3' : '';
+    const cssVars = isTopRank ? `--entry-bg:${bgColor}; --entry-bg-bright:${bgColorBright}; --entry-glow-1:${boxShadow}; --entry-glow-2:${boxShadowBright};` : '';
+
     return `
-      <div class="leaderboard-entry" style="align-items:flex-start; gap:4px; background-color:${bgColor}; padding:8px; border-radius:4px; box-shadow:${boxShadow};">
-        <div class="leaderboard-rank" style="flex-shrink:0;">#${rank}</div>
+      <div class="leaderboard-entry ${entryClass}" style="align-items:flex-start; gap:4px; background-color:${bgColor}; padding:8px; border-radius:4px; box-shadow:${boxShadow}; ${cssVars}">
+        <div class="leaderboard-rank" style="flex-shrink:0;">${rankSparkle || '#' + rank}</div>
         <div style="flex:1; min-width:0;">
           <div class="comp-slot ${slotClasses}" style="height:24px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10px; font-weight:600; overflow:hidden; text-overflow:ellipsis; position:relative;">
             <span style="position:relative; z-index:100;">${esc(profile.character_name)}</span>
