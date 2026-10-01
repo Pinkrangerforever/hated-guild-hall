@@ -6216,13 +6216,13 @@ function renderNews(){
   return `
 
 
-    <!-- Gold Leaderboard Sidebar (far left, scrolls with page) -->
-    <div id="gold-leaderboard-sidebar" style="position:absolute; left:0; top:0; width:280px; padding:40px 16px;">
-      ${renderGoldLeaderboard()}
-    </div>
-
     <!-- Modules Container (everything positioned absolutely) -->
-    <div id="layout-container" style="position:relative; width:100%; min-width:1700px; height:auto; min-height:2500px; overflow:visible; margin-top:24px; padding:40px 0; margin-left:300px;">
+    <div id="layout-container" style="position:relative; width:100%; min-width:1700px; height:auto; min-height:2500px; overflow:visible; margin-top:24px; padding:40px 0;">
+
+      <!-- Gold Leaderboard Sidebar (far left, on top of content) -->
+      <div id="gold-leaderboard-sidebar" style="position:absolute; left:0; top:0; width:280px; padding:40px 16px; z-index:50;">
+        ${renderGoldLeaderboard()}
+      </div>
 
       <!-- WOW-BOX 2: Trophy Case Frame -->
       <div id="wow-box-2" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="top:540px; left:0; width:700px; height:300px; ${getLayoutStyleString('wow-box-2')}">
