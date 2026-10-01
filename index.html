@@ -1897,9 +1897,12 @@
     border: 1px solid rgba(207,154,68,0.4);
     border-radius: 3px;
     transition: background 0.2s, border-color 0.2s;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
+  }
+  .divider-line-container.unlocked .divider-resize-handle {
+    display: flex;
   }
   .divider-resize-handle:hover {
     background: rgba(207,154,68,0.35);
