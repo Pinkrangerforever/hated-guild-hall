@@ -6190,8 +6190,11 @@ function renderGoldLeaderboard(){
     return `
       <div class="leaderboard-entry">
         <div class="leaderboard-rank">#${rank}</div>
-        <div class="comp-slot ${slotClasses}" style="flex:1; height:24px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10px; font-weight:600; overflow:hidden; text-overflow:ellipsis;">
-          ${esc(profile.character_name)}
+        <div style="flex:1;">
+          <div class="comp-slot ${slotClasses}" style="height:24px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10px; font-weight:600; overflow:hidden; text-overflow:ellipsis; position:relative; z-index:10;">
+            ${esc(profile.character_name)}
+          </div>
+          <div style="font-size:10px; color:#ffd700; font-weight:700; margin-top:2px; text-align:center;">💰 ${(profile.gold_earned_total || 0).toLocaleString()}g</div>
         </div>
       </div>
     `;
