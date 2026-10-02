@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pet Egg Preview</title>
+<style>
+  :root{ --bg:#14110d; --panel:#1f1a14; --line:#3a2f22; --text:#e8dcc4; --muted:#a8987c; --gold:#e0b44c; --bad:#e06c5c; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui, sans-serif; padding:24px 16px; }
+  main{ max-width:1000px; margin:0 auto; }
+  h1{ color:var(--gold); margin:0 0 4px; font-size:26px; }
+  h2{ color:var(--gold); font-size:18px; margin:28px 0 10px; }
+  .muted{ color:var(--muted); }
+  .row{ display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:14px; }
+  .anim{ text-align:center; font-size:12px; color:var(--muted); }
+  table{ border-collapse:collapse; width:100%; }
+  th, td{ text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); }
+  th{ color:var(--muted); font-weight:600; font-size:13px; }
+  .pets{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px; }
+  .pet{ text-align:center; }
+  .pet .name{ font-weight:700; margin-top:6px; }
+  .tag{ display:inline-block; font-size:12px; padding:1px 7px; border-radius:10px; border:1px solid var(--line); color:var(--muted); margin:2px; }
+  .error{ color:var(--bad); white-space:pre-wrap; }
+  /* Copy of the Shop card styles in index.html (.shop-card, .shop-preview-thumbnail) */
+  .shop-card{ background:#261c11; border:1px solid rgba(207,154,68,0.28); border-radius:4px; padding:12px; display:flex; flex-direction:column; }
+  .shop-card-name{ font-weight:700; font-size:15px; margin-bottom:6px; }
+  .shop-card-desc{ font-size:13px; line-height:1.5; flex:1; margin-bottom:12px; color:#a4926c; }
+  .shop-preview-thumbnail{ width:100%; height:80px; object-fit:cover; border-radius:3px; margin-bottom:8px; display:block; }
+  .shop-price{ color:var(--gold); font-weight:700; font-size:13px; }
+  form{ margin:12px 0 0; }
+  input{ background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:4px; padding:6px 8px; }
+  button{ background:var(--gold); color:#1a1408; border:0; border-radius:4px; padding:7px 12px; font-weight:700; cursor:pointer; }
+</style>
+</head>
+<body>
+<main id="app"><p class="muted">Loading…</p></main>
+<script src="helpers/generate-pet.js"></script>
+<script src="helpers/sprite.js"></script>
+<script>
+const SAMPLE_PETS = 20;
+const app = document.getElementById('app');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+async function getJson(path) {
+  const res = await fetch(path, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`${path}: ${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+function animRow(animations, base) {
+  return Object.entries(animations).map(([name, anim]) =>
+    `<div class="anim">${petSpriteHtml(anim, base, 96, name)}<div>${esc(name)}</div></div>`).join('');
+}
+
+async function render() {
+  const params = new URLSearchParams(location.search);
+  const key = params.get('egg');
+  const firstSeed = parseInt(params.get('seed') || '1', 10);
+  if (!key) {
+    app.innerHTML = `<h1>Pet Egg Preview</h1><p class="muted">Add <code>?egg=&lt;egg-key&gt;</code> to the address, for example <code>?egg=hatchling-egg</code>.</p>`;
+    return;
+  }
+  const eggBase = `eggs/${key}`;
+  const [egg, traits, actions, xp] = await Promise.all([
+    getJson(`${eggBase}/egg.json`), getJson('traits.json'), getJson('hatch-actions.json'), getJson('xp.json'),
+  ]);
+  const monsters = {};
+  for (const c of egg.contents) monsters[c.monster] = await getJson(`monsters/${c.monster}/monster.json`);
+
+  const pets = [];
+  for (let seed = firstSeed; seed < firstSeed + SAMPLE_PETS; seed++) {
+    pets.push(Pets.generatePet(seed, monsters[Pets.rollMonster(seed, egg)], traits));
+  }
+  const halfWin = (xp.minigame_win + xp.minigame_loss) / 2;
+  let totalXp = 0;
+  const levels = egg.xp_curve.map((step, i) => {
+    totalXp += step;
+    const games = perGame => Math.ceil(totalXp / perGame);
+    return `<tr><td>${i + 1} → ${i + 2}</td><td>${step}</td><td>${totalXp}</td><td>${games(xp.minigame_win)}</td><td>${games(halfWin)}</td><td>${games(xp.minigame_loss)}</td></tr>`;
+  }).join('');
+
+  app.innerHTML = `
+    <h1>${esc(egg.name)}</h1>
+    <p class="muted">${esc(egg.description)} · ${egg.price} gold</p>
+
+    <h2>Shop card at its narrowest and widest</h2>
+    <div class="row">${[150, 260].map(w => `
+      <div class="shop-card" style="width:${w}px;">
+        <img class="shop-preview-thumbnail" src="${eggBase}/${esc(egg.shop_image)}" alt="${esc(egg.name)}">
+        <div class="shop-card-name">${esc(egg.name)}</div>
+        <div class="shop-card-desc">${esc(egg.description)}</div>
+        <div class="shop-price">&#x1F4B0; ${egg.price}</div>
+      </div>`).join('')}
+    </div>
+
+    <h2>Egg animations</h2>
+    <div class="panel row">${animRow(egg.animations, eggBase)}</div>
+
+    <h2>Hatches after ${egg.hatch.distinct_actions} of these ${egg.hatch.actions.length} actions</h2>
+    <div class="panel"><ul>${egg.hatch.actions.map(a => `<li>${esc(actions[a] || a)} <span class="muted">(${esc(a)})</span></li>`).join('')}</ul></div>
+
+    <h2>Contents</h2>
+    <div class="panel"><table>
+      <tr><th>Monster</th><th>Chance</th><th>Type</th><th>Rarity</th><th>Animations</th></tr>
+      ${egg.contents.map(c => { const m = monsters[c.monster]; return `
+        <tr><td><strong>${esc(m.name)}</strong><br><span class="muted">${esc(m.description)}</span></td>
+        <td>${c.chance}%</td><td>${esc(m.type)}</td><td>${esc(m.rarity)}</td>
+        <td><div class="row">${animRow(m.animations, `monsters/${m.key}`)}${(m.skins || []).map(sk =>
+          `<div class="anim">${petSpriteHtml(sk.animations.idle, `monsters/${m.key}`, 96, sk.key)}<div>skin "${esc(sk.key)}", ${sk.chance}%</div></div>`).join('')}</div></td></tr>`; }).join('')}
+    </table></div>
+
+    <h2>${SAMPLE_PETS} sample hatches (seeds ${firstSeed}–${firstSeed + SAMPLE_PETS - 1})</h2>
+    <form><input type="hidden" name="egg" value="${esc(key)}"><input name="seed" type="number" value="${firstSeed + SAMPLE_PETS}" min="1"> <button>Next ${SAMPLE_PETS} seeds</button></form>
+    <div class="pets" style="margin-top:12px;">
+      ${pets.map(p => `
+        <div class="panel pet">
+          ${petSpriteHtml(monsters[p.monster].animations.idle, `monsters/${p.monster}`, 80, p.name)}
+          <div class="name">${esc(p.name)}</div>
+          <div class="muted">${esc(p.type)} · ${esc(p.rarity)} · seed ${p.seed}</div>
+          <div><span class="tag">${esc(p.personality)}</span></div>
+          <div class="muted" style="font-size:13px;">Likes ${p.likes.map(esc).join(', ')}<br>Dislikes ${p.dislikes.map(esc).join(', ')}</div>
+        </div>`).join('')}
+    </div>
+
+    <h2>Levels</h2>
+    <p class="muted">A minigame gives ${xp.minigame_win} XP for a win and ${xp.minigame_loss} for a loss (pets/xp.json). Games are totals from level 1.</p>
+    <div class="panel"><table><tr><th>Level</th><th>XP for this level</th><th>Total XP</th><th>Games, all wins</th><th>Games, half wins</th><th>Games, all losses</th></tr>${levels}</table></div>
+  `;
+}
+
+render().catch(e => {
+  app.innerHTML = `<h1>Pet Egg Preview</h1><p class="error">${esc(e.message)}</p>
+    <p class="muted">Serve the repo over HTTP (for example <code>python pets/serve.py</code> from the repo root), then run <code>node pets/helpers/validate-egg.mjs &lt;egg-key&gt;</code> to find the problem.</p>`;
+});
+</script>
+</body>
+</html>

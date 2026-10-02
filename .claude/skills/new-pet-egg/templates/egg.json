@@ -1,0 +1,18 @@
+{
+  "key": "egg-key",
+  "name": "Egg Name",
+  "description": "",
+  "price": 2500,
+  "shop_image": "assets/shop.webp",
+  "animations": {
+    "idle": { "src": "assets/idle.png" }
+  },
+  "hatch": {
+    "actions": ["visit_calendar", "rsvp_event", "visit_strategies", "visit_roster", "visit_loot", "visit_guildbank", "view_gallery", "claim_sparkle", "set_character_name", "open_shop"],
+    "distinct_actions": 7
+  },
+  "contents": [
+    { "monster": "monster-key", "chance": 100 }
+  ],
+  "xp_curve": [60, 100, 140, 180, 230, 290]
+}
