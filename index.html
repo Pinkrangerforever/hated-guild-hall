@@ -5476,27 +5476,27 @@ function renderCalendar(){
               const dateRange = absence.dates.length === 1
                 ? dateLabel(absence.dates[0])
                 : `${dateLabel(absence.dates[0])} – ${dateLabel(absence.dates[absence.dates.length - 1])}`;
-              return \`
+              return `
                 <div class="cal-absence-item">
                   <div class="cal-absence-member">
                     <div class="cal-absence-icon">✗</div>
                     <div>
-                      <div class="cal-absence-name">\${esc(absence.name)}</div>
-                      <div class="cal-absence-dates">Out: \${dateRange}</div>
+                      <div class="cal-absence-name">${esc(absence.name)}</div>
+                      <div class="cal-absence-dates">Out: ${dateRange}</div>
                     </div>
                   </div>
                 </div>
-              \`;
+              `;
             }).join('');
 
-        return \`
+        return `
           <div class="cal-absence-summary">
             <div class="cal-absence-title">Guild Absence Summary</div>
             <div class="cal-absence-list">
-              \${html}
+              ${html}
             </div>
           </div>
-        \`;
+        `;
       })() }
     </div>
   `;
