@@ -1,0 +1,51 @@
+{
+  "key": "baby",
+  "name": "Baby",
+  "type": "Humanoid",
+  "rarity": "legendary",
+  "description": "Mighty power in a tiny package.",
+  "traits": {
+    "likes": [
+      "Walks in the cabbage patch",
+      "Throwing a book on the fire",
+      "Milkies",
+      "Playing with trucks",
+      "Being loud",
+      "Shiny things",
+      "Overhearing secrets"
+    ]
+  },
+  "animations": {
+    "idle": {
+      "src": "assets/idle.webp",
+      "source": "https://wow.zamimg.com/modelviewer/live/webthumbs/npc/114/21362.webp (model 21362 thumbnail)"
+    }
+  },
+  "throws": [
+    {
+      "emoji": "🍌"
+    },
+    {
+      "emoji": "🥕"
+    }
+  ],
+  "sounds": {
+    "call": {
+      "src": "assets/call.ogg",
+      "volume": 0.6,
+      "source": "https://www.wowhead.com/npc=269986/baby-gorilla (PetGorillaC, sound 558158)"
+    }
+  },
+  "skins": [
+    {
+      "key": "toon",
+      "chance": 1,
+      "animations": {
+        "idle": {
+          "src": "assets/skin-toon.webp",
+          "source": "Hand-drawn caricature supplied by the guild, used with the subject's consent; background removed with helpers/remove-background.py --min-light 135"
+        }
+      }
+    }
+  ]
+}
