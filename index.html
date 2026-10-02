@@ -5474,8 +5474,8 @@ function renderCalendar(){
           ? '<div class="cal-absence-empty">✓ Everyone available for upcoming events</div>'
           : absenceList.map(absence => {
               const dateRange = absence.dates.length === 1
-                ? dateLabel(absence.dates[0])
-                : `${dateLabel(absence.dates[0])} – ${dateLabel(absence.dates[absence.dates.length - 1])}`;
+                ? fmtDate(absence.dates[0])
+                : `${fmtDate(absence.dates[0])} – ${fmtDate(absence.dates[absence.dates.length - 1])}`;
               return `
                 <div class="cal-absence-item">
                   <div class="cal-absence-member">
