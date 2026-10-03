@@ -3493,7 +3493,8 @@ async function uploadOneGalleryImage(file){
   const ext = (file.name.split('.').pop() || 'png').toLowerCase();
   const fileName = uid() + '.' + ext;
   try {
-    const token = sb.auth.session()?.access_token;
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session?.access_token;
     if(!token){
       console.error('Not authenticated');
       return false;
