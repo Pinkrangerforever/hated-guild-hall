@@ -1048,6 +1048,21 @@
     opacity:0.85;
     z-index:25;
   }
+  .comp-slot.name-custom-matrixmom::before {
+    content:'';
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    pointer-events:none;
+    background-image:url('matrix-mom-bg.gif');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    opacity:0.85;
+    z-index:25;
+  }
   .comp-slot.name-custom-warlockdemise::before {
     content:'';
     position:absolute;
@@ -2773,6 +2788,13 @@ async function loadPublicShopItems(){
   if(!hasNewWorld){
     console.log('Seeding New World nameplate customization...');
     await addNameplateCustomizationItem('New World', 2500, 'newworld', 'new-world-bg.gif');
+  }
+
+  // Seed "Mom! I'm in the Matrix Mom!" nameplate customization if it doesn't exist
+  const hasMatrixMom = state.shopItems.some(item => item.metadata?.effect === 'matrixmom');
+  if(!hasMatrixMom){
+    console.log('Seeding Mom! I\'m in the Matrix Mom! nameplate customization...');
+    await addNameplateCustomizationItem('Mom!  I\'m in the Matrix Mom!', 2500, 'matrixmom', 'matrix-mom-bg.gif');
   }
 }
 
@@ -5680,7 +5702,7 @@ function renderShopModal(){
     if(state.editingShopItemId === item.id) return renderEditForm(item);
     const canAfford = gold >= item.cost;
     const owned = state.shopPurchases && state.shopPurchases.some(p => p.item_id === item.id && p.fulfilled);
-    const gifMap = {flame:'flame-bg.gif', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif', gofast:'go-fast-bg.gif', conecold:'cone-cold-bg.gif', elune:'elune-bg.gif', barrenssunset:'barrens-sunset-bg.gif', hockeynerds:'hockey-nerds-bg.gif', cozmicdustv:'cozmic-dust-bg.gif', newworld:'new-world-bg.gif', warlockdemise:'warlocks-demise-bg.gif', lifedrain:'life-drain-bg.gif', meanbull5years:'meanbull-5-years-bg.gif'};
+    const gifMap = {flame:'flame-bg.gif', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif', gofast:'go-fast-bg.gif', conecold:'cone-cold-bg.gif', elune:'elune-bg.gif', barrenssunset:'barrens-sunset-bg.gif', hockeynerds:'hockey-nerds-bg.gif', cozmicdustv:'cozmic-dust-bg.gif', newworld:'new-world-bg.gif', warlockdemise:'warlocks-demise-bg.gif', lifedrain:'life-drain-bg.gif', meanbull5years:'meanbull-5-years-bg.gif', matrixmom:'matrix-mom-bg.gif'};
     const previewImage = item.image_url || (item.category === 'name_customization' && gifMap[item.metadata?.effect]);
     return `
       <div class="shop-card ${item.active===false?'inactive':''}">
@@ -6866,7 +6888,7 @@ function renderSettings(){
             const item = state.shopItems?.find(i => i.id === p.item_id);
             const isActive = activeId === p.item_id;
             const effect = item?.metadata?.effect || '';
-            const gifMap = {flame:'flame-bg.gif', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif', gofast:'go-fast-bg.gif', conecold:'cone-cold-bg.gif', elune:'elune-bg.gif', barrenssunset:'barrens-sunset-bg.gif', hockeynerds:'hockey-nerds-bg.gif', cozmicdustv:'cozmic-dust-bg.gif', newworld:'new-world-bg.gif', warlockdemise:'warlocks-demise-bg.gif', lifedrain:'life-drain-bg.gif', meanbull5years:'meanbull-5-years-bg.gif'};
+            const gifMap = {flame:'flame-bg.gif', star:'star-bg.gif', shadow:'shadow-bg.gif', techno:'shadow-bg.gif', anime:'anime-headphones.gif', lightning:'lightning.gif', gofast:'go-fast-bg.gif', conecold:'cone-cold-bg.gif', elune:'elune-bg.gif', barrenssunset:'barrens-sunset-bg.gif', hockeynerds:'hockey-nerds-bg.gif', cozmicdustv:'cozmic-dust-bg.gif', newworld:'new-world-bg.gif', warlockdemise:'warlocks-demise-bg.gif', lifedrain:'life-drain-bg.gif', meanbull5years:'meanbull-5-years-bg.gif', matrixmom:'matrix-mom-bg.gif'};
             const gifFile = gifMap[effect] || '';
             return `
             <button class="btn ${isActive ? 'primary' : 'secondary'}" type="button" data-set-name-custom="${p.item_id}" style="padding:12px; text-align:left; display:flex; gap:12px; align-items:flex-start;">
