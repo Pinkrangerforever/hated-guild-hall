@@ -3640,7 +3640,7 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
     const payload = JSON.stringify({
       pending_id: pendingId,
       won: won,
-      client_time_ms: performance.now(),
+      client_time_ms: Math.floor(performance.now()),
       client_timings: clientTimings
     });
 
@@ -3675,7 +3675,7 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       p_won: won,
       p_challenge: challenge,
       p_signature: signatureHex,
-      p_client_time_ms: performance.now(),
+      p_client_time_ms: Math.floor(performance.now()),
       p_client_timings: clientTimings ? JSON.stringify(clientTimings) : JSON.stringify([])
     });
 
@@ -3779,7 +3779,7 @@ function startMurlocEvent(rect, pendingId){
   }
 
   function hitMurloc(el){
-    clickTimings.push(performance.now());
+    clickTimings.push(Math.floor(performance.now()));
     const computed = window.getComputedStyle(el).transform;
     el.style.animation = 'none';
     el.style.transform = computed === 'none' ? '' : computed;
@@ -3890,7 +3890,7 @@ function startFishingEvent(rect, pendingId){
   const hintBtn = pool.querySelector('.pool-click-hint');
   hintBtn.addEventListener('click', function startGauge(){
     if(resolved) return;
-    clickTimings.push(performance.now());
+    clickTimings.push(Math.floor(performance.now()));
     clearTimeout(idleTimeout);
     hintBtn.remove();
 
@@ -3929,7 +3929,7 @@ function startFishingEvent(rect, pendingId){
 
     gaugeWrap.querySelector('.fish-gauge-btn').addEventListener('click', ()=>{
       if(gameResolved) return;
-      clickTimings.push(performance.now());
+      clickTimings.push(Math.floor(performance.now()));
       const elapsed = performance.now() - startTime;
       const angle = window.__fishingNeedleAngleAt(elapsed, window.__FISHING_SWEEP_MS);
       finishGame(angle >= zoneStart && angle <= zoneEnd);
@@ -4072,7 +4072,7 @@ function startBlacksmithGame(spawnRect, pendingId){
     function handleClick(){
       if(clickedInWindow) return;
       clickedInWindow = true;
-      clickTimings.push(performance.now());
+      clickTimings.push(Math.floor(performance.now()));
 
       const elapsed = performance.now() - cycleStart;
       const progress = (elapsed / cycleTime) % 1;
