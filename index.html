@@ -3526,11 +3526,12 @@ async function claimSparkle(el){
   el.remove();
 
   try{
-    console.log(' Calling claim_sparkle_gold RPC...');
+    console.log('Calling claim_sparkle_gold RPC...');
     const { data, error } = await sb.rpc('claim_sparkle_gold');
-    console.log(' RPC Response - data:', data, 'error:', error);
+    console.log('RPC Response - data:', data, 'error:', error);
+
     if(error) {
-      console.error(' RPC Error details:', {
+      console.error('RPC Error details:', {
         message: error.message,
         code: error.code,
         details: error.details,
@@ -3540,13 +3541,20 @@ async function claimSparkle(el){
       showToast('RPC Error: ' + (error.message || 'Unknown error'), true);
       return;
     }
+
     if(!data || !data.success) {
-      console.error(' RPC returned no success:', data);
+      console.error('RPC returned no success:', data);
       return;
     }
 
+    // Store challenge for later signing
+    if(data.pending_id && data.challenge) {
+      localStorage.setItem(`challenge_${data.pending_id}`, data.challenge);
+      console.log('Stored challenge for pending_id:', data.pending_id);
+    }
+
     // Use the event type from RPC, not client-side random
-    console.log(' Event type from RPC:', data.event);
+    console.log('Event type from RPC:', data.event);
     if(data.event === 'blacksmith') {
       return startBlacksmithGame(rect, data.pending_id);
     } else if(data.event === 'murloc') {
@@ -3577,20 +3585,89 @@ async function claimSparkle(el){
     showToast('Sparkle error: ' + e.message, true);
   }
 }
-async function resolveSparkleEvent(pendingId, won, x, y){
+async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
   try{
-    const { data, error } = await sb.rpc('resolve_sparkle_event', { p_pending_id: pendingId, p_won: won });
-    if(error || !data || !data.success) return;
+    const challenge = localStorage.getItem(`challenge_${pendingId}`);
+    if (!challenge) {
+      console.error('No challenge found for pending_id:', pendingId);
+      showToast('Security error: challenge not found', true);
+      return;
+    }
+
+    const payload = JSON.stringify({
+      pending_id: pendingId,
+      won: won,
+      client_time_ms: performance.now(),
+      client_timings: clientTimings
+    });
+
+    let signatureHex = '';
+    try {
+      const encoder = new TextEncoder();
+      const keyMaterial = await window.crypto.subtle.importKey(
+        'raw',
+        encoder.encode(challenge),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const signature = await window.crypto.subtle.sign(
+        'HMAC',
+        keyMaterial,
+        encoder.encode(payload)
+      );
+      signatureHex = Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      console.log('Generated signature:', signatureHex.substring(0, 16) + '...');
+    } catch(sigError) {
+      console.error('Failed to generate signature:', sigError);
+      showToast('Security error: could not sign request', true);
+      return;
+    }
+
+    console.log('Calling resolve_sparkle_event with signature...');
+    const { data, error } = await sb.rpc('resolve_sparkle_event', {
+      p_pending_id: pendingId,
+      p_won: won,
+      p_challenge: challenge,
+      p_signature: signatureHex,
+      p_client_time_ms: performance.now(),
+      p_client_timings: clientTimings ? JSON.stringify(clientTimings) : JSON.stringify([])
+    });
+
+    console.log('resolve_sparkle_event response:', data, error);
+
+    if(error) {
+      console.error('Resolve error:', error);
+      if (error.message.includes('SIGNATURE_INVALID')) {
+        showToast('Security validation failed - possible tampering detected', true);
+      } else {
+        showToast('Error resolving game: ' + error.message, true);
+      }
+      return;
+    }
+
+    if(!data || !data.success) {
+      console.log('Game result:', data);
+      return;
+    }
+
     if(won && state.profile){
       state.profile.gold = data.total;
       const goldBadge = document.querySelector('.nav-gold-badge');
       if(goldBadge) goldBadge.textContent = ' ' + data.total;
-      if(data.awarded !== undefined){
+      if(data.awarded !== undefined && data.awarded > 0){
         showGoldFloat(x, y, data.awarded);
       }
     }
-    // loss: no gold awarded, event marked complete, game shows its own "got away" message
-  }catch(e){ /* silent */ }
+
+    localStorage.removeItem(`challenge_${pendingId}`);
+
+  }catch(e){
+    console.error('resolveSparkleEvent error:', e);
+    showToast('Game resolution error: ' + e.message, true);
+  }
 }
 
 /* ---------------- murloc ambush sub-event ---------------- */
@@ -3645,6 +3722,7 @@ function startMurlocEvent(rect, pendingId){
 
   let hits = 0, resolved = false;
   const total = count;
+  const clickTimings = [];
 
   function spawnArrow(murlocEl){
     const arrow = document.createElement('div');
@@ -3658,13 +3736,11 @@ function startMurlocEvent(rect, pendingId){
   }
 
   function hitMurloc(el){
-    // Freeze the ongoing flee animation exactly where it is, then let a CSS
-    // transition (not a keyframe animation) carry it smoothly into the hit
-    // reaction  avoids any visual "snap back" to full size on hit.
+    clickTimings.push(performance.now());
     const computed = window.getComputedStyle(el).transform;
     el.style.animation = 'none';
     el.style.transform = computed === 'none' ? '' : computed;
-    void el.offsetWidth; // force reflow so the frozen transform takes effect before adding .hit
+    void el.offsetWidth;
     el.classList.add('hit');
     el.disabled = true;
     spawnArrow(el);
@@ -3679,7 +3755,7 @@ function startMurlocEvent(rect, pendingId){
     } else {
       showToast('The murlocs got away!', true);
     }
-    resolveSparkleEvent(pendingId, success, cx, cy);
+    resolveSparkleEvent(pendingId, success, cx, cy, clickTimings);
     setTimeout(()=>{ if(container.parentNode) container.remove(); }, 400);
   }
 
@@ -3759,16 +3835,19 @@ function startFishingEvent(rect, pendingId){
   layer.appendChild(pool);
 
   let resolved = false;
+  const clickTimings = [];
+
   const idleTimeout = setTimeout(()=>{
     if(resolved) return;
     resolved = true;
-    resolveSparkleEvent(pendingId, false, cx, cy);
+    resolveSparkleEvent(pendingId, false, cx, cy, clickTimings);
     pool.remove();
   }, FISHING_IDLE_TIMEOUT_MS);
 
   const hintBtn = pool.querySelector('.pool-click-hint');
   hintBtn.addEventListener('click', function startGauge(){
     if(resolved) return;
+    clickTimings.push(performance.now());
     clearTimeout(idleTimeout);
     hintBtn.remove();
 
@@ -3802,11 +3881,12 @@ function startFishingEvent(rect, pendingId){
         showToast('The fish got away', true);
         setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 300);
       }
-      resolveSparkleEvent(pendingId, success, cx, cy);
+      resolveSparkleEvent(pendingId, success, cx, cy, clickTimings);
     }
 
     gaugeWrap.querySelector('.fish-gauge-btn').addEventListener('click', ()=>{
       if(gameResolved) return;
+      clickTimings.push(performance.now());
       const elapsed = performance.now() - startTime;
       const angle = window.__fishingNeedleAngleAt(elapsed, window.__FISHING_SWEEP_MS);
       finishGame(angle >= zoneStart && angle <= zoneEnd);
@@ -3878,6 +3958,8 @@ function startBlacksmithGame(spawnRect, pendingId){
     gameTimeout: null
   };
 
+  const clickTimings = [];
+
   const hammer = forge.querySelector('.hammer-graphic');
   const hitDisplay = forge.querySelector('.hit-display');
   hitDisplay.textContent = '0/3';
@@ -3947,6 +4029,7 @@ function startBlacksmithGame(spawnRect, pendingId){
     function handleClick(){
       if(clickedInWindow) return;
       clickedInWindow = true;
+      clickTimings.push(performance.now());
 
       const elapsed = performance.now() - cycleStart;
       const progress = (elapsed / cycleTime) % 1;
@@ -4077,7 +4160,7 @@ function startBlacksmithGame(spawnRect, pendingId){
     `;
     forge.appendChild(smoke);
 
-    resolveSparkleEvent(pendingId, success, cx, cy);
+    resolveSparkleEvent(pendingId, success, cx, cy, clickTimings);
     setTimeout(()=>{ if(forge.parentNode) forge.remove(); }, 1200);
   }
 
