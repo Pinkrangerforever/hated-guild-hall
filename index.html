@@ -3569,9 +3569,7 @@ async function claimSparkle(el){
   el.remove();
 
   try{
-    console.log('Calling claim_sparkle_gold RPC...');
     const { data, error } = await sb.rpc('claim_sparkle_gold');
-    console.log('RPC Response - data:', data, 'error:', error);
 
     if(error) {
       console.error('RPC Error details:', {
@@ -3593,11 +3591,9 @@ async function claimSparkle(el){
     // Store challenge for later signing
     if(data.pending_id && data.challenge) {
       localStorage.setItem(`challenge_${data.pending_id}`, data.challenge);
-      console.log('Stored challenge for pending_id:', data.pending_id);
     }
 
     // Use the event type from RPC, not client-side random
-    console.log('Event type from RPC:', data.event);
     if(data.event === 'blacksmith') {
       return startBlacksmithGame(rect, data.pending_id);
     } else if(data.event === 'murloc') {
@@ -3607,8 +3603,6 @@ async function claimSparkle(el){
     }
 
     // normal claim: update gold directly without full render to preserve video
-    console.log('Normal claim - RPC data:', data);
-
     if(data.awarded !== undefined && state.profile){
       const awarded = data.awarded;
       state.profile.gold = data.total || (state.profile.gold + awarded);
@@ -3662,14 +3656,12 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       signatureHex = Array.from(new Uint8Array(signature))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
-      console.log('Generated signature:', signatureHex.substring(0, 16) + '...');
     } catch(sigError) {
       console.error('Failed to generate signature:', sigError);
       showToast('Security error: could not sign request', true);
       return;
     }
 
-    console.log('Calling resolve_sparkle_event with signature...');
     const { data, error } = await sb.rpc('resolve_sparkle_event', {
       p_pending_id: pendingId,
       p_won: won,
@@ -3678,8 +3670,6 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       p_client_time_ms: Math.floor(performance.now()),
       p_client_timings: clientTimings ? JSON.stringify(clientTimings) : JSON.stringify([])
     });
-
-    console.log('resolve_sparkle_event response:', data, error);
 
     if(error) {
       console.error('Resolve error:', error);
