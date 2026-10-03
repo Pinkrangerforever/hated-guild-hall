@@ -2819,6 +2819,49 @@ async function loadAdminPurchases(){
   render();
 }
 
+async function loadCheatData(){
+  if(!state.profile || !state.profile.protected) return;
+
+  try {
+    // Load cheat suspects (top suspects ranked by points)
+    const { data: suspects, error: suspectsError } = await sb.rpc('cheat_suspects');
+    if(suspectsError) throw suspectsError;
+
+    // Load recent audit log
+    const { data: auditLog, error: auditError } = await sb
+      .from('cheat_audit_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if(auditError) throw auditError;
+
+    // Load flagged games
+    const { data: flaggedGames, error: gamesError } = await sb
+      .from('game_events')
+      .select('*')
+      .not('flags', 'eq', '{}')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if(gamesError) throw gamesError;
+
+    state.cheatData = {
+      suspects: suspects || [],
+      auditLog: auditLog || [],
+      flaggedGames: flaggedGames || []
+    };
+    console.log('Cheat data loaded:', {
+      suspects: suspects?.length || 0,
+      auditLog: auditLog?.length || 0,
+      flaggedGames: flaggedGames?.length || 0
+    });
+    render();
+  } catch(err) {
+    console.error('Failed to load cheat data:', err);
+    state.cheatData = { suspects: [], auditLog: [], flaggedGames: [] };
+    render();
+  }
+}
+
 async function moveShopItem(itemId, direction){
   try {
     const item = state.shopItems.find(i=>i.id===itemId);
@@ -6863,7 +6906,17 @@ function renderAdmin(){
     return `
       ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account  not even other officers can see this tab.")}
       <div class="panel style-glass">
-        <p style="color:var(--text-muted);">Loading shop refunds...</p>
+        <p style="color:var(--text-muted);">Loading admin data...</p>
+      </div>
+    `;
+  }
+
+  if(state.cheatData === undefined){
+    loadCheatData();
+    return `
+      ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account  not even other officers can see this tab.")}
+      <div class="panel style-glass">
+        <p style="color:var(--text-muted);">Loading cheat detection data...</p>
       </div>
     `;
   }
@@ -6871,6 +6924,103 @@ function renderAdmin(){
   const purchases = state.adminPurchases;
   let html = `
     ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account  not even other officers can see this tab.")}
+    <div class="panel style-glass">
+      <h2>Cheater Dashboard</h2>
+      <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Monitor anti-cheat system for suspicious activity and soft-bans.</p>
+  `;
+
+  // Cheat data
+  const cheatData = state.cheatData || {};
+  const suspects = cheatData.suspects || [];
+  const auditLog = cheatData.auditLog || [];
+  const flaggedGames = cheatData.flaggedGames || [];
+
+  // Suspects section
+  html += `<div style="margin-bottom:24px;">
+    <h3 style="font-size:14px; color:#d4a574; margin-bottom:12px;">🚨 Users Under Review / Soft-Banned (${suspects.length})</h3>`;
+
+  if(suspects.length === 0){
+    html += `<p style="color:var(--text-muted); font-size:13px;">No suspicious activity detected.</p>`;
+  } else {
+    html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
+    suspects.forEach(s=>{
+      const statusColor = s.status === 'SOFT_BAN' ? '#b05253' : '#d4a574';
+      const statusLabel = s.status === 'SOFT_BAN' ? '🔒 SOFT-BAN' : '⚠️ UNDER REVIEW';
+      html += `
+        <div style="padding:12px; background:var(--bg-input); border-radius:4px; border-left:3px solid ${statusColor};">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="color:var(--text-normal); font-weight:600;">${s.discord_username}</span>
+            <span style="color:${statusColor}; font-weight:700; font-size:12px;">${statusLabel}</span>
+          </div>
+          <div style="color:var(--text-muted); font-size:12px;">
+            💥 ${s.total_points} points • 🎮 ${s.games_played_7d} games (${s.win_pct_7d}% wins) • 📊 ${s.flag_count} flags
+          </div>
+          <div style="color:var(--text-muted); font-size:11px;">Last flagged: ${new Date(s.last_flagged_at).toLocaleString()}</div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  // Recent suspicious activity
+  html += `<div style="margin-bottom:24px;">
+    <h3 style="font-size:14px; color:#d4a574; margin-bottom:12px;">🔍 Recent Suspicious Activity (Last 20)</h3>`;
+
+  if(auditLog.length === 0){
+    html += `<p style="color:var(--text-muted); font-size:13px;">No activity logged.</p>`;
+  } else {
+    html += `<div style="display:flex; flex-direction:column; gap:6px; max-height:400px; overflow-y:auto;">`;
+    auditLog.slice(0, 20).forEach(log=>{
+      const severityColor = log.severity === 'HIGH' ? '#b05253' : (log.severity === 'MEDIUM' ? '#d4a574' : '#7fa363');
+      const user = Object.values(state.profilesById || {}).find(p=>p.id===log.user_id);
+      const userName = user?.discord_username || 'Unknown';
+      html += `
+        <div style="padding:10px; background:rgba(0,0,0,0.2); border-radius:3px; border-left:2px solid ${severityColor}; font-size:12px;">
+          <div style="color:var(--text-normal); margin-bottom:2px;">
+            <strong>${userName}</strong> - ${log.event_type}
+          </div>
+          <div style="color:var(--text-muted); font-size:11px;">
+            🏷️ ${log.flags.join(', ')} • ${new Date(log.created_at).toLocaleString()}
+          </div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  // Flagged games
+  html += `<div style="margin-bottom:24px;">
+    <h3 style="font-size:14px; color:#d4a574; margin-bottom:12px;">🎮 Flagged Games (Last 20)</h3>`;
+
+  if(flaggedGames.length === 0){
+    html += `<p style="color:var(--text-muted); font-size:13px;">No games flagged.</p>`;
+  } else {
+    html += `<div style="display:flex; flex-direction:column; gap:6px; max-height:400px; overflow-y:auto;">`;
+    flaggedGames.slice(0, 20).forEach(g=>{
+      const user = Object.values(state.profilesById || {}).find(p=>p.id===g.user_id);
+      const userName = user?.discord_username || 'Unknown';
+      const result = g.won ? '✅ WON' : '❌ LOST';
+      html += `
+        <div style="padding:10px; background:rgba(0,0,0,0.2); border-radius:3px; border-left:2px solid #7fa363; font-size:12px;">
+          <div style="color:var(--text-normal); margin-bottom:2px;">
+            <strong>${userName}</strong> - ${g.game_type} ${result}
+          </div>
+          <div style="color:var(--text-muted); font-size:11px;">
+            🏷️ ${g.flags.join(', ')} • 💰 ${g.gold_awarded}g • ${new Date(g.created_at).toLocaleString()}
+          </div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  html += `</div>`;
+
+  // Shop Refunds section
+  html += `
     <div class="panel style-glass">
       <h2>Shop Refunds</h2>
       <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Manage and refund shop purchases in case of accidents or disputes.</p>
