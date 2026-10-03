@@ -3491,21 +3491,36 @@ async function uploadOneGalleryImage(file){
   const MAX_BYTES = 50 * 1024 * 1024;
   if(file.size > MAX_BYTES) return false;
   const ext = (file.name.split('.').pop() || 'png').toLowerCase();
-  const path = uid() + '.' + ext;
-  const { error: uploadError } = await sb.storage.from(GALLERY_BUCKET).upload(path, file, { upsert: true });
-  if(uploadError){
-    console.error('Storage upload error:', uploadError);
+  const fileName = uid() + '.' + ext;
+  try {
+    const { data: presignedData, error: presignedError } = await sb.functions.invoke('generate-r2-presigned-url', {
+      body: { fileName, contentType: file.type }
+    });
+    if(presignedError){
+      console.error('Presigned URL error:', presignedError);
+      return false;
+    }
+    const { uploadUrl, publicUrl } = presignedData;
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type }
+    });
+    if(!uploadResponse.ok){
+      console.error('R2 upload error:', uploadResponse.statusText);
+      return false;
+    }
+    const { data, error } = await sb.from('gallery_images').insert({ url: publicUrl, caption: file.name, uploaded_by: myName() }).select().single();
+    if(error){
+      console.error('Gallery insert error:', error);
+      return false;
+    }
+    state.galleryImages = [data, ...state.galleryImages];
+    return true;
+  } catch(err){
+    console.error('Upload error:', err);
     return false;
   }
-  const { data: pub } = sb.storage.from(GALLERY_BUCKET).getPublicUrl(path);
-  const url = pub.publicUrl;
-  const { data, error } = await sb.from('gallery_images').insert({ url, caption: file.name, uploaded_by: myName() }).select().single();
-  if(error){
-    console.error('Gallery insert error:', error);
-    return false;
-  }
-  state.galleryImages = [data, ...state.galleryImages];
-  return true;
 }
 async function deleteGalleryImage(id){
   const { error } = await sb.from('gallery_images').delete().eq('id', id);
