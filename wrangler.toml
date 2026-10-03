@@ -1,0 +1,12 @@
+name = "hated-guild-hall-worker"
+main = "src/index.ts"
+compatibility_date = "2026-10-03"
+
+[env.production]
+routes = [
+  { pattern = "https://hatedforever.com/api/*", zone_name = "hatedforever.com" }
+]
+
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "site-imgs"

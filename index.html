@@ -3493,14 +3493,24 @@ async function uploadOneGalleryImage(file){
   const ext = (file.name.split('.').pop() || 'png').toLowerCase();
   const fileName = uid() + '.' + ext;
   try {
-    const { data: presignedData, error: presignedError } = await sb.functions.invoke('generate-r2-presigned-url', {
-      body: { fileName, contentType: file.type }
-    });
-    if(presignedError){
-      console.error('Presigned URL error:', presignedError);
+    const token = sb.auth.session()?.access_token;
+    if(!token){
+      console.error('Not authenticated');
       return false;
     }
-    const { uploadUrl, publicUrl } = presignedData;
+    const presignedResponse = await fetch('/api/generate-presigned-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ fileName, contentType: file.type })
+    });
+    if(!presignedResponse.ok){
+      console.error('Presigned URL error:', presignedResponse.statusText);
+      return false;
+    }
+    const { uploadUrl, publicUrl } = await presignedResponse.json();
     const uploadResponse = await fetch(uploadUrl, {
       method: 'PUT',
       body: file,
