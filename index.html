@@ -2847,8 +2847,10 @@ async function loadCheatData(){
 
   try {
     // Load cheat suspects (top suspects ranked by points)
-    const { data: suspects, error: suspectsError } = await sb.rpc('cheat_suspects');
-    if(suspectsError) throw suspectsError;
+    // TODO: Convert to direct query instead of RPC
+    // const { data: suspects, error: suspectsError } = await sb.rpc('cheat_suspects');
+    // if(suspectsError) throw suspectsError;
+    const suspects = [];
 
     // Load recent audit log
     const { data: auditLog, error: auditError } = await sb
