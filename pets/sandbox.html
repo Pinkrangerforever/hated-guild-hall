@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pet Sandbox</title>
+<style>
+  :root{
+    --bg-primary:#3a2e1d; --bg-secondary:#2f2515; --bg-tertiary:#241b10; --bg-card:#493a24; --bg-input:#261c11;
+    --divider:rgba(207,154,68,0.14); --divider-strong:rgba(207,154,68,0.28);
+    --text:#ece0c8; --muted:#a4926c; --faint:#6b5e46; --gold:#cf9a44; --gold-light:#f0dfb4; --green:#7fa363; --red:#b0524f;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg-tertiary); color:var(--text); font:15px/1.5 system-ui, sans-serif; min-height:100vh; }
+  button{ font:inherit; cursor:pointer; }
+  .btn{ background:var(--gold); color:#1a1408; border:0; border-radius:3px; padding:7px 12px; font-weight:700; }
+  .btn:disabled{ opacity:.45; cursor:default; }
+  .btn.secondary{ background:transparent; color:var(--gold-light); border:1px solid var(--divider-strong); }
+  .btn.small{ padding:3px 8px; font-size:12px; }
+  .muted{ color:var(--muted); }
+  .mock-banner{ background:#5a2f12; color:#ffd9a8; text-align:center; font-size:13px; padding:4px 16px; }
+
+  nav{ background:var(--bg-secondary); border-bottom:1px solid var(--divider-strong); padding:10px 16px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  nav .title{ font-weight:800; color:var(--gold-light); margin-right:10px; }
+  nav .tab{ background:transparent; border:1px solid transparent; color:var(--muted); border-radius:3px; padding:5px 8px; font-size:14px; }
+  nav .tab.on{ color:var(--gold-light); border-color:var(--divider-strong); background:rgba(207,154,68,0.08); }
+  nav .tab.collection{ color:var(--gold-light); }
+  .gold{ margin-left:auto; font-size:13px; font-weight:700; color:var(--gold-light); border:1px solid rgba(207,154,68,.6); border-radius:12px; padding:3px 10px; background:#2a2a2a; }
+
+  .events{ display:flex; gap:8px; flex-wrap:wrap; padding:10px 16px; border-bottom:1px solid var(--divider); background:var(--bg-primary); align-items:center; font-size:13px; }
+  main{ max-width:900px; margin:0 auto; padding:24px 16px 180px; }
+  h1{ font-size:22px; color:var(--gold-light); margin:0 0 6px; }
+  h2{ font-size:15px; font-weight:800; color:var(--gold-light); margin:22px 0 8px; }
+
+  .shop-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
+  .shop-card{ background:var(--bg-input); border:1px solid var(--divider-strong); border-radius:4px; padding:12px; display:flex; flex-direction:column; }
+  .shop-card img{ width:100%; height:80px; object-fit:cover; border-radius:3px; margin-bottom:8px; }
+  .shop-card-name{ font-weight:700; margin-bottom:6px; }
+  .shop-card-desc{ font-size:13px; flex:1; margin-bottom:12px; color:var(--muted); }
+  /* the hidden Pet Eggs section's joke button, GBUX (FLOW.md §1); a made-up brand, not any real payment app */
+  .more-gold{ margin-top:34px; padding-top:16px; border-top:1px solid var(--divider); display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; font-size:13px; color:var(--faint); }
+  .goldbux{ display:inline-flex; align-items:center; gap:8px; padding:6px 14px 6px 6px; border-radius:22px; border:2px solid #39ff88;
+    background:linear-gradient(135deg, #2b0057, #7a00c8 55%, #ff2bd6); color:#eaffd9; font:900 15px/1 system-ui, sans-serif; letter-spacing:.5px;
+    box-shadow:0 0 10px rgba(57,255,136,.55), inset 0 0 8px rgba(255,255,255,.25); text-shadow:0 0 6px #39ff88; }
+  /* the joke tooltip: plain, unstyled-looking text, as if a developer forgot to remove it */
+  .goldbux-wrap{ position:relative; display:inline-block; }
+  .goldbux-tip{ position:absolute; left:50%; top:100%; margin-top:6px; transform:translateX(-50%); white-space:nowrap;
+    font:11px/1.3 Arial, sans-serif; color:#000; background:#fff; border:1px solid #767676; padding:1px 4px; display:none; }
+  .goldbux-wrap:hover .goldbux-tip{ display:block; }
+  .goldbux .coin{ width:28px; height:28px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff8b0, #ffcc00 45%, #b88600);
+    color:#5a3c00; display:flex; align-items:center; justify-content:center; font-size:17px; text-shadow:none; box-shadow:0 0 6px #ffcc00; }
+  .goldbux small{ display:block; font-size:9px; font-weight:700; color:#39ff88; letter-spacing:1px; margin-top:2px; }
+  .egg-reveal{ animation:eggReveal .6s ease-out both; }
+  @keyframes eggReveal{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+  .owned{ text-align:center; padding:8px; border-radius:2px; background:rgba(127,163,99,0.16); color:var(--green); font-weight:700; font-size:13px; border:1px solid rgba(127,163,99,0.4); }
+
+  .settings{ border:1px solid var(--divider-strong); border-radius:4px; padding:12px 14px; background:var(--bg-secondary); display:grid; grid-template-columns:auto 1fr; gap:8px 14px; align-items:center; font-size:14px; }
+  .settings select{ background:var(--bg-input); color:var(--text); border:1px solid var(--divider-strong); border-radius:3px; padding:5px 8px; font:inherit; max-width:280px; }
+  .view-toggle{ display:inline-flex; border:1px solid var(--divider-strong); border-radius:3px; overflow:hidden; }
+  .view-toggle button{ background:transparent; border:0; color:var(--muted); padding:5px 12px; }
+  .view-toggle button.on{ background:rgba(207,154,68,0.16); color:var(--gold-light); }
+  .pet-row{ display:flex; gap:14px; align-items:center; padding:10px; border:1px solid var(--divider); border-radius:4px; margin-bottom:8px; cursor:pointer; background:var(--bg-secondary); }
+  .pet-row:hover, .grid-cell:hover{ border-color:var(--divider-strong); }
+  .pet-row img{ width:56px; height:56px; object-fit:contain; }
+  .pet-row .grow{ flex:1; min-width:0; }
+  .tag{ display:inline-block; font-size:12px; padding:0 7px; border-radius:10px; border:1px solid var(--divider-strong); color:var(--muted); margin-right:4px; }
+  .tag.active{ color:#1a1408; background:var(--gold); border-color:var(--gold); }
+  .xpbar{ position:relative; height:6px; background:rgba(0,0,0,.4); border-radius:3px; overflow:hidden; margin-top:4px; max-width:220px; transition:height .15s ease-out; }
+  .xpbar i{ display:block; height:100%; background:linear-gradient(90deg, #a97832, #f0c86e); }
+  /* hovering the bar shows the fraction across it */
+  .xpbar:hover{ height:16px; }
+  .xpbar::after{ content:attr(data-xp); position:absolute; inset:0; display:flex; align-items:center; justify-content:center; white-space:nowrap;
+    font-size:11px; font-weight:800; color:#fff; text-shadow:0 1px 2px #000, 0 0 3px #000; opacity:0; transition:opacity .15s; }
+  .xpbar:hover::after{ opacity:1; }
+  .pet-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:14px; }
+  .grid-cell{ text-align:center; cursor:pointer; border:1px solid transparent; border-radius:6px; padding:8px; }
+  .grid-cell .round{ width:84px; height:84px; margin:0 auto 6px; border-radius:50%; background:radial-gradient(circle, var(--bg-card), var(--bg-input)); display:flex; align-items:center; justify-content:center; overflow:hidden; border:2px solid var(--divider-strong); }
+  .grid-cell.active .round{ border-color:var(--gold); box-shadow:0 0 12px rgba(240,200,110,.5); }
+  .grid-cell img{ width:76px; height:76px; object-fit:contain; }
+  .details{ border:1px solid var(--divider-strong); border-radius:4px; padding:16px; margin-top:14px; background:var(--bg-secondary); display:flex; gap:18px; flex-wrap:wrap; }
+  .details img{ width:120px; height:120px; object-fit:contain; }
+  .details input{ background:var(--bg-input); color:var(--text); border:1px solid var(--divider-strong); border-radius:3px; padding:6px 8px; width:200px; }
+  .egg-row{ display:flex; gap:12px; align-items:center; padding:8px 10px; border:1px dashed var(--divider-strong); border-radius:4px; margin-bottom:8px; }
+  .egg-row img{ width:40px; height:40px; object-fit:contain; }
+  .egg-row .grow{ flex:1; }
+
+  /* the corner overlay */
+  .overlay{ position:fixed; z-index:50; }
+  .overlay[data-corner=bottom-right]{ right:20px; bottom:20px; }
+  .overlay[data-corner=bottom-left]{ left:20px; bottom:20px; }
+  .overlay[data-corner=top-right]{ right:20px; top:150px; }
+  .overlay[data-corner=top-left]{ left:20px; top:150px; }
+  .companion{ cursor:pointer; text-align:center; }
+  .panel{ position:absolute; width:270px; background:var(--bg-secondary); border:1px solid var(--divider-strong); border-radius:4px; padding:10px 12px; font-size:13px; display:none; box-shadow:0 4px 14px rgba(0,0,0,.5); }
+  .overlay.pinned .panel{ display:block; }
+  .overlay[data-corner^=bottom] .panel{ bottom:100%; margin-bottom:8px; }
+  .overlay[data-corner^=top] .panel{ top:100%; margin-top:8px; }
+  .overlay[data-corner$=right] .panel{ right:0; }
+  .overlay[data-corner$=left] .panel{ left:0; }
+  .panel ul{ margin:6px 0 0; padding:0; list-style:none; }
+  .panel li.done{ color:var(--green); }
+  .panel li.done::before{ content:'✓ '; }
+  .panel li:not(.done)::before{ content:'○ '; color:var(--faint); }
+  .panel .hatch-btn{ width:100%; margin-top:8px; font-size:15px; }
+  .pet-ov img{ width:var(--size); height:var(--size); object-fit:contain; display:block; }
+  .pet-ov .lvl{ font-size:12px; font-weight:800; color:var(--gold-light); text-shadow:0 1px 4px #000; }
+  .pet-ov .xpbar{ width:calc(var(--size) * .8); margin:2px auto 0; }
+  .float{ position:absolute; left:50%; top:0; transform:translateX(-50%); white-space:nowrap; pointer-events:none; font-weight:800; font-size:17px; color:var(--gold-light); text-shadow:0 2px 6px rgba(0,0,0,.7); animation:floatUp 1.3s ease-out forwards; }
+  @keyframes floatUp{ from{ transform:translate(-50%,0); opacity:1; } to{ transform:translate(-50%,-60px); opacity:0; } }
+
+  .dev{ position:fixed; right:12px; top:50%; transform:translateY(-50%); z-index:40; background:#141008; border:1px solid var(--divider-strong); border-radius:4px; padding:8px 12px; font-size:13px; }
+  .dev[open]{ width:240px; }
+  .dev summary{ cursor:pointer; color:var(--gold-light); font-weight:700; }
+  .dev label{ display:block; margin-top:6px; }
+  .dev .btn{ padding:4px 8px; font-size:12px; margin:6px 4px 0 0; }
+  .toast{ position:fixed; left:50%; top:16px; transform:translateX(-50%); background:var(--red); color:#fff; padding:8px 14px; border-radius:4px; z-index:1100; font-size:14px; }
+  .toast.ok{ background:#4d6b3a; }
+</style>
+</head>
+<body>
+<div class="mock-banner">Pet sandbox, mock mode: nothing here touches the real site or database. State is saved in this browser only. Flow: pets/FLOW.md</div>
+<nav id="nav"></nav>
+<div class="events">
+  <span class="muted">Site events:</span>
+  <button class="btn secondary" data-action="claim_sparkle">Click a gold sparkle</button>
+  <button class="btn secondary" data-game="win">Minigame: win</button>
+  <button class="btn secondary" data-game="lose">Minigame: lose</button>
+</div>
+<main id="main"><p class="muted">Loading…</p></main>
+<div class="overlay" id="overlay"></div>
+<details class="dev" id="dev">
+  <summary>Sandbox controls</summary>
+  <button class="btn" id="dev-gold">+1,000 gold</button>
+  <button class="btn" id="dev-actions">Do every action</button>
+  <button class="btn secondary" id="dev-reset">Reset everything</button>
+  <label><input type="checkbox" id="dev-fast"> Fast idle (2–4 s, not 12–20 s)</label>
+  <label><input type="checkbox" id="dev-slow"> Slow motion (×3)</label>
+  <label>Next hatch skin <select id="dev-skin"><option value="">roll normally</option></select></label>
+  <button class="btn" id="dev-throw">Throw now</button>
+  <div class="muted" id="dev-next-throw" style="margin-top:6px;"></div>
+  <label>Overlay size <select id="dev-size"><option>72</option><option selected>96</option><option>120</option></select> <span class="muted">(not a member setting)</span></label>
+</details>
+
+<script src="helpers/generate-pet.js"></script>
+<script src="helpers/pet-api-mock.js"></script>
+<script src="helpers/sfx.js"></script>
+<script src="helpers/throw-schedule.js"></script>
+<script src="helpers/egg-fx.js"></script>
+<script src="helpers/shop-flow.js"></script>
+<script>
+const TABS = [
+  ['calendar', 'Raid Calendar', 'visit_calendar'], ['strategies', 'Boss Strategies', 'visit_strategies'],
+  ['roster', 'Roster', 'visit_roster'], ['loot', 'Loot Log', 'visit_loot'], ['guildbank', 'Guild Bank', 'visit_guildbank'],
+  ['gallery', 'Gallery', 'view_gallery'], ['shop', 'Shop', 'open_shop'], ['settings', 'Settings', null],
+];
+// Sample non-pet Shop items, so the purchase flow can be tried on something other than an egg.
+const SAMPLE_ITEMS = [
+  { id: 'sample-flame', name: 'Flame', description: 'Sample name customization (sandbox only).', cost: 400, category: 'name_customization', image_url: 'flame-bg.webp' },
+  { id: 'sample-shadow', name: 'Shadow', description: 'Sample name customization (sandbox only).', cost: 600, category: 'name_customization', image_url: 'shadow-bg.webp' },
+];
+const CORNER_LABELS = { 'bottom-right': 'Bottom right', 'bottom-left': 'Bottom left', 'top-right': 'Top right', 'top-left': 'Top left' };
+const ALWAYS_LABEL = 'Always make new companions active';
+const ONLY_ACTIVE = 'Only your active companion can hatch or earn XP.';
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const pref = (key, fallback) => { try { return localStorage.getItem('pets-sandbox-' + key) ?? fallback; } catch (e) { return fallback; } };
+const setPref = (key, value) => { try { localStorage.setItem('pets-sandbox-' + key, value); } catch (e) {} };
+
+// 'bubble' is the grid view's old name in saved sandbox state.
+let catalog, api, tab = 'calendar', stableView = pref('stable-view', 'list').replace('bubble', 'grid'), openPetId = null;
+let overlay = { key: null, fx: null, stopIdle: null }, hatching = false, justRevealed = false;
+let size = +pref('overlay-size', 96);
+
+const eggArt = key => `eggs/${key}/${catalog.eggs[key].animations.idle.src}`;
+// A pet's skin, if it has one, replaces its monster's art (FLOW.md §9).
+const petArt = pet => `monsters/${pet.monsterKey}/${Pets.petAnimations(catalog.monsters[pet.monsterKey], pet.skin).idle.src}`;
+const eggName = e => catalog.eggs[e.eggKey].name;
+const monsterOf = pet => catalog.monsters[pet.monsterKey];
+// A pet's call plays on click at most once every 3 seconds (FLOW.md §7).
+let lastCallAt = 0;
+function petCall(pet, { fromClick = false } = {}) {
+  if (fromClick && Date.now() - lastCallAt < 3000) return;
+  lastCallAt = Date.now();
+  Sfx.call(monsterOf(pet), `monsters/${pet.monsterKey}/`);
+}
+// At the hidden cap there's no next level, so the hover shows total XP instead of a fraction.
+const xpBar = p => `<div class="xpbar" data-xp="${p.levelXpNeeded ? `${p.levelXp} / ${p.levelXpNeeded} XP` : `${p.totalXp} XP`}"><i style="width:${Math.round(p.levelProgress * 100)}%"></i></div>`;
+
+function toast(message, ok = false) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (ok ? ' ok' : '');
+  t.textContent = message;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+function attempt(fn) {
+  try { return fn(); } catch (e) { toast(e.message); return null; }
+}
+function refresh() { renderNav(); renderMain(); renderOverlay(); if (typeof showNextThrow === 'function' && api) showNextThrow(); }
+
+/* ---------- site events ---------- */
+function doAction(key) {
+  const result = attempt(() => api.recordSiteAction(key));
+  if (!result) return;
+  const a = result.advanced;
+  if (a && overlay.fx) {
+    overlay.fx.checkOff(a.done, a.total);
+    if (a.ready) overlay.fx.setAlert(true);
+  }
+  renderPanel();
+  if (tab === 'collection') renderMain();
+}
+
+function playMinigame(won) {
+  const result = api.awardPetXp(won);
+  if (!result.pet) return toast(result.reason === 'egg' ? 'Minigame done. Your active companion is an egg, and eggs don\'t earn XP.' : 'Minigame done. No active pet, so no XP.', true);
+  renderOverlay(true);
+  floatOverlay(`+${result.awarded} XP` + (result.leveledUp ? ` · Level ${result.pet.level}!` : ''));
+  if (result.leveledUp) petCall(result.pet);
+  if (tab === 'collection') renderMain();
+}
+
+function floatOverlay(text) {
+  const f = document.createElement('div');
+  f.className = 'float';
+  f.textContent = text;
+  document.getElementById('overlay').appendChild(f);
+  setTimeout(() => f.remove(), 1400);
+}
+
+/* ---------- 1. buying (FLOW.md §1) ---------- */
+async function buyItem(id) {
+  const item = api.getShopItems().find(i => i.id === id);
+  const egg = catalog.eggs[id];
+  let result;
+  const bought = await ShopFlow.purchase({
+    item: { name: item.name, image: egg ? eggArt(id) : '../' + item.image_url, cost: item.cost },
+    gold: api.getState().gold,
+    buy: async () => { result = api.purchaseShopItem(id); refresh(); },
+    celebration: () => {
+      const base = { message: `The ${item.name} has been added to your collection.`, actions: [{ label: 'View collection', onClick: () => goTab('collection') }] };
+      if (!egg) return base;
+      const hatchNote = `Do ${egg.hatch.distinct_actions} things around the site to hatch it.`;
+      if (result.askToActivate) {
+        return { ...base, note: hatchNote, choice: {
+          question: `Make the ${item.name} your active companion?`, smallPrint: ONLY_ACTIVE,
+          yesLabel: 'Yes', noLabel: 'Not now', checkboxLabel: ALWAYS_LABEL } };
+      }
+      return { ...base, note: `It's now your active companion, in the corner of your screen. ${hatchNote}` };
+    },
+  });
+  if (!bought || !egg) return;
+  if (bought.checked) api.setPrefs({ autoActivate: true });
+  if (bought.answer === 'yes') api.setActive(result.purchase.id);
+  refresh();
+  if (result.needsSetup) await firstTimeSetup();
+}
+
+/* ---------- 2. first-time setup (FLOW.md §2) ---------- */
+async function firstTimeSetup() {
+  const prefs = api.getState().prefs;
+  await ShopFlow.dialog({
+    title: 'Meet your companion',
+    html: `<p>Your companion lives in a corner of every page. Pick a corner:</p>
+      <p><select id="setup-corner">${Object.entries(CORNER_LABELS).map(([k, l]) => `<option value="${k}" ${k === prefs.corner ? 'selected' : ''}>${l}</option>`).join('')}</select></p>
+      <p class="muted" style="font-size:13px;">You can change this any time in <strong>Collection → Companion settings</strong>: move your companion, switch which one is active, or hide it. A hidden companion stays active, and its progress shows in your Collection.</p>`,
+    buttons: [{ label: 'Done', value: true, primary: true }],
+    onOpen(card) {
+      card.querySelector('#setup-corner').onchange = e => { api.setPrefs({ corner: e.target.value }); renderOverlay(true); };
+    },
+  });
+  api.setPrefs({ setupDone: true });
+}
+
+/* ---------- top bar and pages ---------- */
+function renderNav() {
+  const s = api.getState();
+  const tabs = [...TABS];
+  if (s.pets.length || s.eggs.length || s.items.length) tabs.splice(7, 0, ['collection', 'Collection', null]);
+  document.getElementById('nav').innerHTML = `<span class="title">HATED Guild Hall</span>` +
+    tabs.map(([key, label]) => `<button class="tab ${key === 'collection' ? 'collection' : ''} ${key === tab ? 'on' : ''}" data-tab="${key}">${label}</button>`).join('') +
+    `<span class="gold">&#x1F4B0; ${s.gold}</span>`;
+}
+
+function goTab(key) {
+  tab = key;
+  const action = (TABS.find(t => t[0] === key) || [])[2];
+  if (action) doAction(action);
+  renderNav();
+  renderMain();
+}
+
+function renderMain() {
+  const main = document.getElementById('main');
+  const s = api.getState();
+  if (tab === 'shop') {
+    const card = item => `
+        <div class="shop-card">
+          <img src="../${esc(item.image_url)}" alt="${esc(item.name)}">
+          <div class="shop-card-name">${esc(item.name)}</div>
+          <div class="shop-card-desc">${esc(item.description)}</div>
+          <div class="muted" style="font-size:13px; margin-bottom:8px;">&#x1F4B0; ${item.cost}</div>
+          ${item.owned ? `<div class="owned">&#10003; Owned</div>` :
+            `<button class="btn" data-buy="${esc(item.id)}" ${s.gold < item.cost ? 'disabled' : ''}>${s.gold < item.cost ? 'Not enough gold' : 'Redeem'}</button>`}
+        </div>`;
+    const items = api.getShopItems();
+    // The Pet Eggs section stays hidden until the member finds it with the joke button (FLOW.md §1).
+    const found = s.prefs.eggShopFound;
+    const eggs = `<h2 id="pet-eggs" class="${justRevealed ? 'egg-reveal' : ''}">Pet Eggs</h2>
+      <div class="shop-grid ${justRevealed ? 'egg-reveal' : ''}">${items.filter(i => i.category === 'pet_egg').map(card).join('')}</div>`;
+    main.innerHTML = `<h1>Shop</h1><p class="muted">Stand-in for the Shop modal. Redeem asks to confirm, then celebrates the unlock.</p>
+      <h2>Name Customizations</h2><div class="shop-grid">${items.filter(i => i.category !== 'pet_egg').map(card).join('')}</div>
+      ${found ? eggs : `<div class="more-gold"><span>Find out how to get more gold</span>
+        <span class="goldbux-wrap"><button class="goldbux" data-reveal-eggs><span class="coin">$</span><span>GBUX<small>★ 100% LEGIT ★</small></span></button>
+        <span class="goldbux-tip" aria-hidden="true">click to link browser's stored credit card</span></span></div>`}`;
+    if (justRevealed) document.getElementById('pet-eggs').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    justRevealed = false;
+  } else if (tab === 'collection') {
+    main.innerHTML = renderCollection(s);
+  } else if (tab === 'settings') {
+    main.innerHTML = `<h1>Settings</h1><p class="muted">Stand-in page. Companion settings live in the Collection, not here.</p>
+      <button class="btn secondary" data-action="set_character_name">Save character name</button>`;
+  } else {
+    const [, label] = TABS.find(t => t[0] === tab);
+    main.innerHTML = `<h1>${label}</h1><p class="muted">Stand-in page. Opening it counts as a site action.</p>` +
+      (tab === 'calendar' ? `<button class="btn secondary" data-action="rsvp_event">RSVP to a raid</button>` : '');
+  }
+}
+
+function renderCollection(s) {
+  const active = s.activeKind === 'pet' ? s.pets.find(p => p.id === s.activeId).nickname
+    : s.activeKind === 'egg' ? eggName(s.eggs.find(e => e.id === s.activeId)) + ' (egg)' : 'None';
+  const settings = s.pets.length || s.eggs.length ? `
+    <h2>Companion settings</h2>
+    <div class="settings">
+      <span>Active companion</span>
+      <span><strong>${esc(active)}</strong> <span class="muted">· click a pet or egg below to change it</span></span>
+      <span>Corner</span>
+      <select data-setting="corner">${Object.entries(CORNER_LABELS).map(([k, l]) => `<option value="${k}" ${k === s.prefs.corner ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <span>Show on every page</span>
+      <label><input type="checkbox" data-setting="visible" ${s.prefs.visible ? 'checked' : ''}> <span class="muted">Hidden companions stay active; their progress shows here.</span></label>
+      <span>Pet sounds</span>
+      <label><input type="checkbox" data-setting="sounds" ${s.prefs.sounds ? 'checked' : ''}> <span class="muted">Chimes, hatch sounds, pet calls and the occasional whoosh.</span></label>
+      <span>New companions</span>
+      <label><input type="checkbox" data-setting="autoActivate" ${s.prefs.autoActivate ? 'checked' : ''}> ${ALWAYS_LABEL}</label>
+    </div>
+    <p class="muted" style="font-size:12px; margin:6px 0 0;">${ONLY_ACTIVE}</p>` : '';
+  const eggs = s.eggs.map(e => `
+    <div class="egg-row"><img src="${eggArt(e.eggKey)}" alt=""><div class="grow"><strong>${esc(eggName(e))}</strong> ${e.active ? '<span class="tag active">Active</span>' : ''}
+    <div class="muted" style="font-size:13px;">${e.done} / ${e.total}${e.ready ? ' · Ready to hatch' : ''}${e.active ? '' : ' · Paused while another companion is active'}</div></div>
+    ${e.active ? '' : `<button class="btn small" data-activate="${e.id}">Make active</button>`}</div>`).join('');
+  const items = s.items.map(i => `
+    <div class="shop-card"><img src="../${esc(i.image_url)}" alt=""><div class="shop-card-name">${esc(i.name)}</div>
+    <div class="muted" style="font-size:12px;">Bought ${new Date(i.boughtAt).toLocaleDateString()}</div></div>`).join('');
+  return `<h1>Collection</h1><p class="muted">Everything you've unlocked. Pets are your Stable.</p>
+    ${settings}
+    ${renderStable(s)}
+    ${eggs ? `<h2>Eggs</h2>${eggs}` : ''}
+    ${items ? `<h2>Cosmetics</h2><div class="shop-grid">${items}</div>` : ''}`;
+}
+
+function renderStable(s) {
+  const pets = s.pets;
+  if (!pets.length) return '';
+  const detail = pets.find(p => p.id === openPetId);
+  const typeLine = p => `${esc(catalog.monsters[p.monsterKey].name)} · ${esc(p.type)} · ${esc(p.rarity)}`;
+  const list = stableView === 'list'
+    ? pets.map(p => `
+      <div class="pet-row" data-open="${p.id}">
+        <img src="${petArt(p)}" alt="">
+        <div class="grow">
+          <div><strong>${esc(p.nickname)}</strong> ${p.active ? '<span class="tag active">Active</span>' : ''}</div>
+          <div class="muted" style="font-size:13px;">${typeLine(p)} · <span class="tag">${esc(p.personality)}</span></div>
+          <div style="font-size:12px;">Level ${p.level} <span class="muted">· ${p.totalXp} XP</span></div>
+          ${xpBar(p)}
+        </div>
+      </div>`).join('')
+    : `<div class="pet-grid">${pets.map(p => `
+      <div class="grid-cell ${p.active ? 'active' : ''}" data-open="${p.id}">
+        <div class="round"><img src="${petArt(p)}" alt=""></div>
+        <div><strong>${esc(p.nickname)}</strong></div>
+        <div class="muted" style="font-size:12px;">Level ${p.level}</div>
+      </div>`).join('')}</div>`;
+  return `<h2>Pets</h2>
+    <div style="display:flex; align-items:center; gap:12px;"><span class="muted">${pets.length} pet${pets.length === 1 ? '' : 's'}</span>
+      <span class="view-toggle"><button data-view="list" class="${stableView === 'list' ? 'on' : ''}">List</button><button data-view="grid" class="${stableView === 'grid' ? 'on' : ''}">Grid</button></span></div>
+    <div style="margin-top:12px;">${list}</div>
+    ${detail ? `
+      <div class="details">
+        <img src="${petArt(detail)}" alt="">
+        <div style="flex:1; min-width:220px;">
+          <div style="font-size:18px;"><strong>${esc(detail.nickname)}</strong> ${detail.active ? '<span class="tag active">Active</span>' : ''}</div>
+          <div class="muted">${typeLine(detail)}</div>
+          <div style="margin-top:6px;">Personality: <span class="tag">${esc(detail.personality)}</span></div>
+          <div>Likes: ${detail.likes.map(esc).join(', ')}</div>
+          <div>Dislikes: ${detail.dislikes.map(esc).join(', ')}</div>
+          <div class="muted" style="font-size:13px; margin-top:6px;">From the ${esc(catalog.eggs[detail.eggKey].name)} · hatched ${new Date(detail.hatchedAt).toLocaleString()}</div>
+          <div style="margin-top:6px;">Level ${detail.level} · ${detail.totalXp} XP</div>
+          ${xpBar(detail)}
+          <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+            <input id="nick" maxlength="${PetApiMock.NICKNAME_MAX}" value="${esc(detail.nickname)}">
+            <button class="btn secondary" data-rename="${detail.id}">Rename</button>
+            ${detail.active ? '' : `<button class="btn" data-activate="${detail.id}">Make active</button>`}
+          </div>
+        </div>
+      </div>` : ''}`;
+}
+
+/* ---------- 3, 4 and 6. the companion in the corner (FLOW.md §3, §4, §6) ---------- */
+// Rebuilds only when the active companion, corner, visibility or size changes, so animations aren't cut off.
+function renderOverlay(force = false) {
+  if (hatching) return;
+  const s = api.getState();
+  const box = document.getElementById('overlay');
+  const egg = s.activeKind === 'egg' && s.eggs.find(e => e.id === s.activeId);
+  const pet = s.activeKind === 'pet' && s.pets.find(p => p.id === s.activeId);
+  const key = [s.activeId, s.prefs.corner, s.prefs.visible, size].join('|');
+  box.dataset.corner = s.prefs.corner;
+  box.style.setProperty('--size', size + 'px');
+  if (!force && key === overlay.key) return renderPanel();
+  if (overlay.stopIdle) overlay.stopIdle();
+  overlay = { key, fx: null, stopIdle: null };
+  box.classList.remove('pinned');
+  if (!s.prefs.visible || (!egg && !pet)) { box.innerHTML = ''; return; }
+
+  box.innerHTML = `<div class="panel" id="panel"></div><div class="companion" id="companion"></div>`;
+  const slot = document.getElementById('companion');
+  if (egg) {
+    overlay.fx = EggFx.create(slot, { eggSrc: eggArt(egg.eggKey), size });
+    overlay.fx.setAlert(egg.ready);
+    overlay.stopIdle = EggFx.every(() => overlay.fx.wobble());
+    slot.onmouseenter = () => overlay.fx.wobble();
+  } else {
+    slot.innerHTML = `<div class="pet-ov"><img src="${petArt(pet)}" alt=""><div class="lvl">${esc(pet.nickname)} · Lv ${pet.level}</div>
+      ${xpBar(pet)}</div>`;
+    const img = slot.querySelector('img');
+    overlay.stopIdle = EggFx.every(() => EggFx.rock(img));
+    slot.onmouseenter = () => EggFx.rock(img);
+  }
+  // Hover only wobbles or rocks; a click opens the panel (and closes it again).
+  slot.onclick = e => {
+    e.stopPropagation();
+    box.classList.toggle('pinned');
+    if (overlay.fx) overlay.fx.wobble();
+    else { EggFx.rock(slot.querySelector('img')); petCall(pet, { fromClick: true }); }
+  };
+  renderPanel();
+}
+
+function renderPanel() {
+  const panel = document.getElementById('panel');
+  if (!panel) return;
+  const s = api.getState();
+  if (s.activeKind === 'egg') {
+    const egg = s.eggs.find(e => e.id === s.activeId);
+    const def = catalog.eggs[egg.eggKey];
+    panel.innerHTML = egg.ready
+      ? `<strong>${esc(def.name)}</strong> · ${egg.done} / ${egg.total}<div>Something is stirring inside…</div>
+         <button class="btn hatch-btn" id="hatch-btn">Hatch</button>`
+      : `<strong>${esc(def.name)}</strong> · ${egg.done} / ${egg.total}
+         <div class="muted">Do these around the site to hatch it:</div>
+         <ul>${def.hatch.actions.map(a => `<li class="${egg.doneKeys.includes(a) ? 'done' : ''}">${esc(catalog.actions[a])}</li>`).join('')}</ul>`;
+    const btn = document.getElementById('hatch-btn');
+    if (btn) btn.onclick = e => { e.stopPropagation(); hatch(egg); };
+  } else if (s.activeKind === 'pet') {
+    const pet = s.pets.find(p => p.id === s.activeId);
+    panel.innerHTML = `<strong>${esc(pet.nickname)}</strong> <span class="muted">${esc(pet.type)} · ${esc(pet.rarity)}</span>
+      <div>Level ${pet.level} · ${pet.totalXp} XP</div>${xpBar(pet)}
+      <div style="margin-top:6px;"><a href="#" id="panel-collection" style="color:var(--gold-light);">Open your Collection</a></div>`;
+    document.getElementById('panel-collection').onclick = e => { e.preventDefault(); e.stopPropagation(); goTab('collection'); };
+  }
+}
+
+/* ---------- 5. hatching (FLOW.md §5) ---------- */
+async function hatch(egg) {
+  if (hatching) return;
+  const pet = attempt(() => api.hatchPet(egg.id));
+  if (!pet) return;
+  hatching = true;
+  if (overlay.stopIdle) overlay.stopIdle();
+  const box = document.getElementById('overlay');
+  box.classList.remove('pinned');
+  const from = document.getElementById('companion');
+  const show = await EggFx.hatchAtCenter({ fromEl: from, eggSrc: eggArt(egg.eggKey), petSrc: petArt(pet) });
+  petCall(pet);
+  box.innerHTML = '';
+  await ShopFlow.celebrate({
+    item: { name: pet.nickname, image: petArt(pet) },
+    message: `${pet.nickname} has been added to your collection.`,
+    note: `${pet.nickname} is now your active companion.`,
+  });
+  await show.close();
+  hatching = false;
+  refresh();
+  renderOverlay(true);
+}
+
+/* ---------- 8. easter egg: thrown food (FLOW.md §8) ---------- */
+let throwTimer = null, nextPlanned = null;
+// Each member gets their own schedule; on the real site the salt would come from their user id.
+const throwSalt = () => { let v = +pref('throw-salt', NaN); if (!v) { v = 1 + Math.floor(Math.random() * 1e9); setPref('throw-salt', v); } return v; };
+
+function activeThrower() {
+  const s = api.getState();
+  const pet = s.activeKind === 'pet' && s.pets.find(p => p.id === s.activeId);
+  return pet && monsterOf(pet).throws && s.prefs.visible ? pet : null;
+}
+
+// force: the sandbox's "Throw now" button, which ignores the schedule and the visible-tab rule.
+function throwFood(force = false) {
+  const pet = activeThrower();
+  const img = document.querySelector('.pet-ov img');
+  if (!pet || !img || hatching || (!force && document.visibilityState !== 'visible')) {
+    if (force) toast('Throws need an active pet with "throws" in its monster.json, shown in the corner.');
+    return false;
+  }
+  const throws = monsterOf(pet).throws;
+  const item = throws[Math.floor(Math.random() * throws.length)];
+  EggFx.rock(img);
+  setTimeout(() => EggFx.throwItem({ fromEl: img, item: item.src ? { src: `monsters/${pet.monsterKey}/${item.src}` } : item }), 250 * EggFx.speed);
+  return true;
+}
+
+function scheduleThrow() {
+  clearTimeout(throwTimer);
+  const last = pref('throw-last', null);
+  nextPlanned = ThrowSchedule.nextThrow(Date.now(), { lastQuarter: last === null ? null : +last, salt: throwSalt() });
+  showNextThrow();
+  if (!nextPlanned) return;
+  throwTimer = setTimeout(() => {
+    // The quarter counts as used only if a throw actually happened.
+    if (throwFood()) setPref('throw-last', nextPlanned.quarter);
+    scheduleThrow();
+  }, Math.max(0, nextPlanned.at - Date.now()));
+}
+
+function showNextThrow() {
+  const el = document.getElementById('dev-next-throw');
+  if (!nextPlanned) { el.textContent = ''; return; }
+  const mins = Math.max(0, Math.round((nextPlanned.at - Date.now()) / 60000));
+  el.textContent = `Next scheduled throw: ${new Date(nextPlanned.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} (in ${mins} min)` +
+    (activeThrower() ? '' : ', but only with an active pet that throws');
+}
+setInterval(showNextThrow, 30000);
+
+/* ---------- wiring ---------- */
+document.addEventListener('click', e => {
+  if (!e.target.closest('.overlay')) document.getElementById('overlay').classList.remove('pinned');
+  const t = e.target.closest('button, [data-open]');
+  if (!t || t.closest('.overlay')) return;
+  const d = t.dataset;
+  if (d.tab) goTab(d.tab);
+  else if (d.action) doAction(d.action);
+  else if (d.game) playMinigame(d.game === 'win');
+  else if (d.buy) buyItem(d.buy);
+  else if ('revealEggs' in d) { api.setPrefs({ eggShopFound: true }); justRevealed = true; Sfx.play('chime'); renderMain(); }
+  else if (d.view) { stableView = d.view; setPref('stable-view', d.view); renderMain(); }
+  else if (d.open) { openPetId = d.open; renderMain(); }
+  else if (d.activate) { api.setActive(d.activate); refresh(); }
+  else if (d.rename) { if (attempt(() => api.renamePet(d.rename, document.getElementById('nick').value))) { renderMain(); renderOverlay(true); } }
+});
+document.addEventListener('change', e => {
+  const k = e.target.dataset.setting;
+  if (!k) return;
+  api.setPrefs({ [k]: k === 'corner' ? e.target.value : e.target.checked });
+  Sfx.enabled = api.getState().prefs.sounds;
+  renderMain();
+  renderOverlay();
+});
+
+const devPanel = document.getElementById('dev');
+devPanel.open = pref('dev-open', '1') === '1';
+devPanel.addEventListener('toggle', () => setPref('dev-open', devPanel.open ? '1' : '0'));
+document.getElementById('dev-gold').onclick = () => { api.dev.addGold(1000); renderNav(); renderMain(); };
+document.getElementById('dev-actions').onclick = () => {
+  Object.keys(catalog.actions).forEach((key, i) => setTimeout(() => doAction(key), i * 450 * EggFx.speed));
+};
+document.getElementById('dev-reset').onclick = () => {
+  api.dev.reset(); openPetId = null; tab = 'calendar';
+  refresh(); renderOverlay(true);
+};
+const setFast = on => { EggFx.idleRange = on ? [2000, 4000] : [12000, 20000]; setPref('fast-idle', on ? '1' : '0'); renderOverlay(true); };
+document.getElementById('dev-fast').checked = pref('fast-idle', '0') === '1';
+document.getElementById('dev-fast').onchange = e => setFast(e.target.checked);
+document.getElementById('dev-slow').onchange = e => { EggFx.speed = e.target.checked ? 3 : 1; };
+document.getElementById('dev-throw').onclick = () => throwFood(true);
+document.getElementById('dev-skin').onchange = e => {
+  if (e.target.value === '') return;
+  api.dev.forceSkin(e.target.value === 'normal' ? null : e.target.value);
+  toast(`The next hatch gets ${e.target.value === 'normal' ? 'the normal art' : `the "${e.target.value}" skin`}.`, true);
+  e.target.value = '';
+};
+document.getElementById('dev-size').value = String(size);
+document.getElementById('dev-size').onchange = e => { size = +e.target.value; setPref('overlay-size', size); renderOverlay(true); };
+
+PetApiMock.loadCatalog('').then(c => {
+  catalog = c;
+  let storage = null;
+  try { storage = window.localStorage; } catch (e) {}
+  api = PetApiMock.createPetApi({ ...catalog, items: SAMPLE_ITEMS }, { storage });
+  if (pref('fast-idle', '0') === '1') EggFx.idleRange = [2000, 4000];
+  Sfx.enabled = api.getState().prefs.sounds;
+  const skinKeys = [...new Set(Object.values(catalog.monsters).flatMap(m => (m.skins || []).map(s => s.key)))];
+  document.getElementById('dev-skin').insertAdjacentHTML('beforeend',
+    `<option value="normal">normal art</option>` + skinKeys.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join(''));
+  refresh();
+  renderOverlay(true);
+  scheduleThrow();
+}).catch(e => {
+  console.error(e);
+  document.getElementById('main').innerHTML = `<h1>Couldn't load the pets</h1><p class="muted">${esc(e.message)}</p>
+    <p class="muted">If you just pulled or edited code, your browser may be mixing old and new scripts: hard refresh with Ctrl+Shift+R.
+    To avoid that, serve the repo with <code>python pets/serve.py</code>, which turns caching off, then open /pets/sandbox.html.</p>`;
+});
+</script>
+</body>
+</html>

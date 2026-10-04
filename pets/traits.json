@@ -1,0 +1,27 @@
+{
+  "personality": [
+    { "name": "Eager", "chance": 6 },
+    { "name": "Brave", "chance": 6 },
+    { "name": "Shy", "chance": 6 },
+    { "name": "Lazy", "chance": 6 },
+    { "name": "Carefree", "chance": 6 },
+    { "name": "Affable", "chance": 6 },
+    { "name": "Naive", "chance": 6 },
+    { "name": "Derpy", "chance": 6 },
+    { "name": "Pushy", "chance": 5 },
+    { "name": "Serious", "chance": 5 },
+    { "name": "Smart", "chance": 5 },
+    { "name": "Reckless", "chance": 5 },
+    { "name": "Assertive", "chance": 5 },
+    { "name": "Gullible", "chance": 5 },
+    { "name": "Snobby", "chance": 3 },
+    { "name": "Selfish", "chance": 3 },
+    { "name": "Haughty", "chance": 3 },
+    { "name": "Spoiled", "chance": 3 },
+    { "name": "Shady", "chance": 3 },
+    { "name": "Coward", "chance": 3 },
+    { "name": "Cool/Calm", "chance": 2 },
+    { "name": "Mad/Insane", "chance": 2 }
+  ],
+  "likes": ["Raid nights", "Shiny loot", "Fishing", "Gold sparkles", "Stickers", "Boss strategies"]
+}

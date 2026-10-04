@@ -1,0 +1,10 @@
+{
+  "key": "monster-key",
+  "name": "Monster Name",
+  "type": "",
+  "rarity": "common",
+  "description": "",
+  "animations": {
+    "idle": { "src": "assets/idle.png" }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "key": "curious-egg",
+  "name": "Curious Egg",
+  "description": "A strange egg with some heft to it.",
+  "price": 999,
+  "animations": {
+    "idle": {
+      "src": "assets/idle.webp",
+      "source": "https://www.wowhead.com/npc=135662/egg (model 80256 thumbnail, cropped)"
+    }
+  },
+  "hatch": {
+    "actions": [
+      "visit_calendar",
+      "visit_strategies",
+      "visit_roster",
+      "visit_loot",
+      "visit_guildbank",
+      "view_gallery",
+      "claim_sparkle",
+      "set_character_name",
+      "open_shop"
+    ],
+    "distinct_actions": 9
+  },
+  "contents": [
+    {
+      "monster": "baby",
+      "chance": 100
+    }
+  ],
+  "xp_curve": [
+    60,
+    100,
+    140,
+    180,
+    230,
+    290
+  ],
+  "shop_image": "assets/shop.webp"
+}
