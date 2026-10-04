@@ -3678,7 +3678,8 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       pending_id: pendingId,
       won: won,
       client_time_ms: Math.floor(performance.now()),
-      client_timings: clientTimings
+      client_timings: clientTimings,
+      nonce: window.currentNonce
     });
 
     let signatureHex = '';
