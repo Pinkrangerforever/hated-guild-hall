@@ -3729,7 +3729,7 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       p_signature: signatureHex,
       p_nonce: window.currentNonce,
       p_client_time_ms: clientTimeMs,
-      p_client_timings: clientTimings ? JSON.stringify(clientTimings) : JSON.stringify([])
+      p_client_timings: clientTimings || []
     });
 
     if(error) {
