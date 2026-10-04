@@ -3674,10 +3674,11 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       return;
     }
 
+    const clientTimeMs = Math.floor(performance.now());
     const payload = JSON.stringify({
       pending_id: pendingId,
       won: won,
-      client_time_ms: Math.floor(performance.now()),
+      client_time_ms: clientTimeMs,
       client_timings: clientTimings
     });
 
@@ -3711,7 +3712,7 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       p_challenge: challenge,
       p_signature: signatureHex,
       p_nonce: window.currentNonce,
-      p_client_time_ms: Math.floor(performance.now()),
+      p_client_time_ms: clientTimeMs,
       p_client_timings: clientTimings ? JSON.stringify(clientTimings) : JSON.stringify([])
     });
 
