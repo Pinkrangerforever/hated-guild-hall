@@ -3633,6 +3633,9 @@ async function claimSparkle(el){
       localStorage.setItem(`challenge_${data.pending_id}`, data.challenge);
     }
 
+    // Store nonce for replay prevention
+    window.currentNonce = data.nonce;
+
     // Use the event type from RPC, not client-side random
     if(data.event === 'blacksmith') {
       return startBlacksmithGame(rect, data.pending_id);
@@ -3707,6 +3710,7 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       p_won: won,
       p_challenge: challenge,
       p_signature: signatureHex,
+      p_nonce: window.currentNonce,
       p_client_time_ms: Math.floor(performance.now()),
       p_client_timings: clientTimings ? JSON.stringify(clientTimings) : JSON.stringify([])
     });
