@@ -3678,6 +3678,7 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
     const payload = JSON.stringify({
       pending_id: pendingId,
       won: won,
+      nonce: window.currentNonce,
       client_time_ms: clientTimeMs,
       client_timings: clientTimings
     });

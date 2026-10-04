@@ -138,6 +138,7 @@ CREATE OR REPLACE FUNCTION resolve_sparkle_event(
   p_won BOOLEAN,
   p_challenge TEXT,
   p_signature TEXT,
+  p_nonce UUID,
   p_client_time_ms BIGINT,
   p_client_timings JSONB
 )
@@ -206,8 +207,9 @@ BEGIN
   v_payload := jsonb_build_object(
     'pending_id', p_pending_id::TEXT,
     'won', p_won,
+    'nonce', p_nonce::TEXT,
     'client_time_ms', p_client_time_ms,
-    'client_timings', p_client_timings
+    'client_timings', p_client_timings::jsonb
   )::TEXT;
 
   v_expected_sig := encode(
