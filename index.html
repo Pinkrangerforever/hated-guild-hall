@@ -3703,26 +3703,11 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       signatureHex = Array.from(new Uint8Array(signature))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
-
-      console.log('=== SIGNATURE DEBUG ===');
-      console.log('challenge:', challenge);
-      console.log('nonce:', window.currentNonce);
-      console.log('payload:', payload);
-      console.log('signature:', signatureHex);
     } catch(sigError) {
       console.error('Failed to generate signature:', sigError);
       showToast('Security error: could not sign request', true);
       return;
     }
-
-    console.log('=== RPC CALL ===');
-    console.log('p_pending_id:', pendingId);
-    console.log('p_won:', won);
-    console.log('p_challenge:', challenge);
-    console.log('p_signature:', signatureHex);
-    console.log('p_nonce:', window.currentNonce);
-    console.log('p_client_time_ms:', clientTimeMs);
-    console.log('p_client_timings:', clientTimings);
 
     const { data, error } = await sb.rpc('resolve_sparkle_event', {
       p_pending_id: pendingId,
