@@ -2221,8 +2221,20 @@
    HATED Guild Hall  Supabase-backed build
    ============================================================ */
 
-const SUPABASE_URL = 'https://dymlprrudprwyctjqqer.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_JzIAyh2apUIXDkZZutGsHA_6UI0PuKF';
+// Auto-detect staging vs production based on current URL
+const hostname = window.location.hostname;
+const isStaging = hostname.includes('staging');
+
+const SUPABASE_CONFIG = isStaging ? {
+  url: 'https://jucmmnmnbjrzmjrugggl.supabase.co',
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y21tbm1uYmpyem1qcnVnZ2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExMzQ0MjksImV4cCI6MjEwNjcxMDQyOX0.a7QFtRneYum5Uy8uO1VD6TGSItXHc2aTo4F8W81MZ50'
+} : {
+  url: 'https://dymlprrudprwyctjqqer.supabase.co',
+  key: 'sb_publishable_JzIAyh2apUIXDkZZutGsHA_6UI0PuKF'
+};
+
+const SUPABASE_URL = SUPABASE_CONFIG.url;
+const SUPABASE_ANON_KEY = SUPABASE_CONFIG.key;
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const BOSS_SCREENSHOT_BUCKET = 'boss-screenshots';
 
