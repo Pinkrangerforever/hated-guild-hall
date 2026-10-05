@@ -1438,6 +1438,14 @@
   .leaderboard-entry{
     display:flex; align-items:center; gap:8px; padding:6px 8px;
     background:rgba(0,0,0,0.3); border-radius:3px; border:1px solid rgba(207,154,68,0.15);
+    transition: all 0.2s ease-out; cursor:pointer; transform-origin:center;
+  }
+  .leaderboard-entry:hover{
+    transform: scale(1.12);
+    background:rgba(0,0,0,0.5);
+    border-color:rgba(207,154,68,0.4);
+    box-shadow: 0 4px 12px rgba(207,154,68,0.25);
+    z-index:10;
   }
   .leaderboard-rank{
     font-size:11px; font-weight:700; color:#dcb570; min-width:24px; text-align:center;
