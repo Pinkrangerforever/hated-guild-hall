@@ -32,6 +32,82 @@
     --red-bg:rgba(176,82,79,0.14);
     --gray-role:#6b5e46;
     --shadow-card: 0 1px 0 rgba(0,0,0,0.3), 0 4px 14px rgba(0,0,0,0.35);
+    --hated-dark:#1a1410;
+    --hated-red:#cc3333;
+    --hated-orange:#ff8800;
+    --hated-blue:#0088ff;
+  }
+
+  /* ========== STICKY NAVIGATION BAR ========== */
+  .top-nav{
+    position:fixed; top:0; left:0; right:0;
+    height:60px; background:linear-gradient(180deg, rgba(26,20,16,0.95) 0%, rgba(20,15,10,0.98) 100%);
+    border-bottom:2px solid rgba(204,51,51,0.3);
+    z-index:10000; display:flex; align-items:center;
+    box-shadow:0 4px 12px rgba(0,0,0,0.5);
+  }
+  .nav-container{
+    width:100%; max-width:1400px; margin:0 auto; padding:0 20px;
+    display:flex; justify-content:space-between; align-items:center; gap:40px;
+  }
+  .nav-logo{
+    font-size:24px; font-weight:900; color:#ff8800;
+    font-family:'Cinzel', Georgia, serif; letter-spacing:2px;
+    flex-shrink:0; text-shadow:0 0 8px rgba(255,136,0,0.4);
+  }
+  .nav-items{
+    display:flex; gap:2px; flex:1; justify-content:center;
+  }
+  .nav-link{
+    background:none; border:none; color:#ece0c8; font-size:13px; font-weight:600;
+    padding:8px 16px; cursor:pointer; text-transform:uppercase; letter-spacing:0.04em;
+    transition:all 0.2s ease; position:relative;
+    font-family:inherit;
+  }
+  .nav-link:hover{
+    color:#ff8800; text-shadow:0 0 6px rgba(255,136,0,0.5);
+  }
+  .nav-link::after{
+    content:''; position:absolute; bottom:-8px; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, #ff8800, transparent);
+    opacity:0; transition:opacity 0.2s ease;
+  }
+  .nav-link:hover::after{ opacity:1; }
+
+  /* HAMBURGER MENU (hidden on desktop) */
+  .hamburger-menu{
+    display:none; flex-direction:column; gap:5px; background:none; border:none;
+    cursor:pointer; padding:8px; margin-left:auto;
+  }
+  .hamburger-menu span{
+    width:24px; height:2px; background:#ff8800;
+    transition:all 0.3s ease; display:block;
+  }
+  .hamburger-menu.active span:nth-child(1){ transform:rotate(45deg) translate(8px, 8px); }
+  .hamburger-menu.active span:nth-child(2){ opacity:0; }
+  .hamburger-menu.active span:nth-child(3){ transform:rotate(-45deg) translate(7px, -7px); }
+
+  /* MOBILE MENU */
+  .mobile-menu{
+    position:fixed; top:60px; left:0; bottom:0; width:80%;
+    background:linear-gradient(180deg, rgba(26,20,16,0.98) 0%, rgba(15,10,5,0.99) 100%);
+    border-right:2px solid rgba(204,51,51,0.4);
+    display:flex; flex-direction:column; gap:0;
+    transform:translateX(-100%); transition:transform 0.3s ease;
+    z-index:9999; overflow-y:auto;
+  }
+  .mobile-menu.open{ transform:translateX(0); }
+  .mobile-menu .nav-link{
+    width:100%; text-align:left; padding:16px 20px;
+    border-bottom:1px solid rgba(255,136,0,0.1);
+    border-radius:0;
+  }
+
+  /* RESPONSIVE: Hide desktop nav, show hamburger on mobile */
+  @media (max-width:768px){
+    .nav-items{ display:none; }
+    .hamburger-menu{ display:flex; }
+    .nav-container{ gap:0; }
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -97,7 +173,7 @@
   .logout-link{ color:#dcb570; cursor:pointer; text-decoration:none; background:none; border:none; padding:0; font-size:12px; font-family:inherit; }
   .logout-link:hover{ text-decoration:underline; }
 
-  .main{ max-width:none; margin:0; padding:140px 0 32px 0; overflow:visible !important; width:100%; }
+  .main{ max-width:none; margin:0; padding:60px 0 32px 0; overflow:visible !important; width:100%; }
   
   /* Per-page width customization - ALL REMOVED TO ALLOW FULL WIDTH */
   .eyebrow{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--blurple); margin-bottom:8px; }
@@ -2227,6 +2303,38 @@
 </style>
 </head>
 <body>
+<!-- STICKY NAVIGATION BAR -->
+<nav id="top-nav" class="top-nav">
+  <div class="nav-container">
+    <div class="nav-logo">HATED</div>
+    <div class="nav-items">
+      <button class="nav-link" data-page="home">Home</button>
+      <button class="nav-link" data-page="calendar">Raid Calendar</button>
+      <button class="nav-link" data-page="resources">Raiding Resources</button>
+      <button class="nav-link" data-page="guild">Guild Resources</button>
+      <button class="nav-link" data-page="gallery">Gallery</button>
+      <button class="nav-link" data-page="recruitment">Recruitment</button>
+      <button class="nav-link" data-page="settings">Settings</button>
+    </div>
+    <button id="hamburger-menu" class="hamburger-menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- MOBILE MENU (hidden on desktop) -->
+<div id="mobile-menu" class="mobile-menu">
+  <button class="nav-link mobile" data-page="home">Home</button>
+  <button class="nav-link mobile" data-page="calendar">Raid Calendar</button>
+  <button class="nav-link mobile" data-page="resources">Raiding Resources</button>
+  <button class="nav-link mobile" data-page="guild">Guild Resources</button>
+  <button class="nav-link mobile" data-page="gallery">Gallery</button>
+  <button class="nav-link mobile" data-page="recruitment">Recruitment</button>
+  <button class="nav-link mobile" data-page="settings">Settings</button>
+</div>
+
 <div id="construction-banner">⚔️ SITE UNDER CONSTRUCTION! ALPHA-CHADS MAKE SURE YOU PURCHASE SOMETHING FROM THE SHOP! ⚔️</div>
 <div id="bg-layer-texture"></div>
 <div id="bg-layer-image"></div>
@@ -2257,6 +2365,28 @@ const SUPABASE_URL = SUPABASE_CONFIG.url;
 const SUPABASE_ANON_KEY = SUPABASE_CONFIG.key;
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const BOSS_SCREENSHOT_BUCKET = 'boss-screenshots';
+
+/* ---- Hamburger Menu Handler ---- */
+(function(){
+  const hamburger = document.getElementById('hamburger-menu');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  if(hamburger && mobileMenu){
+    hamburger.addEventListener('click', ()=>{
+      hamburger.classList.toggle('active');
+      mobileMenu.classList.toggle('open');
+    });
+
+    navLinks.forEach(link => {
+      link.addEventListener('click', ()=>{
+        hamburger.classList.remove('active');
+        mobileMenu.classList.remove('open');
+        // Page navigation will be handled by the main app state system
+      });
+    });
+  }
+})();
 
 /* ---- reused helpers (icons, dates, rich text, nav) ---- */
 function esc(s){ const d=document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; }
