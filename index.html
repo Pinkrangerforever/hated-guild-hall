@@ -6776,46 +6776,37 @@ function renderNews(){
   return `
 
 
-    <!-- Modules Container (single-column responsive layout) -->
-    <div id="layout-container" style="display:flex; flex-direction:column; align-items:center; width:100%; height:auto; margin-top:24px; padding:20px; gap:32px; max-width:1200px; margin-left:auto; margin-right:auto;">
+    <!-- Modules Container (two-column: sidebar + main content) -->
+    <div id="layout-container" style="display:flex; flex-direction:row; width:100%; height:auto; margin-top:24px; padding:20px; gap:32px; max-width:1400px; margin-left:auto; margin-right:auto;">
 
-      <!-- Gold Leaderboard -->
-      <div id="gold-leaderboard-sidebar" style="width:100%; max-width:600px; z-index:50;">
+      <!-- Gold Leaderboard Sidebar (Left) -->
+      <div id="gold-leaderboard-sidebar" style="width:300px; flex-shrink:0; z-index:50; height:fit-content; position:sticky; top:80px;">
         ${renderGoldLeaderboard()}
       </div>
 
-
-      <!-- WOW-BOX 3: Raid Roster Frame -->
-      <div id="wow-box-3" class="wow-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; max-width:900px; height:520px; ${getLayoutStyleString('wow-box-3')}">
-        <img src="wow-frame-wide.jpg" alt="Frame" class="wow-frame-img">
-        <div class="wow-content"></div>
-        <div class="wow-resize-handle"></div>
-        <img src="roster-gryphon-icon.png" alt="Gryphon" style="position:absolute; top:-40px; right:-20px; width:80px; height:80px; display:block;">
-      </div>
+      <!-- Main Content Column -->
+      <div id="main-content-column" style="display:flex; flex-direction:column; flex:1; gap:32px; min-width:0;">
 
 
-      <!-- All Modules (positioned absolutely, independent of boxes) -->
-
-      <!-- Titleplate 1 -->
-      <div id="titleplate-1" class="titleplate-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; max-width:600px; height:120px; ${getLayoutStyleString('titleplate-1')}">
-        <img src="titleplate-frame.webp" alt="Frame" class="titleplate-frame-img">
-        <div class="titleplate-content"></div>
-        <div class="titleplate-resize-handle"></div>
-      </div>
-
-      <!-- Decorative Divider Lines (hidden in single-column layout) -->
-      <div class="divider-line-container module ${testIsRaidLeader() ? 'unlocked' : ''}" id="module-divider-line-vertical" style="display:none; ${getLayoutStyleString('module-divider-line-vertical')}">
-        <img src="Divider-line-Vertical.webp" alt="Divider Line" style="width:100%; height:100%; object-fit:stretch; display:block;">
-        <div class="divider-resize-handle"></div>
-      </div>
-
-      <div class="divider-line-container module ${testIsRaidLeader() ? 'unlocked' : ''}" id="module-divider-line-horizontal" style="display:none; ${getLayoutStyleString('module-divider-line-horizontal')}">
-        <img src="Divider-line-Horizontal.png" alt="Horizontal Divider" style="width:100%; height:100%; object-fit:stretch; display:block;">
-        <div class="divider-resize-handle"></div>
+      <!-- Announcements Display Module (First in Main Column) -->
+      <div id="module-announcements-display" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; overflow:visible; background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box; cursor:move; box-shadow:inset 0 0 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.2), 0 0 25px rgba(207,154,68,0.35), 0 0 50px rgba(207,154,68,0.2); ${getLayoutStyleString('module-announcements-display')}">
+        <img src="announcement-icon.png" alt="Announcements" style="position:absolute; top:-16px; left:-16px; width:48px; height:48px; display:block;">
+        <div class="announcement-resize-handle"></div>
+        <h3 style="margin-bottom:14px; margin-top:0; margin-left:40px; color:var(--text-normal); text-shadow:0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(207,154,68,0.3);">Announcements</h3>
+        ${ state.news.length ? state.news.map(n=>`
+          <div class="list-item">
+            <div style="flex:1;">
+              <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
+              <div class="muted"><span class="mono">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')}</span> &middot; ${esc(n.author||'')}</div>
+              <div style="margin-top:8px; line-height:1.5;">${n.body || renderRichText(n.body)}</div>
+            </div>
+            ${ officer ? `<button class="btn danger" data-del-news="${n.id}" style="flex-shrink:0;">Remove</button>` : '' }
+          </div>
+        `).join('') : emptyState('No announcements yet.') }
       </div>
 
       <!-- Guild Board Frame Module -->
-      <div id="module-guild-board" class="module guild-board-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; max-width:900px; height:600px; cursor:move; ${getLayoutStyleString('module-guild-board')}">
+      <div id="module-guild-board" class="module guild-board-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; height:600px; cursor:move; ${getLayoutStyleString('module-guild-board')}">
         <img src="guild-board-frame.webp" alt="Guild Board Frame" class="guild-board-frame-img">
         <div class="guild-board-resize-handle"></div>
         <div class="guild-board-content">
@@ -6855,24 +6846,6 @@ function renderNews(){
         ${renderRosterGroups()}
       </div>
 
-      <!-- Feature Cards Content Module -->
-      <div id="module-feature-cards" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; max-width:900px; height:auto; display:flex; gap:20px; flex-wrap:wrap; justify-content:space-around; overflow:hidden; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box; cursor:move; ${getLayoutStyleString('module-feature-cards')}">
-        <button type="button" class="feature-card" data-home-card="calendar" style="flex:1; min-width:200px; max-width:300px; pointer-events:auto;">
-          <div class="feature-icon">${crestSvg('hc1',34)}</div>
-          <h3>Raid Calendar</h3>
-          <p class="sans">A month-by-month view of every raid night. Click any event to mark yourself Going, Maybe, or Can't Make It.</p>
-        </button>
-        <button type="button" class="feature-card" data-home-card="strategies" style="flex:1; min-width:200px; max-width:300px; pointer-events:auto;">
-          <div class="feature-icon">${crestSvg('hc2',34)}</div>
-          <h3>Boss Strategies</h3>
-          <p class="sans">Positioning, cooldowns, and wipe triggers for every fight, organized by raid instance.</p>
-        </button>
-        <button type="button" class="feature-card" data-home-card="loot" style="flex:1; min-width:200px; max-width:300px; pointer-events:auto;">
-          <div class="feature-icon">${crestSvg('hc3',34)}</div>
-          <h3>Loot Log</h3>
-          <p class="sans">A running record of what's dropped and who won it, plus soft-res sheets for upcoming raids.</p>
-        </button>
-      </div>
 
       <!-- Announcements Form Module (Officers Only) -->
       ${ officer ? `
@@ -6917,29 +6890,7 @@ function renderNews(){
         </div>
       </div>` : ''}
 
-      <!-- Announcements Display Module -->
-      <div id="module-announcements-display" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; max-width:900px; overflow:visible; background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box; cursor:move; box-shadow:inset 0 0 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.2), 0 0 25px rgba(207,154,68,0.35), 0 0 50px rgba(207,154,68,0.2); ${getLayoutStyleString('module-announcements-display')}">
-        <img src="announcement-icon.png" alt="Announcements" style="position:absolute; top:-16px; left:-16px; width:48px; height:48px; display:block;">
-        <div class="announcement-resize-handle"></div>
-        <h3 style="margin-bottom:14px; margin-top:0; margin-left:40px; color:var(--text-normal); text-shadow:0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(207,154,68,0.3);">Announcements</h3>
-        ${ state.news.length ? state.news.map(n=>`
-          <div class="list-item">
-            <div style="flex:1;">
-              <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
-              <div class="muted"><span class="mono">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')}</span> &middot; ${esc(n.author||'')}</div>
-              <div style="margin-top:8px; line-height:1.5;">${n.body || renderRichText(n.body)}</div>
-            </div>
-            ${ officer ? `<button class="btn danger" data-del-news="${n.id}" style="flex-shrink:0;">Remove</button>` : '' }
-          </div>
-        `).join('') : emptyState('No announcements yet.') }
-      </div>
-
-      <!-- Shop Sticker Poster Module -->
-      <div id="module-shop-poster" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:280px; height:380px; cursor:move; transform:rotate(-25deg); ${getLayoutStyleString('module-shop-poster')}">
-        <img src="shop-sticker-poster.webp" alt="Shop Sticker Poster" style="width:100%; height:100%; object-fit:contain; display:block;">
-        <div style="position:absolute; bottom:-18px; right:-18px; width:36px; height:36px; background:rgba(207,154,68,0.2); border:2px solid rgba(207,154,68,0.6); border-radius:3px; cursor:nwse-resize;" class="shop-poster-resize-handle"></div>
-      </div>
-
+      </div><!-- End main-content-column -->
   `;
 }
 
