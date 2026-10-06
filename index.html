@@ -6775,9 +6775,13 @@ function renderRosterGroups(){
 /* ---- gold leaderboard widget ---- */
 function renderGoldLeaderboard(){
   const profiles = Object.values(state.profilesById || {});
+  if(!profiles || profiles.length === 0){
+    return '<div class="gold-leaderboard-widget"><div class="gold-leaderboard-widget-title">💰 Gold Leaderboard</div><p style="text-align:center; color:var(--text-muted); font-size:12px; padding:20px;">Loading...</p></div>';
+  }
+
   const withGold = profiles.filter(p => (p.gold_earned_total || 0) > 0).sort((a, b) => (b.gold_earned_total || 0) - (a.gold_earned_total || 0));
 
-  if(withGold.length === 0) return '<div class="gold-leaderboard-widget"><div class="gold-leaderboard-widget-title">Gold Leaderboard</div><p style="text-align:center; color:var(--text-muted); font-size:12px;">No earners yet</p></div>';
+  if(withGold.length === 0) return '<div class="gold-leaderboard-widget"><div class="gold-leaderboard-widget-title">💰 Gold Leaderboard</div><p style="text-align:center; color:var(--text-muted); font-size:12px; padding:20px;">No earners yet</p></div>';
 
   const entries = withGold.map((profile, idx) => {
     const rank = idx + 1;
