@@ -5092,10 +5092,7 @@ function applyLayoutStyles(layout) {
 }
 
 function getLayoutStyleString(elementId) {
-  if(!layoutCache || !layoutCache[elementId]) return '';
-  const style = layoutCache[elementId];
-  const { type, ...styleProps } = style;
-  return Object.entries(styleProps).filter(([k, v]) => v).map(([k, v]) => `${k}:${v}`).join(';');
+  return ''; // Disabled: layout repositioning disabled for new flexbox layout
 }
 
 function syncTitlePositions(){
@@ -6789,9 +6786,8 @@ function renderNews(){
 
 
       <!-- Announcements Display Module (First in Main Column) -->
-      <div id="module-announcements-display" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; overflow:visible; background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box; cursor:move; box-shadow:inset 0 0 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.2), 0 0 25px rgba(207,154,68,0.35), 0 0 50px rgba(207,154,68,0.2);">
+      <div id="module-announcements-display" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; overflow:visible; background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box; box-shadow:inset 0 0 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.2), 0 0 25px rgba(207,154,68,0.35), 0 0 50px rgba(207,154,68,0.2);">
         <img src="announcement-icon.png" alt="Announcements" style="position:absolute; top:-16px; left:-16px; width:48px; height:48px; display:block;">
-        <div class="announcement-resize-handle"></div>
         <h3 style="margin-bottom:14px; margin-top:0; margin-left:40px; color:var(--text-normal); text-shadow:0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(207,154,68,0.3);">Announcements</h3>
         ${ state.news.length ? state.news.map(n=>`
           <div class="list-item">
@@ -6806,9 +6802,8 @@ function renderNews(){
       </div>
 
       <!-- Guild Board Frame Module -->
-      <div id="module-guild-board" class="module guild-board-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; height:600px; cursor:move;">
+      <div id="module-guild-board" class="module guild-board-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; height:600px;">
         <img src="guild-board-frame.webp" alt="Guild Board Frame" class="guild-board-frame-img">
-        <div class="guild-board-resize-handle"></div>
         <div class="guild-board-content">
           <div class="corkboard" style="width:100%; height:100%; margin:0; position:relative;">
             ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
@@ -6841,15 +6836,14 @@ function renderNews(){
 
 
       <!-- Raid Roster Module -->
-      <div id="module-raid-roster" class="module roster-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; max-width:900px; height:520px; overflow:auto; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box; cursor:move;">
-        <div class="roster-resize-handle"></div>
+      <div id="module-raid-roster" class="module roster-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; max-width:900px; height:520px; overflow:auto; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box;">
         ${renderRosterGroups()}
       </div>
 
 
       <!-- Announcements Form Module (Officers Only) -->
       ${ officer ? `
-      <div id="module-announcements-form" class="module" style="width:100%; max-width:900px; overflow:visible; background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box; cursor:move; box-shadow:inset 0 0 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.2), 0 0 25px rgba(207,154,68,0.35), 0 0 50px rgba(207,154,68,0.2);">
+      <div id="module-announcements-form" class="module" style="width:100%; max-width:900px; overflow:visible; background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box; box-shadow:inset 0 0 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.2), 0 0 25px rgba(207,154,68,0.35), 0 0 50px rgba(207,154,68,0.2);">
         <h3 style="margin-bottom:14px; color:var(--text-normal); text-shadow:0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(207,154,68,0.3);">Post an announcement</h3>
         <div id="news-form">
           <div class="field"><label>Title</label><input id="news-title-input" name="title" placeholder="e.g. New loot council rules starting this week" required></div>
