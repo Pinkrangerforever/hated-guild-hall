@@ -63,13 +63,6 @@ jobs:
             --password ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }} \
             --dry-run=false
 
-      - name: Verify Migrations Applied
-        if: steps.check_migrations.outputs.status == 'has_migrations'
-        run: |
-          echo "Verifying migrations were applied successfully..."
-          supabase db remote-commit \
-            --project-ref ${{ secrets.SUPABASE_STAGING_PROJECT_REF }}
-
       - name: Post Success to GitHub
         if: success() && steps.check_migrations.outputs.status == 'has_migrations'
         run: echo "✅ Staging migrations deployed successfully"

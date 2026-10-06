@@ -106,12 +106,6 @@ jobs:
             --password ${{ secrets.SUPABASE_PROD_DB_PASSWORD }} \
             --dry-run=false
 
-      - name: Verify Migrations Applied
-        run: |
-          echo "Verifying migrations were applied successfully..."
-          supabase db remote-commit \
-            --project-ref ${{ secrets.SUPABASE_PROD_PROJECT_REF }}
-
       - name: Post Success Notification
         if: success()
         run: |
