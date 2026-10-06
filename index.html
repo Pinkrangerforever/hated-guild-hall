@@ -3470,9 +3470,10 @@ async function signOut(){
   stopSparkleSystem();
   state.session = null;
   state.profile = null;
-  state.view = 'landing';
+  state.view = 'app';
   state.tab = 'news';
   render();
+  updateNavbarUserInfo();
 }
 
 let __syncInFlight = false;
@@ -6969,16 +6970,20 @@ function renderEntryPage(){
     <div id="layout-container" class="layout-responsive">
       <!-- MOBILE: Full-width single column -->
       <div class="layout-mobile">
+        <div class="module-wrapper">${renderGoldLeaderboard()}</div>
         <div class="module-wrapper">${renderEntryYouTubeVideo()}</div>
         <div class="module-wrapper">${renderEntryAnnouncements()}</div>
         <div class="module-wrapper">${renderEntryGuildBoard()}</div>
       </div>
 
-      <!-- DESKTOP: Single column (same as mobile, no sidebar) -->
-      <div class="layout-desktop" style="grid-template-columns:1fr;">
-        <div class="module-wrapper">${renderEntryYouTubeVideo()}</div>
-        <div class="module-wrapper">${renderEntryAnnouncements()}</div>
-        <div class="module-wrapper">${renderEntryGuildBoard()}</div>
+      <!-- DESKTOP: Two-column layout (same as home page) -->
+      <div class="layout-desktop">
+        <aside class="layout-sidebar">${renderGoldLeaderboard()}</aside>
+        <main class="layout-main">
+          <div class="module-wrapper">${renderEntryYouTubeVideo()}</div>
+          <div class="module-wrapper">${renderEntryAnnouncements()}</div>
+          <div class="module-wrapper">${renderEntryGuildBoard()}</div>
+        </main>
       </div>
     </div>
   `;
