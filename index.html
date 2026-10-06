@@ -2444,15 +2444,16 @@
       <button class="nav-link" data-tab="settings">Settings</button>
     </div>
     <div class="nav-user-section">
-      <div id="nav-user-info" class="nav-user-info">
+      <div id="nav-user-info" class="nav-user-info" style="display:none;">
         <span id="nav-username" class="nav-username">Loading...</span>
         <span id="nav-gold-badge" class="nav-gold-badge">💰 0</span>
       </div>
-      <button id="layout-lock-btn" class="nav-action-btn" title="Toggle Layout Lock">Layout</button>
+      <button id="layout-lock-btn" class="nav-action-btn" title="Toggle Layout Lock" style="display:none;">Layout</button>
       <button id="reset-member-btn" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
-      <button id="open-shop-btn" class="nav-action-btn">Shop</button>
+      <button id="open-shop-btn" class="nav-action-btn" style="display:none;">Shop</button>
       <button id="admin-btn" class="nav-action-btn btn-nav-admin" style="display:none;" title="Admin">Admin</button>
-      <button id="logout-btn" class="nav-action-btn">Sign Out</button>
+      <button id="logout-btn" class="nav-action-btn" style="display:none;">Sign Out</button>
+      <button id="discord-signin-btn" class="nav-action-btn" style="background:#5865f2; border-color:#5865f2; color:#fff; display:flex; align-items:center; gap:6px;">🎮 Sign in</button>
     </div>
     <button id="hamburger-menu" class="hamburger-menu">
       <span></span>
@@ -2547,6 +2548,29 @@ const BOSS_SCREENSHOT_BUCKET = 'boss-screenshots';
 
 /* ---- Navbar User Info Update ---- */
 function updateNavbarUserInfo(){
+  const userInfo = document.getElementById('nav-user-info');
+  const layoutBtn = document.getElementById('layout-lock-btn');
+  const shopBtn = document.getElementById('open-shop-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const discordBtn = document.getElementById('discord-signin-btn');
+
+  if(!state.session || !state.session.user){
+    // Logged out: hide user section, show Discord sign-in
+    if(userInfo) userInfo.style.display = 'none';
+    if(layoutBtn) layoutBtn.style.display = 'none';
+    if(shopBtn) shopBtn.style.display = 'none';
+    if(logoutBtn) logoutBtn.style.display = 'none';
+    if(discordBtn) discordBtn.style.display = 'flex';
+    return;
+  }
+
+  // Logged in: show user section, hide Discord sign-in
+  if(userInfo) userInfo.style.display = 'flex';
+  if(layoutBtn) layoutBtn.style.display = 'inline-block';
+  if(shopBtn) shopBtn.style.display = 'inline-block';
+  if(logoutBtn) logoutBtn.style.display = 'inline-block';
+  if(discordBtn) discordBtn.style.display = 'none';
+
   if(!state.profile) return;
 
   const username = state.profile.character_name || state.profile.discord_username || 'Member';
@@ -5836,6 +5860,11 @@ function renderApp(){
 }
 
 function renderTab(){
+  // If not logged in, show entry page instead
+  if(!state.session || !state.session.user){
+    return renderEntryPage();
+  }
+
   switch(state.tab){
     case 'calendar': return renderCalendar();
     case 'strategies': return renderStrategies();
@@ -6933,6 +6962,92 @@ function renderAnnouncementsFormModule(){
   `;
 }
 
+/* ============ ENTRY PAGE (for logged-out users) ============ */
+function renderEntryPage(){
+  return `
+    <!-- Mobile-First Responsive Layout -->
+    <div id="layout-container" class="layout-responsive">
+      <!-- MOBILE: Full-width single column -->
+      <div class="layout-mobile">
+        <div class="module-wrapper">${renderEntryYouTubeVideo()}</div>
+        <div class="module-wrapper">${renderEntryAnnouncements()}</div>
+        <div class="module-wrapper">${renderEntryGuildBoard()}</div>
+      </div>
+
+      <!-- DESKTOP: Single column (same as mobile, no sidebar) -->
+      <div class="layout-desktop" style="grid-template-columns:1fr;">
+        <div class="module-wrapper">${renderEntryYouTubeVideo()}</div>
+        <div class="module-wrapper">${renderEntryAnnouncements()}</div>
+        <div class="module-wrapper">${renderEntryGuildBoard()}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderEntryYouTubeVideo(){
+  const videoUrl = state.settings?.youtube_url || '';
+  if(!videoUrl) return '<div class="module" style="text-align:center; padding:40px; color:var(--text-muted);">No video available yet</div>';
+
+  // Extract video ID from YouTube URL
+  let videoId = '';
+  if(videoUrl.includes('youtube.com/watch?v=')) videoId = videoUrl.split('v=')[1].split('&')[0];
+  else if(videoUrl.includes('youtu.be/')) videoId = videoUrl.split('youtu.be/')[1].split('?')[0];
+
+  if(!videoId) return '';
+
+  return `
+    <div class="module" style="padding:0; border-radius:12px; overflow:hidden;">
+      <iframe width="100%" height="400" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="display:block;"></iframe>
+    </div>
+  `;
+}
+
+function renderEntryAnnouncements(){
+  return `
+    <div class="module" style="background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box;">
+      <h3 style="margin:0 0 14px 0; color:var(--text-normal);">Latest News</h3>
+      ${ state.news.length ? state.news.slice(0,5).map(n=>`
+        <div class="list-item">
+          <div style="flex:1;">
+            <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
+            <div class="muted"><span class="mono">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')}</span> &middot; ${esc(n.author||'')}</div>
+            <div style="margin-top:8px; line-height:1.5;">${renderRichText(n.body)}</div>
+          </div>
+        </div>
+      `).join('') : `<div style="text-align:center; color:var(--text-muted); padding:20px;">No announcements yet</div>` }
+    </div>
+  `;
+}
+
+function renderEntryGuildBoard(){
+  return `
+    <div class="module guild-board-container" style="height:600px; border-radius:12px; overflow:hidden;">
+      <img src="guild-board-frame.webp" alt="Guild Board" class="guild-board-frame-img">
+      <div class="guild-board-content">
+        <div class="corkboard" style="width:100%; height:100%; margin:0; position:relative;">
+          ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
+            <div class="corkboard-stickers">
+              ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s)=>{
+                const posX = s.position_x ?? 50;
+                const posY = s.position_y ?? 50;
+                const rotation = (Math.random() * 50) - 25;
+                return `
+                <div class="sticker-pin-group" style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
+                  <div class="sticker-pin"></div>
+                  <div class="sticker-pin-shadow"></div>
+                  <img src="${esc(s.image_url)}" alt="" class="corkboard-sticker">
+                  ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
+                  <div class="sticker-placer">${esc(s.placed_by_name)}</div>
+                </div>`;
+              }).join('') }
+            </div>
+          ` : `<div style="padding:20px; text-align:center; color:var(--blurple);">Guild Board</div>` }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 /* ---------------- recruitment tab ---------------- */
 function renderRecruitmentTab(){
   const officer = testCanManage();
@@ -7377,6 +7492,9 @@ function bindApp(){
   }));
   const logoutBtn = document.getElementById('logout-btn');
   if(logoutBtn) logoutBtn.addEventListener('click', signOut);
+
+  const discordSigninBtn = document.getElementById('discord-signin-btn');
+  if(discordSigninBtn) discordSigninBtn.addEventListener('click', signInWithDiscord);
 
   const eventBtn = document.getElementById('event-form-btn');
   if(eventBtn) eventBtn.addEventListener('click', addEvent);
