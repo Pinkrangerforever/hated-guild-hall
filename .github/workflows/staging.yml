@@ -1,0 +1,87 @@
+name: Deploy Staging Migrations
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - 'supabase/migrations/staging/**'
+      - '.github/workflows/staging.yml'
+
+concurrency:
+  group: staging-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Apply Staging Migrations
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Verify Supabase CLI Installation
+        run: supabase --version
+
+      - name: Authenticate with Supabase
+        run: |
+          supabase link --project-ref ${{ secrets.SUPABASE_STAGING_PROJECT_REF }} \
+            --api-key ${{ secrets.SUPABASE_STAGING_SERVICE_ROLE_KEY }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN }}
+
+      - name: List Pending Migrations
+        id: check_migrations
+        run: |
+          echo "Checking for pending migrations in supabase/migrations/staging/"
+          if [ -z "$(find supabase/migrations/staging -name '*.sql' -type f)" ]; then
+            echo "status=no_migrations" >> $GITHUB_OUTPUT
+            echo "No migration files found in staging directory"
+          else
+            echo "status=has_migrations" >> $GITHUB_OUTPUT
+            echo "Found migration files:"
+            find supabase/migrations/staging -name '*.sql' -type f | sort
+          fi
+
+      - name: Push Migrations to Staging Database
+        if: steps.check_migrations.outputs.status == 'has_migrations'
+        run: |
+          echo "Starting migration push to STAGING database..."
+          supabase db push \
+            --project-ref ${{ secrets.SUPABASE_STAGING_PROJECT_REF }} \
+            --password ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }} \
+            --dry-run=false
+
+      - name: Verify Migrations Applied
+        if: steps.check_migrations.outputs.status == 'has_migrations'
+        run: |
+          echo "Verifying migrations were applied successfully..."
+          supabase db remote-commit \
+            --project-ref ${{ secrets.SUPABASE_STAGING_PROJECT_REF }}
+
+      - name: Post Success to GitHub
+        if: success() && steps.check_migrations.outputs.status == 'has_migrations'
+        run: echo "✅ Staging migrations deployed successfully"
+
+      - name: Post Failure to GitHub
+        if: failure()
+        run: |
+          echo "❌ Staging migration deployment failed"
+          exit 1
+
+      - name: Post Skipped to GitHub
+        if: steps.check_migrations.outputs.status == 'no_migrations'
+        run: echo "⏭️ No migrations to deploy"

@@ -1,0 +1,140 @@
+name: Deploy Production Migrations
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/migrations/prod/**'
+      - '.github/workflows/prod.yml'
+
+concurrency:
+  group: prod-deployment
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare Production Deployment
+    runs-on: ubuntu-latest
+    environment: prod
+    outputs:
+      has_migrations: ${{ steps.check_migrations.outputs.status }}
+      migration_files: ${{ steps.check_migrations.outputs.files }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for Migration Files
+        id: check_migrations
+        run: |
+          echo "Checking for pending migrations in supabase/migrations/prod/"
+          MIGRATION_FILES=$(find supabase/migrations/prod -name '*.sql' -type f | sort)
+
+          if [ -z "$MIGRATION_FILES" ]; then
+            echo "status=no_migrations" >> $GITHUB_OUTPUT
+            echo "No migration files found in prod directory"
+          else
+            echo "status=has_migrations" >> $GITHUB_OUTPUT
+            echo "files<<EOF" >> $GITHUB_OUTPUT
+            echo "$MIGRATION_FILES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "Found migration files:"
+            echo "$MIGRATION_FILES"
+          fi
+
+  approval:
+    name: Request Manual Approval
+    needs: prepare
+    runs-on: ubuntu-latest
+    if: needs.prepare.outputs.has_migrations == 'has_migrations'
+
+    steps:
+      - name: Display Migrations for Review
+        run: |
+          echo "=== PRODUCTION DEPLOYMENT REQUIRED ==="
+          echo "The following migrations will be applied to the PRODUCTION database:"
+          echo ""
+          echo "${{ needs.prepare.outputs.migration_files }}"
+          echo ""
+          echo "⚠️  This requires manual approval. Approve the deployment in GitHub Actions."
+
+  deploy:
+    name: Apply Production Migrations
+    needs: [prepare, approval]
+    runs-on: ubuntu-latest
+    environment: prod
+    if: needs.prepare.outputs.has_migrations == 'has_migrations'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Verify Supabase CLI Installation
+        run: supabase --version
+
+      - name: Authenticate with Supabase
+        run: |
+          supabase link --project-ref ${{ secrets.SUPABASE_PROD_PROJECT_REF }} \
+            --api-key ${{ secrets.SUPABASE_PROD_SERVICE_ROLE_KEY }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN }}
+
+      - name: Backup Database (Optional Pre-Deployment Step)
+        run: |
+          echo "⚠️  REMINDER: Ensure you have a backup of the production database"
+          echo "Production Project: ${{ secrets.SUPABASE_PROD_PROJECT_REF }}"
+
+      - name: Push Migrations to Production Database
+        run: |
+          echo "⚠️  Starting migration push to PRODUCTION database..."
+          echo "Project Ref: ${{ secrets.SUPABASE_PROD_PROJECT_REF }}"
+          echo ""
+          supabase db push \
+            --project-ref ${{ secrets.SUPABASE_PROD_PROJECT_REF }} \
+            --password ${{ secrets.SUPABASE_PROD_DB_PASSWORD }} \
+            --dry-run=false
+
+      - name: Verify Migrations Applied
+        run: |
+          echo "Verifying migrations were applied successfully..."
+          supabase db remote-commit \
+            --project-ref ${{ secrets.SUPABASE_PROD_PROJECT_REF }}
+
+      - name: Post Success Notification
+        if: success()
+        run: |
+          echo "✅ PRODUCTION migrations deployed successfully!"
+          echo "Timestamp: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "Deployed by: GitHub Actions"
+
+      - name: Post Failure Notification
+        if: failure()
+        run: |
+          echo "❌ PRODUCTION migration deployment FAILED!"
+          echo "Timestamp: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "Please investigate and retry manually if needed."
+          exit 1
+
+  skip_notification:
+    name: Skip Notification
+    needs: prepare
+    runs-on: ubuntu-latest
+    if: needs.prepare.outputs.has_migrations == 'no_migrations'
+
+    steps:
+      - name: No Migrations to Deploy
+        run: echo "⏭️ No migrations to deploy to production"
