@@ -5565,6 +5565,7 @@ function render(){
   if(state.view === 'landing'){ app.innerHTML = renderLanding(); bindLanding(); return; }
   app.innerHTML = renderApp();
   bindApp();
+  updateNavbarUserInfo();
   document.body.classList.add('bg-ready');
 }
 
