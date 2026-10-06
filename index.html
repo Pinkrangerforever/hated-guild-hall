@@ -5737,58 +5737,6 @@ function renderApp(){
     {id:'settings', label:'Settings'},
   ];
   return `
-    <nav class="site-nav">
-      <div class="site-nav-inner">
-        <div class="nav-brand">
-          <span class="nav-brand-icon">${guildIconHtml(128, 'appnav')}</span>
-        </div>
-        <div class="nav-links app-nav-links">
-          ${navLinks.map(l=>{
-            if(l.submenu){
-              return `<div class="nav-dropdown" data-nav-dropdown="${esc(l.label)}">
-                <button type="button" class="nav-dropdown-btn">${esc(l.label)}</button>
-                <div class="nav-dropdown-menu">
-                  ${l.submenu.map(s=>`<button type="button" class="nav-dropdown-item" data-tab="${s.id}">${esc(s.label)}</button>`).join('')}
-                </div>
-              </div>`;
-            } else {
-              return `<button class="nav-tab-btn ${state.tab===l.id?'active':''}" data-tab="${l.id}">${esc(l.label)}</button>`;
-            }
-          }).join('')}
-        </div>
-        <div class="nav-cta-group">
-          <span class="nav-user sans">${esc(myName())} <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span></span>
-          <span class="nav-gold-badge">&#x1F4B0; ${state.profile ? (state.profile.gold||0) : 0}</span>
-          ${ state.profile && state.profile.protected ? `
-            <button type="button" id="layout-lock-btn" class="btn-nav-outline" style="font-size:13px;"> Layout</button>
-            <button type="button" id="layout-reset-btn" class="btn-nav-outline" style="font-size:13px;"> Reset</button>
-          ` : '' }
-          <button type="button" class="btn-nav-outline" id="open-shop-btn">Shop</button>
-          ${ state.profile && state.profile.protected ? `<button type="button" class="btn-nav-admin ${state.tab==='admin'?'active':''}" data-tab="admin">Admin</button>` : '' }
-          <button class="btn-nav-outline" id="logout-btn" type="button">Sign Out</button>
-          <button type="button" class="nav-hamburger" id="nav-hamburger-btn" aria-label="Menu">&#9776;</button>
-        </div>
-      </div>
-      <div class="mobile-nav-menu ${state.mobileNavOpen ? 'open' : ''}">
-        <div class="mobile-nav-menu-user">
-          <span>${esc(myName())}</span>
-          <span class="badge ${state.profile && state.profile.protected ? 'role-raidlead' : (officer?'role-officer':'role-member')}">${state.profile && state.profile.protected ? '&#9819; Raid Leader' : (officer?'Officer':'Member')}</span>
-        </div>
-        <button type="button" class="mobile-nav-link" id="open-shop-btn-mobile">Shop</button>
-        ${navLinks.map(l=>{
-          if(l.submenu){
-            return `<div class="mobile-nav-dropdown" data-nav-dropdown="${esc(l.label)}">
-              <button type="button" class="mobile-nav-dropdown-btn">${esc(l.label)}</button>
-              <div class="mobile-nav-dropdown-items">
-                ${l.submenu.map(s=>`<button type="button" class="mobile-nav-link" data-tab="${s.id}">${esc(s.label)}</button>`).join('')}
-              </div>
-            </div>`;
-          } else {
-            return `<button type="button" class="mobile-nav-link ${state.tab===l.id?'active':''}" data-tab="${l.id}">${esc(l.label)}</button>`;
-          }
-        }).join('')}
-      </div>
-    </nav>
     <div class="main page-${state.tab}">
       ${ getTestRole() ? `<div style="position:fixed; top:0; left:0; right:0; background:linear-gradient(90deg, #ff6b00, #ffb300); color:white; padding:10px 16px; text-align:center; font-weight:600; z-index:999; font-size:13px;"> TEST MODE: Viewing as ${getTestRole().toUpperCase()}</div>` : '' }
       ${ state.toast ? `<div class="toast ${state.toastError?'toast-error':'toast-success'} sans" style="${getTestRole() ? 'margin-top:50px;' : ''}">${esc(state.toast)}</div>` : '' }
