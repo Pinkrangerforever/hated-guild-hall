@@ -612,6 +612,7 @@
   /* ---- marketing page (login screen) ---- */
   html{ scroll-behavior:smooth; }
   .site-nav{
+    display:none !important;
     position:fixed; top:44px; left:16px; right:16px; z-index:999999;
     background-image:url('nav-bg.jpg');
     background-position:center;
@@ -3362,6 +3363,7 @@ async function onAuthResolved(){
       }
       if(state.profile){
         state.view = 'app';
+        updateNavbarUserInfo();
         await loadGuildData();
         await loadShopPurchases();
         if(window.location.hash){
