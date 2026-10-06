@@ -2208,9 +2208,26 @@
     transition:background 0.15s ease;
   }
   .btn-discord-nav:hover{ background:#4752c4; }
+
+  /* WoW-style Construction Banner */
+  #construction-banner{
+    display:none; width:100%; padding:16px 20px; text-align:center;
+    background:linear-gradient(135deg, #1a1410 0%, #3d2817 50%, #1a1410 100%);
+    border-bottom:3px solid #d4af37; border-top:3px solid #d4af37;
+    color:#ffd700; font-size:18px; font-weight:bold; letter-spacing:2px;
+    text-shadow:2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(212,175,55,0.5);
+    font-family:'Arial Black', sans-serif; box-shadow:0 4px 8px rgba(0,0,0,0.6);
+    animation:bannerGlow 2s ease-in-out infinite;
+    z-index:9999; position:relative;
+  }
+  @keyframes bannerGlow{
+    0%, 100%{ text-shadow:2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(212,175,55,0.5); }
+    50%{ text-shadow:2px 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(212,175,55,0.8); }
+  }
 </style>
 </head>
 <body>
+<div id="construction-banner">⚔️ SITE UNDER CONSTRUCTION! ALPHA-CHADS MAKE SURE YOU PURCHASE SOMETHING FROM THE SHOP! ⚔️</div>
 <div id="bg-layer-texture"></div>
 <div id="bg-layer-image"></div>
 <div id="app"></div>
@@ -2224,6 +2241,11 @@
 // Auto-detect staging vs production based on current URL
 const hostname = window.location.hostname;
 const isStaging = hostname.includes('staging');
+
+// Show construction banner only on staging
+if(isStaging){
+  document.getElementById('construction-banner').style.display = 'block';
+}
 
 const SUPABASE_CONFIG = isStaging ? {
   url: 'https://jucmmnmnbjrzmjrugggl.supabase.co',
