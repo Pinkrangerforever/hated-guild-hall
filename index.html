@@ -2242,10 +2242,8 @@
 const hostname = window.location.hostname;
 const isStaging = hostname.includes('staging');
 
-// Show construction banner only on staging
-if(isStaging){
-  document.getElementById('construction-banner').style.display = 'block';
-}
+// Show construction banner on all environments
+document.getElementById('construction-banner').style.display = 'block';
 
 const SUPABASE_CONFIG = isStaging ? {
   url: 'https://jucmmnmnbjrzmjrugggl.supabase.co',
