@@ -2384,6 +2384,49 @@
     0%, 100%{ text-shadow:2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(212,175,55,0.5); }
     50%{ text-shadow:2px 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(212,175,55,0.8); }
   }
+
+  /* ========== MOBILE-FIRST RESPONSIVE LAYOUT ========== */
+  .layout-responsive{ width:100%; max-width:1400px; margin:24px auto; padding:0 20px; box-sizing:border-box; }
+
+  /* MOBILE: Single Column Layout (default, < 768px) */
+  .layout-mobile{ display:flex; flex-direction:column; gap:32px; }
+  .layout-desktop{ display:none; }
+
+  .module-wrapper{ width:100%; }
+
+  /* DESKTOP: Two-Column Layout (>= 768px) */
+  @media(min-width:768px){
+    .layout-mobile{ display:none; }
+    .layout-desktop{
+      display:grid;
+      grid-template-columns:300px 1fr;
+      gap:32px;
+      width:100%;
+    }
+    .layout-sidebar{
+      grid-column:1;
+      position:sticky;
+      top:80px;
+      height:fit-content;
+      z-index:50;
+    }
+    .layout-main{
+      grid-column:2;
+      display:flex;
+      flex-direction:column;
+      gap:32px;
+    }
+  }
+
+  /* Base Module Styling */
+  .module{
+    background:rgba(0,0,0,0.2);
+    border:1px solid rgba(207,154,68,0.2);
+    border-radius:12px;
+    padding:16px;
+    box-sizing:border-box;
+  }
+
 </style>
 </head>
 <body>
@@ -6773,120 +6816,120 @@ function renderGoldLeaderboard(){
 function renderNews(){
   const officer = testCanManage();
   return `
-
-
-    <!-- Modules Container (two-column: sidebar + main content) -->
-    <div id="layout-container" style="display:flex; flex-direction:row; width:100%; height:auto; margin-top:24px; padding:20px; gap:32px; max-width:1400px; margin-left:auto; margin-right:auto;">
-
-      <!-- Gold Leaderboard Sidebar (Left) -->
-      <div id="gold-leaderboard-sidebar" style="width:300px; flex-shrink:0; z-index:50; height:fit-content; position:sticky; top:80px;">
-        ${renderGoldLeaderboard()}
+    <!-- Mobile-First Responsive Layout -->
+    <div id="layout-container" class="layout-responsive">
+      <!-- MOBILE: Full-width single column -->
+      <div class="layout-mobile">
+        <div class="module-wrapper">${renderGoldLeaderboard()}</div>
+        <div class="module-wrapper">${renderAnnouncementsModule(officer)}</div>
+        <div class="module-wrapper">${renderGuildBoardModule()}</div>
+        <div class="module-wrapper">${renderRosterModule()}</div>
+        ${officer ? `<div class="module-wrapper">${renderAnnouncementsFormModule()}</div>` : ''}
       </div>
 
-      <!-- Main Content Column -->
-      <div id="main-content-column" style="display:flex; flex-direction:column; flex:1; gap:32px; min-width:0;">
+      <!-- DESKTOP: Two-column layout -->
+      <div class="layout-desktop">
+        <aside class="layout-sidebar">${renderGoldLeaderboard()}</aside>
+        <main class="layout-main">
+          <div class="module-wrapper">${renderAnnouncementsModule(officer)}</div>
+          <div class="module-wrapper">${renderGuildBoardModule()}</div>
+          <div class="module-wrapper">${renderRosterModule()}</div>
+          ${officer ? `<div class="module-wrapper">${renderAnnouncementsFormModule()}</div>` : ''}
+        </main>
+      </div>
+    </div>
+  `;
+}
 
+function renderAnnouncementsModule(officer){
+  return `
+    <div id="module-announcements-display" class="module" style="background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box;">
+      <h3 style="margin:0 0 14px 0; color:var(--text-normal);">Announcements</h3>
+      ${ state.news.length ? state.news.map(n=>`
+        <div class="list-item">
+          <div style="flex:1;">
+            <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
+            <div class="muted"><span class="mono">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')}</span> &middot; ${esc(n.author||'')}</div>
+            <div style="margin-top:8px; line-height:1.5;">${renderRichText(n.body)}</div>
+          </div>
+          ${ officer ? `<button class="btn danger" data-del-news="${n.id}">Remove</button>` : '' }
+        </div>
+      `).join('') : emptyState('No announcements yet.') }
+    </div>
+  `;
+}
 
-      <!-- Announcements Display Module (First in Main Column) -->
-      <div id="module-announcements-display" class="module ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; overflow:visible; background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box; box-shadow:inset 0 0 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.2), 0 0 25px rgba(207,154,68,0.35), 0 0 50px rgba(207,154,68,0.2);">
-        <img src="announcement-icon.png" alt="Announcements" style="position:absolute; top:-16px; left:-16px; width:48px; height:48px; display:block;">
-        <h3 style="margin-bottom:14px; margin-top:0; margin-left:40px; color:var(--text-normal); text-shadow:0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(207,154,68,0.3);">Announcements</h3>
-        ${ state.news.length ? state.news.map(n=>`
-          <div class="list-item">
-            <div style="flex:1;">
-              <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
-              <div class="muted"><span class="mono">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')}</span> &middot; ${esc(n.author||'')}</div>
-              <div style="margin-top:8px; line-height:1.5;">${n.body || renderRichText(n.body)}</div>
+function renderGuildBoardModule(){
+  return `
+    <div id="module-guild-board" class="module guild-board-container" style="height:600px;">
+      <img src="guild-board-frame.webp" alt="Guild Board" class="guild-board-frame-img">
+      <div class="guild-board-content">
+        <div class="corkboard" style="width:100%; height:100%; margin:0; position:relative;">
+          ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
+            <div class="corkboard-stickers">
+              ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s)=>{
+                const posX = s.position_x ?? 50;
+                const posY = s.position_y ?? 50;
+                const rotation = (Math.random() * 50) - 25;
+                const isOwner = state.session?.user?.id === s.placed_by_user_id;
+                const canManage = testCanManage();
+                return `
+                <div class="sticker-pin-group" data-sticker-id="${esc(s.id)}" style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
+                  <div class="sticker-pin"></div>
+                  <div class="sticker-pin-shadow"></div>
+                  ${ canManage ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}">&times;</button>` : '' }
+                  <img src="${esc(s.image_url)}" alt="" class="corkboard-sticker">
+                  ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
+                  <div class="sticker-placer">${esc(s.placed_by_name)}</div>
+                </div>`;
+              }).join('') }
             </div>
-            ${ officer ? `<button class="btn danger" data-del-news="${n.id}" style="flex-shrink:0;">Remove</button>` : '' }
-          </div>
-        `).join('') : emptyState('No announcements yet.') }
-      </div>
-
-      <!-- Guild Board Frame Module -->
-      <div id="module-guild-board" class="module guild-board-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; height:600px;">
-        <img src="guild-board-frame.webp" alt="Guild Board Frame" class="guild-board-frame-img">
-        <div class="guild-board-content">
-          <div class="corkboard" style="width:100%; height:100%; margin:0; position:relative;">
-            ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
-              <div class="corkboard-stickers">
-                ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).map((s)=>{
-                  const posX = s.position_x ?? 50;
-                  const posY = s.position_y ?? 50;
-                  const rotation = (Math.random() * 50) - 25;
-                  const isOwner = state.session?.user?.id === s.placed_by_user_id;
-                  const canManage = testCanManage();
-                  return `
-                  <div class="sticker-pin-group"
-                       data-sticker-id="${esc(s.id)}"
-                       data-owned="${isOwner}"
-                       data-draggable="${canManage}"
-                       style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
-                    <div class="sticker-pin"></div>
-                    <div class="sticker-pin-shadow"></div>
-                    ${ canManage ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">&times;</button>` : '' }
-                    <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
-                    ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
-                    <div class="sticker-placer">${esc(s.placed_by_name)}</div>
-                  </div>`;
-                }).join('') }
-              </div>
-            ` : `<div style="padding:20px; text-align:center; color:var(--blurple); font-size:13px; font-weight:600;">Buy a sticker in the store!</div>` }
-          </div>
+          ` : `<div style="padding:20px; text-align:center; color:var(--blurple);">Buy a sticker in the store!</div>` }
         </div>
       </div>
+    </div>
+  `;
+}
 
+function renderRosterModule(){
+  return `
+    <div id="module-raid-roster" class="module roster-container" style="height:520px; overflow:auto; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box;">
+      ${renderRosterGroups()}
+    </div>
+  `;
+}
 
-      <!-- Raid Roster Module -->
-      <div id="module-raid-roster" class="module roster-container ${testIsRaidLeader() ? 'unlocked' : ''}" style="width:100%; max-width:900px; height:520px; overflow:auto; background:rgba(0,0,0,0.3); padding:16px; box-sizing:border-box;">
-        ${renderRosterGroups()}
-      </div>
-
-
-      <!-- Announcements Form Module (Officers Only) -->
-      ${ officer ? `
-      <div id="module-announcements-form" class="module" style="width:100%; max-width:900px; overflow:visible; background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box; box-shadow:inset 0 0 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(207,154,68,0.2), 0 0 25px rgba(207,154,68,0.35), 0 0 50px rgba(207,154,68,0.2);">
-        <h3 style="margin-bottom:14px; color:var(--text-normal); text-shadow:0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(207,154,68,0.3);">Post an announcement</h3>
-        <div id="news-form">
-          <div class="field"><label>Title</label><input id="news-title-input" name="title" placeholder="e.g. New loot council rules starting this week" required></div>
-          <div class="field">
-            <label>Message</label>
-            <div class="news-formatting-options">
-              <select id="news-font-family" title="Font">
-                <option value="inherit">Font</option>
-                <option value="Georgia, serif">Georgia</option>
-                <option value="'Arial', sans-serif">Arial</option>
-                <option value="'Courier New', monospace">Monospace</option>
-              </select>
-              <select id="news-font-size" title="Font Size">
-                <option value="14px">Size</option>
-                <option value="12px">Small</option>
-                <option value="14px">Normal</option>
-                <option value="16px">Large</option>
-                <option value="18px">XLarge</option>
-              </select>
-              <button type="button" id="news-bold-btn" class="rte-btn" title="Bold"><strong>B</strong></button>
-              <button type="button" id="news-italic-btn" class="rte-btn" title="Italic"><em>I</em></button>
-              <button type="button" id="news-underline-btn" class="rte-btn" title="Underline"><u>U</u></button>
-              <span class="rte-sep"></span>
-              <span class="rte-color-swatches">
-                <button type="button" class="news-color-swatch" data-color="#f2f0e6" style="background:#f2f0e6" title="White"></button>
-                <button type="button" class="news-color-swatch" data-color="#cf9a44" style="background:#cf9a44" title="Gold"></button>
-                <button type="button" class="news-color-swatch" data-color="#e0507a" style="background:#e0507a" title="Pink"></button>
-                <button type="button" class="news-color-swatch" data-color="#c0433f" style="background:#c0433f" title="Red"></button>
-                <button type="button" class="news-color-swatch" data-color="#6fa354" style="background:#6fa354" title="Green"></button>
-                <button type="button" class="news-color-swatch" data-color="#5b8fc7" style="background:#5b8fc7" title="Blue"></button>
-                <button type="button" class="news-color-swatch" data-color="#a77fd6" style="background:#a77fd6" title="Purple"></button>
-              </span>
-            </div>
-            <div id="news-body-input" class="news-editor" contenteditable="true" placeholder="Your message appears here with live formatting..."></div>
+function renderAnnouncementsFormModule(){
+  return `
+    <div id="module-announcements-form" class="module" style="background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box;">
+      <h3 style="margin:0 0 14px 0; color:var(--text-normal);">Post an announcement</h3>
+      <div id="news-form">
+        <div class="field"><label>Title</label><input id="news-title-input" name="title" placeholder="e.g. New loot council rules starting this week" required></div>
+        <div class="field">
+          <label>Message</label>
+          <div class="news-formatting-options">
+            <select id="news-font-family" title="Font"><option value="inherit">Font</option><option value="Georgia, serif">Georgia</option><option value="'Arial', sans-serif">Arial</option><option value="'Courier New', monospace">Monospace</option></select>
+            <select id="news-font-size" title="Font Size"><option value="14px">Size</option><option value="12px">Small</option><option value="14px">Normal</option><option value="16px">Large</option><option value="18px">XLarge</option></select>
+            <button type="button" id="news-bold-btn" class="rte-btn" title="Bold"><strong>B</strong></button>
+            <button type="button" id="news-italic-btn" class="rte-btn" title="Italic"><em>I</em></button>
+            <button type="button" id="news-underline-btn" class="rte-btn" title="Underline"><u>U</u></button>
+            <span class="rte-sep"></span>
+            <span class="rte-color-swatches">
+              <button type="button" class="news-color-swatch" data-color="#f2f0e6" style="background:#f2f0e6"></button>
+              <button type="button" class="news-color-swatch" data-color="#cf9a44" style="background:#cf9a44"></button>
+              <button type="button" class="news-color-swatch" data-color="#e0507a" style="background:#e0507a"></button>
+              <button type="button" class="news-color-swatch" data-color="#c0433f" style="background:#c0433f"></button>
+              <button type="button" class="news-color-swatch" data-color="#6fa354" style="background:#6fa354"></button>
+              <button type="button" class="news-color-swatch" data-color="#5b8fc7" style="background:#5b8fc7"></button>
+              <button type="button" class="news-color-swatch" data-color="#a77fd6" style="background:#a77fd6"></button>
+            </span>
           </div>
-          <div id="news-error" class="field-error" style="display:none;"></div>
-          <button class="btn" type="button" id="news-form-btn">Post</button>
+          <div id="news-body-input" class="news-editor" contenteditable="true" placeholder="Your message appears here with live formatting..."></div>
         </div>
-      </div>` : ''}
-
-      </div><!-- End main-content-column -->
+        <div id="news-error" class="field-error" style="display:none;"></div>
+        <button class="btn" type="button" id="news-form-btn">Post</button>
+      </div>
+    </div>
   `;
 }
 
