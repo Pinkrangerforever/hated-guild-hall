@@ -103,11 +103,65 @@
     border-radius:0;
   }
 
+  /* USER INFO & ACTION BUTTONS */
+  .nav-user-section{
+    display:flex; align-items:center; gap:12px; margin-left:auto;
+  }
+  .nav-user-info{
+    display:flex; flex-direction:column; align-items:flex-end; gap:2px; padding-right:12px;
+    border-right:1px solid rgba(255,136,0,0.2);
+  }
+  .nav-username{
+    font-size:12px; color:#ece0c8; font-weight:600;
+  }
+  .nav-gold-badge{
+    font-size:11px; color:#ff8800; font-weight:700;
+  }
+  .nav-action-btn{
+    background:none; border:1px solid rgba(255,136,0,0.3); color:#ece0c8;
+    font-size:11px; font-weight:600; padding:6px 12px; cursor:pointer;
+    text-transform:uppercase; letter-spacing:0.03em; border-radius:2px;
+    transition:all 0.2s ease; font-family:inherit;
+  }
+  .nav-action-btn:hover{
+    background:rgba(255,136,0,0.15); border-color:#ff8800; color:#ff8800;
+  }
+  .nav-action-btn.btn-nav-admin{
+    background:rgba(207,154,68,0.2); border-color:rgba(207,154,68,0.5); color:#e0c07f;
+  }
+  .nav-action-btn.btn-nav-admin:hover{
+    background:rgba(207,154,68,0.3); border-color:#cf9a44;
+  }
+
+  /* MOBILE MENU SECTIONS */
+  .mobile-menu-section{
+    display:flex; flex-direction:column;
+  }
+  .mobile-menu-section.mobile-actions{
+    border-top:1px solid rgba(255,136,0,0.1); padding-top:12px; margin-top:12px; gap:6px;
+  }
+  .mobile-menu-section.mobile-actions .nav-user-info{
+    border-right:none; border-bottom:1px solid rgba(255,136,0,0.1); padding-bottom:12px;
+    margin-bottom:6px; padding-right:0;
+  }
+  .mobile-menu-section.mobile-actions .nav-action-btn{
+    width:100%;
+  }
+
   /* RESPONSIVE: Hide desktop nav, show hamburger on mobile */
   @media (max-width:768px){
     .nav-items{ display:none; }
+    .nav-user-section{ display:none; }
     .hamburger-menu{ display:flex; }
     .nav-container{ gap:0; }
+  }
+
+  /* HIDE OLD SIDEBAR */
+  .sidebar{
+    display:none !important;
+  }
+  .main{
+    margin-left:0 !important;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -2316,6 +2370,17 @@
       <button class="nav-link" data-page="recruitment">Recruitment</button>
       <button class="nav-link" data-page="settings">Settings</button>
     </div>
+    <div class="nav-user-section">
+      <div id="nav-user-info" class="nav-user-info">
+        <span id="nav-username" class="nav-username">Loading...</span>
+        <span id="nav-gold-badge" class="nav-gold-badge">💰 0</span>
+      </div>
+      <button id="layout-lock-btn" class="nav-action-btn" title="Toggle Layout Lock">Layout</button>
+      <button id="reset-member-btn" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
+      <button id="open-shop-btn" class="nav-action-btn">Shop</button>
+      <button id="admin-btn" class="nav-action-btn btn-nav-admin" style="display:none;" title="Admin">Admin</button>
+      <button id="logout-btn" class="nav-action-btn">Sign Out</button>
+    </div>
     <button id="hamburger-menu" class="hamburger-menu">
       <span></span>
       <span></span>
@@ -2326,13 +2391,26 @@
 
 <!-- MOBILE MENU (hidden on desktop) -->
 <div id="mobile-menu" class="mobile-menu">
-  <button class="nav-link mobile" data-page="home">Home</button>
-  <button class="nav-link mobile" data-page="calendar">Raid Calendar</button>
-  <button class="nav-link mobile" data-page="resources">Raiding Resources</button>
-  <button class="nav-link mobile" data-page="guild">Guild Resources</button>
-  <button class="nav-link mobile" data-page="gallery">Gallery</button>
-  <button class="nav-link mobile" data-page="recruitment">Recruitment</button>
-  <button class="nav-link mobile" data-page="settings">Settings</button>
+  <div class="mobile-menu-section">
+    <button class="nav-link mobile" data-page="home">Home</button>
+    <button class="nav-link mobile" data-page="calendar">Raid Calendar</button>
+    <button class="nav-link mobile" data-page="resources">Raiding Resources</button>
+    <button class="nav-link mobile" data-page="guild">Guild Resources</button>
+    <button class="nav-link mobile" data-page="gallery">Gallery</button>
+    <button class="nav-link mobile" data-page="recruitment">Recruitment</button>
+    <button class="nav-link mobile" data-page="settings">Settings</button>
+  </div>
+  <div class="mobile-menu-section mobile-actions">
+    <div id="mobile-user-info" class="nav-user-info">
+      <span id="mobile-username" class="nav-username">Loading...</span>
+      <span id="mobile-gold-badge" class="nav-gold-badge">💰 0</span>
+    </div>
+    <button id="layout-lock-btn-mobile" class="nav-action-btn" title="Toggle Layout Lock">Layout</button>
+    <button id="reset-member-btn-mobile" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
+    <button id="open-shop-btn-mobile" class="nav-action-btn">Shop</button>
+    <button id="admin-btn-mobile" class="nav-action-btn btn-nav-admin" style="display:none;" title="Admin">Admin</button>
+    <button id="logout-btn-mobile" class="nav-action-btn">Sign Out</button>
+  </div>
 </div>
 
 <div id="construction-banner">⚔️ SITE UNDER CONSTRUCTION! ALPHA-CHADS MAKE SURE YOU PURCHASE SOMETHING FROM THE SHOP! ⚔️</div>
@@ -2387,6 +2465,27 @@ const BOSS_SCREENSHOT_BUCKET = 'boss-screenshots';
     });
   }
 })();
+
+/* ---- Navbar User Info Update ---- */
+function updateNavbarUserInfo(){
+  if(!state.profile) return;
+
+  const username = state.profile.character_name || state.profile.discord_username || 'Member';
+  const gold = state.profile.gold || 0;
+  const rankBadge = state.profile.role ? `[${state.profile.role.toUpperCase()}]` : '';
+
+  // Update desktop navbar
+  const navUsername = document.getElementById('nav-username');
+  const navGold = document.getElementById('nav-gold-badge');
+  if(navUsername) navUsername.textContent = `${username} ${rankBadge}`.trim();
+  if(navGold) navGold.textContent = `💰 ${gold}`;
+
+  // Update mobile menu
+  const mobileUsername = document.getElementById('mobile-username');
+  const mobileGold = document.getElementById('mobile-gold-badge');
+  if(mobileUsername) mobileUsername.textContent = `${username} ${rankBadge}`.trim();
+  if(mobileGold) mobileGold.textContent = `💰 ${gold}`;
+}
 
 /* ---- reused helpers (icons, dates, rich text, nav) ---- */
 function esc(s){ const d=document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; }
