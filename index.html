@@ -3441,11 +3441,12 @@ async function onAuthResolved(){
         syncDiscordRole(); // fire-and-forget: re-renders itself once it resolves
         startSparkleSystem();
       } else {
-        state.view = 'landing';
+        state.view = 'app';
       }
     } else {
-      state.view = 'landing';
+      state.view = 'app';
     }
+    updateNavbarUserInfo();
     render();
   } finally {
     __authResolveInFlight = false;
