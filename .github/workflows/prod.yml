@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'supabase/migrations/prod/**'
+      - 'supabase/migrations/**'
       - '.github/workflows/prod.yml'
 
 concurrency:
