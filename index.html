@@ -6903,19 +6903,15 @@ function renderNews(){
         ${officer ? `<div class="module-wrapper">${renderAnnouncementsFormModule()}</div>` : ''}
       </div>
 
-      <!-- DESKTOP: Two-column layout -->
+      <!-- DESKTOP: Three-column layout with sidebars -->
       <div class="layout-desktop">
         <aside class="layout-sidebar">${renderGoldLeaderboard()}</aside>
         <main class="layout-main">
-          <div style="display:flex; gap:32px; align-items:flex-start;">
-            <div style="flex:1;">
-              <div class="module-wrapper">${renderAnnouncementsModule(officer)}</div>
-              <div class="module-wrapper">${renderRosterModule()}</div>
-              ${officer ? `<div class="module-wrapper">${renderAnnouncementsFormModule()}</div>` : ''}
-            </div>
-            <div style="flex-shrink:0;">${renderGuildBoardModule()}</div>
-          </div>
+          <div class="module-wrapper">${renderAnnouncementsModule(officer)}</div>
+          <div class="module-wrapper">${renderRosterModule()}</div>
+          ${officer ? `<div class="module-wrapper">${renderAnnouncementsFormModule()}</div>` : ''}
         </main>
+        <aside class="layout-sidebar-right">${renderGuildBoardModule()}</aside>
       </div>
     </div>
   `;
