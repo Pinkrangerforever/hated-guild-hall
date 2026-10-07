@@ -7000,10 +7000,11 @@ function renderRoster(){
               const canEditSlot = officer || isRaidLeader;
               const clickAttr = canEditSlot ? `data-slot-click="${gi}|${si}"` : '';
               let slotClasses = `${slot?'filled':''} ${canEditSlot?'editable':''}`;
+              let customization = { border: '', nameCustom: '', nameplateIcon: '' };
               if(slot) {
                 const profiles = Object.values(state.profilesById || {});
                 const userId = profiles.find(p => p.character_name === slot.character_name)?.id;
-                const customization = getUserNameCustomization(userId);
+                customization = getUserNameCustomization(userId);
                 if(customization.border) slotClasses += ` ${customization.border}`;
                 if(customization.nameCustom) slotClasses += ` ${customization.nameCustom}`;
               }
@@ -7164,10 +7165,11 @@ function renderRosterGroups(){
             const specLabel = slot ? CLASS_SPECS[slot.class_key].specs.find(s=>s.key===slot.spec_key).label : '';
             const clickAttr = canEdit ? `data-slot-click="${gi}|${si}"` : '';
             let slotClasses = `${slot?'filled':''} ${canEdit?'editable':''}`;
+            let customization = { border: '', nameCustom: '', nameplateIcon: '' };
             if(slot) {
               const profiles = Object.values(state.profilesById || {});
               const userId = profiles.find(p => p.character_name === slot.character_name)?.id;
-              const customization = getUserNameCustomization(userId);
+              customization = getUserNameCustomization(userId);
               if(customization.border) slotClasses += ` ${customization.border}`;
               if(customization.nameCustom) slotClasses += ` ${customization.nameCustom}`;
             }
