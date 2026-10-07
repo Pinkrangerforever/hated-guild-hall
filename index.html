@@ -7738,7 +7738,7 @@ function renderSettings(){
         });
 
         if(!borderPurchases.length) {
-          return `<div class="emptyState">You haven't purchased any roster name borders yet. Visit the Shop to get one!</div>`;
+          return '<div class="emptyState">You haven\'t purchased any roster name borders yet. Visit the Shop to get one!</div>';
         }
 
         const borderColors = {
@@ -7748,30 +7748,18 @@ function renderSettings(){
           4: { color: '#ff8000', label: 'Legendary', glow: 'rgba(255,128,0,0.5)' }
         };
 
-        return `
-          <div style="display:grid; gap:12px;">
-            <button class="btn ${!activeBorderId ? 'primary' : 'secondary'}" type="button" data-set-name-border="none" style="padding:12px; text-align:left;">
-              <div style="font-weight:600;">None</div>
-              <div class="muted" style="font-size:12px;">No border effect</div>
-            </button>
-            ${ borderPurchases.map(p => {
-              const item = state.shopItems?.find(i => i.id === p.item_id);
-              const tier = item?.metadata?.tier || 0;
-              const info = borderColors[tier] || borderColors[1];
-              const isActive = activeBorderId === p.item_id;
-              return \`
-              <button class="btn \${isActive ? 'primary' : 'secondary'}" type="button" data-set-name-border="\${p.item_id}" style="padding:12px; text-align:left; display:flex; gap:12px; align-items:flex-start;">
-                <div style="width:150px; height:60px; border:3px solid \${info.color}; border-radius:3px; flex-shrink:0; background:rgba(0,0,0,0.3); box-shadow:0 0 12px \${info.glow}; display:flex; align-items:center; justify-content:center; color:\${info.color}; font-weight:600;">
-                  \${info.label}
-                </div>
-                <div style="flex:1;">
-                  <div style="font-weight:600;">\${esc(item?.name || 'Unknown')}</div>
-                  <div class="muted" style="font-size:12px;">\${esc(item?.description || '')}</div>
-                </div>
-              </button>\`;
-            }).join('')}
-          </div>
-        `;
+        let html = '<div style="display:grid; gap:12px;"><button class="btn ' + (!activeBorderId ? 'primary' : 'secondary') + '" type="button" data-set-name-border="none" style="padding:12px; text-align:left;"><div style="font-weight:600;">None</div><div class="muted" style="font-size:12px;">No border effect</div></button>';
+
+        borderPurchases.forEach(p => {
+          const item = state.shopItems?.find(i => i.id === p.item_id);
+          const tier = item?.metadata?.tier || 0;
+          const info = borderColors[tier] || borderColors[1];
+          const isActive = activeBorderId === p.item_id;
+          html += '<button class="btn ' + (isActive ? 'primary' : 'secondary') + '" type="button" data-set-name-border="' + p.item_id + '" style="padding:12px; text-align:left; display:flex; gap:12px; align-items:flex-start;"><div style="width:150px; height:60px; border:3px solid ' + info.color + '; border-radius:3px; flex-shrink:0; background:rgba(0,0,0,0.3); box-shadow:0 0 12px ' + info.glow + '; display:flex; align-items:center; justify-content:center; color:' + info.color + '; font-weight:600;">' + info.label + '</div><div style="flex:1;"><div style="font-weight:600;">' + esc(item?.name || 'Unknown') + '</div><div class="muted" style="font-size:12px;">' + esc(item?.description || '') + '</div></div></button>';
+        });
+
+        html += '</div>';
+        return html;
       })() }
     </div>
   `;
