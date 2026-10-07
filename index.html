@@ -2431,10 +2431,6 @@
     height:40px;
     object-fit:contain;
     z-index:10;
-    background:linear-gradient(135deg, rgba(207,154,68,0.3) 0%, rgba(207,154,68,0.1) 100%);
-    padding:4px;
-    border-radius:50%;
-    border:2px solid rgba(207,154,68,0.5);
   }
 
   .announcement-header{
@@ -2452,20 +2448,20 @@
 
   /* Gold Leaderboard Styling - Premium Enhancement */
   .layout-sidebar .module{
-    background:linear-gradient(135deg, rgba(207,154,68,0.08) 0%, rgba(207,154,68,0.03) 100%),
-                radial-gradient(circle at top-right, rgba(207,154,68,0.05), transparent 50%);
-    border:1px solid rgba(207,154,68,0.3);
-    box-shadow:0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(207,154,68,0.1);
-    transition:all 0.3s ease;
-    position:relative;
+    background:linear-gradient(135deg, rgba(207,154,68,0.18) 0%, rgba(207,154,68,0.08) 100%),
+                radial-gradient(circle at top-right, rgba(207,154,68,0.12), transparent 60%) !important;
+    border:2px solid rgba(207,154,68,0.5) !important;
+    box-shadow:0 6px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(207,154,68,0.2) !important;
+    transition:all 0.3s ease !important;
+    position:relative !important;
   }
 
   .layout-sidebar .module:hover{
-    background:linear-gradient(135deg, rgba(207,154,68,0.12) 0%, rgba(207,154,68,0.05) 100%),
-                radial-gradient(circle at top-right, rgba(207,154,68,0.08), transparent 50%);
-    border-color:rgba(207,154,68,0.5);
-    box-shadow:0 8px 20px rgba(207,154,68,0.2), 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(207,154,68,0.2);
-    transform:translateY(-2px);
+    background:linear-gradient(135deg, rgba(207,154,68,0.25) 0%, rgba(207,154,68,0.12) 100%),
+                radial-gradient(circle at top-right, rgba(207,154,68,0.18), transparent 60%) !important;
+    border-color:rgba(207,154,68,0.75) !important;
+    box-shadow:0 10px 28px rgba(207,154,68,0.35), 0 6px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(207,154,68,0.3) !important;
+    transform:translateY(-3px) !important;
   }
 
   /* Gold accent bar at top of leaderboard */
@@ -2475,9 +2471,10 @@
     top:0;
     left:0;
     right:0;
-    height:3px;
-    background:linear-gradient(90deg, rgba(207,154,68,0.8), rgba(207,154,68,0.4), rgba(207,154,68,0.8));
-    border-radius:12px 12px 0 0;
+    height:4px;
+    background:linear-gradient(90deg, rgba(207,154,68,0.8), rgba(207,154,68,0.5), rgba(207,154,68,0.8));
+    border-radius:13px 13px 0 0;
+    z-index:2;
   }
 
 </style>
