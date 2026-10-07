@@ -8038,7 +8038,8 @@ function bindApp(){
   const bgColorInput = document.getElementById('site-bg-color-input');
   if(bgColorInput){
     bgColorInput.addEventListener('input', ()=>{
-      document.body.style.backgroundColor = bgColorInput.value;
+      state.siteImages['site_background_color'] = bgColorInput.value;
+      applySiteBackground();
     });
     bgColorInput.addEventListener('change', ()=>assignSiteImage('site_background_color', bgColorInput.value));
   }
