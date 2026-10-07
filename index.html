@@ -118,6 +118,21 @@
     position:relative; z-index:2;
   }
 
+  /* STICKY GUILD BOARD */
+  .guild-board-sticky{
+    position:fixed; right:20px; top:100px;
+    width:280px; z-index:100;
+    pointer-events:auto;
+  }
+  .guild-board-tall-img{
+    width:100%; height:auto; display:block;
+    max-width:280px; object-fit:contain;
+  }
+  .guild-board-tall-content{
+    position:absolute; top:0; left:0; right:0; bottom:0;
+    width:100%; height:100%;
+  }
+
   /* MOBILE MENU */
   .mobile-menu{
     position:fixed; top:60px; left:0; bottom:0; width:80%;
@@ -6907,9 +6922,9 @@ function renderAnnouncementsModule(officer){
 
 function renderGuildBoardModule(){
   return `
-    <div id="module-guild-board" class="module guild-board-container" style="height:600px;">
-      <img src="guild-board-frame.webp" alt="Guild Board" class="guild-board-frame-img">
-      <div class="guild-board-content">
+    <div class="guild-board-sticky">
+      <img src="https://r2-staging.hatedforever.com/GuildBoardTall.png" alt="Guild Board" class="guild-board-tall-img">
+      <div class="guild-board-tall-content">
         <div class="corkboard" style="width:100%; height:100%; margin:0; position:relative;">
           ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
             <div class="corkboard-stickers">
@@ -7033,9 +7048,9 @@ function renderEntryAnnouncements(){
 
 function renderEntryGuildBoard(){
   return `
-    <div class="module guild-board-container" style="height:600px; border-radius:12px; overflow:hidden;">
-      <img src="guild-board-frame.webp" alt="Guild Board" class="guild-board-frame-img">
-      <div class="guild-board-content">
+    <div class="guild-board-sticky">
+      <img src="https://r2-staging.hatedforever.com/GuildBoardTall.png" alt="Guild Board Frame" class="guild-board-tall-img">
+      <div class="guild-board-tall-content">
         <div class="corkboard" style="width:100%; height:100%; margin:0; position:relative;">
           ${ state.stickers.filter(s => !s.expires_at || new Date(s.expires_at) > new Date()).length ? `
             <div class="corkboard-stickers">
