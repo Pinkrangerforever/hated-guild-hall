@@ -1512,16 +1512,18 @@
     box-shadow:0 0 8px rgba(255,140,0,0.8), 0 0 16px rgba(255,80,0,0.4), inset -1px -1px 2px rgba(0,0,0,0.4);
     animation:emberFloat 2s ease-out forwards;
   }
-  @keyframes lightningStrike{
-    0%{ opacity:1; transform:translateY(0) translateX(0) scaleY(1); filter:brightness(1.5) drop-shadow(0 0 8px rgba(0,200,255,1)); }
-    8%{ opacity:0.4; transform:translateY(-8px) translateX(var(--drift,0px)) scaleY(1.1); filter:brightness(0.6) drop-shadow(0 0 2px rgba(0,150,255,0.3)); }
-    16%{ opacity:1; transform:translateY(-16px) translateX(calc(var(--drift,0px) * 0.5)) scaleY(0.95); filter:brightness(1.4) drop-shadow(0 0 10px rgba(0,200,255,1)); }
-    24%{ opacity:0.3; transform:translateY(-24px) translateX(calc(var(--drift,0px) * 1.2)) scaleY(1.05); filter:brightness(0.5) drop-shadow(0 0 1px rgba(0,150,255,0.2)); }
-    32%{ opacity:1; transform:translateY(-32px) translateX(var(--drift,0px)) scaleY(0.98); filter:brightness(1.6) drop-shadow(0 0 12px rgba(0,200,255,1)); }
-    40%{ opacity:0.2; transform:translateY(-40px) translateX(calc(var(--drift,0px) * -0.3)) scaleY(1.1); filter:brightness(0.4) drop-shadow(0 0 1px rgba(0,150,255,0.1)); }
-    50%{ opacity:0.8; transform:translateY(-50px) translateX(calc(var(--drift,0px) * 0.8)) scaleY(0.9); filter:brightness(1.2) drop-shadow(0 0 6px rgba(0,200,255,0.8)); }
-    65%{ opacity:0.1; transform:translateY(-65px) translateX(var(--drift,0px)) scaleY(1.2); filter:brightness(0.3) drop-shadow(0 0 0px rgba(0,150,255,0)); }
-    100%{ opacity:0; transform:translateY(-80px) translateX(calc(var(--drift,0px) * -0.5)) scaleY(1); filter:brightness(0) drop-shadow(0 0 0px rgba(0,150,255,0)); }
+  @keyframes lightningDraw{
+    0%{ stroke-dashoffset:200; opacity:1; filter:brightness(1.8) drop-shadow(0 0 10px rgba(0,200,255,1)); }
+    15%{ stroke-dashoffset:160; opacity:0.5; filter:brightness(0.5) drop-shadow(0 0 2px rgba(0,150,255,0.2)); }
+    30%{ stroke-dashoffset:100; opacity:1; filter:brightness(1.6) drop-shadow(0 0 12px rgba(0,220,255,1)); }
+    50%{ stroke-dashoffset:50; opacity:0.6; filter:brightness(0.6) drop-shadow(0 0 3px rgba(0,150,255,0.3)); }
+    75%{ stroke-dashoffset:10; opacity:0.8; filter:brightness(1.4) drop-shadow(0 0 8px rgba(0,200,255,0.9)); }
+    90%{ stroke-dashoffset:0; opacity:0.3; filter:brightness(0.4) drop-shadow(0 0 1px rgba(0,150,255,0.1)); }
+    100%{ stroke-dashoffset:0; opacity:0; filter:brightness(0) drop-shadow(0 0 0px rgba(0,150,255,0)); }
+  }
+  @keyframes lightningFloat{
+    0%{ transform:translateY(0) translateX(0); }
+    100%{ transform:translateY(-80px) translateX(var(--drift,0px)); }
   }
   .lightning-spark{
     position:fixed; pointer-events:none; font-size:0;
@@ -6278,27 +6280,45 @@ function spawnLightning(panelElement){
     y = rect.top + Math.random() * rect.height;
   }
 
-  // Jagged lightning bolt SVG
-  const boltSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2 L14 8 L18 8 L14 12 L16 20 L12 16 L8 20 L10 12 L6 8 L10 8 Z"
-          fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M12 3 L13 7 L17 7 L13 11 L15 19 L12 15 L9 19 L11 11 L7 7 L11 7 Z"
-          fill="none" stroke="#0096ff" stroke-width="0.8" stroke-opacity="0.6"/>
-    <circle cx="12" cy="8" r="1.5" fill="#ffffff" opacity="0.8"/>
+  // Forking lightning bolt SVG with animated strokes
+  const boltSVG = `<svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
+    <defs>
+      <filter id="lg" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2" result="cb"/>
+        <feMerge><feMergeNode in="cb"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <path d="M30 5 L32 15 L28 20 L30 32 L26 40 L30 50 L32 65 L28 75"
+          fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          stroke-dasharray="200" stroke-dashoffset="200" filter="url(#lg)"/>
+    <path d="M28 20 L18 28 L20 38"
+          fill="none" stroke="#0096ff" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="200" stroke-dashoffset="200" filter="url(#lg)"/>
+    <path d="M32 32 L42 40 L40 52"
+          fill="none" stroke="#0096ff" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="200" stroke-dashoffset="200" filter="url(#lg)"/>
+    <path d="M30 5 L32 15 L28 20 L30 32 L26 40 L30 50 L32 65 L28 75"
+          fill="none" stroke="#ffffff" stroke-width="0.6" stroke-opacity="0.4" stroke-linecap="round" stroke-dasharray="200" stroke-dashoffset="200" filter="url(#lg)"/>
   </svg>`;
 
   spark.innerHTML = boltSVG;
   const drift = (Math.random() - 0.5) * 80;
-  const duration = 0.8 + Math.random() * 0.4;
+  const duration = 0.9 + Math.random() * 0.5;
 
   spark.style.left = x + 'px';
   spark.style.top = y + 'px';
   spark.style.zIndex = '99999';
   spark.style.setProperty('--drift', drift + 'px');
-  spark.style.animationName = 'lightningStrike';
+  spark.style.animationName = 'lightningFloat';
   spark.style.animationDuration = duration + 's';
   spark.style.animationTimingFunction = 'ease-out';
   spark.style.animationFillMode = 'forwards';
+
+  const paths = spark.querySelectorAll('path');
+  paths.forEach(path => {
+    path.style.animationName = 'lightningDraw';
+    path.style.animationDuration = (0.6 + Math.random() * 0.3) + 's';
+    path.style.animationTimingFunction = 'ease-in-out';
+    path.style.animationFillMode = 'forwards';
+  });
 
   document.body.appendChild(spark);
   setTimeout(() => spark.remove(), duration * 1000);
