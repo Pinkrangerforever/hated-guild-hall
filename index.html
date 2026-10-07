@@ -6279,6 +6279,9 @@ function renderApp(){
       ${ getTestRole() ? `<div style="position:fixed; top:0; left:0; right:0; background:linear-gradient(90deg, #ff6b00, #ffb300); color:white; padding:10px 16px; text-align:center; font-weight:600; z-index:999; font-size:13px;"> TEST MODE: Viewing as ${getTestRole().toUpperCase()}</div>` : '' }
       ${ state.toast ? `<div class="toast ${state.toastError?'toast-error':'toast-success'} sans" style="${getTestRole() ? 'margin-top:50px;' : ''}">${esc(state.toast)}</div>` : '' }
       ${ renderTab() }
+      <div class="site-footer" style="text-align:center; padding:28px 24px; margin-top:40px;">
+        <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/guild-icon.png" alt="Guild Logo" style="width:60px; height:60px; object-fit:contain;">
+      </div>
       ${ renderModal() }
     </div>
   `;
