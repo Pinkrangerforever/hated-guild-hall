@@ -6109,22 +6109,24 @@ function spawnEmber(panelElement){
   const ember = document.createElement('div');
   ember.className = 'ember';
   const rect = panelElement.getBoundingClientRect();
-  const x = Math.random() * rect.width;
-  const y = Math.random() * (rect.height * 0.6);
+  const x = rect.left + Math.random() * rect.width;
+  const y = rect.top + Math.random() * (rect.height * 0.6);
   const drift = (Math.random() - 0.5) * 40;
   const duration = 1.5 + Math.random() * 1;
 
+  ember.style.position = 'fixed';
   ember.style.left = x + 'px';
   ember.style.top = y + 'px';
+  ember.style.zIndex = '99999';
   ember.style.setProperty('--drift', drift + 'px');
   ember.style.animationDuration = duration + 's';
 
-  panelElement.appendChild(ember);
+  document.body.appendChild(ember);
   setTimeout(() => ember.remove(), duration * 1000);
 }
 
 function startEmberEffects(){
-  const panels = document.querySelectorAll('.coming-up-panel, .gold-leaderboard-widget, .module-wrapper');
+  const panels = document.querySelectorAll('.coming-up-panel, .gold-leaderboard-widget, .module-wrapper, #module-announcements-display, .roster-container');
   panels.forEach(panel => {
     let emberInterval = null;
     panel.addEventListener('mouseenter', () => {
