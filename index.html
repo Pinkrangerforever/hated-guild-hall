@@ -97,7 +97,13 @@
   .hated-banner{
     width:100%; height:auto; display:block; object-fit:contain;
     margin:0; padding:0; max-width:100%; background:transparent;
-    position:relative; z-index:2; margin-top:0;
+    position:relative; z-index:2; margin-top:0; max-width:100%;
+  }
+  #hated-banner {
+    width: 100%;
+    height: auto;
+    display: block;
+    max-width: 100%;
   }
   .hated-banner::after{
     content:''; position:absolute; top:0; left:0; right:0; bottom:0;
@@ -2782,7 +2788,9 @@
 
 <!-- HATED BANNER SECTION -->
 <div id="banner-section" class="banner-section">
-  <img id="hated-banner" class="hated-banner" src="https://r2-staging.hatedforever.com/HatedBanner.png" alt="HATED Guild Banner">
+  <video id="hated-banner" class="hated-banner" autoplay muted loop playsinline>
+    <source src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/HatedBanner.mp4" type="video/mp4">
+  </video>
 </div>
 
 <!-- PAGE DIVIDER -->
