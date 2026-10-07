@@ -1291,6 +1291,31 @@
     border-radius:6px;
     box-shadow:0 0 20px rgba(255,128,0,0.8), 0 0 40px rgba(255,128,0,0.4), inset 0 0 12px rgba(255,128,0,0.2);
   }
+  .comp-slot.roster-border-alpha{
+    border:2px solid #ffd700 !important;
+    border-radius:6px;
+    animation:alphaGlowPulse 2s ease-in-out infinite;
+  }
+  @keyframes alphaGlowPulse{
+    0%, 100%{ box-shadow:0 0 15px rgba(255,215,0,0.8), 0 0 30px rgba(255,215,0,0.4), inset 0 0 12px rgba(255,215,0,0.15); }
+    50%{ box-shadow:0 0 25px rgba(255,215,0,0.6), 0 0 50px rgba(255,215,0,0.2), inset 0 0 12px rgba(255,215,0,0.08); }
+  }
+  .comp-slot-nameplate-icon{
+    position:absolute;
+    bottom:4px;
+    right:4px;
+    width:24px;
+    height:24px;
+    z-index:30;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .comp-slot-nameplate-icon img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+  }
   @keyframes flameAnim{
     0%{
       background-image:
@@ -3070,8 +3095,11 @@ function getUserNameCustomization(userId){
     const borderItem = state.shopItems && state.shopItems.find(i=>i.id===activeBorderId);
     if(borderItem && purchases.some(p => p.item_id === activeBorderId)) {
       const tier = borderItem.metadata?.tier || 0;
-      const tierName = ['','uncommon','rare','epic','legendary'][tier];
-      if(tierName) border = `roster-border-${tierName}`;
+      if(tier === 5) border = 'roster-border-alpha';
+      else {
+        const tierName = ['','uncommon','rare','epic','legendary'][tier];
+        if(tierName) border = `roster-border-${tierName}`;
+      }
     }
   } else {
     // Fallback: use highest tier border if no active selection
@@ -3082,8 +3110,11 @@ function getUserNameCustomization(userId){
     if(borderPurchases.length) {
       const borderItems = borderPurchases.map(p=>state.shopItems.find(i=>i.id===p.item_id));
       const highestTier = Math.max(...borderItems.map(i=>i.metadata?.tier || 0));
-      const tierName = ['','uncommon','rare','epic','legendary'][highestTier];
-      if(tierName) border = `roster-border-${tierName}`;
+      if(highestTier === 5) border = 'roster-border-alpha';
+      else {
+        const tierName = ['','uncommon','rare','epic','legendary'][highestTier];
+        if(tierName) border = `roster-border-${tierName}`;
+      }
     }
   }
 
@@ -3114,7 +3145,19 @@ function getUserNameCustomization(userId){
     }
   }
 
-  return { border, nameCustom };
+  // Get active nameplate icon from profile
+  let nameplateIcon = '';
+  const activeIconId = profile?.active_nameplate_icon;
+
+  if(activeIconId) {
+    const iconItem = state.shopItems && state.shopItems.find(i => i.id === activeIconId);
+    if(iconItem && purchases.some(p => p.item_id === activeIconId)) {
+      const iconUrl = iconItem.metadata?.icon_url;
+      if(iconUrl) nameplateIcon = iconUrl;
+    }
+  }
+
+  return { border, nameCustom, nameplateIcon };
 }
 function pageBannerIconHtml(size){
   const custom = state.siteImages && state.siteImages['page_banner_icon'];
@@ -5222,6 +5265,21 @@ async function setActiveNameBorder(itemId){
   showToast('Border preference updated!');
   render();
 }
+
+async function setActiveNameplateIcon(itemId){
+  const activeId = itemId === 'none' ? null : itemId;
+  const { data, error } = await sb.from('profiles').update({ active_nameplate_icon: activeId }).eq('id', state.session.user.id);
+  if(error){
+    showToast('Failed to update preference', true);
+    return;
+  }
+  if(state.profile) state.profile.active_nameplate_icon = activeId;
+  if(state.profilesById && state.session?.user?.id && state.profilesById[state.session.user.id]) {
+    state.profilesById[state.session.user.id].active_nameplate_icon = activeId;
+  }
+  showToast('Icon preference updated!');
+  render();
+}
 function startEditShopItem(itemId){
   state.editingShopItemId = itemId;
   render();
@@ -6958,6 +7016,7 @@ function renderRoster(){
                     <span class="comp-slot-spec" style="color:${CLASS_SPECS[slot.class_key].color};">${esc(specLabel)}</span>
                   </span>
                   ${ (officer || isRaidLeader) ? `<button type="button" class="comp-slot-remove" data-remove="${gi}|${si}" title="Remove">&times;</button>` : '' }
+                  ${ customization.nameplateIcon ? `<div class="comp-slot-nameplate-icon"><img src="${esc(customization.nameplateIcon)}" alt="Icon"></div>` : '' }
                 ` : `<span class="comp-slot-empty muted">Empty</span>` }
                 <span class="comp-slot-extras">
                   ${ [1,2].map(n=>{
@@ -7121,6 +7180,7 @@ function renderRosterGroups(){
                   <span class="comp-slot-spec" style="color:${CLASS_SPECS[slot.class_key].color};">${esc(specLabel)}</span>
                 </span>
                 ${ canEdit ? `<button type="button" class="comp-slot-remove" data-remove="${gi}|${si}" title="Remove">&times;</button>` : '' }
+                ${ customization.nameplateIcon ? `<div class="comp-slot-nameplate-icon"><img src="${esc(customization.nameplateIcon)}" alt="Icon"></div>` : '' }
               ` : `<span class="comp-slot-empty muted">Empty</span>` }
             </div>`;
           }).join('') }
@@ -7745,7 +7805,8 @@ function renderSettings(){
           1: { color: '#1eff00', label: 'Uncommon', glow: 'rgba(30,255,0,0.5)' },
           2: { color: '#0070dd', label: 'Rare', glow: 'rgba(0,112,221,0.5)' },
           3: { color: '#a335ee', label: 'Epic', glow: 'rgba(163,53,238,0.5)' },
-          4: { color: '#ff8000', label: 'Legendary', glow: 'rgba(255,128,0,0.5)' }
+          4: { color: '#ff8000', label: 'Legendary', glow: 'rgba(255,128,0,0.5)' },
+          5: { color: '#ffd700', label: 'Alpha', glow: 'rgba(255,215,0,0.5)' }
         };
 
         let html = '<div style="display:grid; gap:12px;"><button class="btn ' + (!activeBorderId ? 'primary' : 'secondary') + '" type="button" data-set-name-border="none" style="padding:12px; text-align:left;"><div style="font-weight:600;">None</div><div class="muted" style="font-size:12px;">No border effect</div></button>';
@@ -7756,6 +7817,36 @@ function renderSettings(){
           const info = borderColors[tier] || borderColors[1];
           const isActive = activeBorderId === p.item_id;
           html += '<button class="btn ' + (isActive ? 'primary' : 'secondary') + '" type="button" data-set-name-border="' + p.item_id + '" style="padding:12px; text-align:left; display:flex; gap:12px; align-items:flex-start;"><div style="width:150px; height:60px; border:3px solid ' + info.color + '; border-radius:3px; flex-shrink:0; background:rgba(0,0,0,0.3); box-shadow:0 0 12px ' + info.glow + '; display:flex; align-items:center; justify-content:center; color:' + info.color + '; font-weight:600;">' + info.label + '</div><div style="flex:1;"><div style="font-weight:600;">' + esc(item?.name || 'Unknown') + '</div><div class="muted" style="font-size:12px;">' + esc(item?.description || '') + '</div></div></button>';
+        });
+
+        html += '</div>';
+        return html;
+      })() }
+    </div>
+
+    <div class="panel style-glass">
+      <h3 style="margin-bottom:16px;">Roster Name Icon</h3>
+      <p class="muted" style="margin-bottom:16px;">Select which nameplate icon to display:</p>
+
+      ${ (() => {
+        const activeIconId = state.profile?.active_nameplate_icon;
+        const iconPurchases = (state.shopPurchases || []).filter(p => {
+          if(!p.fulfilled) return false;
+          const item = state.shopItems?.find(i => i.id === p.item_id);
+          return item && item.category === 'nameplate_icon';
+        });
+
+        if(!iconPurchases.length) {
+          return '<div class="emptyState">You haven\'t unlocked any nameplate icons yet.</div>';
+        }
+
+        let html = '<div style="display:grid; gap:12px;"><button class="btn ' + (!activeIconId ? 'primary' : 'secondary') + '" type="button" data-set-nameplate-icon="none" style="padding:12px; text-align:left;"><div style="font-weight:600;">None</div><div class="muted" style="font-size:12px;">No icon</div></button>';
+
+        iconPurchases.forEach(p => {
+          const item = state.shopItems?.find(i => i.id === p.item_id);
+          const iconUrl = item?.metadata?.icon_url;
+          const isActive = activeIconId === p.item_id;
+          html += '<button class="btn ' + (isActive ? 'primary' : 'secondary') + '" type="button" data-set-nameplate-icon="' + p.item_id + '" style="padding:12px; text-align:left; display:flex; gap:12px; align-items:flex-start;">' + (iconUrl ? '<img src="' + esc(iconUrl) + '" alt="" style="width:60px; height:60px; object-fit:contain; flex-shrink:0;">' : '') + '<div style="flex:1;"><div style="font-weight:600;">' + esc(item?.name || 'Unknown') + '</div><div class="muted" style="font-size:12px;">' + esc(item?.description || '') + '</div></div></button>';
         });
 
         html += '</div>';
@@ -8486,6 +8577,7 @@ function bindApp(){
   document.querySelectorAll('[data-delete-sticker]').forEach(b=>b.addEventListener('click', ()=>deleteSticker(b.dataset.deleteSticker)));
   document.querySelectorAll('[data-set-name-custom]').forEach(b=>b.addEventListener('click', ()=>setActiveNameCustomization(b.dataset.setNameCustom)));
   document.querySelectorAll('[data-set-name-border]').forEach(b=>b.addEventListener('click', ()=>setActiveNameBorder(b.dataset.setNameBorder)));
+  document.querySelectorAll('[data-set-nameplate-icon]').forEach(b=>b.addEventListener('click', ()=>setActiveNameplateIcon(b.dataset.setNameplateIcon)));
 
   // Sticker drag-and-drop handlers - set up after each render
   setupStickerDragHandlers();
