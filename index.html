@@ -1703,12 +1703,6 @@
     color:#5a4a38; text-shadow:1px 1px 0 rgba(255,255,255,0.2);
     position:absolute; top:16px; left:50%; transform:translateX(-50%); z-index:5;
   }
-  /* Layout container - eliminates all inherited defaults */
-  #layout-container {
-    margin: 0;
-    padding: 40px 40px 40px 0;
-    box-sizing: border-box;
-  }
 
   /* WOW-BOX FRAME CONTAINER - Uses boilerplate pattern */
   .wow-container {
@@ -1786,9 +1780,6 @@
     border: none !important;
     overflow: hidden;
   }
-  .layout-container.unlocked .titleplate-container {
-    border: 1px solid rgba(207,154,68,0.2) !important;
-  }
   .titleplate-container:active {
     cursor: grabbing;
   }
@@ -1854,9 +1845,6 @@
     background: none;
     border: none !important;
     overflow: hidden;
-  }
-  .layout-container.unlocked .guild-board-container {
-    border: 1px solid rgba(207,154,68,0.2) !important;
   }
   .guild-board-container:active {
     cursor: grabbing;
@@ -1962,9 +1950,6 @@
   /* Hide module borders unless in editing mode (raid leader) */
   .module{
     border: none !important;
-  }
-  .layout-container.unlocked .module{
-    border: 1px solid rgba(207,154,68,0.2) !important;
   }
   /* Allow announcement modules to use their custom border styling */
   #module-announcements-display,
@@ -2370,9 +2355,10 @@
   /* DESKTOP: Three-Column Layout (>= 768px) */
   @media(min-width:768px){
     .layout-responsive{
-      width:100%;
+      width:100vw;
       margin-top:60px;
-      padding:24px 20px;
+      margin-left:calc(-50vw + 50%);
+      padding:0;
       box-sizing:border-box;
       position:relative;
     }
@@ -2385,6 +2371,8 @@
       width:100%;
       max-width:1760px;
       margin:0 auto;
+      padding:0 20px;
+      box-sizing:border-box;
       align-items:flex-start;
     }
 
@@ -5688,7 +5676,7 @@ function renderLanding(){
   // Get the news section content (same as logged-in page)
   const newsSection = `
       <!-- Modules Container (positioned layout like home page) -->
-      <div id="layout-container" style="position:relative; width:100%; min-width:1700px; height:auto; min-height:850px; overflow:visible; margin-top:24px; padding:40px 0;">
+      <div id="landing-modules-container" style="position:relative; width:100%; min-width:1700px; height:auto; min-height:850px; overflow:visible; margin-top:24px; padding:40px 0;">
 
       <!-- Guild Board Frame Module -->
       <div id="module-guild-board" class="module guild-board-container" style="position:absolute; top:180px; left:40px; width:900px; height:562px; cursor:move;">
