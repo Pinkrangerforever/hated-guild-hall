@@ -2361,6 +2361,7 @@
       padding:0;
       box-sizing:border-box;
       position:relative;
+      padding-top:80px;
     }
 
     .layout-mobile{ display:none; }
@@ -2371,15 +2372,15 @@
       width:100%;
       max-width:1760px;
       margin:0 auto;
-      margin-left:320px;
       padding:0 20px;
       box-sizing:border-box;
       align-items:flex-start;
+      position:relative;
     }
 
-    /* Left Sidebar - locked to left edge */
+    /* Left Sidebar - locked to left edge, scrolls with page */
     .layout-sidebar{
-      position:fixed;
+      position:absolute;
       left:0;
       top:80px;
       width:300px;
