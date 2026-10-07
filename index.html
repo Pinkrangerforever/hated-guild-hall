@@ -1630,10 +1630,11 @@
   .coming-up-item{
     display:flex; align-items:flex-start; gap:10px; padding:12px 10px;
     background:rgba(0,0,0,0.3); border:1px solid rgba(207,154,68,0.25);
-    border-radius:2px; transition:all 0.2s ease;
+    border-radius:2px; transition:all 0.2s ease; cursor:pointer;
   }
   .coming-up-item:hover{
     background:rgba(207,154,68,0.18); border-color:rgba(207,154,68,0.5);
+    transform:translateX(2px);
   }
   .coming-up-icon{
     flex-shrink:0; display:flex; align-items:center; margin-top:2px;
@@ -6992,7 +6993,7 @@ function renderComingUp(){
     const dateStr = eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
     return `
-      <div class="coming-up-item">
+      <div class="coming-up-item" data-open-event="${ev.id}">
         <div class="coming-up-icon"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ScrollIcon.png" alt="Event" style="width:18px; height:18px;"></div>
         <div class="coming-up-content">
           <div class="coming-up-title">${esc(ev.title)}</div>
