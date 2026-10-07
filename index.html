@@ -2409,7 +2409,7 @@
   }
 
   /* ========== MOBILE-FIRST RESPONSIVE LAYOUT ========== */
-  .layout-responsive{ width:100%; max-width:1400px; margin:24px auto; padding:0 20px; box-sizing:border-box; }
+  .layout-responsive{ width:100%; max-width:1900px; margin:24px auto; padding:0 20px; box-sizing:border-box; }
 
   /* MOBILE: Single Column Layout (default, < 768px) */
   .layout-mobile{ display:flex; flex-direction:column; gap:32px; }
@@ -2429,22 +2429,26 @@
       margin:0 auto;
     }
     .layout-sidebar{
-      position:sticky;
+      position:fixed;
       top:80px;
+      left:20px;
       height:fit-content;
       z-index:50;
       width:300px;
       min-width:300px;
-      flex-shrink:0;
+      overflow-y:auto;
+      max-height:calc(100vh - 120px);
     }
     .layout-sidebar-right{
-      position:sticky;
+      position:fixed;
       top:80px;
+      right:20px;
       height:fit-content;
       z-index:50;
       width:560px;
       min-width:560px;
-      flex-shrink:0;
+      overflow-y:auto;
+      max-height:calc(100vh - 120px);
     }
     .layout-main{
       display:flex;
@@ -2481,7 +2485,7 @@
     <div class="nav-user-section">
       <div id="nav-user-info" class="nav-user-info" style="display:none;">
         <span id="nav-username" class="nav-username">Loading...</span>
-        <span id="nav-gold-badge" class="nav-gold-badge">💰 0</span>
+        <span id="nav-gold-badge" class="nav-gold-badge"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"> 0</span>
       </div>
       <button id="layout-lock-btn" class="nav-action-btn" title="Toggle Layout Lock" style="display:none;">Layout</button>
       <button id="reset-member-btn" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
@@ -2512,7 +2516,7 @@
   <div class="mobile-menu-section mobile-actions">
     <div id="mobile-user-info" class="nav-user-info">
       <span id="mobile-username" class="nav-username">Loading...</span>
-      <span id="mobile-gold-badge" class="nav-gold-badge">💰 0</span>
+      <span id="mobile-gold-badge" class="nav-gold-badge"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"> 0</span>
     </div>
     <button id="layout-lock-btn-mobile" class="nav-action-btn" title="Toggle Layout Lock">Layout</button>
     <button id="reset-member-btn-mobile" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
@@ -2618,13 +2622,13 @@ function updateNavbarUserInfo(){
   const navUsername = document.getElementById('nav-username');
   const navGold = document.getElementById('nav-gold-badge');
   if(navUsername) navUsername.textContent = `${username} ${rankBadge}`.trim();
-  if(navGold) navGold.textContent = `💰 ${gold}`;
+  if(navGold) navGold.innerHTML = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"> ${gold}`;
 
   // Update mobile menu
   const mobileUsername = document.getElementById('mobile-username');
   const mobileGold = document.getElementById('mobile-gold-badge');
   if(mobileUsername) mobileUsername.textContent = `${username} ${rankBadge}`.trim();
-  if(mobileGold) mobileGold.textContent = `💰 ${gold}`;
+  if(mobileGold) mobileGold.innerHTML = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"> ${gold}`;
 }
 
 /* ---- reused helpers (icons, dates, rich text, nav) ---- */
@@ -6814,12 +6818,12 @@ function renderRosterGroups(){
 function renderGoldLeaderboard(){
   const profiles = Object.values(state.profilesById || {});
   if(!profiles || profiles.length === 0){
-    return '<div class="gold-leaderboard-widget"><div class="gold-leaderboard-widget-title">💰 Gold Leaderboard</div><p style="text-align:center; color:var(--text-muted); font-size:12px; padding:20px;">Loading...</p></div>';
+    return '<div class="gold-leaderboard-widget"><div class="gold-leaderboard-widget-title"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:6px;"> Gold Leaderboard</div><p style="text-align:center; color:var(--text-muted); font-size:12px; padding:20px;">Loading...</p></div>';
   }
 
   const withGold = profiles.filter(p => (p.gold_earned_total || 0) > 0).sort((a, b) => (b.gold_earned_total || 0) - (a.gold_earned_total || 0));
 
-  if(withGold.length === 0) return '<div class="gold-leaderboard-widget"><div class="gold-leaderboard-widget-title">💰 Gold Leaderboard</div><p style="text-align:center; color:var(--text-muted); font-size:12px; padding:20px;">No earners yet</p></div>';
+  if(withGold.length === 0) return '<div class="gold-leaderboard-widget"><div class="gold-leaderboard-widget-title"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:6px;"> Gold Leaderboard</div><p style="text-align:center; color:var(--text-muted); font-size:12px; padding:20px;">No earners yet</p></div>';
 
   const entries = withGold.map((profile, idx) => {
     const rank = idx + 1;
@@ -6868,7 +6872,7 @@ function renderGoldLeaderboard(){
           <div class="comp-slot ${slotClasses}" style="height:24px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10px; font-weight:600; overflow:hidden; text-overflow:ellipsis; position:relative;">
             <span style="position:relative; z-index:100;">${esc(profile.character_name)}</span>
           </div>
-          <div style="font-size:10px; color:#ffd700; font-weight:700; margin-top:2px; text-align:center;">💰 ${(profile.gold_earned_total || 0).toLocaleString()}g</div>
+          <div style="font-size:10px; color:#ffd700; font-weight:700; margin-top:2px; text-align:center;"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:12px; height:12px; vertical-align:middle; margin-right:3px;"> ${(profile.gold_earned_total || 0).toLocaleString()}g</div>
         </div>
       </div>
     `;
@@ -6876,7 +6880,7 @@ function renderGoldLeaderboard(){
 
   return `
     <div class="gold-leaderboard-widget">
-      <div class="gold-leaderboard-widget-title">💰 Gold Leaderboard</div>
+      <div class="gold-leaderboard-widget-title"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:6px;"> Gold Leaderboard</div>
       <div class="gold-leaderboard-entries">
         ${entries}
       </div>
@@ -7456,7 +7460,7 @@ function renderAdmin(){
             <strong>${userName}</strong> - ${g.game_type} ${result}
           </div>
           <div style="color:var(--text-muted); font-size:11px;">
-            🏷️ ${g.flags.join(', ')} • 💰 ${g.gold_awarded}g • ${new Date(g.created_at).toLocaleString()}
+            🏷️ ${g.flags.join(', ')} • <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:12px; height:12px; vertical-align:middle; margin-right:2px;"> ${g.gold_awarded}g • ${new Date(g.created_at).toLocaleString()}
           </div>
         </div>
       `;
