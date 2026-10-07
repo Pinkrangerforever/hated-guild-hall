@@ -3149,10 +3149,13 @@ function applySiteBackground(){
   const textureOpacity = state.siteImages['site_background_texture_opacity'] != null ? state.siteImages['site_background_texture_opacity'] : '100';
   const textureSize = state.siteImages['site_background_texture_size'] || '800';
 
-  // Apply color to both body and main-content (main-content has z-index:1 so it overlays body)
-  document.body.style.backgroundColor = color;
+  // Replace body's hardcoded gradient with just the color
+  // (body CSS has: background: linear-gradient(...) which overrides backgroundColor)
+  document.body.style.background = color;
+
+  // Apply color to main-content (main-content has z-index:1 so it overlays body)
   const mainContent = document.querySelector('.main-content');
-  if(mainContent) mainContent.style.backgroundColor = color;
+  if(mainContent) mainContent.style.background = color;
 
   const imageLayer = document.getElementById('bg-layer-image');
   if(imageLayer){
