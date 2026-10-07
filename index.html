@@ -2422,10 +2422,11 @@
     .layout-mobile{ display:none; }
     .layout-desktop{
       display:grid;
-      grid-template-columns:300px 1fr 560px;
+      grid-template-columns:300px minmax(0, 900px) 560px;
       gap:32px;
       width:100%;
       place-items:start;
+      margin:0 auto;
     }
     .layout-sidebar{
       position:sticky;
@@ -2449,10 +2450,6 @@
       display:flex;
       flex-direction:column;
       gap:32px;
-      width:100%;
-      max-width:900px;
-      margin:0 auto;
-      justify-self:center;
     }
   }
 
