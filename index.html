@@ -1597,6 +1597,59 @@
   .gold-leaderboard-entries{
     display:flex; flex-direction:column; gap:8px;
   }
+
+  /* ---- coming up panel ---- */
+  .coming-up-panel{
+    background:linear-gradient(135deg, rgba(207,154,68,0.08) 0%, rgba(207,154,68,0.03) 100%),
+                radial-gradient(circle at top-right, rgba(207,154,68,0.12), transparent 60%);
+    border:2px solid rgba(207,154,68,0.5);
+    border-radius:0;
+    box-shadow:0 6px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(207,154,68,0.2);
+    padding:16px;
+    margin-bottom:16px;
+    position:relative;
+  }
+  .coming-up-panel::before{
+    content:'';
+    position:absolute; top:0; left:0; right:0; height:4px;
+    background:linear-gradient(90deg, rgba(207,154,68,0.6), rgba(207,154,68,0.3), rgba(207,154,68,0.6));
+    border-radius:0;
+  }
+  .coming-up-header{
+    font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+    color:#cf9a44; margin-bottom:12px; padding-top:4px;
+  }
+  .coming-up-list{
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .coming-up-item{
+    display:flex; align-items:flex-start; gap:12px; padding:10px;
+    background:rgba(0,0,0,0.2); border:1px solid rgba(207,154,68,0.2);
+    border-radius:2px; transition:all 0.2s ease;
+  }
+  .coming-up-item:hover{
+    background:rgba(207,154,68,0.15); border-color:rgba(207,154,68,0.4);
+  }
+  .coming-up-icon{
+    font-size:24px; flex-shrink:0; display:flex; align-items:center;
+  }
+  .coming-up-content{
+    flex:1; min-width:0;
+  }
+  .coming-up-title{
+    font-size:13px; font-weight:600; color:#f0dfb4; margin-bottom:2px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .coming-up-date{
+    font-size:11px; color:#d4af9f; opacity:0.8;
+  }
+  .coming-up-countdown{
+    flex-shrink:0; text-align:right;
+  }
+  .coming-up-days{
+    font-size:12px; font-weight:700; color:#cf9a44;
+  }
+
   .leaderboard-entry{
     display:flex; align-items:center; gap:8px; padding:6px 8px;
     background:rgba(0,0,0,0.3); border-radius:3px; border:1px solid rgba(207,154,68,0.15);
@@ -6908,6 +6961,63 @@ function renderRosterGroups(){
   `;
 }
 
+/* ---- coming up events panel ---- */
+function renderComingUp(){
+  const today = new Date().toISOString().split('T')[0];
+  const thirtyDaysOut = new Date();
+  thirtyDaysOut.setDate(thirtyDaysOut.getDate() + 30);
+  const maxDate = thirtyDaysOut.toISOString().split('T')[0];
+
+  const upcomingEvents = (state.events || [])
+    .filter(ev => ev.date >= today && ev.date <= maxDate)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 5); // Show max 5 events
+
+  if(upcomingEvents.length === 0) {
+    return '';
+  }
+
+  const eventRows = upcomingEvents.map(ev => {
+    const eventDate = new Date(ev.date + 'T00:00:00Z');
+    const todayDate = new Date(today + 'T00:00:00Z');
+    const daysUntil = Math.ceil((eventDate - todayDate) / (1000 * 60 * 60 * 24));
+    const dateStr = eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+    // Determine icon based on event title
+    let icon = '📋'; // default
+    const titleLower = (ev.title || '').toLowerCase();
+    if(titleLower.includes('raid')) icon = '⚔️';
+    else if(titleLower.includes('boss')) icon = '🐉';
+    else if(titleLower.includes('instance')) icon = '🏰';
+    else if(titleLower.includes('pvp')) icon = '⚡';
+    else if(titleLower.includes('event')) icon = '🎪';
+
+    return `
+      <div class="coming-up-item">
+        <div class="coming-up-icon">${icon}</div>
+        <div class="coming-up-content">
+          <div class="coming-up-title">${esc(ev.title)}</div>
+          <div class="coming-up-date">${dateStr}</div>
+        </div>
+        <div class="coming-up-countdown">
+          <div class="coming-up-days">in ${daysUntil}d</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if(!eventRows) return '';
+
+  return `
+    <div class="coming-up-panel">
+      <div class="coming-up-header">COMING UP</div>
+      <div class="coming-up-list">
+        ${eventRows}
+      </div>
+    </div>
+  `;
+}
+
 /* ---- gold leaderboard widget ---- */
 function renderGoldLeaderboard(){
   const profiles = Object.values(state.profilesById || {});
@@ -6999,7 +7109,7 @@ function renderNews(){
 
       <!-- DESKTOP: Three-column layout with sidebars -->
       <div class="layout-desktop">
-        <aside class="layout-sidebar">${renderGoldLeaderboard()}</aside>
+        <aside class="layout-sidebar">${renderComingUp()}${renderGoldLeaderboard()}</aside>
         <main class="layout-main">
           <div class="module-wrapper">${renderAnnouncementsModule(officer)}</div>
           <div class="module-wrapper">${renderRosterModule()}</div>
@@ -7121,7 +7231,7 @@ function renderEntryPage(){
 
       <!-- DESKTOP: Three-column layout with sidebars -->
       <div class="layout-desktop">
-        <aside class="layout-sidebar">${renderGoldLeaderboard()}</aside>
+        <aside class="layout-sidebar">${renderComingUp()}${renderGoldLeaderboard()}</aside>
         <main class="layout-main">
           <div class="module-wrapper">${renderEntryYouTubeVideo()}</div>
           <div class="module-wrapper">${renderEntryAnnouncements()}</div>
