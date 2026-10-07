@@ -1512,6 +1512,21 @@
     box-shadow:0 0 8px rgba(255,140,0,0.8), 0 0 16px rgba(255,80,0,0.4), inset -1px -1px 2px rgba(0,0,0,0.4);
     animation:emberFloat 2s ease-out forwards;
   }
+  @keyframes lightningCrackle{
+    0%{ opacity:1; transform:translateY(0) translateX(0); filter:brightness(1.2); }
+    20%{ opacity:0.8; transform:translateY(-12px) translateX(var(--drift, 0px)); filter:brightness(0.8); }
+    40%{ opacity:1; transform:translateY(-24px) translateX(calc(var(--drift, 0px) * 0.7)); filter:brightness(1.3); }
+    60%{ opacity:0.6; transform:translateY(-40px) translateX(calc(var(--drift, 0px) * 1.3)); filter:brightness(0.9); }
+    85%{ opacity:0.3; transform:translateY(-60px) translateX(var(--drift, 0px)); filter:brightness(0.7); }
+    100%{ opacity:0; transform:translateY(-80px) translateX(calc(var(--drift, 0px) * 0.5)); filter:brightness(0); }
+  }
+  .lightning-crackle{
+    position:fixed; pointer-events:none;
+    width:8px; height:8px; border-radius:2px;
+    background:linear-gradient(45deg, #0096ff, #00d4ff);
+    box-shadow:0 0 6px rgba(0,150,255,0.9), 0 0 12px rgba(0,200,255,0.6), inset 0 0 3px rgba(255,255,255,0.8);
+    animation:lightningCrackle 1.2s ease-out forwards;
+  }
   .nav-gold-badge{
     display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:700; color:#f0dfb4;
     background:linear-gradient(135deg, rgba(50,50,50,0.95) 0%, rgba(40,40,40,1) 100%); border:1px solid rgba(207,154,68,0.6); border-radius:12px; padding:4px 10px;
@@ -1635,25 +1650,10 @@
     border-radius:4px;
     padding:16px;
   }
-  @keyframes blueLightningCrackle{
-    0%{ box-shadow:0 0 10px rgba(0,150,255,0.3), inset 0 0 8px rgba(0,150,255,0.1); }
-    5%{ box-shadow:0 0 20px rgba(0,150,255,0.8), inset 0 0 12px rgba(0,150,255,0.4), 0 0 30px rgba(0,150,255,0.5); }
-    10%{ box-shadow:0 0 8px rgba(0,150,255,0.2), inset 0 0 6px rgba(0,150,255,0.05); }
-    15%{ box-shadow:0 0 18px rgba(0,150,255,0.7), inset 0 0 10px rgba(0,150,255,0.35); }
-    20%{ box-shadow:0 0 12px rgba(0,150,255,0.4), inset 0 0 7px rgba(0,150,255,0.15); }
-    25%{ box-shadow:0 0 25px rgba(0,150,255,0.9), inset 0 0 14px rgba(0,150,255,0.45), 0 0 35px rgba(0,150,255,0.6); }
-    30%{ box-shadow:0 0 10px rgba(0,150,255,0.25), inset 0 0 6px rgba(0,150,255,0.08); }
-    35%{ box-shadow:0 0 22px rgba(0,150,255,0.8), inset 0 0 11px rgba(0,150,255,0.38); }
-    40%{ box-shadow:0 0 9px rgba(0,150,255,0.2), inset 0 0 5px rgba(0,150,255,0.06); }
-    45%{ box-shadow:0 0 28px rgba(0,150,255,1), inset 0 0 15px rgba(0,150,255,0.5), 0 0 40px rgba(0,150,255,0.7); }
-    50%{ box-shadow:0 0 10px rgba(0,150,255,0.3), inset 0 0 8px rgba(0,150,255,0.1); }
-    100%{ box-shadow:0 0 10px rgba(0,150,255,0.3), inset 0 0 8px rgba(0,150,255,0.1); }
-  }
   .gold-leaderboard-widget{
     padding:16px; position:relative;
     z-index:200;
     border-top:3px solid rgba(207,154,68,0.8) !important;
-    animation:blueLightningCrackle 4s ease-in-out infinite;
     border-right:3px solid rgba(207,154,68,0.6) !important;
     border-bottom:3px solid rgba(207,154,68,0.7) !important;
     border-left:3px solid rgba(207,154,68,0.8) !important;
@@ -1693,7 +1693,6 @@
     z-index:200;
     border-top:3px solid rgba(207,154,68,0.8) !important;
     border-right:3px solid rgba(207,154,68,0.6) !important;
-    animation:blueLightningCrackle 4s ease-in-out infinite;
     border-bottom:3px solid rgba(207,154,68,0.7) !important;
     border-left:3px solid rgba(207,154,68,0.8) !important;
     border-radius:12px;
@@ -6255,21 +6254,63 @@ function spawnEmber(panelElement){
   setTimeout(() => ember.remove(), duration * 1000);
 }
 
+function spawnLightning(panelElement){
+  const lightning = document.createElement('div');
+  lightning.className = 'lightning-crackle';
+  const rect = panelElement.getBoundingClientRect();
+
+  // Spawn from the edges of the panel
+  const edge = Math.floor(Math.random() * 4); // 0:top, 1:right, 2:bottom, 3:left
+  let x, y;
+  if(edge === 0) { // top edge
+    x = rect.left + Math.random() * rect.width;
+    y = rect.top;
+  } else if(edge === 1) { // right edge
+    x = rect.right;
+    y = rect.top + Math.random() * rect.height;
+  } else if(edge === 2) { // bottom edge
+    x = rect.left + Math.random() * rect.width;
+    y = rect.bottom;
+  } else { // left edge
+    x = rect.left;
+    y = rect.top + Math.random() * rect.height;
+  }
+
+  const drift = (Math.random() - 0.5) * 60;
+  const duration = 1.2;
+
+  lightning.style.position = 'fixed';
+  lightning.style.left = x + 'px';
+  lightning.style.top = y + 'px';
+  lightning.style.zIndex = '99999';
+  lightning.style.setProperty('--drift', drift + 'px');
+  lightning.style.animationDuration = duration + 's';
+
+  document.body.appendChild(lightning);
+  setTimeout(() => lightning.remove(), duration * 1000);
+}
+
 function startEmberEffects(){
   const panels = document.querySelectorAll('.coming-up-panel, .gold-leaderboard-widget, .module-wrapper, #module-announcements-display, .roster-container');
   panels.forEach(panel => {
-    let emberInterval = null;
+    let effectInterval = null;
+    const isLightningPanel = panel.classList.contains('coming-up-panel') || panel.classList.contains('gold-leaderboard-widget');
+
     panel.addEventListener('mouseenter', () => {
-      if(!emberInterval){
-        emberInterval = setInterval(() => {
-          spawnEmber(panel);
+      if(!effectInterval){
+        effectInterval = setInterval(() => {
+          if(isLightningPanel){
+            spawnLightning(panel);
+          } else {
+            spawnEmber(panel);
+          }
         }, 400);
       }
     });
     panel.addEventListener('mouseleave', () => {
-      if(emberInterval){
-        clearInterval(emberInterval);
-        emberInterval = null;
+      if(effectInterval){
+        clearInterval(effectInterval);
+        effectInterval = null;
       }
     });
   });
