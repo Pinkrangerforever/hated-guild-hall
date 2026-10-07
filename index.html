@@ -8036,7 +8036,12 @@ function bindApp(){
   document.querySelectorAll('[data-choose-slot]').forEach(b=>b.addEventListener('click', (ev)=>{ ev.stopPropagation(); openImagePicker(b.dataset.chooseSlot); }));
   document.querySelectorAll('[data-clear-slot]').forEach(b=>b.addEventListener('click', ()=>clearSiteImage(b.dataset.clearSlot)));
   const bgColorInput = document.getElementById('site-bg-color-input');
-  if(bgColorInput) bgColorInput.addEventListener('change', ()=>assignSiteImage('site_background_color', bgColorInput.value));
+  if(bgColorInput){
+    bgColorInput.addEventListener('input', ()=>{
+      document.body.style.backgroundColor = bgColorInput.value;
+    });
+    bgColorInput.addEventListener('change', ()=>assignSiteImage('site_background_color', bgColorInput.value));
+  }
 
   const bgOpacityInput = document.getElementById('site-bg-opacity-input');
   if(bgOpacityInput){
