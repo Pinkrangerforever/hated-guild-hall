@@ -6124,13 +6124,23 @@ function spawnEmber(panelElement){
 }
 
 function startEmberEffects(){
-  const comingUpPanel = document.querySelector('.coming-up-panel');
-  const goldLeaderboard = document.querySelector('.gold-leaderboard-widget');
-
-  setInterval(() => {
-    if(comingUpPanel && Math.random() > 0.4) spawnEmber(comingUpPanel);
-    if(goldLeaderboard && Math.random() > 0.4) spawnEmber(goldLeaderboard);
-  }, 600);
+  const panels = document.querySelectorAll('.coming-up-panel, .gold-leaderboard-widget, .module-wrapper');
+  panels.forEach(panel => {
+    let emberInterval = null;
+    panel.addEventListener('mouseenter', () => {
+      if(!emberInterval){
+        emberInterval = setInterval(() => {
+          spawnEmber(panel);
+        }, 400);
+      }
+    });
+    panel.addEventListener('mouseleave', () => {
+      if(emberInterval){
+        clearInterval(emberInterval);
+        emberInterval = null;
+      }
+    });
+  });
 }
 
 function renderApp(){
