@@ -2417,12 +2417,12 @@
 
   .module-wrapper{ width:100%; }
 
-  /* DESKTOP: Two-Column Layout (>= 768px) */
+  /* DESKTOP: Three-Column Layout (>= 768px) */
   @media(min-width:768px){
     .layout-mobile{ display:none; }
     .layout-desktop{
       display:grid;
-      grid-template-columns:300px 1fr;
+      grid-template-columns:300px 1fr 560px;
       gap:32px;
       width:100%;
       place-items:start;
@@ -2434,6 +2434,15 @@
       z-index:50;
       width:300px;
       min-width:300px;
+      flex-shrink:0;
+    }
+    .layout-sidebar-right{
+      position:sticky;
+      top:80px;
+      height:fit-content;
+      z-index:50;
+      width:560px;
+      min-width:560px;
       flex-shrink:0;
     }
     .layout-main{
@@ -7016,16 +7025,14 @@ function renderEntryPage(){
         <div class="module-wrapper">${renderEntryGuildBoard()}</div>
       </div>
 
-      <!-- DESKTOP: Two-column layout (same as home page) -->
+      <!-- DESKTOP: Three-column layout with sidebars -->
       <div class="layout-desktop">
         <aside class="layout-sidebar">${renderGoldLeaderboard()}</aside>
         <main class="layout-main">
-          <div style="display:flex; gap:32px; align-items:flex-start;">
-            <div class="module-wrapper" style="flex:1;">${renderEntryYouTubeVideo()}</div>
-            <div style="flex-shrink:0;">${renderEntryGuildBoard()}</div>
-          </div>
+          <div class="module-wrapper">${renderEntryYouTubeVideo()}</div>
           <div class="module-wrapper">${renderEntryAnnouncements()}</div>
         </main>
+        <aside class="layout-sidebar-right">${renderEntryGuildBoard()}</aside>
       </div>
     </div>
   `;
