@@ -3060,22 +3060,35 @@ function getUserNameCustomization(userId){
   const purchases = state.allShopPurchases && state.allShopPurchases.filter(p=>p.user_id===userId && p.fulfilled);
   if(!purchases || !purchases.length) return { border: '', nameCustom: '' };
 
-  // Get highest tier border
+  // Get active name border from profile, or use highest tier as fallback
   let border = '';
-  const borderPurchases = purchases.filter(p=> {
-    const item = state.shopItems && state.shopItems.find(i=>i.id===p.item_id);
-    return item && item.name.includes('Roster Name Border');
-  });
-  if(borderPurchases.length) {
-    const borderItems = borderPurchases.map(p=>state.shopItems.find(i=>i.id===p.item_id));
-    const highestTier = Math.max(...borderItems.map(i=>i.metadata?.tier || 0));
-    const tierName = ['','uncommon','rare','epic','legendary'][highestTier];
-    if(tierName) border = `roster-border-${tierName}`;
+  const profile = state.profilesById && Object.values(state.profilesById).find(p => p.id === userId);
+  const activeBorderId = profile?.active_name_border;
+
+  if(activeBorderId) {
+    // Use the selected border
+    const borderItem = state.shopItems && state.shopItems.find(i=>i.id===activeBorderId);
+    if(borderItem && purchases.some(p => p.item_id === activeBorderId)) {
+      const tier = borderItem.metadata?.tier || 0;
+      const tierName = ['','uncommon','rare','epic','legendary'][tier];
+      if(tierName) border = `roster-border-${tierName}`;
+    }
+  } else {
+    // Fallback: use highest tier border if no active selection
+    const borderPurchases = purchases.filter(p=> {
+      const item = state.shopItems && state.shopItems.find(i=>i.id===p.item_id);
+      return item && item.name.includes('Roster Name Border');
+    });
+    if(borderPurchases.length) {
+      const borderItems = borderPurchases.map(p=>state.shopItems.find(i=>i.id===p.item_id));
+      const highestTier = Math.max(...borderItems.map(i=>i.metadata?.tier || 0));
+      const tierName = ['','uncommon','rare','epic','legendary'][highestTier];
+      if(tierName) border = `roster-border-${tierName}`;
+    }
   }
 
   // Get active name customization from profile
   let nameCustom = '';
-  const profile = state.profilesById && Object.values(state.profilesById).find(p => p.id === userId);
   const activeCustomId = profile?.active_name_customization;
 
   if(activeCustomId) {
@@ -5192,6 +5205,21 @@ async function setActiveNameCustomization(itemId){
     state.profilesById[state.session.user.id].active_name_customization = activeId;
   }
   showToast('Preference updated!');
+  render();
+}
+
+async function setActiveNameBorder(itemId){
+  const activeId = itemId === 'none' ? null : itemId;
+  const { data, error } = await sb.from('profiles').update({ active_name_border: activeId }).eq('id', state.session.user.id);
+  if(error){
+    showToast('Failed to update preference', true);
+    return;
+  }
+  if(state.profile) state.profile.active_name_border = activeId;
+  if(state.profilesById && state.session?.user?.id && state.profilesById[state.session.user.id]) {
+    state.profilesById[state.session.user.id].active_name_border = activeId;
+  }
+  showToast('Border preference updated!');
   render();
 }
 function startEditShopItem(itemId){
@@ -7696,6 +7724,56 @@ function renderSettings(){
         <div class="emptyState">You haven't purchased any name customizations yet. Visit the Shop to get one!</div>
       ` }
     </div>
+
+    <div class="panel style-glass">
+      <h3 style="margin-bottom:16px;">Roster Name Border</h3>
+      <p class="muted" style="margin-bottom:16px;">Select which roster name border to display:</p>
+
+      ${ (() => {
+        const activeBorderId = state.profile?.active_name_border;
+        const borderPurchases = (state.shopPurchases || []).filter(p => {
+          if(!p.fulfilled) return false;
+          const item = state.shopItems?.find(i => i.id === p.item_id);
+          return item && item.name.includes('Roster Name Border');
+        });
+
+        if(!borderPurchases.length) {
+          return `<div class="emptyState">You haven't purchased any roster name borders yet. Visit the Shop to get one!</div>`;
+        }
+
+        const borderColors = {
+          1: { color: '#1eff00', label: 'Uncommon', glow: 'rgba(30,255,0,0.5)' },
+          2: { color: '#0070dd', label: 'Rare', glow: 'rgba(0,112,221,0.5)' },
+          3: { color: '#a335ee', label: 'Epic', glow: 'rgba(163,53,238,0.5)' },
+          4: { color: '#ff8000', label: 'Legendary', glow: 'rgba(255,128,0,0.5)' }
+        };
+
+        return `
+          <div style="display:grid; gap:12px;">
+            <button class="btn ${!activeBorderId ? 'primary' : 'secondary'}" type="button" data-set-name-border="none" style="padding:12px; text-align:left;">
+              <div style="font-weight:600;">None</div>
+              <div class="muted" style="font-size:12px;">No border effect</div>
+            </button>
+            ${ borderPurchases.map(p => {
+              const item = state.shopItems?.find(i => i.id === p.item_id);
+              const tier = item?.metadata?.tier || 0;
+              const info = borderColors[tier] || borderColors[1];
+              const isActive = activeBorderId === p.item_id;
+              return \`
+              <button class="btn \${isActive ? 'primary' : 'secondary'}" type="button" data-set-name-border="\${p.item_id}" style="padding:12px; text-align:left; display:flex; gap:12px; align-items:flex-start;">
+                <div style="width:150px; height:60px; border:3px solid \${info.color}; border-radius:3px; flex-shrink:0; background:rgba(0,0,0,0.3); box-shadow:0 0 12px \${info.glow}; display:flex; align-items:center; justify-content:center; color:\${info.color}; font-weight:600;">
+                  \${info.label}
+                </div>
+                <div style="flex:1;">
+                  <div style="font-weight:600;">\${esc(item?.name || 'Unknown')}</div>
+                  <div class="muted" style="font-size:12px;">\${esc(item?.description || '')}</div>
+                </div>
+              </button>\`;
+            }).join('')}
+          </div>
+        `;
+      })() }
+    </div>
   `;
 }
 
@@ -8419,7 +8497,8 @@ function bindApp(){
   }));
   document.querySelectorAll('[data-delete-sticker]').forEach(b=>b.addEventListener('click', ()=>deleteSticker(b.dataset.deleteSticker)));
   document.querySelectorAll('[data-set-name-custom]').forEach(b=>b.addEventListener('click', ()=>setActiveNameCustomization(b.dataset.setNameCustom)));
-  
+  document.querySelectorAll('[data-set-name-border]').forEach(b=>b.addEventListener('click', ()=>setActiveNameBorder(b.dataset.setNameBorder)));
+
   // Sticker drag-and-drop handlers - set up after each render
   setupStickerDragHandlers();
 
