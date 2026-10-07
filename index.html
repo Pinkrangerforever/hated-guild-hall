@@ -1590,6 +1590,7 @@
   }
   .gold-leaderboard-widget{
     padding:16px; position:relative; overflow:hidden;
+    z-index:50 !important;
     border-top:3px solid rgba(207,154,68,0.8) !important;
     border-right:3px solid rgba(207,154,68,0.6) !important;
     border-bottom:3px solid rgba(207,154,68,0.7) !important;
@@ -1631,6 +1632,8 @@
     background:linear-gradient(135deg, rgba(255,140,0,1) 0%, rgba(20,12,5,0.97) 100%),
                 linear-gradient(to bottom, rgba(255,100,0,0.8) 0%, transparent 40%),
                 radial-gradient(circle at top-right, rgba(207,154,68,0.12), transparent 60%) !important;
+    position:relative;
+    z-index:50 !important;
     border-top:3px solid rgba(207,154,68,0.8) !important;
     border-right:3px solid rgba(207,154,68,0.6) !important;
     border-bottom:3px solid rgba(207,154,68,0.7) !important;
@@ -1672,6 +1675,11 @@
   }
   .coming-up-list{
     display:flex; flex-direction:column; gap:8px;
+  }
+
+  /* TEST: Body background should show if CSS works */
+  body {
+    background-color: purple !important;
   }
   .coming-up-item{
     display:flex; align-items:flex-start; gap:10px; padding:12px 10px;
