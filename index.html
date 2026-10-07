@@ -2121,6 +2121,11 @@
   .roster-container {
     border: 1px solid rgba(207,154,68,0.2);
     border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+  }
+  .roster-container > :last-child {
+    margin-bottom: 0 !important;
   }
 
   /* Roster resize handle */
@@ -3780,8 +3785,13 @@ async function syncDiscordRole(showFeedback){
 
 /* ---------------- data loading ---------------- */
 async function loadGuildEvents(){
-  const eventsRes = await sb.from('events').select('*').order('date');
-  state.events = eventsRes.data || [];
+  try {
+    const eventsRes = await sb.from('events').select('*').order('date');
+    state.events = eventsRes.data || [];
+  } catch(e) {
+    console.error('Failed to load events:', e);
+    state.events = [];
+  }
 }
 
 async function loadGuildData(){
