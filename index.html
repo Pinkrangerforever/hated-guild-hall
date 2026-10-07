@@ -1617,37 +1617,45 @@
   }
   .coming-up-header{
     font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
-    color:#cf9a44; margin-bottom:12px; padding-top:4px;
+    color:#cf9a44; margin-bottom:14px; padding-top:4px; padding-bottom:8px;
+    display:flex; align-items:center; gap:12px;
+    border-bottom:1px solid rgba(207,154,68,0.4);
+  }
+  .coming-up-header::after{
+    content:''; flex:1; height:1px; background:linear-gradient(90deg, rgba(207,154,68,0.4), transparent);
   }
   .coming-up-list{
-    display:flex; flex-direction:column; gap:10px;
+    display:flex; flex-direction:column; gap:8px;
   }
   .coming-up-item{
-    display:flex; align-items:flex-start; gap:12px; padding:10px;
-    background:rgba(0,0,0,0.2); border:1px solid rgba(207,154,68,0.2);
+    display:flex; align-items:flex-start; gap:10px; padding:12px 10px;
+    background:rgba(0,0,0,0.3); border:1px solid rgba(207,154,68,0.25);
     border-radius:2px; transition:all 0.2s ease;
   }
   .coming-up-item:hover{
-    background:rgba(207,154,68,0.15); border-color:rgba(207,154,68,0.4);
+    background:rgba(207,154,68,0.18); border-color:rgba(207,154,68,0.5);
   }
   .coming-up-icon{
-    font-size:24px; flex-shrink:0; display:flex; align-items:center;
+    flex-shrink:0; display:flex; align-items:center; margin-top:2px;
   }
   .coming-up-content{
     flex:1; min-width:0;
   }
   .coming-up-title{
-    font-size:13px; font-weight:600; color:#f0dfb4; margin-bottom:2px;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    font-family:'Segoe UI', Roboto, sans-serif; font-size:13px; font-weight:600; color:#ffffff;
+    margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.2;
   }
   .coming-up-date{
-    font-size:11px; color:#d4af9f; opacity:0.8;
+    font-size:11px; color:#a0a8ae; font-weight:400;
   }
   .coming-up-countdown{
-    flex-shrink:0; text-align:right;
+    flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:2px;
   }
   .coming-up-days{
-    font-size:12px; font-weight:700; color:#cf9a44;
+    font-size:12px; font-weight:700; color:#cf9a44; line-height:1;
+  }
+  .coming-up-countdown-date{
+    font-size:10px; color:#a0a8ae; line-height:1;
   }
 
   .leaderboard-entry{
@@ -6985,13 +6993,14 @@ function renderComingUp(){
 
     return `
       <div class="coming-up-item">
-        <div class="coming-up-icon"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ScrollIcon.png" alt="Event" style="width:20px; height:20px;"></div>
+        <div class="coming-up-icon"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ScrollIcon.png" alt="Event" style="width:18px; height:18px;"></div>
         <div class="coming-up-content">
           <div class="coming-up-title">${esc(ev.title)}</div>
           <div class="coming-up-date">${dateStr}</div>
         </div>
         <div class="coming-up-countdown">
           <div class="coming-up-days">in ${daysUntil}d</div>
+          <div class="coming-up-countdown-date">${dateStr}</div>
         </div>
       </div>
     `;
