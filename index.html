@@ -7087,7 +7087,7 @@ function renderRosterGroups(){
 }
 
 /* ---- coming up events panel ---- */
-function renderComingUp(){
+function renderComingUp(disableClicks = false){
   const today = new Date().toISOString().split('T')[0];
   const thirtyDaysOut = new Date();
   thirtyDaysOut.setDate(thirtyDaysOut.getDate() + 30);
@@ -7108,9 +7108,10 @@ function renderComingUp(){
     const todayDate = new Date(today + 'T00:00:00Z');
     const daysUntil = Math.ceil((eventDate - todayDate) / (1000 * 60 * 60 * 24));
     const dateStr = eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const clickAttr = disableClicks ? '' : `data-open-event="${ev.id}"`;
 
     return `
-      <div class="coming-up-item" data-open-event="${ev.id}">
+      <div class="coming-up-item" ${clickAttr}>
         <div class="coming-up-icon"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ScrollIcon.png" alt="Event" style="width:28px; height:28px;"></div>
         <div class="coming-up-content">
           <div class="coming-up-title">${esc(ev.title)}</div>
@@ -7358,7 +7359,7 @@ function renderEntryPage(){
 
       <!-- DESKTOP: Three-column layout with sidebars -->
       <div class="layout-desktop">
-        <aside class="layout-sidebar">${renderComingUp()}${renderGoldLeaderboard()}</aside>
+        <aside class="layout-sidebar">${renderComingUp(true)}${renderGoldLeaderboard()}</aside>
         <main class="layout-main">
           <div class="module-wrapper">${renderEntryYouTubeVideo()}</div>
           <div class="module-wrapper">${renderEntryAnnouncements()}</div>
