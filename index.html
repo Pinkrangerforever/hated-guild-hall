@@ -7833,7 +7833,7 @@ function renderSettings(){
         const iconPurchases = (state.shopPurchases || []).filter(p => {
           if(!p.fulfilled) return false;
           const item = state.shopItems?.find(i => i.id === p.item_id);
-          return item && item.category === 'nameplate_icon';
+          return item && item.name.includes('Icon');
         });
 
         if(!iconPurchases.length) {

@@ -13,7 +13,7 @@ VALUES (
   'Alpha Founder Border',
   'Exclusive pulsing gold border for early supporters',
   0,
-  'roster_name_border',
+  'name_customization',
   '{"tier": 5, "type": "alpha"}',
   1,
   false
@@ -25,7 +25,7 @@ VALUES (
   'Alpha Founder Icon',
   'Exclusive Alpha icon badge for nameplate',
   0,
-  'nameplate_icon',
+  'name_customization',
   '{"icon_url": "https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/AlphaIcon.png"}',
   1,
   false
