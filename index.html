@@ -2425,19 +2425,22 @@
       grid-template-columns:300px 1fr;
       gap:32px;
       width:100%;
+      place-items:start;
     }
     .layout-sidebar{
-      grid-column:1;
       position:sticky;
       top:80px;
       height:fit-content;
       z-index:50;
     }
     .layout-main{
-      grid-column:2;
       display:flex;
       flex-direction:column;
       gap:32px;
+      width:100%;
+      max-width:900px;
+      margin:0 auto;
+      justify-self:center;
     }
   }
 
