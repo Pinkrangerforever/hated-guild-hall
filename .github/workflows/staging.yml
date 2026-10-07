@@ -45,14 +45,14 @@ jobs:
       - name: List Pending Migrations
         id: check_migrations
         run: |
-          echo "Checking for pending migrations in supabase/migrations/staging/"
-          if [ -z "$(find supabase/migrations/staging -name '*.sql' -type f)" ]; then
+          echo "Checking for pending migrations in supabase/migrations/"
+          if [ -z "$(find supabase/migrations -maxdepth 1 -name '*.sql' -type f)" ]; then
             echo "status=no_migrations" >> $GITHUB_OUTPUT
-            echo "No migration files found in staging directory"
+            echo "No migration files found in migrations directory"
           else
             echo "status=has_migrations" >> $GITHUB_OUTPUT
             echo "Found migration files:"
-            find supabase/migrations/staging -name '*.sql' -type f | sort
+            find supabase/migrations -maxdepth 1 -name '*.sql' -type f | sort
           fi
 
       - name: Push Migrations to Staging Database
