@@ -7043,9 +7043,10 @@ function renderComingUp(){
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 5); // Show max 5 events
 
-  if(upcomingEvents.length === 0) {
-    return '';
-  }
+  // Always render panel even if empty (for styling visibility)
+  // if(upcomingEvents.length === 0) {
+  //   return '';
+  // }
 
   const eventRows = upcomingEvents.map(ev => {
     const eventDate = new Date(ev.date + 'T00:00:00Z');
@@ -7068,7 +7069,8 @@ function renderComingUp(){
     `;
   }).join('');
 
-  if(!eventRows) return '';
+  // Always render panel - show placeholder if no events
+  const eventsContent = eventRows || '<p style="text-align:center; color:var(--text-muted); font-size:11px; padding:12px;">No upcoming events</p>';
 
   return `
     <div class="coming-up-panel">
@@ -7078,7 +7080,7 @@ function renderComingUp(){
       <div class="ornate-corner br"></div>
       <div class="coming-up-header">COMING UP</div>
       <div class="coming-up-list">
-        ${eventRows}
+        ${eventsContent}
       </div>
     </div>
   `;
