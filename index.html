@@ -104,10 +104,18 @@
     background:radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.7) 100%);
     pointer-events:none; z-index:1;
   }
-  .rune-divider{
-    width:100%; height:auto; max-height:100px; display:block; object-fit:cover;
-    margin:0; padding:0; max-width:100%; background:transparent;
-    position:relative; z-index:2; margin-top:0;
+  /* CUSTOM DIVIDER */
+  .page-divider{
+    width:100%; height:3px; margin:0; padding:0;
+    background:linear-gradient(90deg,
+      rgba(204,51,51,0.3) 0%,
+      rgba(255,136,0,1) 25%,
+      rgba(255,136,0,1) 50%,
+      rgba(204,51,51,1) 75%,
+      rgba(204,51,51,0.3) 100%
+    );
+    box-shadow:0 0 12px rgba(255,136,0,0.4), 0 2px 8px rgba(0,0,0,0.5);
+    position:relative; z-index:2;
   }
 
   /* MOBILE MENU */
@@ -2491,8 +2499,10 @@
 <!-- HATED BANNER SECTION -->
 <div id="banner-section" class="banner-section">
   <img id="hated-banner" class="hated-banner" src="https://r2-staging.hatedforever.com/HatedBanner.png" alt="HATED Guild Banner">
-  <img id="rune-divider" class="rune-divider" src="https://r2-staging.hatedforever.com/RuneHorizontalDivider.png" alt="Rune Divider">
 </div>
+
+<!-- PAGE DIVIDER -->
+<div class="page-divider"></div>
 
 <div id="construction-banner">⚔️ SITE UNDER CONSTRUCTION! ALPHA-CHADS MAKE SURE YOU PURCHASE SOMETHING FROM THE SHOP! ⚔️</div>
 <div id="bg-layer-texture"></div>
