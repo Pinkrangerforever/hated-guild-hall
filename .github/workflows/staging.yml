@@ -1,4 +1,5 @@
 name: Deploy Staging Migrations
+# Trigger workflow after migration repair
 
 on:
   push:
