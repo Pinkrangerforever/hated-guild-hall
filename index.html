@@ -2121,10 +2121,8 @@
   .roster-container {
     border: 1px solid rgba(207,154,68,0.2);
     border-radius: 4px;
-    display: flex;
-    flex-direction: column;
   }
-  .roster-container > :last-child {
+  .comp-slot:last-child {
     margin-bottom: 0 !important;
   }
 
@@ -2567,7 +2565,7 @@
     border-radius:12px;
     padding:16px;
     box-sizing:border-box;
-    box-shadow:0 4px 12px rgba(0,0,0,0.4), 0 2px 8px rgba(207,154,68,0.1);
+    box-shadow:0 8px 24px rgba(0,0,0,0.6), 0 4px 12px rgba(207,154,68,0.2), inset 0 1px 0 rgba(207,154,68,0.1);
   }
 
   /* Announcement Module Styling with Icon */
@@ -7114,6 +7112,8 @@ function renderComingUp(disableClicks = false){
     .filter(ev => ev.date >= today && ev.date <= maxDate)
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 5); // Show max 5 events
+
+  console.log('Coming Up Debug:', { allEvents: state.events?.length || 0, upcomingEvents: upcomingEvents.length, today, maxDate });
 
   // Always render panel even if empty (for styling visibility)
   // if(upcomingEvents.length === 0) {
