@@ -8428,6 +8428,9 @@ function bindApp(){
   // Load gold leaderboard for trophy case display
   loadGoldLeaderboard().catch(e => console.error('Error loading leaderboard:', e));
 
+  // Load upcoming events for Coming Up panel (entry page)
+  loadGuildEvents().catch(e => console.error('Error loading events:', e));
+
   const stickerPriceBtn = document.getElementById('save-sticker-price-btn');
   if(stickerPriceBtn) stickerPriceBtn.addEventListener('click', saveStickerPrice);
   document.querySelectorAll('[data-edit-shop-item]').forEach(b=>b.addEventListener('click', ()=>startEditShopItem(b.dataset.editShopItem)));
