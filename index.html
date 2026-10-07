@@ -6983,18 +6983,9 @@ function renderComingUp(){
     const daysUntil = Math.ceil((eventDate - todayDate) / (1000 * 60 * 60 * 24));
     const dateStr = eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
-    // Determine icon based on event title
-    let icon = '📋'; // default
-    const titleLower = (ev.title || '').toLowerCase();
-    if(titleLower.includes('raid')) icon = '⚔️';
-    else if(titleLower.includes('boss')) icon = '🐉';
-    else if(titleLower.includes('instance')) icon = '🏰';
-    else if(titleLower.includes('pvp')) icon = '⚡';
-    else if(titleLower.includes('event')) icon = '🎪';
-
     return `
       <div class="coming-up-item">
-        <div class="coming-up-icon">${icon}</div>
+        <div class="coming-up-icon"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ScrollIcon.png" alt="Event" style="width:20px; height:20px;"></div>
         <div class="coming-up-content">
           <div class="coming-up-title">${esc(ev.title)}</div>
           <div class="coming-up-date">${dateStr}</div>
@@ -7124,7 +7115,7 @@ function renderNews(){
 function renderAnnouncementsModule(officer){
   return `
     <div id="module-announcements-display" class="module" style="background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border-radius:16px; padding:16px; box-sizing:border-box;">
-      <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ScrollIcon.png" alt="Announcements" class="announcement-icon">
+      <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GryphonIcon.png" alt="Announcements" class="announcement-icon">
       <div class="announcement-header">
         <h3 style="margin:0; color:var(--text-normal);">Announcements</h3>
       </div>
@@ -7254,7 +7245,7 @@ function renderEntryYouTubeVideo(){
 function renderEntryAnnouncements(){
   return `
     <div id="module-announcements-display" class="module" style="background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border-radius:16px; padding:16px; box-sizing:border-box;">
-      <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ScrollIcon.png" alt="Announcements" class="announcement-icon">
+      <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GryphonIcon.png" alt="Announcements" class="announcement-icon">
       <div class="announcement-header">
         <h3 style="margin:0; color:var(--text-normal);">Latest News</h3>
       </div>
