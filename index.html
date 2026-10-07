@@ -132,7 +132,7 @@
   .guild-board-sticky{
     position:relative; width:560px; z-index:200;
     pointer-events:auto; flex-shrink:0;
-    box-shadow:0 12px 32px rgba(0,0,0,1), 0 6px 16px rgba(0,0,0,0.95);
+    filter:drop-shadow(0 12px 32px rgba(0,0,0,1));
   }
   .guild-board-tall-img{
     width:100%; height:auto; display:block;
@@ -7428,7 +7428,7 @@ function renderGuildBoardModule(){
 
 function renderRosterModule(){
   return `
-    <div id="module-raid-roster" class="module roster-container" style="height:520px; overflow:auto; background:rgba(0,0,0,0.3); padding:16px 16px 0 16px; box-sizing:border-box;">
+    <div id="module-raid-roster" class="module roster-container" style="height:520px; overflow:auto; background:rgba(0,0,0,0.3); padding:16px 16px 0 16px; box-sizing:border-box; filter:drop-shadow(0 12px 32px rgba(0,0,0,1));">
       ${renderRosterGroups()}
     </div>
   `;
