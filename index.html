@@ -120,7 +120,7 @@
 
   /* STATIC GUILD BOARD (Right Side) */
   .guild-board-sticky{
-    position:relative; width:560px; z-index:100;
+    position:relative; width:560px; z-index:200;
     pointer-events:auto; flex-shrink:0;
   }
   .guild-board-tall-img{
@@ -1601,7 +1601,7 @@
   }
   .gold-leaderboard-widget{
     padding:16px; position:relative;
-    z-index:50 !important;
+    z-index:200;
     border-top:3px solid rgba(207,154,68,0.8) !important;
     border-right:3px solid rgba(207,154,68,0.6) !important;
     border-bottom:3px solid rgba(207,154,68,0.7) !important;
@@ -1641,7 +1641,7 @@
   .coming-up-panel{
     background:linear-gradient(to right, rgba(70,8,8,1), rgba(60,35,25,0.95)) !important;
     position:relative;
-    z-index:50 !important;
+    z-index:200;
     border-top:3px solid rgba(207,154,68,0.8) !important;
     border-right:3px solid rgba(207,154,68,0.6) !important;
     border-bottom:3px solid rgba(207,154,68,0.7) !important;
@@ -2537,7 +2537,8 @@
       grid-column:1;
       width:300px;
       height:fit-content;
-      z-index:40;
+      z-index:100;
+      position:relative;
     }
 
     /* Center Column - grid column 2, exactly 900px centered */
@@ -2547,6 +2548,8 @@
       flex-direction:column;
       gap:108px;
       width:900px;
+      z-index:50;
+      position:relative;
     }
 
     /* Right Sidebar - grid column 3, locked to far right */
@@ -2554,6 +2557,8 @@
       grid-column:3;
       width:560px;
       height:fit-content;
+      z-index:50;
+      position:relative;
     }
   }
 
