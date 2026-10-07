@@ -2502,8 +2502,22 @@
     <div class="nav-items">
       <button class="nav-link" data-tab="news">Home</button>
       <button class="nav-link" data-tab="calendar">Raid Calendar</button>
-      <button class="nav-link" data-tab="roster">Raiding Resources</button>
-      <button class="nav-link" data-tab="guildbank">Guild Resources</button>
+      <div class="nav-dropdown">
+        <button class="nav-link dropdown-trigger">Raiding Resources</button>
+        <div class="nav-dropdown-menu">
+          <a href="#" class="nav-dropdown-item" data-tab="roster">Roster</a>
+          <a href="#" class="nav-dropdown-item" data-tab="raidlogs">Raid Logs</a>
+          <a href="#" class="nav-dropdown-item" data-tab="strategies">Boss Strategies</a>
+          <a href="#" class="nav-dropdown-item" data-tab="softres">Soft Res Links</a>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-link dropdown-trigger">Guild Resources</button>
+        <div class="nav-dropdown-menu">
+          <a href="#" class="nav-dropdown-item" data-tab="guildbank">Guild Bank</a>
+          <a href="#" class="nav-dropdown-item" data-tab="loot">Loot Log</a>
+        </div>
+      </div>
       <button class="nav-link" data-tab="gallery">Gallery</button>
       <button class="nav-link" data-tab="recruitment">Recruitment</button>
       <button class="nav-link" data-tab="settings">Settings</button>
@@ -2533,8 +2547,22 @@
   <div class="mobile-menu-section">
     <button class="nav-link mobile" data-tab="news">Home</button>
     <button class="nav-link mobile" data-tab="calendar">Raid Calendar</button>
-    <button class="nav-link mobile" data-tab="roster">Raiding Resources</button>
-    <button class="nav-link mobile" data-tab="guildbank">Guild Resources</button>
+    <div class="mobile-nav-dropdown">
+      <button class="mobile-nav-dropdown-btn">Raiding Resources</button>
+      <div class="mobile-nav-dropdown-items">
+        <a href="#" class="mobile-nav-link" data-tab="roster">Roster</a>
+        <a href="#" class="mobile-nav-link" data-tab="raidlogs">Raid Logs</a>
+        <a href="#" class="mobile-nav-link" data-tab="strategies">Boss Strategies</a>
+        <a href="#" class="mobile-nav-link" data-tab="softres">Soft Res Links</a>
+      </div>
+    </div>
+    <div class="mobile-nav-dropdown">
+      <button class="mobile-nav-dropdown-btn">Guild Resources</button>
+      <div class="mobile-nav-dropdown-items">
+        <a href="#" class="mobile-nav-link" data-tab="guildbank">Guild Bank</a>
+        <a href="#" class="mobile-nav-link" data-tab="loot">Loot Log</a>
+      </div>
+    </div>
     <button class="nav-link mobile" data-tab="gallery">Gallery</button>
     <button class="nav-link mobile" data-tab="recruitment">Recruitment</button>
     <button class="nav-link mobile" data-tab="settings">Settings</button>
