@@ -1298,13 +1298,13 @@
     box-shadow:0 0 20px rgba(255,128,0,0.8), 0 0 40px rgba(255,128,0,0.4), inset 0 0 12px rgba(255,128,0,0.2);
   }
   .comp-slot.roster-border-alpha{
-    border:2px solid #d4af37 !important;
+    border:2px solid #8B6914 !important;
     border-radius:6px;
     animation:alphaGlowPulse 2s ease-in-out infinite;
   }
   @keyframes alphaGlowPulse{
-    0%, 100%{ box-shadow:0 0 15px rgba(212,175,55,0.8), 0 0 30px rgba(212,175,55,0.4), inset 0 0 12px rgba(212,175,55,0.15); }
-    50%{ box-shadow:0 0 25px rgba(212,175,55,0.6), 0 0 50px rgba(212,175,55,0.2), inset 0 0 12px rgba(212,175,55,0.08); }
+    0%, 100%{ box-shadow:0 0 15px rgba(139,105,20,0.8), 0 0 30px rgba(139,105,20,0.4), inset 0 0 12px rgba(139,105,20,0.15); }
+    50%{ box-shadow:0 0 25px rgba(139,105,20,0.6), 0 0 50px rgba(139,105,20,0.2), inset 0 0 12px rgba(139,105,20,0.08); }
   }
   .comp-slot-nameplate-icon{
     position:absolute;
@@ -7817,7 +7817,7 @@ function renderSettings(){
           2: { color: '#0070dd', label: 'Rare', glow: 'rgba(0,112,221,0.5)' },
           3: { color: '#a335ee', label: 'Epic', glow: 'rgba(163,53,238,0.5)' },
           4: { color: '#ff8000', label: 'Legendary', glow: 'rgba(255,128,0,0.5)' },
-          5: { color: '#d4af37', label: 'Alpha', glow: 'rgba(212,175,55,0.5)' }
+          5: { color: '#8B6914', label: 'Alpha', glow: 'rgba(139,105,20,0.5)' }
         };
 
         let html = '<div style="display:grid; gap:12px;"><button class="btn ' + (!activeBorderId ? 'primary' : 'secondary') + '" type="button" data-set-name-border="none" style="padding:12px; text-align:left;"><div style="font-weight:600;">None</div><div class="muted" style="font-size:12px;">No border effect</div></button>';
