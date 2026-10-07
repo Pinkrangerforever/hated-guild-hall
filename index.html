@@ -118,15 +118,14 @@
     position:relative; z-index:2;
   }
 
-  /* STICKY GUILD BOARD */
+  /* STATIC GUILD BOARD (Right Side) */
   .guild-board-sticky{
-    position:fixed; right:20px; top:100px;
-    width:280px; z-index:100;
-    pointer-events:auto;
+    position:relative; width:560px; z-index:100;
+    pointer-events:auto; flex-shrink:0;
   }
   .guild-board-tall-img{
     width:100%; height:auto; display:block;
-    max-width:280px; object-fit:contain;
+    max-width:560px; object-fit:contain;
   }
   .guild-board-tall-content{
     position:absolute; top:0; left:0; right:0; bottom:0;
@@ -6892,10 +6891,14 @@ function renderNews(){
       <div class="layout-desktop">
         <aside class="layout-sidebar">${renderGoldLeaderboard()}</aside>
         <main class="layout-main">
-          <div class="module-wrapper">${renderAnnouncementsModule(officer)}</div>
-          <div class="module-wrapper">${renderGuildBoardModule()}</div>
-          <div class="module-wrapper">${renderRosterModule()}</div>
-          ${officer ? `<div class="module-wrapper">${renderAnnouncementsFormModule()}</div>` : ''}
+          <div style="display:flex; gap:32px; align-items:flex-start;">
+            <div style="flex:1;">
+              <div class="module-wrapper">${renderAnnouncementsModule(officer)}</div>
+              <div class="module-wrapper">${renderRosterModule()}</div>
+              ${officer ? `<div class="module-wrapper">${renderAnnouncementsFormModule()}</div>` : ''}
+            </div>
+            <div style="flex-shrink:0;">${renderGuildBoardModule()}</div>
+          </div>
         </main>
       </div>
     </div>
@@ -7012,8 +7015,10 @@ function renderEntryPage(){
         <aside class="layout-sidebar">${renderGoldLeaderboard()}</aside>
         <main class="layout-main">
           <div class="module-wrapper">${renderEntryYouTubeVideo()}</div>
-          <div class="module-wrapper">${renderEntryAnnouncements()}</div>
-          <div class="module-wrapper">${renderEntryGuildBoard()}</div>
+          <div style="display:flex; gap:32px; align-items:flex-start;">
+            <div class="module-wrapper" style="flex:1;">${renderEntryAnnouncements()}</div>
+            <div style="flex-shrink:0;">${renderEntryGuildBoard()}</div>
+          </div>
         </main>
       </div>
     </div>
