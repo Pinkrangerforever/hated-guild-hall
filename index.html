@@ -7313,8 +7313,9 @@ function renderGoldLeaderboard(){
       <div class="leaderboard-entry ${entryClass}" style="align-items:flex-start; gap:4px; ${bgStyle} padding:8px; border-radius:4px; box-shadow:${boxShadow}; ${cssVars} ${animDelay}">
         <div class="leaderboard-rank" style="flex-shrink:0;">${rankSparkle || '#' + rank}</div>
         <div style="flex:1; min-width:0;">
-          <div class="comp-slot ${slotClasses}" style="height:24px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10px; font-weight:600; overflow:hidden; text-overflow:ellipsis; position:relative;">
+          <div class="comp-slot ${slotClasses}" style="height:24px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10px; font-weight:600; overflow:visible; text-overflow:ellipsis; position:relative;">
             <span style="position:relative; z-index:100;">${esc(profile.character_name)}</span>
+            ${ customization.nameplateIcon ? `<div class="comp-slot-nameplate-icon"><img src="${esc(customization.nameplateIcon)}" alt="Icon"></div>` : '' }
           </div>
           <div style="font-size:10px; color:#ffd700; font-weight:700; margin-top:2px; text-align:center;"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:12px; height:12px; vertical-align:middle; margin-right:3px;"> ${(profile.gold_earned_total || 0).toLocaleString()}g</div>
         </div>
