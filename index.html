@@ -1512,25 +1512,6 @@
     box-shadow:0 0 8px rgba(255,140,0,0.8), 0 0 16px rgba(255,80,0,0.4), inset -1px -1px 2px rgba(0,0,0,0.4);
     animation:emberFloat 2s ease-out forwards;
   }
-  @keyframes lightningDraw{
-    0%{ stroke-dashoffset:200; opacity:1; filter:brightness(1.8) drop-shadow(0 0 10px rgba(0,200,255,1)); }
-    15%{ stroke-dashoffset:160; opacity:0.5; filter:brightness(0.5) drop-shadow(0 0 2px rgba(0,150,255,0.2)); }
-    30%{ stroke-dashoffset:100; opacity:1; filter:brightness(1.6) drop-shadow(0 0 12px rgba(0,220,255,1)); }
-    50%{ stroke-dashoffset:50; opacity:0.6; filter:brightness(0.6) drop-shadow(0 0 3px rgba(0,150,255,0.3)); }
-    75%{ stroke-dashoffset:10; opacity:0.8; filter:brightness(1.4) drop-shadow(0 0 8px rgba(0,200,255,0.9)); }
-    90%{ stroke-dashoffset:0; opacity:0.3; filter:brightness(0.4) drop-shadow(0 0 1px rgba(0,150,255,0.1)); }
-    100%{ stroke-dashoffset:0; opacity:0; filter:brightness(0) drop-shadow(0 0 0px rgba(0,150,255,0)); }
-  }
-  @keyframes lightningFloat{
-    0%{ transform:translateY(0) translateX(0); }
-    100%{ transform:translateY(-80px) translateX(var(--drift,0px)); }
-  }
-  .lightning-spark{
-    position:fixed; pointer-events:none; font-size:0;
-  }
-  .lightning-spark svg{
-    width:24px; height:24px; display:block;
-  }
   .nav-gold-badge{
     display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:700; color:#f0dfb4;
     background:linear-gradient(135deg, rgba(50,50,50,0.95) 0%, rgba(40,40,40,1) 100%); border:1px solid rgba(207,154,68,0.6); border-radius:12px; padding:4px 10px;
@@ -6258,93 +6239,21 @@ function spawnEmber(panelElement){
   setTimeout(() => ember.remove(), duration * 1000);
 }
 
-function spawnLightning(panelElement){
-  const spark = document.createElement('div');
-  spark.className = 'lightning-spark';
-  const rect = panelElement.getBoundingClientRect();
-
-  // Spawn from the edges of the panel
-  const edge = Math.floor(Math.random() * 4); // 0:top, 1:right, 2:bottom, 3:left
-  let x, y;
-  if(edge === 0) { // top edge
-    x = rect.left + Math.random() * rect.width;
-    y = rect.top;
-  } else if(edge === 1) { // right edge
-    x = rect.right;
-    y = rect.top + Math.random() * rect.height;
-  } else if(edge === 2) { // bottom edge
-    x = rect.left + Math.random() * rect.width;
-    y = rect.bottom;
-  } else { // left edge
-    x = rect.left;
-    y = rect.top + Math.random() * rect.height;
-  }
-
-  // Forking lightning bolt SVG with animated strokes
-  const boltSVG = `<svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
-    <defs>
-      <filter id="lg" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="2" result="cb"/>
-        <feMerge><feMergeNode in="cb"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>
-    <path d="M30 5 L32 15 L28 20 L30 32 L26 40 L30 50 L32 65 L28 75"
-          fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-          stroke-dasharray="200" stroke-dashoffset="200" filter="url(#lg)"/>
-    <path d="M28 20 L18 28 L20 38"
-          fill="none" stroke="#0096ff" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="200" stroke-dashoffset="200" filter="url(#lg)"/>
-    <path d="M32 32 L42 40 L40 52"
-          fill="none" stroke="#0096ff" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="200" stroke-dashoffset="200" filter="url(#lg)"/>
-    <path d="M30 5 L32 15 L28 20 L30 32 L26 40 L30 50 L32 65 L28 75"
-          fill="none" stroke="#ffffff" stroke-width="0.6" stroke-opacity="0.4" stroke-linecap="round" stroke-dasharray="200" stroke-dashoffset="200" filter="url(#lg)"/>
-  </svg>`;
-
-  spark.innerHTML = boltSVG;
-  const drift = (Math.random() - 0.5) * 80;
-  const duration = 0.9 + Math.random() * 0.5;
-
-  spark.style.left = x + 'px';
-  spark.style.top = y + 'px';
-  spark.style.zIndex = '99999';
-  spark.style.setProperty('--drift', drift + 'px');
-  spark.style.animationName = 'lightningFloat';
-  spark.style.animationDuration = duration + 's';
-  spark.style.animationTimingFunction = 'ease-out';
-  spark.style.animationFillMode = 'forwards';
-
-  const paths = spark.querySelectorAll('path');
-  paths.forEach(path => {
-    path.style.animationName = 'lightningDraw';
-    path.style.animationDuration = (0.6 + Math.random() * 0.3) + 's';
-    path.style.animationTimingFunction = 'ease-in-out';
-    path.style.animationFillMode = 'forwards';
-  });
-
-  document.body.appendChild(spark);
-  setTimeout(() => spark.remove(), duration * 1000);
-}
-
 function startEmberEffects(){
   const panels = document.querySelectorAll('.coming-up-panel, .gold-leaderboard-widget, .module-wrapper, #module-announcements-display, .roster-container');
   panels.forEach(panel => {
-    let effectInterval = null;
-    const isLightningPanel = panel.classList.contains('coming-up-panel') || panel.classList.contains('gold-leaderboard-widget');
-
+    let emberInterval = null;
     panel.addEventListener('mouseenter', () => {
-      if(!effectInterval){
-        effectInterval = setInterval(() => {
-          if(isLightningPanel){
-            spawnLightning(panel);
-          } else {
-            spawnEmber(panel);
-          }
+      if(!emberInterval){
+        emberInterval = setInterval(() => {
+          spawnEmber(panel);
         }, 400);
       }
     });
     panel.addEventListener('mouseleave', () => {
-      if(effectInterval){
-        clearInterval(effectInterval);
-        effectInterval = null;
+      if(emberInterval){
+        clearInterval(emberInterval);
+        emberInterval = null;
       }
     });
   });
