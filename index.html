@@ -1590,7 +1590,7 @@
   }
   .gold-leaderboard-widget{
     padding:16px; position:relative; overflow:hidden;
-    z-index:1000 !important;
+    z-index:50 !important;
     border-top:3px solid rgba(207,154,68,0.8) !important;
     border-right:3px solid rgba(207,154,68,0.6) !important;
     border-bottom:3px solid rgba(207,154,68,0.7) !important;
@@ -1633,7 +1633,7 @@
                 linear-gradient(to bottom, rgba(255,100,0,0.8) 0%, transparent 40%),
                 radial-gradient(circle at top-right, rgba(207,154,68,0.12), transparent 60%) !important;
     position:relative;
-    z-index:1000 !important;
+    z-index:50 !important;
     border-top:3px solid rgba(207,154,68,0.8) !important;
     border-right:3px solid rgba(207,154,68,0.6) !important;
     border-bottom:3px solid rgba(207,154,68,0.7) !important;
@@ -7061,7 +7061,7 @@ function renderComingUp(){
 
     return `
       <div class="coming-up-item" data-open-event="${ev.id}">
-        <div class="coming-up-icon"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ScrollIcon.png" alt="Event" style="width:18px; height:18px;"></div>
+        <div class="coming-up-icon"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ScrollIcon.png" alt="Event" style="width:28px; height:28px;"></div>
         <div class="coming-up-content">
           <div class="coming-up-title">${esc(ev.title)}</div>
           <div class="coming-up-date">${dateStr}</div>
