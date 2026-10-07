@@ -2370,9 +2370,8 @@
   /* DESKTOP: Three-Column Layout (>= 768px) */
   @media(min-width:768px){
     .layout-responsive{
-      width:100vw;
+      width:100%;
       margin-top:60px;
-      margin-left:calc(-50vw + 50%);
       padding:24px 20px;
       box-sizing:border-box;
       position:relative;
@@ -2383,37 +2382,39 @@
       display:flex;
       flex-direction:row;
       gap:32px;
-      width:100%;
-      max-width:900px;
-      margin:0 auto;
+      width:100vw;
+      margin-left:calc(-50vw + 50%);
+      padding:0 20px;
+      box-sizing:border-box;
+      justify-content:center;
       align-items:flex-start;
-      position:relative;
     }
 
-    /* Sticky Left Sidebar - sticks to left edge */
+    /* Sticky Left Sidebar */
     .layout-sidebar{
       position:sticky;
       top:80px;
       width:300px;
       height:fit-content;
       z-index:50;
-      margin-left:calc(-50vw + 50% - 516px);
+      flex-shrink:0;
     }
 
-    /* Sticky Right Sidebar - sticks to right edge */
+    /* Sticky Right Sidebar */
     .layout-sidebar-right{
       position:sticky;
       top:80px;
       width:560px;
       height:fit-content;
       z-index:50;
-      margin-right:calc(-50vw + 50% - 516px);
+      flex-shrink:0;
     }
 
     .layout-main{
       display:flex;
       flex-direction:column;
       gap:32px;
+      width:900px;
     }
   }
 
