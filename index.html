@@ -1665,7 +1665,7 @@
   }
   .gold-leaderboard-widget-title{
     font-size:14px; font-weight:800; color:#f0dfb4; margin-bottom:12px; text-align:center;
-    position:relative; z-index:1;
+    position:relative; z-index:1; font-family:'Cinzel', Georgia, serif; letter-spacing:0.08em;
   }
   .gold-leaderboard-entries{
     display:flex; flex-direction:column; gap:8px; position:relative; z-index:1;
@@ -1708,6 +1708,7 @@
     color:#cf9a44; margin-bottom:14px; padding-top:4px; padding-bottom:8px;
     display:flex; align-items:center; gap:12px;
     border-bottom:1px solid rgba(207,154,68,0.4);
+    font-family:'Cinzel', Georgia, serif;
   }
   .coming-up-header::after{
     content:''; flex:1; height:1px; background:linear-gradient(90deg, rgba(207,154,68,0.4), transparent);
@@ -2735,7 +2736,7 @@
     <div class="nav-user-section">
       <div id="nav-user-info" class="nav-user-info" style="display:none;">
         <span id="nav-username" class="nav-username">Loading...</span>
-        <span id="nav-gold-badge" class="nav-gold-badge"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"> 0</span>
+        <span id="nav-gold-badge" class="nav-gold-badge"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:4px;"> 0</span>
       </div>
       <button id="layout-lock-btn" class="nav-action-btn" title="Toggle Layout Lock" style="display:none;">Layout</button>
       <button id="reset-member-btn" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
@@ -2780,7 +2781,7 @@
   <div class="mobile-menu-section mobile-actions">
     <div id="mobile-user-info" class="nav-user-info">
       <span id="mobile-username" class="nav-username">Loading...</span>
-      <span id="mobile-gold-badge" class="nav-gold-badge"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"> 0</span>
+      <span id="mobile-gold-badge" class="nav-gold-badge"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:4px;"> 0</span>
     </div>
     <button id="layout-lock-btn-mobile" class="nav-action-btn" title="Toggle Layout Lock">Layout</button>
     <button id="reset-member-btn-mobile" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
@@ -2888,13 +2889,13 @@ function updateNavbarUserInfo(){
   const navUsername = document.getElementById('nav-username');
   const navGold = document.getElementById('nav-gold-badge');
   if(navUsername) navUsername.textContent = `${username} ${rankBadge}`.trim();
-  if(navGold) navGold.innerHTML = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"> ${gold}`;
+  if(navGold) navGold.innerHTML = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:4px;"> ${gold}`;
 
   // Update mobile menu
   const mobileUsername = document.getElementById('mobile-username');
   const mobileGold = document.getElementById('mobile-gold-badge');
   if(mobileUsername) mobileUsername.textContent = `${username} ${rankBadge}`.trim();
-  if(mobileGold) mobileGold.innerHTML = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"> ${gold}`;
+  if(mobileGold) mobileGold.innerHTML = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:4px;"> ${gold}`;
 }
 
 /* ---- reused helpers (icons, dates, rich text, nav) ---- */
@@ -7269,12 +7270,12 @@ function renderComingUp(disableClicks = false){
 function renderGoldLeaderboard(){
   const profiles = Object.values(state.profilesById || {});
   if(!profiles || profiles.length === 0){
-    return '<div class="gold-leaderboard-widget"><div class="gold-leaderboard-widget-title"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:6px;"> Gold Leaderboard</div><p style="text-align:center; color:var(--text-muted); font-size:12px; padding:20px;">Loading...</p></div>';
+    return '<div class="gold-leaderboard-widget"><div class="gold-leaderboard-widget-title"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:6px;"> Gold Leaderboard</div><p style="text-align:center; color:var(--text-muted); font-size:12px; padding:20px;">Loading...</p></div>';
   }
 
   const withGold = profiles.filter(p => (p.gold_earned_total || 0) > 0).sort((a, b) => (b.gold_earned_total || 0) - (a.gold_earned_total || 0));
 
-  if(withGold.length === 0) return '<div class="gold-leaderboard-widget"><div class="gold-leaderboard-widget-title"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:6px;"> Gold Leaderboard</div><p style="text-align:center; color:var(--text-muted); font-size:12px; padding:20px;">No earners yet</p></div>';
+  if(withGold.length === 0) return '<div class="gold-leaderboard-widget"><div class="gold-leaderboard-widget-title"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:6px;"> Gold Leaderboard</div><p style="text-align:center; color:var(--text-muted); font-size:12px; padding:20px;">No earners yet</p></div>';
 
   const entries = withGold.map((profile, idx) => {
     const rank = idx + 1;
@@ -7324,7 +7325,7 @@ function renderGoldLeaderboard(){
             <span style="position:relative; z-index:100;">${esc(profile.character_name)}</span>
             ${ customization.nameplateIcon ? `<div class="comp-slot-nameplate-icon"><img src="${esc(customization.nameplateIcon)}" alt="Icon"></div>` : '' }
           </div>
-          <div style="font-size:10px; color:#ffd700; font-weight:700; margin-top:2px; text-align:center;"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:12px; height:12px; vertical-align:middle; margin-right:3px;"> ${(profile.gold_earned_total || 0).toLocaleString()}g</div>
+          <div style="font-size:10px; color:#ffd700; font-weight:700; margin-top:2px; text-align:center;"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:24px; height:24px; vertical-align:middle; margin-right:3px;"> ${(profile.gold_earned_total || 0).toLocaleString()}g</div>
         </div>
       </div>
     `;
@@ -7336,7 +7337,7 @@ function renderGoldLeaderboard(){
       <div class="ornate-corner tr"></div>
       <div class="ornate-corner bl"></div>
       <div class="ornate-corner br"></div>
-      <div class="gold-leaderboard-widget-title"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:6px;"> Gold Leaderboard</div>
+      <div class="gold-leaderboard-widget-title"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:6px;"> Gold Leaderboard</div>
       <div class="gold-leaderboard-entries">
         ${entries}
       </div>
@@ -7987,7 +7988,7 @@ function renderAdmin(){
             <strong>${userName}</strong> - ${g.game_type} ${result}
           </div>
           <div style="color:var(--text-muted); font-size:11px;">
-            🏷️ ${g.flags.join(', ')} • <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:12px; height:12px; vertical-align:middle; margin-right:2px;"> ${g.gold_awarded}g • ${new Date(g.created_at).toLocaleString()}
+            🏷️ ${g.flags.join(', ')} • <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:24px; height:24px; vertical-align:middle; margin-right:2px;"> ${g.gold_awarded}g • ${new Date(g.created_at).toLocaleString()}
           </div>
         </div>
       `;
