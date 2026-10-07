@@ -2410,6 +2410,42 @@
     box-sizing:border-box;
   }
 
+  /* Announcement Module Styling with Icon */
+  #module-announcements-display{
+    position:relative;
+    border:2px solid #cf9a44 !important;
+    box-shadow:0 0 15px rgba(207,154,68,0.4) !important;
+    transition:all 0.3s ease;
+  }
+
+  #module-announcements-display:hover{
+    box-shadow:0 0 30px rgba(207,154,68,0.8), 0 0 50px rgba(207,154,68,0.3) !important;
+    border-color:#f0c050 !important;
+  }
+
+  .announcement-icon{
+    position:absolute;
+    top:12px;
+    left:12px;
+    width:32px;
+    height:32px;
+    object-fit:contain;
+    z-index:10;
+  }
+
+  .announcement-header{
+    display:flex;
+    align-items:center;
+    gap:40px;
+    margin-bottom:14px;
+  }
+
+  .announcement-header h3{
+    margin:0;
+    color:var(--text-normal);
+    flex:1;
+  }
+
 </style>
 </head>
 <body>
@@ -6863,8 +6899,11 @@ function renderNews(){
 
 function renderAnnouncementsModule(officer){
   return `
-    <div id="module-announcements-display" class="module" style="background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box;">
-      <h3 style="margin:0 0 14px 0; color:var(--text-normal);">Announcements</h3>
+    <div id="module-announcements-display" class="module" style="background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border-radius:16px; padding:16px; box-sizing:border-box;">
+      <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ScrollIcon.png" alt="Announcements" class="announcement-icon">
+      <div class="announcement-header">
+        <h3 style="margin:0; color:var(--text-normal);">Announcements</h3>
+      </div>
       ${ state.news.length ? state.news.map(n=>`
         <div class="list-item">
           <div style="flex:1;">
@@ -6990,8 +7029,11 @@ function renderEntryYouTubeVideo(){
 
 function renderEntryAnnouncements(){
   return `
-    <div class="module" style="background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border:3px solid rgba(207,154,68,0.5); border-radius:16px; padding:16px; box-sizing:border-box;">
-      <h3 style="margin:0 0 14px 0; color:var(--text-normal);">Latest News</h3>
+    <div id="module-announcements-display" class="module" style="background:linear-gradient(135deg, rgba(50,50,50,0.98) 0%, rgba(40,40,40,0.98) 100%); border-radius:16px; padding:16px; box-sizing:border-box;">
+      <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ScrollIcon.png" alt="Announcements" class="announcement-icon">
+      <div class="announcement-header">
+        <h3 style="margin:0; color:var(--text-normal);">Latest News</h3>
+      </div>
       ${ state.news.length ? state.news.slice(0,5).map(n=>`
         <div class="list-item">
           <div style="flex:1;">
