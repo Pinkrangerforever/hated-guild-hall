@@ -2382,31 +2382,21 @@
       display:flex;
       flex-direction:row;
       gap:32px;
-      width:100vw;
-      margin-left:calc(-50vw + 50%);
-      padding:0 20px;
-      box-sizing:border-box;
-      justify-content:center;
+      width:100%;
+      max-width:1760px;
+      margin:0 auto;
       align-items:flex-start;
     }
 
-    /* Sticky Left Sidebar */
+    /* Left Sidebar - scrolls with page */
     .layout-sidebar{
-      position:sticky;
-      top:80px;
       width:300px;
-      height:fit-content;
-      z-index:50;
       flex-shrink:0;
     }
 
-    /* Sticky Right Sidebar */
+    /* Right Sidebar - scrolls with page */
     .layout-sidebar-right{
-      position:sticky;
-      top:80px;
       width:560px;
-      height:fit-content;
-      z-index:50;
       flex-shrink:0;
     }
 
