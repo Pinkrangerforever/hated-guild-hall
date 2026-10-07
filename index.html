@@ -3717,6 +3717,7 @@ async function onAuthResolved(){
       }
     } else {
       state.view = 'app';
+      await loadGuildEvents();
     }
     updateNavbarUserInfo();
     render();
@@ -3778,6 +3779,11 @@ async function syncDiscordRole(showFeedback){
 }
 
 /* ---------------- data loading ---------------- */
+async function loadGuildEvents(){
+  const eventsRes = await sb.from('events').select('*').order('date');
+  state.events = eventsRes.data || [];
+}
+
 async function loadGuildData(){
   const [settingsRes, eventsRes, rsvpsRes, raidsRes, bossesRes, softresRes, raidplanRes, compRes, lootRes, newsRes, profilesRes, galleryRes, siteImagesRes, shopRes, purchasesRes, stickersRes] = await Promise.all([
     sb.from('guild_settings').select('*').eq('id',1).single(),
