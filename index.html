@@ -1465,6 +1465,17 @@
     text-shadow:0 2px 6px rgba(0,0,0,0.7);
     animation:goldFloatUp 1.1s ease-out forwards;
   }
+  @keyframes emberFloat{
+    0%{ transform:translateY(0) translateX(0) rotate(0deg); opacity:1; }
+    100%{ transform:translateY(-80px) translateX(var(--drift, 20px)) rotate(360deg); opacity:0; }
+  }
+  .ember{
+    position:absolute; pointer-events:none;
+    width:6px; height:6px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,140,0,1) 0%, rgba(200,80,30,0.8) 50%, rgba(100,40,10,0.6) 100%);
+    box-shadow:0 0 8px rgba(255,140,0,0.8), 0 0 16px rgba(255,80,0,0.4), inset -1px -1px 2px rgba(0,0,0,0.4);
+    animation:emberFloat 2s ease-out forwards;
+  }
   .nav-gold-badge{
     display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:700; color:#f0dfb4;
     background:linear-gradient(135deg, rgba(50,50,50,0.95) 0%, rgba(40,40,40,1) 100%); border:1px solid rgba(207,154,68,0.6); border-radius:12px; padding:4px 10px;
@@ -5930,6 +5941,7 @@ function render(){
   bindApp();
   updateNavbarUserInfo();
   updateActiveNavLink();
+  startEmberEffects();
   document.body.classList.add('bg-ready');
 }
 
@@ -6090,6 +6102,35 @@ function updateActiveNavLink(){
       link.classList.remove('active');
     }
   });
+}
+
+function spawnEmber(panelElement){
+  if(!panelElement) return;
+  const ember = document.createElement('div');
+  ember.className = 'ember';
+  const rect = panelElement.getBoundingClientRect();
+  const x = Math.random() * rect.width;
+  const y = Math.random() * (rect.height * 0.6);
+  const drift = (Math.random() - 0.5) * 40;
+  const duration = 1.5 + Math.random() * 1;
+
+  ember.style.left = x + 'px';
+  ember.style.top = y + 'px';
+  ember.style.setProperty('--drift', drift + 'px');
+  ember.style.animationDuration = duration + 's';
+
+  panelElement.appendChild(ember);
+  setTimeout(() => ember.remove(), duration * 1000);
+}
+
+function startEmberEffects(){
+  const comingUpPanel = document.querySelector('.coming-up-panel');
+  const goldLeaderboard = document.querySelector('.gold-leaderboard-widget');
+
+  setInterval(() => {
+    if(comingUpPanel && Math.random() > 0.4) spawnEmber(comingUpPanel);
+    if(goldLeaderboard && Math.random() > 0.4) spawnEmber(goldLeaderboard);
+  }, 600);
 }
 
 function renderApp(){
