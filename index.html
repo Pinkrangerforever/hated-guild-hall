@@ -1512,20 +1512,22 @@
     box-shadow:0 0 8px rgba(255,140,0,0.8), 0 0 16px rgba(255,80,0,0.4), inset -1px -1px 2px rgba(0,0,0,0.4);
     animation:emberFloat 2s ease-out forwards;
   }
-  @keyframes lightningCrackle{
-    0%{ opacity:1; transform:translateY(0) translateX(0); filter:brightness(1.2); }
-    20%{ opacity:0.8; transform:translateY(-12px) translateX(var(--drift, 0px)); filter:brightness(0.8); }
-    40%{ opacity:1; transform:translateY(-24px) translateX(calc(var(--drift, 0px) * 0.7)); filter:brightness(1.3); }
-    60%{ opacity:0.6; transform:translateY(-40px) translateX(calc(var(--drift, 0px) * 1.3)); filter:brightness(0.9); }
-    85%{ opacity:0.3; transform:translateY(-60px) translateX(var(--drift, 0px)); filter:brightness(0.7); }
-    100%{ opacity:0; transform:translateY(-80px) translateX(calc(var(--drift, 0px) * 0.5)); filter:brightness(0); }
+  @keyframes lightningStrike{
+    0%{ opacity:1; transform:translateY(0) translateX(0) scaleY(1); filter:brightness(1.5) drop-shadow(0 0 8px rgba(0,200,255,1)); }
+    8%{ opacity:0.4; transform:translateY(-8px) translateX(var(--drift,0px)) scaleY(1.1); filter:brightness(0.6) drop-shadow(0 0 2px rgba(0,150,255,0.3)); }
+    16%{ opacity:1; transform:translateY(-16px) translateX(calc(var(--drift,0px) * 0.5)) scaleY(0.95); filter:brightness(1.4) drop-shadow(0 0 10px rgba(0,200,255,1)); }
+    24%{ opacity:0.3; transform:translateY(-24px) translateX(calc(var(--drift,0px) * 1.2)) scaleY(1.05); filter:brightness(0.5) drop-shadow(0 0 1px rgba(0,150,255,0.2)); }
+    32%{ opacity:1; transform:translateY(-32px) translateX(var(--drift,0px)) scaleY(0.98); filter:brightness(1.6) drop-shadow(0 0 12px rgba(0,200,255,1)); }
+    40%{ opacity:0.2; transform:translateY(-40px) translateX(calc(var(--drift,0px) * -0.3)) scaleY(1.1); filter:brightness(0.4) drop-shadow(0 0 1px rgba(0,150,255,0.1)); }
+    50%{ opacity:0.8; transform:translateY(-50px) translateX(calc(var(--drift,0px) * 0.8)) scaleY(0.9); filter:brightness(1.2) drop-shadow(0 0 6px rgba(0,200,255,0.8)); }
+    65%{ opacity:0.1; transform:translateY(-65px) translateX(var(--drift,0px)) scaleY(1.2); filter:brightness(0.3) drop-shadow(0 0 0px rgba(0,150,255,0)); }
+    100%{ opacity:0; transform:translateY(-80px) translateX(calc(var(--drift,0px) * -0.5)) scaleY(1); filter:brightness(0) drop-shadow(0 0 0px rgba(0,150,255,0)); }
   }
-  .lightning-crackle{
-    position:fixed; pointer-events:none;
-    width:8px; height:8px; border-radius:2px;
-    background:linear-gradient(45deg, #0096ff, #00d4ff);
-    box-shadow:0 0 6px rgba(0,150,255,0.9), 0 0 12px rgba(0,200,255,0.6), inset 0 0 3px rgba(255,255,255,0.8);
-    animation:lightningCrackle 1.2s ease-out forwards;
+  .lightning-spark{
+    position:fixed; pointer-events:none; font-size:0;
+  }
+  .lightning-spark svg{
+    width:24px; height:24px; display:block;
   }
   .nav-gold-badge{
     display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:700; color:#f0dfb4;
@@ -6255,8 +6257,8 @@ function spawnEmber(panelElement){
 }
 
 function spawnLightning(panelElement){
-  const lightning = document.createElement('div');
-  lightning.className = 'lightning-crackle';
+  const spark = document.createElement('div');
+  spark.className = 'lightning-spark';
   const rect = panelElement.getBoundingClientRect();
 
   // Spawn from the edges of the panel
@@ -6276,18 +6278,30 @@ function spawnLightning(panelElement){
     y = rect.top + Math.random() * rect.height;
   }
 
-  const drift = (Math.random() - 0.5) * 60;
-  const duration = 1.2;
+  // Jagged lightning bolt SVG
+  const boltSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2 L14 8 L18 8 L14 12 L16 20 L12 16 L8 20 L10 12 L6 8 L10 8 Z"
+          fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M12 3 L13 7 L17 7 L13 11 L15 19 L12 15 L9 19 L11 11 L7 7 L11 7 Z"
+          fill="none" stroke="#0096ff" stroke-width="0.8" stroke-opacity="0.6"/>
+    <circle cx="12" cy="8" r="1.5" fill="#ffffff" opacity="0.8"/>
+  </svg>`;
 
-  lightning.style.position = 'fixed';
-  lightning.style.left = x + 'px';
-  lightning.style.top = y + 'px';
-  lightning.style.zIndex = '99999';
-  lightning.style.setProperty('--drift', drift + 'px');
-  lightning.style.animationDuration = duration + 's';
+  spark.innerHTML = boltSVG;
+  const drift = (Math.random() - 0.5) * 80;
+  const duration = 0.8 + Math.random() * 0.4;
 
-  document.body.appendChild(lightning);
-  setTimeout(() => lightning.remove(), duration * 1000);
+  spark.style.left = x + 'px';
+  spark.style.top = y + 'px';
+  spark.style.zIndex = '99999';
+  spark.style.setProperty('--drift', drift + 'px');
+  spark.style.animationName = 'lightningStrike';
+  spark.style.animationDuration = duration + 's';
+  spark.style.animationTimingFunction = 'ease-out';
+  spark.style.animationFillMode = 'forwards';
+
+  document.body.appendChild(spark);
+  setTimeout(() => spark.remove(), duration * 1000);
 }
 
 function startEmberEffects(){
