@@ -206,13 +206,6 @@
     .nav-container{ gap:0; }
   }
 
-  /* HIDE OLD SIDEBAR */
-  .sidebar{
-    display:none !important;
-  }
-  .main{
-    margin-left:0 !important;
-  }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
@@ -231,54 +224,6 @@
   input,select,textarea{ font-family:inherit; }
 
   #app{ min-height:100vh; }
-
-  .sidebar{
-    width:232px; flex-shrink:0;
-    background:var(--bg-secondary);
-    color:var(--text-normal);
-    display:flex; flex-direction:column;
-    padding:18px 0;
-    border-right:1px solid var(--divider-strong);
-    position:fixed;
-    left:0;
-    top:0;
-    bottom:0;
-    z-index:9999999;
-    overflow-y:auto;
-  }
-  .sidebar .crest{
-    padding:0 16px 16px 16px;
-    border-bottom:1px solid var(--divider-strong);
-    margin-bottom:10px;
-  }
-  .sidebar .crest h1{ color:var(--text-normal); font-size:17px; line-height:1.3; font-weight:700; }
-  .sidebar .crest .tag{ font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted); margin-top:2px; }
-  .nav-item{
-    display:flex; align-items:center; gap:6px;
-    padding:8px 14px;
-    margin:0;
-    font-size:14px; font-weight:500;
-    color:var(--text-muted);
-    cursor:pointer;
-    border-radius:0;
-    background:none; border:none; border-left:2px solid transparent;
-    width:100%; text-align:left;
-    font-family: inherit;
-    letter-spacing:0.01em;
-  }
-  .nav-item:hover{ background:var(--bg-hover); color:var(--text-normal); border-left-color:var(--divider-strong); }
-  .nav-item.active{ background:var(--bg-selected); color:#f0dfb4; border-left-color:var(--blurple-hover); }
-  .nav-item .hash{ opacity:0.5; font-weight:600; color:var(--blurple); }
-  .nav-item.active .hash{ opacity:0.9; }
-  .sidebar-foot{
-    margin-top:auto; padding:12px 16px 0 16px; border-top:1px solid var(--divider-strong);
-    font-size:12px; color:var(--text-muted);
-  }
-  .sidebar-foot .who{ color:var(--text-normal); font-weight:600; }
-  .logout-link{ color:#dcb570; cursor:pointer; text-decoration:none; background:none; border:none; padding:0; font-size:12px; font-family:inherit; }
-  .logout-link:hover{ text-decoration:underline; }
-
-  .main{ max-width:none; margin:0; padding:60px 0 32px 0; overflow:visible !important; width:100%; }
   
   /* Per-page width customization - ALL REMOVED TO ALLOW FULL WIDTH */
   .eyebrow{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--blurple); margin-bottom:8px; }
@@ -2409,7 +2354,12 @@
   }
 
   /* ========== MOBILE-FIRST RESPONSIVE LAYOUT ========== */
-  .layout-responsive{ width:100%; max-width:1900px; margin:24px auto; padding:0 20px; box-sizing:border-box; }
+  .layout-responsive{
+    width:100%;
+    margin-top:60px;
+    padding:24px 20px;
+    box-sizing:border-box;
+  }
 
   /* MOBILE: Single Column Layout (default, < 768px) */
   .layout-mobile{ display:flex; flex-direction:column; gap:32px; }
@@ -2419,37 +2369,46 @@
 
   /* DESKTOP: Three-Column Layout (>= 768px) */
   @media(min-width:768px){
+    .layout-responsive{
+      max-width:900px;
+      margin-left:auto;
+      margin-right:auto;
+      margin-top:60px;
+      padding:24px 20px;
+    }
+
     .layout-mobile{ display:none; }
     .layout-desktop{
-      display:grid;
-      grid-template-columns:300px minmax(0, 900px) 560px;
+      display:flex;
+      flex-direction:column;
       gap:32px;
       width:100%;
-      place-items:start;
-      margin:0 auto;
     }
+
+    /* Fixed Left Sidebar */
     .layout-sidebar{
       position:fixed;
       top:80px;
       left:20px;
-      height:fit-content;
-      z-index:50;
       width:300px;
-      min-width:300px;
-      overflow-y:auto;
+      height:fit-content;
       max-height:calc(100vh - 120px);
+      overflow-y:auto;
+      z-index:50;
     }
+
+    /* Fixed Right Sidebar */
     .layout-sidebar-right{
       position:fixed;
       top:80px;
       right:20px;
-      height:fit-content;
-      z-index:50;
       width:560px;
-      min-width:560px;
-      overflow-y:auto;
+      height:fit-content;
       max-height:calc(100vh - 120px);
+      overflow-y:auto;
+      z-index:50;
     }
+
     .layout-main{
       display:flex;
       flex-direction:column;
