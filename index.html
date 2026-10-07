@@ -1589,31 +1589,91 @@
     padding:16px;
   }
   .gold-leaderboard-widget{
-    padding:0;
+    padding:16px; position:relative; overflow:hidden;
+    border:3px solid rgba(207,154,68,0.6);
+    box-shadow:0 8px 24px rgba(0,0,0,0.7), inset 0 1px 0 rgba(207,154,68,0.3),
+               0 0 20px rgba(207,154,68,0.15);
+  }
+  .gold-leaderboard-widget::before{
+    content:'';
+    position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, rgba(207,154,68,0.8), rgba(207,154,68,0.4), rgba(207,154,68,0.8));
+    z-index:2;
+  }
+  .gold-leaderboard-widget::after{
+    content:'';
+    position:absolute; bottom:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, rgba(207,154,68,0.8), rgba(207,154,68,0.4), rgba(207,154,68,0.8));
+    z-index:2;
+  }
+  /* Ornate corners for leaderboard */
+  .gold-leaderboard-widget .ornate-corner{
+    position:absolute; width:16px; height:16px; border:2px solid rgba(207,154,68,0.7);
+    z-index:3;
+  }
+  .gold-leaderboard-widget .ornate-corner.tl{
+    top:-1px; left:-1px; border-right:none; border-bottom:none;
+  }
+  .gold-leaderboard-widget .ornate-corner.tr{
+    top:-1px; right:-1px; border-left:none; border-bottom:none;
+  }
+  .gold-leaderboard-widget .ornate-corner.bl{
+    bottom:-1px; left:-1px; border-right:none; border-top:none;
+  }
+  .gold-leaderboard-widget .ornate-corner.br{
+    bottom:-1px; right:-1px; border-left:none; border-top:none;
   }
   .gold-leaderboard-widget-title{
     font-size:14px; font-weight:800; color:#f0dfb4; margin-bottom:12px; text-align:center;
+    position:relative; z-index:1;
   }
   .gold-leaderboard-entries{
-    display:flex; flex-direction:column; gap:8px;
+    display:flex; flex-direction:column; gap:8px; position:relative; z-index:1;
   }
 
   /* ---- coming up panel ---- */
   .coming-up-panel{
     background:linear-gradient(135deg, rgba(207,154,68,0.08) 0%, rgba(207,154,68,0.03) 100%),
                 radial-gradient(circle at top-right, rgba(207,154,68,0.12), transparent 60%);
-    border:2px solid rgba(207,154,68,0.5);
+    border:3px solid rgba(207,154,68,0.6);
     border-radius:0;
-    box-shadow:0 6px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(207,154,68,0.2);
-    padding:16px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.7), inset 0 1px 0 rgba(207,154,68,0.3),
+               0 0 20px rgba(207,154,68,0.15);
+    padding:20px;
     margin-bottom:16px;
     position:relative;
+    overflow:hidden;
   }
   .coming-up-panel::before{
     content:'';
-    position:absolute; top:0; left:0; right:0; height:4px;
-    background:linear-gradient(90deg, rgba(207,154,68,0.6), rgba(207,154,68,0.3), rgba(207,154,68,0.6));
+    position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, rgba(207,154,68,0.8), rgba(207,154,68,0.4), rgba(207,154,68,0.8));
     border-radius:0;
+    z-index:2;
+  }
+  .coming-up-panel::after{
+    content:'';
+    position:absolute; bottom:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, rgba(207,154,68,0.8), rgba(207,154,68,0.4), rgba(207,154,68,0.8));
+    border-radius:0;
+    z-index:2;
+  }
+  /* Ornate corners for coming-up */
+  .coming-up-panel .ornate-corner{
+    position:absolute; width:16px; height:16px; border:2px solid rgba(207,154,68,0.7);
+    z-index:3;
+  }
+  .coming-up-panel .ornate-corner.tl{
+    top:-1px; left:-1px; border-right:none; border-bottom:none;
+  }
+  .coming-up-panel .ornate-corner.tr{
+    top:-1px; right:-1px; border-left:none; border-bottom:none;
+  }
+  .coming-up-panel .ornate-corner.bl{
+    bottom:-1px; left:-1px; border-right:none; border-top:none;
+  }
+  .coming-up-panel .ornate-corner.br{
+    bottom:-1px; right:-1px; border-left:none; border-top:none;
   }
   .coming-up-header{
     font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
@@ -2557,34 +2617,49 @@
     border-bottom-color:rgba(207,154,68,0.5) !important;
   }
 
-  /* Gold Leaderboard Styling - Premium Enhancement */
+  /* Gold Leaderboard Styling - Ornate Fantasy Frame */
   .layout-sidebar .module{
     background:linear-gradient(135deg, rgba(207,154,68,0.18) 0%, rgba(207,154,68,0.08) 100%),
                 radial-gradient(circle at top-right, rgba(207,154,68,0.12), transparent 60%) !important;
-    border:2px solid rgba(207,154,68,0.5) !important;
-    box-shadow:0 6px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(207,154,68,0.2) !important;
+    border:3px solid rgba(207,154,68,0.6) !important;
+    box-shadow:0 8px 24px rgba(0,0,0,0.7), inset 0 1px 0 rgba(207,154,68,0.3),
+               0 0 20px rgba(207,154,68,0.15) !important;
     transition:all 0.3s ease !important;
     position:relative !important;
+    overflow:hidden;
   }
 
   .layout-sidebar .module:hover{
     background:linear-gradient(135deg, rgba(207,154,68,0.25) 0%, rgba(207,154,68,0.12) 100%),
                 radial-gradient(circle at top-right, rgba(207,154,68,0.18), transparent 60%) !important;
-    border-color:rgba(207,154,68,0.75) !important;
-    box-shadow:0 10px 28px rgba(207,154,68,0.35), 0 6px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(207,154,68,0.3) !important;
+    border-color:rgba(207,154,68,0.85) !important;
+    box-shadow:0 12px 32px rgba(207,154,68,0.4), 0 6px 16px rgba(0,0,0,0.6),
+               inset 0 1px 0 rgba(207,154,68,0.3), 0 0 30px rgba(207,154,68,0.25) !important;
     transform:translateY(-3px) !important;
   }
 
-  /* Gold accent bar at top of leaderboard */
+  /* Gold accent bars at top and bottom of leaderboard */
   .layout-sidebar .module::before{
     content:'';
     position:absolute;
     top:0;
     left:0;
     right:0;
-    height:4px;
-    background:linear-gradient(90deg, rgba(207,154,68,0.8), rgba(207,154,68,0.5), rgba(207,154,68,0.8));
-    border-radius:13px 13px 0 0;
+    height:3px;
+    background:linear-gradient(90deg, rgba(207,154,68,0.8), rgba(207,154,68,0.4), rgba(207,154,68,0.8));
+    border-radius:0;
+    z-index:2;
+  }
+
+  .layout-sidebar .module::after{
+    content:'';
+    position:absolute;
+    bottom:0;
+    left:0;
+    right:0;
+    height:3px;
+    background:linear-gradient(90deg, rgba(207,154,68,0.8), rgba(207,154,68,0.4), rgba(207,154,68,0.8));
+    border-radius:0;
     z-index:2;
   }
 
@@ -7011,6 +7086,10 @@ function renderComingUp(){
 
   return `
     <div class="coming-up-panel">
+      <div class="ornate-corner tl"></div>
+      <div class="ornate-corner tr"></div>
+      <div class="ornate-corner bl"></div>
+      <div class="ornate-corner br"></div>
       <div class="coming-up-header">COMING UP</div>
       <div class="coming-up-list">
         ${eventRows}
@@ -7085,6 +7164,10 @@ function renderGoldLeaderboard(){
 
   return `
     <div class="gold-leaderboard-widget">
+      <div class="ornate-corner tl"></div>
+      <div class="ornate-corner tr"></div>
+      <div class="ornate-corner bl"></div>
+      <div class="ornate-corner br"></div>
       <div class="gold-leaderboard-widget-title"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:16px; height:16px; vertical-align:middle; margin-right:6px;"> Gold Leaderboard</div>
       <div class="gold-leaderboard-entries">
         ${entries}
