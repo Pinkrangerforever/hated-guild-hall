@@ -23,20 +23,20 @@ BEGIN
     WHERE name = 'Alpha Founder Icon'
     LIMIT 1;
 
-    -- Insert or update purchases to ensure Pink owns both items
+    -- Insert purchases to give Pink ownership of both items
+    -- Delete any existing records first to avoid conflicts
     IF border_id IS NOT NULL THEN
+      DELETE FROM public.shop_purchases WHERE user_id = pink_id AND item_id = border_id;
       INSERT INTO public.shop_purchases (user_id, item_id, fulfilled)
-      VALUES (pink_id, border_id, true)
-      ON CONFLICT (user_id, item_id) DO UPDATE SET fulfilled = true;
+      VALUES (pink_id, border_id, true);
     END IF;
 
     IF icon_id IS NOT NULL THEN
+      DELETE FROM public.shop_purchases WHERE user_id = pink_id AND item_id = icon_id;
       INSERT INTO public.shop_purchases (user_id, item_id, fulfilled)
-      VALUES (pink_id, icon_id, true)
-      ON CONFLICT (user_id, item_id) DO UPDATE SET fulfilled = true;
+      VALUES (pink_id, icon_id, true);
     END IF;
 
-    -- Log success
     RAISE NOTICE 'Alpha perks assigned to Pink (ID: %)', pink_id;
   ELSE
     RAISE WARNING 'Could not find user Pink in profiles table';
