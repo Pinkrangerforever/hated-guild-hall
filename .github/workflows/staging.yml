@@ -62,7 +62,8 @@ jobs:
           supabase db push \
             --project-ref ${{ secrets.SUPABASE_STAGING_PROJECT_REF }} \
             --password ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }} \
-            --dry-run=false
+            --dry-run=false \
+            --include-all
 
       - name: Post Success to GitHub
         if: success() && steps.check_migrations.outputs.status == 'has_migrations'
