@@ -7922,7 +7922,7 @@ function renderSettings(){
   const nameCustomPurchases = (state.shopPurchases || []).filter(p => {
     if(!p.fulfilled) return false;
     const item = state.shopItems?.find(i => i.id === p.item_id);
-    return item && item.category === 'name_customization' && !item.name.includes('Roster Name Border');
+    return item && item.category === 'name_customization' && !item.name.includes('Roster Name Border') && !item.name.includes('Alpha') && !item.name.includes('Border');
   });
 
   const testRole = getTestRole();
