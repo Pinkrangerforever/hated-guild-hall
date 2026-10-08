@@ -6,17 +6,18 @@
 CREATE OR REPLACE FUNCTION pay_mysterious_trader(user_id UUID)
 RETURNS jsonb AS $$
 DECLARE
+  v_user_id UUID := user_id;
   user_gold INTEGER;
   cost INTEGER := 3000;
   already_paid BOOLEAN;
 BEGIN
   -- SECURITY: Verify the caller is the user they claim to be
-  IF auth.uid() != user_id THEN
+  IF auth.uid() != v_user_id THEN
     RETURN jsonb_build_object('success', false, 'error', 'Unauthorized');
   END IF;
 
-  -- Check if already paid - explicitly qualify the column
-  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE public.mystery_trader_access.user_id = user_id)
+  -- Check if already paid - use DECLARE variable to eliminate ambiguity
+  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE user_id = v_user_id)
   INTO already_paid;
 
   IF already_paid THEN
@@ -24,7 +25,7 @@ BEGIN
   END IF;
 
   -- Get gold balance
-  SELECT gold INTO user_gold FROM public.profiles WHERE id = user_id;
+  SELECT gold INTO user_gold FROM public.profiles WHERE id = v_user_id;
 
   IF user_gold IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'User not found');
@@ -43,16 +44,16 @@ BEGIN
   -- Deduct gold
   UPDATE public.profiles
   SET gold = gold - cost, gold_spent_total = gold_spent_total + cost, updated_at = now()
-  WHERE id = user_id;
+  WHERE id = v_user_id;
 
   -- Record trader access
   INSERT INTO public.mystery_trader_access (user_id, payment_amount)
-  VALUES (user_id, cost);
+  VALUES (v_user_id, cost);
 
   -- Log purchase in purchase_log table
   INSERT INTO public.purchase_log (user_id, purchase_type, amount, description, metadata)
   VALUES (
-    user_id,
+    v_user_id,
     'dealer_access',
     cost,
     'Unlocked Shadowy Dealer - Pet Egg Access',
