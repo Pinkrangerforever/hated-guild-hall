@@ -9056,11 +9056,12 @@ function spawnDealerShadow() {
   if (!shadow) return;
 
   shadow.style.display = 'block';
-  shadow.addEventListener('click', () => {
+  shadow.onclick = () => {
     state.tab = 'dealer';
-    currentPage = 'dealer';
-    renderPage();
-  });
+    state.modal = null;
+    render();
+    shadow.style.display = 'none';
+  };
 
   setTimeout(() => {
     shadow.style.display = 'none';
@@ -9085,8 +9086,8 @@ function renderDealerPage() {
       <div class="dealer-content">
         <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShadowyDealer.png" alt="Shadowy Dealer" class="dealer-image">
         <div class="dealer-buttons">
-          <button class="dealer-btn" onclick="state.tab = 'shop'; currentPage = 'shop'; renderPage();">Run Away!</button>
-          <button class="dealer-btn pay" onclick="payDealer();">Pay 3000g for Access</button>
+          <button class="dealer-btn" onclick="state.tab = 'shop'; state.modal = null; render();">Run Away!</button>
+          <button class="dealer-btn pay" onclick="window.payDealer();">Pay 3000g for Access</button>
         </div>
       </div>
     </div>
@@ -9110,13 +9111,16 @@ async function payDealer() {
     alert(data.message);
     await loadProfile();
     state.tab = 'shop';
-    currentPage = 'shop';
-    renderPage();
+    state.modal = null;
+    render();
     startFootprintTrail();
   } else {
     alert('Error: ' + (data.error || 'Unknown error'));
   }
 }
+
+window.payDealer = payDealer;
+window.startFootprintTrail = startFootprintTrail;
 
 boot();
 
