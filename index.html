@@ -2966,8 +2966,9 @@
     overflow: hidden;
   }
 
-  .page-dealer ~ .site-footer {
-    display: none;
+  .main.page-dealer ~ .site-footer,
+  .page-dealer .site-footer {
+    display: none !important;
   }
 
   .main.page-dealer::before {
@@ -2977,7 +2978,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(ellipse at center, rgba(128, 0, 255, 0.1), transparent);
+    background: transparent;
     pointer-events: none;
   }
 
@@ -2998,7 +2999,6 @@
     height: auto;
     margin-bottom: 40px;
     border-radius: 10px;
-    box-shadow: 0 0 40px rgba(128, 0, 255, 0.4);
   }
 
   .dealer-buttons {
