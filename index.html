@@ -9251,7 +9251,7 @@ async function payDealer() {
   if (!state.session || !state.session.user) return alert('Not authenticated');
 
   const { data, error } = await sb.rpc('pay_mysterious_trader', {
-    p_user_id: state.session.user.id
+    user_id: state.session.user.id
   });
 
   if (error) {
