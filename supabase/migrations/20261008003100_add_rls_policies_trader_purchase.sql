@@ -7,6 +7,9 @@
 -- MYSTERY_TRADER_ACCESS RLS POLICIES
 -- ============================================================================
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view own trader access" ON public.mystery_trader_access;
+
 -- Policy 1: Users can SELECT only their own trader access record
 CREATE POLICY "Users can view own trader access"
   ON public.mystery_trader_access FOR SELECT
@@ -27,8 +30,10 @@ CREATE POLICY "Users can view own trader access"
 -- PURCHASE_LOG RLS POLICIES
 -- ============================================================================
 
--- Policy 1: Users can SELECT only their own purchases (already exists, but ensure it's there)
--- If it already exists, this will be idempotent
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view own purchases" ON public.purchase_log;
+
+-- Policy 1: Users can SELECT only their own purchases
 CREATE POLICY "Users can view own purchases" ON public.purchase_log FOR SELECT
   TO authenticated
   USING (user_id = auth.uid());
