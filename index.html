@@ -2900,8 +2900,8 @@
 
   .footprint {
     position: absolute;
-    width: 60px;
-    height: 60px;
+    width: 600px;
+    height: 600px;
     filter: drop-shadow(0 0 15px rgba(128, 0, 255, 0.9)) drop-shadow(0 0 25px rgba(128, 0, 255, 0.7));
     animation: footprintPulse 9s ease-in-out forwards;
     pointer-events: none;
@@ -9033,32 +9033,30 @@ function bindApp(){
 // FOOTPRINT TRAIL SYSTEM
 let footprintIntervalId = null;
 
-function spawnFootprintSet() {
+function spawnSingleFootprint(setIndex) {
   // Get the banner height to spawn footprints below it
   const banner = document.querySelector('.wow-hero') || document.querySelector('[class*="banner"]');
   const bannerHeight = banner ? banner.offsetHeight : 300;
-  const pageBodyStart = bannerHeight + 100; // Start below banner with 100px offset
+  const pageBodyStart = bannerHeight + 100;
 
-  for (let i = 0; i < 3; i++) {
-    setTimeout(() => {
-      const footprint = document.createElement('img');
-      footprint.src = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Footprints.png';
-      footprint.className = 'footprint';
+  const footprint = document.createElement('img');
+  footprint.src = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Footprints.png';
+  footprint.className = 'footprint';
 
-      const x = 50 + Math.random() * (window.innerWidth - 100);
-      const baseY = pageBodyStart + (i * 100); // Stack vertically down the page
+  // Random horizontal position, but ensure it fits on screen (600px wide footprint)
+  const maxX = Math.max(window.innerWidth - 600, 0);
+  const x = Math.random() * maxX;
 
-      footprint.style.position = 'absolute';
-      footprint.style.left = x + 'px';
-      footprint.style.top = baseY + 'px';
-      footprint.style.width = '60px';
-      footprint.style.height = '60px';
+  // Stack footprints vertically down the page
+  const baseY = pageBodyStart + (setIndex * 150);
 
-      document.body.appendChild(footprint);
+  footprint.style.position = 'absolute';
+  footprint.style.left = x + 'px';
+  footprint.style.top = baseY + 'px';
 
-      setTimeout(() => footprint.remove(), 9000);
-    }, i * 1500);
-  }
+  document.body.appendChild(footprint);
+
+  setTimeout(() => footprint.remove(), 9000);
 }
 
 function spawnDealerShadow() {
@@ -9100,20 +9098,31 @@ function spawnDealerShadow() {
 }
 
 function startFootprintTrail() {
-  // Spawn 3 complete sets of footprints before shadow appears
-  spawnFootprintSet();
-  setTimeout(() => { spawnFootprintSet(); }, 5000);
-  setTimeout(() => { spawnFootprintSet(); }, 10000);
+  // Spawn footprints sequentially:
+  // FP1: 0ms, animation 9s, wait 5s = done at 14s
+  // FP2: 14s, animation 9s, wait 5s = done at 28s
+  // FP3: 28s, animation 9s, wait 5s = done at 42s
+  // Shadow: 42s
 
-  // Shadow appears after all 3 footprint sets are done
+  spawnSingleFootprint(0); // Spawn at 0ms
+
+  setTimeout(() => {
+    spawnSingleFootprint(1); // Spawn at 14s
+  }, 14000);
+
+  setTimeout(() => {
+    spawnSingleFootprint(2); // Spawn at 28s
+  }, 28000);
+
+  // Shadow appears after all 3 footprints are done (42s)
   setTimeout(() => {
     spawnDealerShadow();
-  }, 15000);
+  }, 42000);
 
-  // Restart the cycle after 30 seconds
+  // Restart the cycle after all animations complete
   footprintIntervalId = setTimeout(() => {
     startFootprintTrail();
-  }, 30000);
+  }, 47000); // 42s + 5s wait buffer
 }
 
 function renderDealerPage() {
