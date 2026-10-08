@@ -266,23 +266,36 @@
   }
 
   @media (max-width:600px){
+    body{
+      overflow-x:hidden;
+    }
     .layout-responsive{
       width:100%;
-      padding:24px 0;
+      max-width:100%;
+      padding:24px 20px;
       margin-top:60px;
+      box-sizing:border-box;
+      overflow:hidden;
     }
     .layout-mobile{
       display:flex !important;
       flex-direction:column !important;
       gap:32px;
       width:100%;
+      max-width:100%;
+      box-sizing:border-box;
     }
     .layout-desktop{ display:none !important; }
     .module-wrapper{
-      width:100%;
-      max-width:100%;
+      width:100% !important;
+      max-width:100% !important;
       box-sizing:border-box;
-      padding:0 20px;
+      padding:0;
+    }
+    .module{
+      width:100% !important;
+      max-width:100% !important;
+      box-sizing:border-box;
     }
     .guild-board-sticky{
       width:100% !important;
