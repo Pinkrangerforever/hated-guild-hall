@@ -9245,11 +9245,10 @@ function renderDealerPage() {
 }
 
 async function payDealer() {
-  const { data: { user }, error: authError } = await sb.auth.getUser();
-  if (authError || !user) return alert('Not authenticated');
+  if (!state.session || !state.session.user) return alert('Not authenticated');
 
   const { data, error } = await sb.rpc('pay_mysterious_trader', {
-    user_id: user.id
+    user_id: state.session.user.id
   });
 
   if (error) {
