@@ -2920,12 +2920,12 @@
   .dealer-shadow {
     position: absolute;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(calc(-50% + 75px));
     width: 180px;
     height: 220px;
     background: url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShadowyFace.png') center/contain no-repeat;
     opacity: 0.5;
-    filter: drop-shadow(0 0 30px rgba(128, 0, 255, 0.8)) drop-shadow(0 0 50px rgba(128, 0, 255, 0.5));
+    filter: drop-shadow(0 0 15px rgba(128, 0, 255, 0.4)) drop-shadow(0 0 25px rgba(128, 0, 255, 0.25));
     cursor: pointer;
     z-index: 100;
     animation: dealerPulse 1.5s ease-in-out infinite;
