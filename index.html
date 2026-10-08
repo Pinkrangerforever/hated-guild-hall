@@ -8184,8 +8184,14 @@ function bindApp(){
   const logoutBtn = document.getElementById('logout-btn');
   if(logoutBtn) logoutBtn.addEventListener('click', signOut);
 
+  const mobileLogoutBtn = document.getElementById('logout-btn-mobile');
+  if(mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', signOut);
+
   const discordSigninBtn = document.getElementById('discord-signin-btn');
   if(discordSigninBtn) discordSigninBtn.addEventListener('click', signInWithDiscord);
+
+  const mobileDiscordSigninBtn = document.getElementById('discord-signin-btn-mobile');
+  if(mobileDiscordSigninBtn) mobileDiscordSigninBtn.addEventListener('click', signInWithDiscord);
 
   const eventBtn = document.getElementById('event-form-btn');
   if(eventBtn) eventBtn.addEventListener('click', addEvent);
