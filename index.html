@@ -6462,7 +6462,7 @@ function renderShopModal(){
   const rankItems = state.shopItems.filter(i=>i.category==='rank').sort((a,b)=>(a.rank_order||0)-(b.rank_order||0));
   const iconItems = state.shopItems.filter(i=>i.category==='discord_icon').sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const titleItems = state.shopItems.filter(i=>i.category==='discord_title').sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
-  const nameCustomItems = state.shopItems.filter(i=>i.category==='name_customization' && !i.name.includes('Border')).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const nameCustomItems = state.shopItems.filter(i=>i.category==='name_customization' && !i.name.includes('Border') && !i.name.includes('Alpha')).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const borderItems = state.shopItems.filter(i=>i.name.includes('Roster Name Border')).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const stickerImages = state.galleryImages.filter(g=>g.is_sticker);
   const isRaidLeader = testIsRaidLeader();
