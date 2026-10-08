@@ -2880,7 +2880,8 @@
     <button id="reset-member-btn-mobile" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
     <button id="open-shop-btn-mobile" class="nav-action-btn">Shop</button>
     <button id="admin-btn-mobile" class="nav-action-btn btn-nav-admin" style="display:none;" title="Admin">Admin</button>
-    <button id="logout-btn-mobile" class="nav-action-btn">Sign Out</button>
+    <button id="discord-signin-btn-mobile" class="nav-action-btn" style="background:#5865f2; border-color:#5865f2; color:#fff; display:flex; align-items:center; gap:6px;">🎮 Sign in</button>
+    <button id="logout-btn-mobile" class="nav-action-btn" style="display:none;">Sign Out</button>
   </div>
 </div>
 
@@ -2955,6 +2956,13 @@ function updateNavbarUserInfo(){
   const logoutBtn = document.getElementById('logout-btn');
   const discordBtn = document.getElementById('discord-signin-btn');
 
+  // Mobile buttons
+  const mobileUserInfo = document.getElementById('mobile-user-info');
+  const mobileLayoutBtn = document.getElementById('layout-lock-btn-mobile');
+  const mobileShopBtn = document.getElementById('open-shop-btn-mobile');
+  const mobileLogoutBtn = document.getElementById('logout-btn-mobile');
+  const mobileDiscordBtn = document.getElementById('discord-signin-btn-mobile');
+
   if(!state.session || !state.session.user){
     // Logged out: hide user section, show Discord sign-in
     if(userInfo) userInfo.style.display = 'none';
@@ -2962,6 +2970,13 @@ function updateNavbarUserInfo(){
     if(shopBtn) shopBtn.style.display = 'none';
     if(logoutBtn) logoutBtn.style.display = 'none';
     if(discordBtn) discordBtn.style.display = 'flex';
+
+    // Mobile
+    if(mobileUserInfo) mobileUserInfo.style.display = 'none';
+    if(mobileLayoutBtn) mobileLayoutBtn.style.display = 'none';
+    if(mobileShopBtn) mobileShopBtn.style.display = 'none';
+    if(mobileLogoutBtn) mobileLogoutBtn.style.display = 'none';
+    if(mobileDiscordBtn) mobileDiscordBtn.style.display = 'flex';
     return;
   }
 
@@ -2971,6 +2986,13 @@ function updateNavbarUserInfo(){
   if(shopBtn) shopBtn.style.display = 'inline-block';
   if(logoutBtn) logoutBtn.style.display = 'inline-block';
   if(discordBtn) discordBtn.style.display = 'none';
+
+  // Mobile
+  if(mobileUserInfo) mobileUserInfo.style.display = 'flex';
+  if(mobileLayoutBtn) mobileLayoutBtn.style.display = 'inline-block';
+  if(mobileShopBtn) mobileShopBtn.style.display = 'inline-block';
+  if(mobileLogoutBtn) mobileLogoutBtn.style.display = 'inline-block';
+  if(mobileDiscordBtn) mobileDiscordBtn.style.display = 'none';
 
   if(!state.profile) return;
 
