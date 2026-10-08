@@ -266,7 +266,24 @@
   }
 
   @media (max-width:600px){
-    .module-wrapper{ width:100%; max-width:100%; }
+    .layout-responsive{
+      width:100%;
+      padding:24px 0;
+      margin-top:60px;
+    }
+    .layout-mobile{
+      display:flex !important;
+      flex-direction:column !important;
+      gap:32px;
+      width:100%;
+    }
+    .layout-desktop{ display:none !important; }
+    .module-wrapper{
+      width:100%;
+      max-width:100%;
+      box-sizing:border-box;
+      padding:0 20px;
+    }
   }
 
   *{box-sizing:border-box;}
@@ -2572,7 +2589,7 @@
     text-shadow:2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(212,175,55,0.5);
     font-family:'Arial Black', sans-serif; box-shadow:0 4px 8px rgba(0,0,0,0.6);
     animation:bannerGlow 2s ease-in-out infinite;
-    z-index:9999; position:relative;
+    z-index:100; position:relative;
   }
   @keyframes bannerGlow{
     0%, 100%{ text-shadow:2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(212,175,55,0.5); }
