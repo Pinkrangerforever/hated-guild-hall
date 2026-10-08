@@ -9160,6 +9160,9 @@ function spawnDealerShadow() {
 }
 
 function shouldShowFootprints() {
+  // Only show footprints in the app view, not on landing/entry page
+  if (state.view !== 'app') return false;
+
   // Don't show footprints on the dealer page
   if (state.tab === 'dealer') return false;
 
