@@ -226,16 +226,18 @@
     .top-nav{
       display:flex;
       align-items:center;
-      justify-content:space-between;
+      justify-content:center;
       gap:0;
-      padding:0 10px;
+      padding:0;
       height:60px;
+      position:relative;
     }
     .nav-logo{
       position:absolute;
       left:50%;
       transform:translateX(-50%);
       top:50%;
+      transform:translate(-50%, -50%);
       height:auto;
       margin:0;
       z-index:100;
@@ -245,18 +247,26 @@
       width:auto;
     }
     .hamburger-menu{
-      margin:0;
-      position:relative;
+      position:fixed;
+      left:10px;
+      top:18px;
+      margin:0 !important;
       z-index:101;
       flex-shrink:0;
     }
     .nav-container{
+      width:100%;
+      max-width:none;
+      margin:0;
+      padding:0;
       display:flex;
       align-items:center;
-      width:100%;
       gap:0;
-      justify-content:space-between;
     }
+  }
+
+  @media (max-width:600px){
+    .module-wrapper{ width:100%; max-width:100%; }
   }
 
   *{box-sizing:border-box;}
