@@ -3074,7 +3074,7 @@ function updateNavbarUserInfo(){
 
   const username = state.profile.character_name || state.profile.discord_username || 'Member';
   const gold = state.profile.gold || 0;
-  const rankBadge = state.profile.role ? `[${state.profile.role.toUpperCase()}]` : '';
+  const rankBadge = state.profile.protected ? '[RAID LEADER]' : (state.profile.role ? `[${state.profile.role.toUpperCase()}]` : '');
 
   // Update desktop navbar
   const navUsername = document.getElementById('nav-username');
