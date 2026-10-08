@@ -2900,10 +2900,10 @@
 
   .footprint {
     position: absolute;
-    width: 600px;
-    height: 600px;
+    width: 420px;
+    height: 420px;
     filter: drop-shadow(0 0 15px rgba(128, 0, 255, 0.9)) drop-shadow(0 0 25px rgba(128, 0, 255, 0.7));
-    animation: footprintPulse 9s ease-in-out forwards;
+    animation: footprintPulse 7s ease-in-out forwards;
     pointer-events: none;
     z-index: 999;
     object-fit: contain;
@@ -2911,8 +2911,8 @@
 
   @keyframes footprintPulse {
     0% { opacity: 0; }
-    22.2% { opacity: 1; }
-    77.8% { opacity: 1; }
+    28.6% { opacity: 1; }
+    71.4% { opacity: 1; }
     100% { opacity: 0; }
   }
 
@@ -2924,6 +2924,7 @@
     width: 180px;
     height: 220px;
     background: url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShadowyFace.png') center/contain no-repeat;
+    opacity: 0.5;
     filter: drop-shadow(0 0 30px rgba(128, 0, 255, 0.8)) drop-shadow(0 0 50px rgba(128, 0, 255, 0.5));
     cursor: pointer;
     z-index: 100;
@@ -9039,16 +9040,29 @@ function spawnSingleFootprint(setIndex) {
   const bannerHeight = banner ? banner.offsetHeight : 300;
   const pageBodyStart = bannerHeight + 100;
 
+  // Calculate page height for proportional placement
+  const pageHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+
   const footprint = document.createElement('img');
   footprint.src = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Footprints.png';
   footprint.className = 'footprint';
 
-  // Random horizontal position, but ensure it fits on screen (600px wide footprint)
-  const maxX = Math.max(window.innerWidth - 600, 0);
+  // Random horizontal position, but ensure it fits on screen (420px wide footprint)
+  const maxX = Math.max(window.innerWidth - 420, 0);
   const x = Math.random() * maxX;
 
-  // Stack footprints vertically down the page
-  const baseY = pageBodyStart + (setIndex * 150);
+  // Position based on setIndex:
+  // 0 = just below banner
+  // 1 = halfway down page
+  // 2 = 3/4ths down page
+  let baseY;
+  if (setIndex === 0) {
+    baseY = pageBodyStart;
+  } else if (setIndex === 1) {
+    baseY = pageHeight * 0.5;
+  } else {
+    baseY = pageHeight * 0.75;
+  }
 
   footprint.style.position = 'absolute';
   footprint.style.left = x + 'px';
@@ -9056,7 +9070,7 @@ function spawnSingleFootprint(setIndex) {
 
   document.body.appendChild(footprint);
 
-  setTimeout(() => footprint.remove(), 9000);
+  setTimeout(() => footprint.remove(), 7000);
 }
 
 function spawnDealerShadow() {
@@ -9099,30 +9113,30 @@ function spawnDealerShadow() {
 
 function startFootprintTrail() {
   // Spawn footprints sequentially:
-  // FP1: 0ms, animation 9s, wait 5s = done at 14s
-  // FP2: 14s, animation 9s, wait 5s = done at 28s
-  // FP3: 28s, animation 9s, wait 5s = done at 42s
-  // Shadow: 42s
+  // FP1: 0ms, animation 7s, wait 5s = done at 12s
+  // FP2: 12s, animation 7s, wait 5s = done at 24s
+  // FP3: 24s, animation 7s, wait 5s = done at 36s
+  // Shadow: 36s
 
   spawnSingleFootprint(0); // Spawn at 0ms
 
   setTimeout(() => {
-    spawnSingleFootprint(1); // Spawn at 14s
-  }, 14000);
+    spawnSingleFootprint(1); // Spawn at 12s
+  }, 12000);
 
   setTimeout(() => {
-    spawnSingleFootprint(2); // Spawn at 28s
-  }, 28000);
+    spawnSingleFootprint(2); // Spawn at 24s
+  }, 24000);
 
-  // Shadow appears after all 3 footprints are done (42s)
+  // Shadow appears after all 3 footprints are done (36s)
   setTimeout(() => {
     spawnDealerShadow();
-  }, 42000);
+  }, 36000);
 
   // Restart the cycle after all animations complete
   footprintIntervalId = setTimeout(() => {
     startFootprintTrail();
-  }, 47000); // 42s + 5s wait buffer
+  }, 41000); // 36s + 5s wait buffer
 }
 
 function renderDealerPage() {
