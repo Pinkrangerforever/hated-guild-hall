@@ -2911,9 +2911,8 @@
 
   @keyframes footprintPulse {
     0% { opacity: 0; }
-    12.5% { opacity: 1; }
-    62.5% { opacity: 1; }
-    87.5% { opacity: 0; }
+    22.2% { opacity: 1; }
+    77.8% { opacity: 1; }
     100% { opacity: 0; }
   }
 
@@ -9073,8 +9072,19 @@ function spawnDealerShadow() {
   }
 
   // Position shadow at the absolute bottom of the page (at footer level)
-  const pageHeight = document.body.scrollHeight;
-  shadow.style.top = (pageHeight - 250) + 'px'; // Position near footer (footer is ~240px)
+  // Find the footer element
+  const footer = document.querySelector('.site-footer') || document.querySelector('footer');
+  let shadowTop;
+
+  if (footer) {
+    // Position shadow at footer's position minus shadow height to center it in footer area
+    shadowTop = footer.offsetTop + (footer.offsetHeight / 2) - 110; // 110 is half of shadow height (220px)
+  } else {
+    // Fallback: position at page bottom
+    shadowTop = document.body.scrollHeight - 240;
+  }
+
+  shadow.style.top = shadowTop + 'px';
   shadow.style.display = 'block';
 
   shadow.onclick = () => {
