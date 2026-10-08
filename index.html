@@ -7603,8 +7603,9 @@ function renderGuildBoardModule(){
                 const rotation = (Math.random() * 50) - 25;
                 const isOwner = state.session?.user?.id === s.placed_by_user_id;
                 const canManage = testCanManage();
+                const isAuthenticated = !!state.session?.user?.id;
                 return `
-                <div class="sticker-pin-group" data-sticker-id="${esc(s.id)}" style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
+                <div class="sticker-pin-group" data-sticker-id="${esc(s.id)}" data-owned="${isOwner}" data-draggable="${isAuthenticated}" style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
                   <div class="sticker-pin"></div>
                   <div class="sticker-pin-shadow"></div>
                   ${ canManage ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}">&times;</button>` : '' }
