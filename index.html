@@ -2966,6 +2966,10 @@
     overflow: hidden;
   }
 
+  .page-dealer ~ .site-footer {
+    display: none;
+  }
+
   .main.page-dealer::before {
     content: '';
     position: absolute;
@@ -2993,7 +2997,6 @@
     max-width: 600px;
     height: auto;
     margin-bottom: 40px;
-    border: 3px solid rgba(128, 0, 255, 0.5);
     border-radius: 10px;
     box-shadow: 0 0 40px rgba(128, 0, 255, 0.4);
   }
@@ -4163,6 +4166,12 @@ async function loadProfile(){
   if(!state.session){ state.profile = null; return; }
   const { data } = await sb.from('profiles').select('*').eq('id', state.session.user.id).maybeSingle();
   state.profile = data || null;
+
+  // Check if user has trader access
+  if (state.profile && state.session) {
+    const { data: traderData } = await sb.from('mystery_trader_access').select('id').eq('user_id', state.session.user.id).maybeSingle();
+    state.profile.has_trader_access = !!traderData;
+  }
 }
 
 async function signInWithDiscord(){
@@ -9087,6 +9096,9 @@ function spawnSingleFootprint(setIndex) {
 }
 
 function spawnDealerShadow() {
+  // Don't spawn shadow on dealer page or if user has access
+  if (!shouldShowFootprints()) return;
+
   // Create shadow container if it doesn't exist
   let shadow = document.getElementById('dealer-shadow');
   if (!shadow) {
@@ -9130,7 +9142,24 @@ function spawnDealerShadow() {
   }, 12000);
 }
 
+function shouldShowFootprints() {
+  // Don't show footprints on the dealer page
+  if (state.tab === 'dealer') return false;
+
+  // Don't show if user already has trader access
+  if (state.profile && state.profile.has_trader_access) return false;
+
+  return true;
+}
+
 function startFootprintTrail() {
+  // Don't start trail if conditions aren't met
+  if (!shouldShowFootprints()) {
+    // Stop any existing trail
+    if (footprintIntervalId) clearTimeout(footprintIntervalId);
+    return;
+  }
+
   // Spawn footprints sequentially:
   // FP1: 0ms, animation 7s, wait 5s = done at 12s
   // FP2: 12s, animation 7s, wait 5s = done at 24s
@@ -9164,7 +9193,7 @@ function renderDealerPage() {
       <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShadowyDealer.png" alt="Shadowy Dealer" class="dealer-image">
       <div class="dealer-buttons">
         <button class="dealer-btn" onclick="window.state.tab = 'news'; window.state.modal = null; window.render();">Run Away!</button>
-        <button class="dealer-btn pay" onclick="window.payDealer();">Pay 3000g for Access</button>
+        <button class="dealer-btn pay" onclick="window.payDealer();">Pay 3000g, for what you're not quite sure...</button>
       </div>
     </div>
   `;
@@ -9186,9 +9215,11 @@ async function payDealer() {
   if (data.success) {
     alert(data.message);
     await loadProfile();
+    state.profile.has_trader_access = true;
     state.tab = 'news';
     state.modal = null;
     render();
+    // Footprints won't show since has_trader_access is now true
     startFootprintTrail();
   } else {
     alert('Error: ' + (data.error || 'Unknown error'));
