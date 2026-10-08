@@ -2920,16 +2920,21 @@
   .dealer-shadow {
     position: absolute;
     left: 50%;
-    transform: translateX(calc(-50% + 75px));
-    width: 180px;
-    height: 220px;
-    background: url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShadowyFace.png') center/contain no-repeat;
-    opacity: 0.5;
-    filter: drop-shadow(0 0 15px rgba(128, 0, 255, 0.4)) drop-shadow(0 0 25px rgba(128, 0, 255, 0.25));
+    transform: translateX(calc(-50% + 275px));
+    width: 108px;
+    height: 132px;
     cursor: pointer;
     z-index: 100;
-    animation: dealerPulse 1.5s ease-in-out infinite;
     pointer-events: auto;
+  }
+
+  .dealer-shadow img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 0.4;
+    filter: drop-shadow(0 0 15px rgba(128, 0, 255, 0.4)) drop-shadow(0 0 25px rgba(128, 0, 255, 0.25));
+    animation: shadowFadeInOut 12s ease-in-out forwards;
   }
 
   @keyframes dealerPulse {
@@ -2939,6 +2944,13 @@
     50% {
       box-shadow: 0 0 60px rgba(128, 0, 255, 0.8), inset 0 0 40px rgba(128, 0, 255, 0.4);
     }
+  }
+
+  @keyframes shadowFadeInOut {
+    0% { opacity: 0; }
+    16.67% { opacity: 0.4; }
+    83.33% { opacity: 0.4; }
+    100% { opacity: 0; }
   }
 
   /* DEALER PAGE */
@@ -9074,12 +9086,18 @@ function spawnSingleFootprint(setIndex) {
 }
 
 function spawnDealerShadow() {
-  // Create shadow element if it doesn't exist
+  // Create shadow container if it doesn't exist
   let shadow = document.getElementById('dealer-shadow');
   if (!shadow) {
     shadow = document.createElement('div');
     shadow.id = 'dealer-shadow';
     shadow.className = 'dealer-shadow';
+
+    const img = document.createElement('img');
+    img.src = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShadowyFace.png';
+    img.alt = 'Shadowy Dealer';
+    shadow.appendChild(img);
+
     document.body.appendChild(shadow);
   }
 
@@ -9090,10 +9108,10 @@ function spawnDealerShadow() {
 
   if (footer) {
     // Position shadow at footer's position minus shadow height to center it in footer area
-    shadowTop = footer.offsetTop + (footer.offsetHeight / 2) - 110; // 110 is half of shadow height (220px)
+    shadowTop = footer.offsetTop + (footer.offsetHeight / 2) - 66; // 66 is half of shadow height (132px)
   } else {
     // Fallback: position at page bottom
-    shadowTop = document.body.scrollHeight - 240;
+    shadowTop = document.body.scrollHeight - 150;
   }
 
   shadow.style.top = shadowTop + 'px';
@@ -9108,7 +9126,7 @@ function spawnDealerShadow() {
 
   setTimeout(() => {
     shadow.style.display = 'none';
-  }, 10000);
+  }, 12000);
 }
 
 function startFootprintTrail() {
