@@ -9249,8 +9249,8 @@ function renderDealerPage() {
 }
 
 async function payDealer() {
-  const user = supabase.auth.user();
-  if (!user) return alert('Not authenticated');
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return alert('Not authenticated');
 
   const { data, error } = await supabase.rpc('pay_mysterious_trader', {
     user_id: user.id
