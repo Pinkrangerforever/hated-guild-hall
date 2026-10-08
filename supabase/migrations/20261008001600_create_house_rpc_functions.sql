@@ -1,6 +1,7 @@
 -- Migration: Create RPC functions for house building system
 -- Purpose: Server-side validation for house upgrades and addition toggling
 -- Date: 2026-10-07
+-- Fixed: Use DECLARE variables to eliminate ambiguous column references
 
 -- ============================================================================
 -- HOUSE MANAGEMENT FUNCTIONS
@@ -9,15 +10,17 @@
 -- Initialize house for user (called on first purchase)
 CREATE OR REPLACE FUNCTION initialize_house(user_id UUID)
 RETURNS jsonb AS $$
+DECLARE
+  v_user_id UUID := user_id;
 BEGIN
   -- Check if house already exists
-  IF EXISTS(SELECT 1 FROM public.house WHERE public.house.user_id = user_id) THEN
+  IF EXISTS(SELECT 1 FROM public.house WHERE user_id = v_user_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'House already exists');
   END IF;
 
   -- Create house with default values
   INSERT INTO public.house (user_id, house_tier)
-  VALUES (user_id, 1);
+  VALUES (v_user_id, 1);
 
   RETURN jsonb_build_object(
     'success', true,
@@ -34,12 +37,13 @@ CREATE OR REPLACE FUNCTION upgrade_house(
 )
 RETURNS jsonb AS $$
 DECLARE
+  v_user_id UUID := user_id;
   user_house RECORD;
   user_wood INTEGER;
   upgrade_cost INTEGER;
 BEGIN
   -- Get user's house
-  SELECT house_tier INTO user_house FROM public.house WHERE public.house.user_id = user_id;
+  SELECT house_tier INTO user_house FROM public.house WHERE user_id = v_user_id;
 
   IF user_house IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'House not found');
@@ -67,7 +71,7 @@ BEGIN
   END;
 
   -- Get user's wood balance
-  SELECT wood INTO user_wood FROM public.profiles WHERE id = user_id;
+  SELECT wood INTO user_wood FROM public.profiles WHERE id = v_user_id;
 
   IF user_wood IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'User not found');
@@ -86,12 +90,12 @@ BEGIN
   -- Deduct wood
   UPDATE public.profiles
   SET wood = wood - upgrade_cost, wood_spent_total = wood_spent_total + upgrade_cost, updated_at = now()
-  WHERE id = user_id;
+  WHERE id = v_user_id;
 
   -- Upgrade house
   UPDATE public.house
   SET house_tier = target_tier, updated_at = now()
-  WHERE public.house.user_id = user_id;
+  WHERE user_id = v_user_id;
 
   RETURN jsonb_build_object(
     'success', true,
@@ -110,12 +114,14 @@ CREATE OR REPLACE FUNCTION select_backdrop(
 )
 RETURNS jsonb AS $$
 DECLARE
+  v_user_id UUID := user_id;
+  v_backdrop_item_id UUID := backdrop_item_id;
   owns_backdrop BOOLEAN;
 BEGIN
   -- Validate user owns this backdrop
   SELECT EXISTS(
     SELECT 1 FROM public.shop_items
-    WHERE id = backdrop_item_id
+    WHERE id = v_backdrop_item_id
     AND category = 'backdrop'
   ) INTO owns_backdrop;
 
@@ -125,8 +131,8 @@ BEGIN
 
   -- Update active backdrop
   UPDATE public.house
-  SET backdrop_id = backdrop_item_id, updated_at = now()
-  WHERE public.house.user_id = user_id;
+  SET backdrop_id = v_backdrop_item_id, updated_at = now()
+  WHERE user_id = v_user_id;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'House not found');
@@ -134,7 +140,7 @@ BEGIN
 
   RETURN jsonb_build_object(
     'success', true,
-    'backdrop_id', backdrop_item_id,
+    'backdrop_id', v_backdrop_item_id,
     'message', 'Backdrop changed'
   );
 END;
@@ -151,12 +157,14 @@ CREATE OR REPLACE FUNCTION add_house_addition(
 )
 RETURNS jsonb AS $$
 DECLARE
+  v_user_id UUID := user_id;
+  v_addition_item_id UUID := addition_item_id;
   is_valid_addition BOOLEAN;
 BEGIN
   -- Validate item exists and is house_addition category
   SELECT EXISTS(
     SELECT 1 FROM public.shop_items
-    WHERE id = addition_item_id
+    WHERE id = v_addition_item_id
     AND category = 'house_addition'
   ) INTO is_valid_addition;
 
@@ -165,17 +173,17 @@ BEGIN
   END IF;
 
   -- Check if already owned
-  IF EXISTS(SELECT 1 FROM public.house_additions WHERE public.house_additions.user_id = user_id AND public.house_additions.addition_item_id = addition_item_id) THEN
+  IF EXISTS(SELECT 1 FROM public.house_additions WHERE user_id = v_user_id AND addition_item_id = v_addition_item_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'You already own this addition');
   END IF;
 
   -- Add addition (defaults to active = true)
   INSERT INTO public.house_additions (user_id, addition_item_id, is_active)
-  VALUES (user_id, addition_item_id, true);
+  VALUES (v_user_id, v_addition_item_id, true);
 
   RETURN jsonb_build_object(
     'success', true,
-    'addition_id', addition_item_id,
+    'addition_id', v_addition_item_id,
     'is_active', true,
     'message', 'Addition added to house'
   );
@@ -189,12 +197,14 @@ CREATE OR REPLACE FUNCTION toggle_house_addition(
 )
 RETURNS jsonb AS $$
 DECLARE
+  v_user_id UUID := user_id;
+  v_addition_id UUID := addition_id;
   current_active BOOLEAN;
   new_active BOOLEAN;
 BEGIN
   -- Get current active status
   SELECT is_active INTO current_active FROM public.house_additions
-  WHERE id = addition_id AND public.house_additions.user_id = user_id;
+  WHERE id = v_addition_id AND user_id = v_user_id;
 
   IF current_active IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Addition not found');
@@ -206,11 +216,11 @@ BEGIN
   -- Update
   UPDATE public.house_additions
   SET is_active = new_active, updated_at = now()
-  WHERE id = addition_id AND public.house_additions.user_id = user_id;
+  WHERE id = v_addition_id AND user_id = v_user_id;
 
   RETURN jsonb_build_object(
     'success', true,
-    'addition_id', addition_id,
+    'addition_id', v_addition_id,
     'is_active', new_active,
     'message', format('Addition %s', CASE WHEN new_active THEN 'enabled' ELSE 'disabled' END)
   );
@@ -221,11 +231,12 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 CREATE OR REPLACE FUNCTION get_house_data(fetch_user_id UUID)
 RETURNS jsonb AS $$
 DECLARE
+  v_fetch_user_id UUID := fetch_user_id;
   house_data RECORD;
   additions_json JSONB;
 BEGIN
   -- Get house info
-  SELECT house_tier, backdrop_id INTO house_data FROM public.house WHERE user_id = fetch_user_id;
+  SELECT house_tier, backdrop_id INTO house_data FROM public.house WHERE user_id = v_fetch_user_id;
 
   -- Get additions
   SELECT jsonb_agg(
@@ -234,7 +245,7 @@ BEGIN
       'item_id', addition_item_id,
       'is_active', is_active
     )
-  ) INTO additions_json FROM public.house_additions WHERE user_id = fetch_user_id;
+  ) INTO additions_json FROM public.house_additions WHERE user_id = v_fetch_user_id;
 
   -- Return combined data
   RETURN jsonb_build_object(
