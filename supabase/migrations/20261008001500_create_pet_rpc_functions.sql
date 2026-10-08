@@ -145,7 +145,7 @@ BEGIN
   -- Award exp to pet
   UPDATE public.pets
   SET exp = exp + exp_reward, updated_at = now()
-  WHERE id = pet_id AND user_id = user_id
+  WHERE id = pet_id AND public.pets.user_id = user_id
   RETURNING exp INTO new_exp;
 
   IF new_exp IS NULL THEN
@@ -180,7 +180,7 @@ BEGIN
   -- Get pet
   SELECT last_pet_action_time, exp, level INTO pet_rec
   FROM public.pets
-  WHERE id = pet_id AND user_id = user_id;
+  WHERE id = pet_id AND public.pets.user_id = user_id;
 
   IF pet_rec IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Pet not found');
@@ -199,7 +199,7 @@ BEGIN
   -- Award exp and update cooldown
   UPDATE public.pets
   SET exp = exp + exp_reward, last_pet_action_time = now_ms, updated_at = now()
-  WHERE id = pet_id AND user_id = user_id
+  WHERE id = pet_id AND public.pets.user_id = user_id
   RETURNING exp INTO new_exp;
 
   RETURN jsonb_build_object(
@@ -227,7 +227,7 @@ BEGIN
   -- Get pet
   SELECT id, status, hatch_time INTO pet_rec
   FROM public.pets
-  WHERE id = pet_id AND user_id = user_id;
+  WHERE id = pet_id AND public.pets.user_id = user_id;
 
   IF pet_rec IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Pet not found');
@@ -251,7 +251,7 @@ BEGIN
   -- Hatch egg: Set to juvenile status and record hatch time
   UPDATE public.pets
   SET status = 'juvenile', hatched_at = now(), updated_at = now()
-  WHERE id = pet_id AND user_id = user_id;
+  WHERE id = pet_id AND public.pets.user_id = user_id;
 
   RETURN jsonb_build_object(
     'success', true,
@@ -278,7 +278,7 @@ BEGIN
   -- Update pet name
   UPDATE public.pets
   SET name = pet_name, updated_at = now()
-  WHERE id = pet_id AND user_id = user_id;
+  WHERE id = pet_id AND public.pets.user_id = user_id;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Pet not found');
@@ -321,7 +321,7 @@ DECLARE
   already_paid BOOLEAN;
 BEGIN
   -- Check if already paid
-  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE user_id = user_id)
+  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE public.mystery_trader_access.user_id = user_id)
   INTO already_paid;
 
   IF already_paid THEN

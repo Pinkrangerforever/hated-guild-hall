@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION initialize_house(user_id UUID)
 RETURNS jsonb AS $$
 BEGIN
   -- Check if house already exists
-  IF EXISTS(SELECT 1 FROM public.house WHERE user_id = user_id) THEN
+  IF EXISTS(SELECT 1 FROM public.house WHERE public.house.user_id = user_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'House already exists');
   END IF;
 
@@ -39,7 +39,7 @@ DECLARE
   upgrade_cost INTEGER;
 BEGIN
   -- Get user's house
-  SELECT house_tier INTO user_house FROM public.house WHERE user_id = user_id;
+  SELECT house_tier INTO user_house FROM public.house WHERE public.house.user_id = user_id;
 
   IF user_house IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'House not found');
@@ -91,7 +91,7 @@ BEGIN
   -- Upgrade house
   UPDATE public.house
   SET house_tier = target_tier, updated_at = now()
-  WHERE user_id = user_id;
+  WHERE public.house.user_id = user_id;
 
   RETURN jsonb_build_object(
     'success', true,
@@ -126,7 +126,7 @@ BEGIN
   -- Update active backdrop
   UPDATE public.house
   SET backdrop_id = backdrop_item_id, updated_at = now()
-  WHERE user_id = user_id;
+  WHERE public.house.user_id = user_id;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'House not found');
@@ -165,7 +165,7 @@ BEGIN
   END IF;
 
   -- Check if already owned
-  IF EXISTS(SELECT 1 FROM public.house_additions WHERE user_id = user_id AND addition_item_id = addition_item_id) THEN
+  IF EXISTS(SELECT 1 FROM public.house_additions WHERE public.house_additions.user_id = user_id AND public.house_additions.addition_item_id = addition_item_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'You already own this addition');
   END IF;
 
@@ -194,7 +194,7 @@ DECLARE
 BEGIN
   -- Get current active status
   SELECT is_active INTO current_active FROM public.house_additions
-  WHERE id = addition_id AND user_id = user_id;
+  WHERE id = addition_id AND public.house_additions.user_id = user_id;
 
   IF current_active IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Addition not found');
@@ -206,7 +206,7 @@ BEGIN
   -- Update
   UPDATE public.house_additions
   SET is_active = new_active, updated_at = now()
-  WHERE id = addition_id AND user_id = user_id;
+  WHERE id = addition_id AND public.house_additions.user_id = user_id;
 
   RETURN jsonb_build_object(
     'success', true,

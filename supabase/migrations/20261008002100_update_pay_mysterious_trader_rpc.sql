@@ -10,7 +10,7 @@ DECLARE
   already_paid BOOLEAN;
 BEGIN
   -- Check if already paid
-  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE user_id = user_id)
+  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE public.mystery_trader_access.user_id = user_id)
   INTO already_paid;
 
   IF already_paid THEN
