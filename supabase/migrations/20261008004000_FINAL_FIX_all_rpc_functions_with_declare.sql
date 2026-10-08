@@ -22,10 +22,10 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Insufficient food');
   END IF;
   UPDATE public.profiles
-  SET food = food - food_cost, food_spent_total = food_spent_total + food_cost, updated_at = now()
+  SET food = food - food_cost, food_spent_total = food_spent_total + food_cost
   WHERE id = v_user_id;
   UPDATE public.pets
-  SET exp = exp + exp_reward, updated_at = now()
+  SET exp = exp + exp_reward
   WHERE id = v_pet_id AND user_id = v_user_id
   RETURNING exp INTO new_food;
   IF new_food IS NULL THEN
@@ -61,7 +61,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Pet needs to rest (1hr cooldown)');
   END IF;
   UPDATE public.pets
-  SET exp = exp + exp_reward, last_pet_action_time = now_ms, updated_at = now()
+  SET exp = exp + exp_reward, last_pet_action_time = now_ms
   WHERE id = v_pet_id AND user_id = v_user_id
   RETURNING exp INTO new_exp;
   RETURN jsonb_build_object(
@@ -92,7 +92,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Not ready to hatch');
   END IF;
   UPDATE public.pets
-  SET status = 'juvenile', hatched_at = now(), updated_at = now()
+  SET status = 'juvenile', hatched_at = now()
   WHERE id = v_pet_id AND user_id = v_user_id;
   RETURN jsonb_build_object(
     'success', true,
@@ -109,7 +109,7 @@ DECLARE
   v_pet_id UUID := pet_id;
 BEGIN
   UPDATE public.pets
-  SET name = pet_name, updated_at = now()
+  SET name = pet_name
   WHERE id = v_pet_id AND user_id = v_user_id;
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Pet not found');
@@ -148,7 +148,7 @@ BEGIN
   IF auth.uid() != v_user_id THEN
     RETURN jsonb_build_object('success', false, 'error', 'Unauthorized');
   END IF;
-  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE user_id = v_user_id)
+  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access mta WHERE mta.user_id = v_user_id)
   INTO already_paid;
   IF already_paid THEN
     RETURN jsonb_build_object('success', false, 'error', 'You already know the trader''s secret');
@@ -166,7 +166,7 @@ BEGIN
     );
   END IF;
   UPDATE public.profiles
-  SET gold = gold - cost, gold_spent_total = gold_spent_total + cost, updated_at = now()
+  SET gold = gold - cost, gold_spent_total = gold_spent_total + cost
   WHERE id = v_user_id;
   INSERT INTO public.mystery_trader_access (user_id, payment_amount)
   VALUES (v_user_id, cost);
@@ -271,10 +271,10 @@ BEGIN
     );
   END IF;
   UPDATE public.profiles
-  SET wood = wood - upgrade_cost, wood_spent_total = wood_spent_total + upgrade_cost, updated_at = now()
+  SET wood = wood - upgrade_cost, wood_spent_total = wood_spent_total + upgrade_cost
   WHERE id = v_user_id;
   UPDATE public.house
-  SET house_tier = target_tier, updated_at = now()
+  SET house_tier = target_tier
   WHERE user_id = v_user_id;
   RETURN jsonb_build_object(
     'success', true,
@@ -293,7 +293,7 @@ DECLARE
   v_backdrop_item_id UUID := backdrop_item_id;
 BEGIN
   UPDATE public.house
-  SET backdrop_id = v_backdrop_item_id, updated_at = now()
+  SET backdrop_id = v_backdrop_item_id
   WHERE user_id = v_user_id;
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'House not found');
@@ -350,7 +350,7 @@ BEGIN
   END IF;
   new_active := NOT current_active;
   UPDATE public.house_additions
-  SET is_active = new_active, updated_at = now()
+  SET is_active = new_active
   WHERE id = v_addition_id AND user_id = v_user_id;
   RETURN jsonb_build_object(
     'success', true,
@@ -374,8 +374,7 @@ BEGIN
   RETURN jsonb_build_object(
     'success', true,
     'house_tier', house_data.house_tier,
-    'backdrop_id', house_data.backdrop_id,
-    'updated_at', house_data.updated_at
+    'backdrop_id', house_data.backdrop_id
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
