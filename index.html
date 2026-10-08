@@ -9086,20 +9086,9 @@ function spawnSingleFootprint(setIndex) {
   footprint.src = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Footprints.png';
   footprint.className = 'footprint';
 
-  // Spawn footprints in safe zones (left and right edges, avoid center panels)
-  // Define safe margins: left edge (0-200px) and right edge (window.innerWidth-420 onwards)
-  const leftMax = 200;
-  const rightMin = Math.max(window.innerWidth - 420, window.innerWidth - 200);
-
-  // Randomly choose left or right side
-  let x;
-  if (Math.random() < 0.5) {
-    // Left side: 0 to 200px
-    x = Math.random() * leftMax;
-  } else {
-    // Right side: rightMin to right edge
-    x = rightMin + Math.random() * 200;
-  }
+  // Random horizontal position, but ensure it fits on screen (420px wide footprint)
+  const maxX = Math.max(window.innerWidth - 420, 0);
+  const x = Math.random() * maxX;
 
   // Position based on setIndex:
   // 0 = just below banner
