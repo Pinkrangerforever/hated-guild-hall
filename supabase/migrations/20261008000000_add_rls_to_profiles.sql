@@ -18,8 +18,8 @@ CREATE POLICY "Users can update own profile fields"
   USING (auth.uid() = id)
   WITH CHECK (
     auth.uid() = id
+    AND gold IS NOT DISTINCT FROM (SELECT gold FROM public.profiles WHERE id = auth.uid())
     AND gold_earned_total IS NOT DISTINCT FROM (SELECT gold_earned_total FROM public.profiles WHERE id = auth.uid())
-    AND current_gold IS NOT DISTINCT FROM (SELECT current_gold FROM public.profiles WHERE id = auth.uid())
   );
 
 -- Policy 3: ONLY Raid Leaders can modify gold
