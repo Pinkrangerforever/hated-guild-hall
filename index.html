@@ -221,6 +221,45 @@
     .nav-container{ gap:0; }
   }
 
+  /* MOBILE: Fix nav bar layout for <600px phones */
+  @media (max-width:600px){
+    .top-nav{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:0;
+      padding:0;
+    }
+    .nav-logo{
+      position:relative;
+      left:auto;
+      top:auto;
+      height:auto;
+      flex:1;
+      text-align:center;
+      margin:0;
+      order:2;
+    }
+    .nav-logo img{
+      height:50px;
+      width:auto;
+    }
+    .hamburger-menu{
+      order:1;
+      margin-left:0;
+      margin-right:0;
+      position:absolute;
+      left:10px;
+    }
+    .nav-container{
+      display:flex;
+      align-items:center;
+      width:100%;
+      gap:0;
+      order:3;
+    }
+  }
+
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
@@ -7480,10 +7519,13 @@ function renderEntryPage(){
     <div id="layout-container" class="layout-responsive">
       <!-- MOBILE: Full-width single column -->
       <div class="layout-mobile">
-        <div class="module-wrapper">${renderGoldLeaderboard()}</div>
         <div class="module-wrapper">${renderEntryYouTubeVideo()}</div>
-        <div class="module-wrapper">${renderEntryAnnouncements()}</div>
         <div class="module-wrapper">${renderEntryGuildBoard()}</div>
+        <div class="module-wrapper">${renderGoldLeaderboard()}</div>
+        <div class="module-wrapper">${renderEntryAnnouncements()}</div>
+        <div style="text-align:center; padding:16px 24px; margin-top:40px; background:linear-gradient(180deg, rgba(26,20,16,0.95) 0%, rgba(20,15,10,0.98) 100%); border-top:1px solid rgba(207,154,68,0.2);">
+          <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/guild-icon.png" alt="Guild Logo" style="width:240px; height:240px; object-fit:contain;">
+        </div>
       </div>
 
       <!-- DESKTOP: Three-column layout with sidebars -->
