@@ -2935,7 +2935,7 @@
     object-fit: contain;
     opacity: 0.4;
     filter: drop-shadow(0 0 15px rgba(128, 0, 255, 0.4)) drop-shadow(0 0 25px rgba(128, 0, 255, 0.25));
-    animation: shadowFadeInOut 12s ease-in-out forwards;
+    animation: shadowFadeInOut 10s ease-in-out forwards;
   }
 
   @keyframes dealerPulse {
@@ -2949,8 +2949,8 @@
 
   @keyframes shadowFadeInOut {
     0% { opacity: 0; }
-    16.67% { opacity: 0.4; }
-    83.33% { opacity: 0.4; }
+    20% { opacity: 0.4; }
+    80% { opacity: 0.4; }
     100% { opacity: 0; }
   }
 
@@ -9138,7 +9138,7 @@ function spawnDealerShadow() {
 
   setTimeout(() => {
     shadow.style.display = 'none';
-  }, 12000);
+  }, 10000);
 }
 
 function shouldShowFootprints() {
