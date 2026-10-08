@@ -48,7 +48,7 @@
   }
   .nav-container{
     width:100%; max-width:1400px; margin:0 auto; padding:0 20px;
-    display:flex; justify-content:space-between; align-items:center; gap:40px;
+    display:flex; align-items:center; gap:32px;
   }
   .nav-logo{
     font-size:24px; font-weight:900; color:#ff8800;
@@ -61,7 +61,7 @@
     height:91px; width:auto; object-fit:contain;
   }
   .nav-items{
-    display:flex; gap:2px; flex:1; justify-content:center;
+    display:flex; gap:2px; margin-right:auto;
   }
   .nav-link{
     background:none; border:none; color:#ece0c8; font-size:13px; font-weight:600;
@@ -2733,6 +2733,7 @@
       <button class="nav-link" data-tab="gallery">Gallery</button>
       <button class="nav-link" data-tab="recruitment">Recruitment</button>
       <button class="nav-link" data-tab="settings">Settings</button>
+      <button id="open-shop-btn" class="nav-link" style="display:none;">Shop</button>
     </div>
     <div class="nav-user-section">
       <div id="nav-user-info" class="nav-user-info" style="display:none;">
@@ -2741,7 +2742,6 @@
       </div>
       <button id="layout-lock-btn" class="nav-action-btn" title="Toggle Layout Lock" style="display:none;">Layout</button>
       <button id="reset-member-btn" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
-      <button id="open-shop-btn" class="nav-action-btn" style="display:none;">Shop</button>
       <button id="admin-btn" class="nav-action-btn btn-nav-admin" style="display:none;" title="Admin">Admin</button>
       <button id="logout-btn" class="nav-action-btn" style="display:none;">Sign Out</button>
       <button id="discord-signin-btn" class="nav-action-btn" style="background:#5865f2; border-color:#5865f2; color:#fff; display:flex; align-items:center; gap:6px;">🎮 Sign in</button>
