@@ -2921,9 +2921,9 @@
     bottom: 30%;
     left: 50%;
     transform: translateX(-50%);
-    width: 150px;
-    height: 200px;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140"><path d="M50,10 Q65,25 65,50 Q65,75 50,85 Q35,75 35,50 Q35,25 50,10 M45,90 Q48,95 48,110 Q48,125 45,135 Q42,125 42,110 Q42,95 45,90 M55,90 Q58,95 58,110 Q58,125 55,135 Q52,125 52,110 Q52,95 55,90" fill="rgba(128,0,255,0.3)"/></svg>') center/contain no-repeat;
+    width: 180px;
+    height: 220px;
+    background: url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShadowyFace.png') center/contain no-repeat;
     filter: drop-shadow(0 0 30px rgba(128, 0, 255, 0.8)) drop-shadow(0 0 50px rgba(128, 0, 255, 0.5));
     cursor: pointer;
     z-index: 15;
@@ -9076,12 +9076,17 @@ function spawnDealerShadow() {
 }
 
 function startFootprintTrail() {
+  // Spawn 3 complete sets of footprints before shadow appears
   spawnFootprintSet();
+  setTimeout(() => { spawnFootprintSet(); }, 5000);
+  setTimeout(() => { spawnFootprintSet(); }, 10000);
 
+  // Shadow appears after all 3 footprint sets are done
   setTimeout(() => {
     spawnDealerShadow();
   }, 15000);
 
+  // Restart the cycle after 30 seconds
   footprintIntervalId = setTimeout(() => {
     startFootprintTrail();
   }, 30000);
