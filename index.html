@@ -2887,9 +2887,144 @@
     z-index:2;
   }
 
+  /* FOOTPRINT TRAIL SYSTEM */
+  #footprint-trail-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .footprint {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: radial-gradient(circle, rgba(128, 0, 255, 0.4), rgba(128, 0, 255, 0.1));
+    border: 2px solid rgba(128, 0, 255, 0.6);
+    border-radius: 50%;
+    filter: drop-shadow(0 0 15px rgba(128, 0, 255, 0.8)) drop-shadow(0 0 25px rgba(128, 0, 255, 0.5));
+    animation: fadeOut 2s ease-out forwards;
+  }
+
+  @keyframes fadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* DEALER SHADOW */
+  .dealer-shadow {
+    position: fixed;
+    bottom: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 180px;
+    background: radial-gradient(ellipse at center, rgba(128, 0, 255, 0.4), rgba(128, 0, 255, 0.1));
+    border: 3px solid rgba(128, 0, 255, 0.7);
+    border-radius: 20px;
+    box-shadow: 0 0 40px rgba(128, 0, 255, 0.6), inset 0 0 30px rgba(128, 0, 255, 0.3);
+    cursor: pointer;
+    z-index: 15;
+    animation: dealerPulse 1.5s ease-in-out infinite;
+    pointer-events: auto;
+  }
+
+  @keyframes dealerPulse {
+    0%, 100% {
+      box-shadow: 0 0 40px rgba(128, 0, 255, 0.6), inset 0 0 30px rgba(128, 0, 255, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 60px rgba(128, 0, 255, 0.8), inset 0 0 40px rgba(128, 0, 255, 0.4);
+    }
+  }
+
+  /* DEALER PAGE */
+  .page-dealer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, rgba(40, 32, 20, 0.8), rgba(60, 50, 35, 0.8));
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-dealer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at center, rgba(128, 0, 255, 0.1), transparent);
+    pointer-events: none;
+  }
+
+  .dealer-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+  }
+
+  .dealer-image {
+    width: 300px;
+    height: 400px;
+    margin-bottom: 40px;
+    border: 3px solid rgba(128, 0, 255, 0.5);
+    border-radius: 10px;
+    box-shadow: 0 0 40px rgba(128, 0, 255, 0.4);
+  }
+
+  .dealer-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .dealer-btn {
+    padding: 15px 30px;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: 2px solid rgba(128, 0, 255, 0.6);
+    border-radius: 5px;
+    background: linear-gradient(180deg, rgba(128, 0, 255, 0.3), rgba(128, 0, 255, 0.1));
+    color: rgba(128, 0, 255, 0.9);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .dealer-btn:hover {
+    border-color: rgba(128, 0, 255, 0.9);
+    background: linear-gradient(180deg, rgba(128, 0, 255, 0.5), rgba(128, 0, 255, 0.2));
+    box-shadow: 0 0 20px rgba(128, 0, 255, 0.6);
+  }
+
+  .dealer-btn.pay {
+    border-color: rgba(207, 154, 68, 0.6);
+    background: linear-gradient(180deg, rgba(207, 154, 68, 0.3), rgba(207, 154, 68, 0.1));
+    color: rgba(207, 154, 68, 0.9);
+  }
+
+  .dealer-btn.pay:hover {
+    border-color: rgba(207, 154, 68, 0.9);
+    background: linear-gradient(180deg, rgba(207, 154, 68, 0.5), rgba(207, 154, 68, 0.2));
+    box-shadow: 0 0 20px rgba(207, 154, 68, 0.6);
+  }
+
 </style>
 </head>
 <body>
+<!-- FOOTPRINT TRAIL SYSTEM -->
+<div id="footprint-trail-container"></div>
+<div id="dealer-shadow" class="dealer-shadow" style="display:none;"></div>
+
 <!-- STICKY NAVIGATION BAR -->
 <nav id="top-nav" class="top-nav">
   <div class="nav-logo"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/guild-icon.png" alt="HATED Guild"></div>
@@ -6520,6 +6655,7 @@ function renderTab(){
     case 'raidlogs': return renderRaidLogs();
     case 'settings': return renderSettings();
     case 'admin': return renderAdmin();
+    case 'dealer': return renderDealerPage();
     default: return '';
   }
 }
@@ -8890,7 +9026,104 @@ function bindApp(){
   }
 }
 
+// FOOTPRINT TRAIL SYSTEM
+let footprintIntervalId = null;
+
+function spawnFootprintSet() {
+  const container = document.getElementById('footprint-trail-container');
+  if (!container) return;
+
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => {
+      const footprint = document.createElement('div');
+      footprint.className = 'footprint';
+
+      const x = Math.random() * window.innerWidth;
+      const y = Math.random() * window.innerHeight;
+
+      footprint.style.left = x + 'px';
+      footprint.style.top = y + 'px';
+
+      container.appendChild(footprint);
+
+      setTimeout(() => footprint.remove(), 2000);
+    }, i * 1500);
+  }
+}
+
+function spawnDealerShadow() {
+  const shadow = document.getElementById('dealer-shadow');
+  if (!shadow) return;
+
+  shadow.style.display = 'block';
+  shadow.addEventListener('click', () => {
+    state.tab = 'dealer';
+    currentPage = 'dealer';
+    renderPage();
+  });
+
+  setTimeout(() => {
+    shadow.style.display = 'none';
+  }, 10000);
+}
+
+function startFootprintTrail() {
+  spawnFootprintSet();
+
+  setTimeout(() => {
+    spawnDealerShadow();
+  }, 15000);
+
+  footprintIntervalId = setTimeout(() => {
+    startFootprintTrail();
+  }, 30000);
+}
+
+function renderDealerPage() {
+  return `
+    <div class="page-dealer">
+      <div class="dealer-content">
+        <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShadowyDealer.png" alt="Shadowy Dealer" class="dealer-image">
+        <div class="dealer-buttons">
+          <button class="dealer-btn" onclick="state.tab = 'shop'; currentPage = 'shop'; renderPage();">Run Away!</button>
+          <button class="dealer-btn pay" onclick="payDealer();">Pay 3000g for Access</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function payDealer() {
+  const user = supabase.auth.user();
+  if (!user) return alert('Not authenticated');
+
+  const { data, error } = await supabase.rpc('pay_mysterious_trader', {
+    user_id: user.id
+  });
+
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+
+  if (data.success) {
+    alert(data.message);
+    await loadProfile();
+    state.tab = 'shop';
+    currentPage = 'shop';
+    renderPage();
+    startFootprintTrail();
+  } else {
+    alert('Error: ' + (data.error || 'Unknown error'));
+  }
+}
+
 boot();
+
+// Start footprint trail after boot
+setTimeout(() => {
+  startFootprintTrail();
+}, 1000);
 
 })();
 </script>
