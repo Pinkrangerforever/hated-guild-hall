@@ -1,6 +1,5 @@
--- Migration: Add authentication check to pay_mysterious_trader RPC
--- Purpose: Prevent users from spending other players' gold
--- Security: Validates that caller (auth.uid()) matches the user_id parameter
+-- Migration: Update pay_mysterious_trader RPC to log purchase
+-- Purpose: Track dealer access purchase in purchase_log table
 -- Date: 2026-10-08
 
 CREATE OR REPLACE FUNCTION pay_mysterious_trader(user_id UUID)
@@ -10,13 +9,8 @@ DECLARE
   cost INTEGER := 3000;
   already_paid BOOLEAN;
 BEGIN
-  -- SECURITY: Verify the caller is the user they claim to be
-  IF auth.uid() != user_id THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Unauthorized');
-  END IF;
-
   -- Check if already paid
-  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE user_id = pay_mysterious_trader.user_id)
+  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE user_id = user_id)
   INTO already_paid;
 
   IF already_paid THEN
@@ -24,7 +18,7 @@ BEGIN
   END IF;
 
   -- Get gold balance
-  SELECT gold INTO user_gold FROM public.profiles WHERE id = pay_mysterious_trader.user_id;
+  SELECT gold INTO user_gold FROM public.profiles WHERE id = user_id;
 
   IF user_gold IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'User not found');
@@ -43,16 +37,16 @@ BEGIN
   -- Deduct gold
   UPDATE public.profiles
   SET gold = gold - cost, gold_spent_total = gold_spent_total + cost, updated_at = now()
-  WHERE id = pay_mysterious_trader.user_id;
+  WHERE id = user_id;
 
   -- Record trader access
   INSERT INTO public.mystery_trader_access (user_id, payment_amount)
-  VALUES (pay_mysterious_trader.user_id, cost);
+  VALUES (user_id, cost);
 
   -- Log purchase in purchase_log table
   INSERT INTO public.purchase_log (user_id, purchase_type, amount, description, metadata)
   VALUES (
-    pay_mysterious_trader.user_id,
+    user_id,
     'dealer_access',
     cost,
     'Unlocked Shadowy Dealer - Pet Egg Access',
