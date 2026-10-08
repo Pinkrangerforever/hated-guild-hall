@@ -2899,14 +2899,14 @@
   }
 
   .footprint {
-    position: absolute;
-    width: 40px;
-    height: 40px;
-    background: radial-gradient(circle, rgba(128, 0, 255, 0.4), rgba(128, 0, 255, 0.1));
-    border: 2px solid rgba(128, 0, 255, 0.6);
-    border-radius: 50%;
-    filter: drop-shadow(0 0 15px rgba(128, 0, 255, 0.8)) drop-shadow(0 0 25px rgba(128, 0, 255, 0.5));
+    position: fixed;
+    width: 50px;
+    height: 50px;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50,10 Q60,20 60,35 Q60,50 50,55 Q40,50 40,35 Q40,20 50,10 M35,60 Q40,65 40,75 Q40,85 35,90 Q30,85 30,75 Q30,65 35,60 M65,60 Q70,65 70,75 Q70,85 65,90 Q60,85 60,75 Q60,65 65,60 M50,75 Q55,80 55,88 Q55,95 50,98 Q45,95 45,88 Q45,80 50,75" fill="rgba(128,0,255,0.8)"/></svg>') no-repeat center;
+    background-size: contain;
+    filter: drop-shadow(0 0 20px rgba(128, 0, 255, 0.9)) drop-shadow(0 0 35px rgba(128, 0, 255, 0.6));
     animation: fadeOut 2s ease-out forwards;
+    pointer-events: none;
   }
 
   @keyframes fadeOut {
@@ -2920,12 +2920,10 @@
     bottom: 30%;
     left: 50%;
     transform: translateX(-50%);
-    width: 120px;
-    height: 180px;
-    background: radial-gradient(ellipse at center, rgba(128, 0, 255, 0.4), rgba(128, 0, 255, 0.1));
-    border: 3px solid rgba(128, 0, 255, 0.7);
-    border-radius: 20px;
-    box-shadow: 0 0 40px rgba(128, 0, 255, 0.6), inset 0 0 30px rgba(128, 0, 255, 0.3);
+    width: 150px;
+    height: 200px;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140"><path d="M50,10 Q65,25 65,50 Q65,75 50,85 Q35,75 35,50 Q35,25 50,10 M45,90 Q48,95 48,110 Q48,125 45,135 Q42,125 42,110 Q42,95 45,90 M55,90 Q58,95 58,110 Q58,125 55,135 Q52,125 52,110 Q52,95 55,90" fill="rgba(128,0,255,0.3)"/></svg>') center/contain no-repeat;
+    filter: drop-shadow(0 0 30px rgba(128, 0, 255, 0.8)) drop-shadow(0 0 50px rgba(128, 0, 255, 0.5));
     cursor: pointer;
     z-index: 15;
     animation: dealerPulse 1.5s ease-in-out infinite;
@@ -2976,8 +2974,9 @@
   }
 
   .dealer-image {
-    width: 300px;
-    height: 400px;
+    width: 100%;
+    max-width: 600px;
+    height: auto;
     margin-bottom: 40px;
     border: 3px solid rgba(128, 0, 255, 0.5);
     border-radius: 10px;
@@ -9043,11 +9042,13 @@ function spawnFootprintSet() {
       const footprint = document.createElement('div');
       footprint.className = 'footprint';
 
-      const x = Math.random() * window.innerWidth;
-      const y = Math.random() * window.innerHeight;
+      const x = 50 + Math.random() * (window.innerWidth - 100);
+      const currentScroll = window.scrollY;
+      const baseY = currentScroll + window.innerHeight / 3 + (i * 80);
 
+      footprint.style.position = 'absolute';
       footprint.style.left = x + 'px';
-      footprint.style.top = y + 'px';
+      footprint.style.top = baseY + 'px';
 
       container.appendChild(footprint);
 
@@ -9090,7 +9091,7 @@ function renderDealerPage() {
     <div class="dealer-content">
       <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShadowyDealer.png" alt="Shadowy Dealer" class="dealer-image">
       <div class="dealer-buttons">
-        <button class="dealer-btn" onclick="window.state.tab = 'shop'; window.state.modal = null; window.render();">Run Away!</button>
+        <button class="dealer-btn" onclick="window.state.tab = 'news'; window.state.modal = null; window.render();">Run Away!</button>
         <button class="dealer-btn pay" onclick="window.payDealer();">Pay 3000g for Access</button>
       </div>
     </div>
@@ -9113,7 +9114,7 @@ async function payDealer() {
   if (data.success) {
     alert(data.message);
     await loadProfile();
-    state.tab = 'shop';
+    state.tab = 'news';
     state.modal = null;
     render();
     startFootprintTrail();
