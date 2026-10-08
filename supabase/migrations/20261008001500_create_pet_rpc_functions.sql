@@ -302,7 +302,7 @@ RETURNS jsonb AS $$
 DECLARE
   has_access BOOLEAN;
 BEGIN
-  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE user_id = user_id)
+  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE public.mystery_trader_access.user_id = user_id)
   INTO has_access;
 
   RETURN jsonb_build_object(
@@ -378,7 +378,7 @@ DECLARE
   has_access BOOLEAN;
 BEGIN
   -- Check trader access
-  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE user_id = user_id)
+  SELECT EXISTS(SELECT 1 FROM public.mystery_trader_access WHERE public.mystery_trader_access.user_id = user_id)
   INTO has_access;
 
   IF NOT has_access THEN
