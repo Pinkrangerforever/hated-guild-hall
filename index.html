@@ -3039,6 +3039,17 @@
     box-shadow: 0 0 20px rgba(207, 154, 68, 0.6);
   }
 
+  .dealer-warning {
+    margin-top: 40px;
+    max-width: 400px;
+    text-align: center;
+    font-size: 14px;
+    color: rgba(207, 154, 68, 0.7);
+    font-style: italic;
+    line-height: 1.6;
+    letter-spacing: 0.05em;
+  }
+
 </style>
 </head>
 <body>
@@ -9209,6 +9220,9 @@ function renderDealerPage() {
       <div class="dealer-buttons">
         <button class="dealer-btn" onclick="window.state.tab = 'news'; window.state.modal = null; window.render();">Run Away!</button>
         <button class="dealer-btn pay" onclick="window.payDealer();">Pay 3000g, for what you're not quite sure...</button>
+      </div>
+      <div class="dealer-warning">
+        Breathe a whisper of my existence to your peers, and my market closes to you forever. Discretion is the price of my stock.
       </div>
     </div>
   `;
