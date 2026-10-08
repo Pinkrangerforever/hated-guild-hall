@@ -2918,7 +2918,7 @@
   /* DEALER SHADOW */
   .dealer-shadow {
     position: fixed;
-    bottom: 30%;
+    bottom: 280px;
     left: 50%;
     transform: translateX(-50%);
     width: 180px;
@@ -2926,7 +2926,7 @@
     background: url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShadowyFace.png') center/contain no-repeat;
     filter: drop-shadow(0 0 30px rgba(128, 0, 255, 0.8)) drop-shadow(0 0 50px rgba(128, 0, 255, 0.5));
     cursor: pointer;
-    z-index: 15;
+    z-index: 20;
     animation: dealerPulse 1.5s ease-in-out infinite;
     pointer-events: auto;
   }
@@ -3028,7 +3028,6 @@
 <body>
 <!-- FOOTPRINT TRAIL SYSTEM -->
 <div id="footprint-trail-container"></div>
-<div id="dealer-shadow" class="dealer-shadow" style="display:none;"></div>
 
 <!-- STICKY NAVIGATION BAR -->
 <nav id="top-nav" class="top-nav">
@@ -9035,9 +9034,6 @@ function bindApp(){
 let footprintIntervalId = null;
 
 function spawnFootprintSet() {
-  const container = document.getElementById('footprint-trail-container');
-  if (!container) return;
-
   for (let i = 0; i < 3; i++) {
     setTimeout(() => {
       const footprint = document.createElement('div');
@@ -9047,11 +9043,11 @@ function spawnFootprintSet() {
       const currentScroll = window.scrollY;
       const baseY = currentScroll + window.innerHeight / 3 + (i * 80);
 
-      footprint.style.position = 'absolute';
+      footprint.style.position = 'fixed';
       footprint.style.left = x + 'px';
       footprint.style.top = baseY + 'px';
 
-      container.appendChild(footprint);
+      document.body.appendChild(footprint);
 
       setTimeout(() => footprint.remove(), 2000);
     }, i * 1500);
@@ -9059,8 +9055,14 @@ function spawnFootprintSet() {
 }
 
 function spawnDealerShadow() {
-  const shadow = document.getElementById('dealer-shadow');
-  if (!shadow) return;
+  // Create shadow element if it doesn't exist
+  let shadow = document.getElementById('dealer-shadow');
+  if (!shadow) {
+    shadow = document.createElement('div');
+    shadow.id = 'dealer-shadow';
+    shadow.className = 'dealer-shadow';
+    document.body.appendChild(shadow);
+  }
 
   shadow.style.display = 'block';
   shadow.onclick = () => {
