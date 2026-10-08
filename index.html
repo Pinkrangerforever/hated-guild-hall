@@ -6281,6 +6281,8 @@ function bindLanding(){
   if(navBtn) navBtn.addEventListener('click', signInWithDiscord);
   const heroBtn = document.getElementById('hero-signin-btn');
   if(heroBtn) heroBtn.addEventListener('click', signInWithDiscord);
+  const mobileBtn = document.getElementById('discord-signin-btn-mobile');
+  if(mobileBtn) mobileBtn.addEventListener('click', signInWithDiscord);
   document.querySelectorAll('a[href="#signin"]').forEach(a=>{
     a.addEventListener('click', (ev)=>{
       ev.preventDefault();
