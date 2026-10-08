@@ -6425,6 +6425,8 @@ function render(){
   updateActiveNavLink();
   startEmberEffects();
   document.body.classList.add('bg-ready');
+  // Check footprint visibility based on current page
+  startFootprintTrail();
 }
 
 function renderLanding(){
@@ -9151,11 +9153,25 @@ function shouldShowFootprints() {
   return true;
 }
 
+function stopFootprintTrail() {
+  // Clear any existing footprints from the DOM
+  document.querySelectorAll('.footprint').forEach(fp => fp.remove());
+
+  // Clear any existing shadow
+  const shadow = document.getElementById('dealer-shadow');
+  if (shadow) shadow.style.display = 'none';
+
+  // Stop the trail interval
+  if (footprintIntervalId) {
+    clearTimeout(footprintIntervalId);
+    footprintIntervalId = null;
+  }
+}
+
 function startFootprintTrail() {
   // Don't start trail if conditions aren't met
   if (!shouldShowFootprints()) {
-    // Stop any existing trail
-    if (footprintIntervalId) clearTimeout(footprintIntervalId);
+    stopFootprintTrail();
     return;
   }
 
