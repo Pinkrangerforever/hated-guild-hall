@@ -9245,10 +9245,10 @@ function renderDealerPage() {
 }
 
 async function payDealer() {
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await sb.auth.getUser();
   if (authError || !user) return alert('Not authenticated');
 
-  const { data, error } = await supabase.rpc('pay_mysterious_trader', {
+  const { data, error } = await sb.rpc('pay_mysterious_trader', {
     user_id: user.id
   });
 
