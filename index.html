@@ -2926,6 +2926,11 @@
     cursor: pointer;
     z-index: 100;
     pointer-events: auto;
+    transition: transform 0.3s ease;
+  }
+
+  .dealer-shadow:hover {
+    transform: translateX(calc(-50% + 275px)) scale(1.15);
   }
 
   .dealer-shadow img {
@@ -2935,6 +2940,11 @@
     opacity: 0.4;
     filter: drop-shadow(0 0 15px rgba(128, 0, 255, 0.4)) drop-shadow(0 0 25px rgba(128, 0, 255, 0.25));
     animation: shadowFadeInOut 10s ease-in-out forwards;
+    transition: filter 0.3s ease;
+  }
+
+  .dealer-shadow:hover img {
+    filter: drop-shadow(0 0 20px rgba(128, 0, 255, 0.7)) drop-shadow(0 0 35px rgba(128, 0, 255, 0.5));
   }
 
   @keyframes dealerPulse {
