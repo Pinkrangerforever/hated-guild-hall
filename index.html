@@ -1918,19 +1918,16 @@
   }
   .coming-up-title{
     font-family:'Segoe UI', Roboto, sans-serif; font-size:13px; font-weight:600; color:#ffffff;
-    margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.2;
+    margin-bottom:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.2;
+  }
+  .coming-up-footer{
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
   }
   .coming-up-date{
     font-size:11px; color:#a0a8ae; font-weight:400;
   }
   .coming-up-countdown{
-    flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:2px;
-  }
-  .coming-up-days{
     font-size:12px; font-weight:700; color:#cf9a44; line-height:1;
-  }
-  .coming-up-countdown-date{
-    font-size:10px; color:#a0a8ae; line-height:1;
   }
 
   .leaderboard-entry{
@@ -7630,11 +7627,10 @@ function renderComingUp(disableClicks = false){
         <div class="coming-up-icon"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ScrollIcon.png" alt="Event" style="width:28px; height:28px;"></div>
         <div class="coming-up-content">
           <div class="coming-up-title">${esc(ev.title)}</div>
-          <div class="coming-up-date">${dateStr}</div>
-        </div>
-        <div class="coming-up-countdown">
-          <div class="coming-up-days">in ${daysUntil}d</div>
-          <div class="coming-up-countdown-date">${dateStr}</div>
+          <div class="coming-up-footer">
+            <span class="coming-up-date">${dateStr}</span>
+            <span class="coming-up-countdown">in ${daysUntil}d</span>
+          </div>
         </div>
       </div>
     `;
