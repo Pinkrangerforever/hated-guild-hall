@@ -4182,10 +4182,12 @@ async function loadProfile(){
   const { data } = await sb.from('profiles').select('*').eq('id', state.session.user.id).maybeSingle();
   state.profile = data || null;
 
-  // Check if user has trader access
+  // Check if user has trader access via RPC
   if (state.profile && state.session) {
-    const { data: traderData } = await sb.from('mystery_trader_access').select('user_id').eq('user_id', state.session.user.id).maybeSingle();
-    state.profile.has_trader_access = !!traderData;
+    const { data: accessCheck } = await sb.rpc('check_trader_access', {
+      user_id: state.session.user.id
+    });
+    state.profile.has_trader_access = accessCheck?.has_access || false;
   }
 }
 
@@ -9261,12 +9263,14 @@ async function payDealer() {
 
   if (data.success) {
     alert(data.message);
-    await loadProfile();
-    state.profile.has_trader_access = true;
+    // Check and set trader access flag
+    const { data: accessCheck } = await sb.rpc('check_trader_access', {
+      user_id: state.session.user.id
+    });
+    state.profile.has_trader_access = accessCheck?.has_access || false;
     state.tab = 'news';
     state.modal = null;
     render();
-    // Footprints won't show since has_trader_access is now true
     startFootprintTrail();
   } else {
     alert('Error: ' + (data.error || 'Unknown error'));
