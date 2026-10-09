@@ -9462,6 +9462,11 @@ function openPetCard(petId){
   const pet = state.profile.pets.find(p => p.id === petId);
   if(!pet) return;
 
+  // CRITICAL: Never auto-open naming modal - it should only appear when egg countdown reaches 0
+  // If naming modal is open, close it (prevents accidental auto-trigger)
+  const namingModal = document.getElementById('pet-naming-modal');
+  if(namingModal) namingModal.style.display = 'none';
+
   state.currentPetId = petId;
   const modal = document.getElementById('pet-card-modal');
   const container = document.getElementById('pet-card-container');
@@ -9544,6 +9549,11 @@ async function hatchPetEgg(petId){
 }
 
 function showPetNamingModal(petId){
+  // CRITICAL: Only show naming modal if pet card widget is actually visible
+  // This prevents auto-triggering naming modal on page load or entry page
+  const petCardWidget = document.getElementById('pet-card-widget');
+  if(!petCardWidget || petCardWidget.style.display === 'none') return;
+
   const modal = document.getElementById('pet-naming-modal');
   if(modal){
     modal.style.display = 'flex';
@@ -9667,6 +9677,9 @@ async function loadPets(){
   const { data, error } = await sb.from('pets').select('*').eq('user_id', state.profile.id).order('created_at', { ascending: false });
   if(!error && data){
     state.profile.pets = data;
+    // CRITICAL: NEVER auto-open naming modal on page load
+    // Naming modal should ONLY appear when egg actually hatches (countdown reaches 0)
+    // NOT just because a pet exists in database with status='juvenile'
   }
 }
 
