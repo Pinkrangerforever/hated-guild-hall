@@ -5535,12 +5535,10 @@ async function purchaseShopItem(itemId){
 async function purchasePetEgg(itemId){
   const item = state.shopItems.find(i=>i.id === itemId);
   if(!item || item.category !== 'pet_egg'){ showToast('Invalid item', true); return; }
-  const gold = state.profile ? (state.profile.gold||0) : 0;
-  if(gold < item.cost){ showToast("You don't have enough gold", true); return; }
-  const { data, error } = await sb.rpc('purchase_pet_egg', { p_pet_type: item.metadata.pet_type, p_egg_cost: item.cost });
+  const { data, error } = await sb.rpc('purchase_pet_egg', { p_user_id: state.profile.id, p_pet_type: item.metadata.pet_type, p_egg_cost: item.cost });
   if(error || !data){ showToast("Couldn't purchase egg  try again", true); return; }
   if(!data.success){ showToast(data.error || 'Purchase failed', true); return; }
-  state.profile.gold -= item.cost;
+  if(state.profile) state.profile.gold = data.new_gold;
   if(!state.profile.pets) state.profile.pets = [];
   state.profile.pets.push({ id: data.pet_id, user_id: state.profile.id, pet_type: data.pet_type, status: 'egg', hatch_time: data.hatch_time_ms, exp: 0, level: 1, name: null, last_pet_action_time: null });
   showToast('Gryphon Egg purchased! It will hatch in 24 hours.');
@@ -9508,12 +9506,12 @@ function updateButtonStates(){
 }
 
 async function handlePetButton(){
-  if(!state.currentPetId){
+  if(!state.currentPetId || !state.profile){
     showToast('No pet selected', true);
     return;
   }
 
-  const { data, error } = await sb.rpc('pet_action', { p_pet_id: state.currentPetId });
+  const { data, error } = await sb.rpc('pet_action', { p_user_id: state.profile.id, p_pet_id: state.currentPetId });
   if(error || !data || !data.success){
     showToast(data?.error || 'Pet action failed', true);
     return;
@@ -9530,7 +9528,7 @@ async function handlePetButton(){
 }
 
 async function handleFeedButton(){
-  if(!state.currentPetId){
+  if(!state.currentPetId || !state.profile){
     showToast('No pet selected', true);
     return;
   }
@@ -9541,7 +9539,7 @@ async function handleFeedButton(){
     return;
   }
 
-  const { data, error } = await sb.rpc('feed_pet', { p_pet_id: state.currentPetId });
+  const { data, error } = await sb.rpc('feed_pet', { p_user_id: state.profile.id, p_pet_id: state.currentPetId });
   if(error || !data || !data.success){
     showToast(data?.error || 'Feeding failed', true);
     return;
