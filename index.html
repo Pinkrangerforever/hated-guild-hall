@@ -4184,7 +4184,7 @@ async function loadProfile(){
 
   // Check if user has trader access
   if (state.profile && state.session) {
-    const { data: traderData } = await sb.from('mystery_trader_access').select('id').eq('user_id', state.session.user.id).maybeSingle();
+    const { data: traderData } = await sb.from('mystery_trader_access').select('user_id').eq('user_id', state.session.user.id).maybeSingle();
     state.profile.has_trader_access = !!traderData;
   }
 }
