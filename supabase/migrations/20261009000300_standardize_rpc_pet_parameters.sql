@@ -3,7 +3,8 @@
 -- Date: 2026-10-09
 
 -- Fix feed_pet with p_ prefixes
-CREATE OR REPLACE FUNCTION public.feed_pet(p_user_id UUID, p_pet_id UUID)
+DROP FUNCTION IF EXISTS public.feed_pet(UUID, UUID);
+CREATE FUNCTION public.feed_pet(p_user_id UUID, p_pet_id UUID)
 RETURNS jsonb AS $$
 DECLARE
   v_user_id UUID := p_user_id;
@@ -32,7 +33,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Fix pet_action with p_ prefixes
-CREATE OR REPLACE FUNCTION public.pet_action(p_user_id UUID, p_pet_id UUID)
+DROP FUNCTION IF EXISTS public.pet_action(UUID, UUID);
+CREATE FUNCTION public.pet_action(p_user_id UUID, p_pet_id UUID)
 RETURNS jsonb AS $$
 DECLARE
   v_user_id UUID := p_user_id;
@@ -65,7 +67,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Fix hatch_egg with p_ prefixes
-CREATE OR REPLACE FUNCTION public.hatch_egg(p_pet_id UUID)
+DROP FUNCTION IF EXISTS public.hatch_egg(UUID);
+CREATE FUNCTION public.hatch_egg(p_pet_id UUID)
 RETURNS jsonb AS $$
 DECLARE
   v_pet_id UUID := p_pet_id;
@@ -81,7 +84,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Fix name_pet with p_ prefixes
-CREATE OR REPLACE FUNCTION public.name_pet(p_pet_id UUID, p_name TEXT)
+DROP FUNCTION IF EXISTS public.name_pet(UUID, TEXT);
+CREATE FUNCTION public.name_pet(p_pet_id UUID, p_name TEXT)
 RETURNS jsonb AS $$
 DECLARE
   v_pet_id UUID := p_pet_id;

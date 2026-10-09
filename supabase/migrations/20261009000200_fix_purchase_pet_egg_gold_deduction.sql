@@ -2,7 +2,9 @@
 -- Purpose: Ensure gold is deducted when purchasing pet egg
 -- Date: 2026-10-09
 
-CREATE OR REPLACE FUNCTION public.purchase_pet_egg(p_user_id UUID, p_pet_type TEXT, p_egg_cost INTEGER)
+DROP FUNCTION IF EXISTS public.purchase_pet_egg(UUID, TEXT, INTEGER);
+
+CREATE FUNCTION public.purchase_pet_egg(p_user_id UUID, p_pet_type TEXT, p_egg_cost INTEGER)
 RETURNS jsonb AS $$
 DECLARE
   v_user_id UUID := p_user_id;

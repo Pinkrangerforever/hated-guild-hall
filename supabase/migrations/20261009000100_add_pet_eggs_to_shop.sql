@@ -1,7 +1,11 @@
--- Migration: Add Gryphon Egg to shop
--- Purpose: Add purchasable Gryphon egg (only visible if user has trader access)
+-- Migration: Add pet eggs to shop
+-- Purpose: Add purchasable pet eggs (only visible if user has trader access)
 -- Date: 2026-10-09
 
+-- Drop the existing category check constraint (it's too restrictive for new pet_egg category)
+ALTER TABLE public.shop_items DROP CONSTRAINT IF EXISTS shop_items_category_check CASCADE;
+
+-- Insert Gryphon pet egg
 INSERT INTO public.shop_items (name, description, cost, category, metadata, sort_order, active)
 VALUES
   (
