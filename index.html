@@ -10206,6 +10206,7 @@ async function handleFeedButton(){
     state.profile.food = data.food_remaining;
     updateNavbarUserInfo();
     celebratePet('🍗');
+    petSquawk();
     applyPetResult(pet, data);
     showToast(`+10 EXP, -${PET_FEED_COST} Food`);
   } finally {
