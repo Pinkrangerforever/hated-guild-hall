@@ -9372,7 +9372,6 @@ const petUI = {
   expanded: false,
   busy: false,
   hatchInFlight: false,
-  hatchRetryAt: 0,
   displayMode: null
 };
 
@@ -9786,37 +9785,72 @@ function updatePetDisplay(){
 
 function updateHatchCountdown(){
   const pet = getCurrentPet();
-  if(!pet || pet.status !== 'egg') return;
-  const timeLeft = pet.hatch_time - Date.now();
-  const el = document.getElementById('hatch-countdown');
-  if(el) el.textContent = timeLeft > 0 ? formatDuration(timeLeft) : 'Hatching...';
-
-  // Only hatch while the card is open, so the naming popup appears in front of the player
-  if(timeLeft <= 0 && petUI.expanded && !petUI.hatchInFlight && Date.now() >= petUI.hatchRetryAt){
-    hatchPetEgg(pet.id);
+  const display = document.getElementById('pet-display');
+  if(!pet || pet.status !== 'egg'){
+    display?.classList.remove('hatch-ready');
+    return;
   }
+  const timeLeft = pet.hatch_time - Date.now();
+  const ready = timeLeft <= 0;
+  display?.classList.toggle('hatch-ready', ready && !petUI.hatchInFlight);
+  const label = document.querySelector('#pet-hatching-overlay .label');
+  const el = document.getElementById('hatch-countdown');
+  if(label) label.textContent = ready ? 'Your egg is ready!' : 'Egg hatching in';
+  if(el) el.textContent = ready ? (petUI.hatchInFlight ? 'Hatching...' : 'Click the egg to hatch!') : formatDuration(timeLeft);
 }
 
+// Player clicks the egg once the timer is done
+function handlePetDisplayClick(){
+  const pet = getCurrentPet();
+  if(!pet || pet.status !== 'egg' || petUI.hatchInFlight) return;
+  if(pet.hatch_time > Date.now()) return;
+  hatchPetEgg(pet.id);
+}
+
+const petWait = ms => new Promise(r => setTimeout(r, ms));
+
+// Shake -> golden flash -> swap to the hatched model under the light -> fade -> name popup
 async function hatchPetEgg(petId){
+  const display = document.getElementById('pet-display');
+  const flash = document.getElementById('pet-hatch-flash');
   petUI.hatchInFlight = true;
+  updateHatchCountdown();
+  display.classList.add('hatch-shake');
   try {
-    const { data, error } = await sb.rpc('hatch_egg', { p_pet_id: petId });
     const pet = getMyPets().find(p => p.id === petId);
+    const hatchedModel = petModelFor({ pet_type: pet?.pet_type || 'gryphon', status: 'juvenile' });
+    // Server hatch, the shake, and the juvenile model download all run together
+    const [result] = await Promise.all([
+      sb.rpc('hatch_egg', { p_pet_id: petId }),
+      petWait(900),
+      hatchedModel ? getPetModel(hatchedModel).catch(() => null) : null
+    ]);
+    const { data, error } = result;
+    display.classList.remove('hatch-shake');
+
     if(error || !data || !data.success){
-      // Server clock says not yet: resync our countdown and try again later
+      // Server clock says not yet: resync the countdown
       if(pet && data && data.ms_remaining) pet.hatch_time = Date.now() + data.ms_remaining;
-      petUI.hatchRetryAt = Date.now() + 15000;
+      showToast(data?.error || 'The egg wiggles... but nothing happens. Try again in a moment.', true);
       return;
     }
+
+    flash.classList.add('on');
+    await petWait(450); // light fully covers the egg
     if(pet){
       pet.status = 'juvenile';
       pet.hatched_at = new Date().toISOString();
     }
-    refreshPetWidget();
+    refreshPetWidget(); // swaps to the juvenile model underneath the flash
+    await petWait(400);
+    flash.classList.remove('on');
     celebratePet('🎉');
+    await petWait(700);
     showPetNamingModal(petId);
   } finally {
+    display.classList.remove('hatch-shake');
     petUI.hatchInFlight = false;
+    updateHatchCountdown();
   }
 }
 
@@ -9979,6 +10013,7 @@ function initPetWidget(){
   document.getElementById('pet-button').addEventListener('click', handlePetButton);
   document.getElementById('feed-button').addEventListener('click', handleFeedButton);
   document.getElementById('pet-shop-button').addEventListener('click', () => { closePetCard(); openShop(); });
+  document.getElementById('pet-display').addEventListener('click', handlePetDisplayClick);
   document.getElementById('pet-tabs').addEventListener('click', (e) => {
     const tab = e.target.closest('.pet-tab');
     if(tab) selectPet(tab.dataset.petId);
@@ -10081,6 +10116,19 @@ boot();
   #pet-hatching-overlay{ position:absolute; left:0; right:0; top:5px; display:none; justify-content:center; align-items:baseline; gap:6px; pointer-events:none; text-shadow:0 1px 3px #000; }
   #pet-hatching-overlay .label{ font-size:11px; font-family:system-ui, sans-serif; }
   #hatch-countdown{ font-size:15px; font-weight:700; }
+  #pet-display.hatch-ready{ cursor:pointer; animation:petHatchReady 1.6s ease-in-out infinite; }
+  #pet-display.hatch-ready #hatch-countdown{ color:#fff3c4; }
+  @keyframes petHatchReady{ 0%,100%{ box-shadow:inset 0 0 10px rgba(255,215,0,0.25); } 50%{ box-shadow:inset 0 0 26px rgba(255,215,0,0.75); } }
+  #pet-display.hatch-shake #pet-model-canvas{ animation:petEggShake 0.9s ease-in-out; }
+  @keyframes petEggShake{
+    0%,100%{ transform:rotate(0); } 10%{ transform:rotate(-5deg); } 20%{ transform:rotate(5deg); } 30%{ transform:rotate(-7deg); }
+    40%{ transform:rotate(7deg); } 50%{ transform:rotate(-9deg) scale(1.03); } 60%{ transform:rotate(9deg) scale(1.03); }
+    70%{ transform:rotate(-6deg) scale(1.05); } 80%{ transform:rotate(6deg) scale(1.05); } 90%{ transform:rotate(-3deg) scale(1.07); }
+  }
+  #pet-hatch-flash{ position:absolute; inset:-20%; z-index:3; pointer-events:none; opacity:0;
+    background:radial-gradient(circle at 50% 55%, #ffffff 0%, #fff4c9 22%, rgba(255,215,100,0.85) 45%, rgba(255,190,60,0.35) 65%, rgba(255,190,60,0) 80%);
+    transform:scale(0.4); transition:opacity 0.9s ease-out, transform 0.9s ease-out; }
+  #pet-hatch-flash.on{ opacity:1; transform:scale(1.15); transition:opacity 0.4s ease-in, transform 0.4s ease-in; }
   .pet-burst{ position:absolute; bottom:12px; pointer-events:none; animation:petBurst 1.6s ease-out forwards; opacity:0; color:#ff6b8a; }
   @keyframes petBurst{ 0%{ transform:translateY(0) scale(0.6); opacity:0; } 20%{ opacity:1; } 100%{ transform:translateY(-110px) scale(1.2); opacity:0; } }
 
@@ -10130,6 +10178,7 @@ boot();
     <div id="pet-display">
       <div id="pet-model-canvas"></div>
       <img id="pet-portrait" src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GryphonIcon.png" alt="Your gryphon">
+      <div id="pet-hatch-flash"></div>
       <div id="pet-hatching-overlay">
         <div class="label">Egg hatching in</div>
         <div id="hatch-countdown">--:--:--</div>
