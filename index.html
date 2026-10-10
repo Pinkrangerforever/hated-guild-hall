@@ -2044,6 +2044,11 @@
   .sticker-shop-card{ text-align:center; }
   .shop-sticker-preview{ width:100%; aspect-ratio:1; object-fit:cover; border-radius:3px; margin-bottom:8px; }
   .shop-preview-thumbnail{ width:100%; height:80px; object-fit:cover; border-radius:3px; margin-bottom:8px; display:block; }
+  .shop-egg-3d{ position:relative; width:100%; height:80px; margin-bottom:8px; overflow:hidden; border-radius:8px; border:2px solid #d4af37;
+    background:radial-gradient(circle, #8b6f47, #5a4a30); box-shadow:inset 0 0 10px rgba(212,175,55,0.3); }
+  .shop-egg-3d canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; display:block; }
+  .shop-egg-fallback{ display:flex; align-items:center; justify-content:center; height:100%; font-size:36px; }
+  .shop-egg-3d.loaded .shop-egg-fallback{ display:none; }
   /* Realistic cork board */
   .corkboard{
     padding:0; border-radius:0;
@@ -7068,8 +7073,8 @@ function renderShopModal(){
         <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Purchase an egg and raise your companion. Eggs hatch in 24 hours.</p>
         <div class="shop-grid">${petEggItems.map(item=>`
           <div class="shop-card">
-            <div style="width:100%; height:80px; background:radial-gradient(circle, #8b6f47, #5a4a30); border-radius:8px; margin-bottom:8px; display:flex; align-items:center; justify-content:center; border:2px solid #d4af37; box-shadow:inset 0 0 10px rgba(212,175,55,0.3);">
-              <div style="font-size:36px;">🥚</div>
+            <div class="shop-egg-3d" data-egg-3d="${esc(item.metadata?.pet_type || 'gryphon')}">
+              <div class="shop-egg-fallback">🥚</div>
             </div>
             <div class="shop-card-name">${esc(item.name)}</div>
             <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
@@ -9041,6 +9046,7 @@ function bindApp(){
   if(shopBtnMobile) shopBtnMobile.addEventListener('click', ()=>{ state.mobileNavOpen = false; openShop(); });
   document.querySelectorAll('[data-buy-shop-item]').forEach(b=>b.addEventListener('click', ()=>purchaseShopItem(b.dataset.buyShopItem)));
   document.querySelectorAll('[data-buy-pet-egg]').forEach(b=>b.addEventListener('click', ()=>purchasePetEgg(b.dataset.buyPetEgg)));
+  mountShopEggViewers();
   document.querySelectorAll('[data-move-shop-item]').forEach(b=>b.addEventListener('click', ()=>moveShopItem(b.dataset.moveShopItem, b.dataset.direction)));
   document.querySelectorAll('[data-refund-purchase]').forEach(b=>b.addEventListener('click', ()=>refundPurchase(b.dataset.refundPurchase, b.dataset.refundName)));
   document.querySelectorAll('[data-buy-rank]').forEach(b=>b.addEventListener('click', ()=>purchaseRank(b.dataset.buyRank)));
@@ -9412,23 +9418,89 @@ async function init3DViewer(){
   }
 }
 
-async function loadOBJModel(objUrl, mtlUrl){
-  return new Promise((resolve, reject) => {
-    const mtlLoader = new THREE.MTLLoader();
-    mtlLoader.load(mtlUrl, (materials) => {
-      materials.preload();
-      const objLoader = new THREE.OBJLoader();
-      objLoader.setMaterials(materials);
-      objLoader.load(objUrl, (object) => {
-        if(!model3D.scene) return resolve(); // disposed while loading
-        if(model3D.model) model3D.scene.remove(model3D.model);
-        model3D.model = object;
-        model3D.model.scale.set(1, 1, 1);
-        model3D.model.position.set(0, 0, 0);
-        model3D.scene.add(model3D.model);
-        resolve();
+// Download + parse each OBJ/MTL once; every viewer gets its own clone
+const petModelCache = {};
+function getPetModel(objUrl, mtlUrl){
+  if(!petModelCache[objUrl]){
+    petModelCache[objUrl] = new Promise((resolve, reject) => {
+      const mtlLoader = new THREE.MTLLoader();
+      mtlLoader.load(mtlUrl, (materials) => {
+        materials.preload();
+        const objLoader = new THREE.OBJLoader();
+        objLoader.setMaterials(materials);
+        objLoader.load(objUrl, resolve, undefined, reject);
       }, undefined, reject);
-    }, undefined, reject);
+    }).catch(err => { delete petModelCache[objUrl]; throw err; });
+  }
+  return petModelCache[objUrl].then(obj => obj.clone());
+}
+
+async function loadOBJModel(objUrl, mtlUrl){
+  const object = await getPetModel(objUrl, mtlUrl);
+  if(!model3D.scene) return; // disposed while loading
+  if(model3D.model) model3D.scene.remove(model3D.model);
+  model3D.model = object;
+  model3D.model.scale.set(1, 1, 1);
+  model3D.model.position.set(0, 0, 0);
+  model3D.scene.add(model3D.model);
+}
+
+/* ---------------- Shop egg previews ----------------
+   The shop is rebuilt by render(), so each preview keeps one renderer/canvas and
+   re-attaches it to the new placeholder after every render (no new WebGL contexts). */
+const PET_EGG_MODELS = {
+  gryphon: { obj: PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.obj', mtl: PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.mtl' }
+};
+const shopEggViewers = {};
+
+function mountShopEggViewers(){
+  if(typeof THREE === 'undefined') return;
+  document.querySelectorAll('[data-egg-3d]').forEach(slot => {
+    const petType = slot.dataset.egg3d;
+    const model = PET_EGG_MODELS[petType];
+    if(!model) return;
+
+    let viewer = shopEggViewers[petType];
+    if(!viewer){
+      viewer = shopEggViewers[petType] = { failed: false, ready: false, raf: null };
+      viewer.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      viewer.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      viewer.scene = new THREE.Scene();
+      viewer.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+      viewer.camera.position.set(0, 0, 150);
+      const light = new THREE.DirectionalLight(0xffffff, 1);
+      light.position.set(5, 5, 5);
+      viewer.scene.add(light, new THREE.AmbientLight(0xffffff, 0.6));
+      getPetModel(model.obj, model.mtl).then(obj => {
+        viewer.model = obj;
+        viewer.scene.add(obj);
+        viewer.ready = true;
+        mountShopEggViewers();
+      }).catch(err => {
+        console.error('Shop egg model failed to load:', err);
+        viewer.failed = true;
+      });
+    }
+    if(viewer.failed || !viewer.ready) return; // keep the emoji fallback
+
+    const canvas = viewer.renderer.domElement;
+    if(canvas.parentNode !== slot) slot.appendChild(canvas);
+    slot.classList.add('loaded');
+    const w = slot.clientWidth || 160, h = slot.clientHeight || 80;
+    viewer.renderer.setSize(w, h, false);
+    viewer.camera.aspect = w / h;
+    viewer.camera.updateProjectionMatrix();
+
+    if(!viewer.raf){
+      const tick = () => {
+        // Stop when the shop closes; the next mount restarts it
+        if(!document.body.contains(canvas)){ viewer.raf = null; return; }
+        viewer.model.rotation.y += 0.008;
+        viewer.renderer.render(viewer.scene, viewer.camera);
+        viewer.raf = requestAnimationFrame(tick);
+      };
+      viewer.raf = requestAnimationFrame(tick);
+    }
   });
 }
 
