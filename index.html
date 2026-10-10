@@ -1703,6 +1703,7 @@
     display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:700; color:#f0dfb4;
     background:linear-gradient(135deg, rgba(50,50,50,0.95) 0%, rgba(40,40,40,1) 100%); border:1px solid rgba(207,154,68,0.6); border-radius:12px; padding:4px 10px;
   }
+  .nav-food-badge:empty{ display:none; }
 
   /* ---- murloc ambush sub-event ---- */
   @keyframes murlocLifecycle{
@@ -3098,6 +3099,7 @@
       <div id="nav-user-info" class="nav-user-info" style="display:none;">
         <span id="nav-username" class="nav-username">Loading...</span>
         <span id="nav-gold-badge" class="nav-gold-badge"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:4px;"> 0</span>
+        <span id="nav-food-badge" class="nav-gold-badge nav-food-badge" title="Food"></span>
       </div>
       <button id="layout-lock-btn" class="nav-action-btn" title="Toggle Layout Lock" style="display:none;">Layout</button>
       <button id="reset-member-btn" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
@@ -3142,6 +3144,7 @@
     <div id="mobile-user-info" class="nav-user-info">
       <span id="mobile-username" class="nav-username">Loading...</span>
       <span id="mobile-gold-badge" class="nav-gold-badge"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:4px;"> 0</span>
+      <span id="mobile-food-badge" class="nav-gold-badge nav-food-badge" title="Food"></span>
     </div>
     <button id="layout-lock-btn-mobile" class="nav-action-btn" title="Toggle Layout Lock">Layout</button>
     <button id="reset-member-btn-mobile" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
@@ -3278,6 +3281,17 @@ function updateNavbarUserInfo(){
   const mobileGold = document.getElementById('mobile-gold-badge');
   if(mobileUsername) mobileUsername.textContent = `${username} ${rankBadge}`.trim();
   if(mobileGold) mobileGold.innerHTML = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:4px;"> ${gold}`;
+
+  const foodHtml = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/FoodIcon.png" alt="Food" style="width:28px; height:28px; vertical-align:middle; margin-right:4px;"> ${state.profile.food || 0}`;
+  const navFood = document.getElementById('nav-food-badge');
+  const mobileFood = document.getElementById('mobile-food-badge');
+  if(navFood) navFood.innerHTML = foodHtml;
+  if(mobileFood) mobileFood.innerHTML = foodHtml;
+}
+
+// Gold icon for prices/balances (replaces the money-bag emoji so it matches the navbar)
+function goldIconHtml(size = 18){
+  return `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:${size}px; height:${size}px; vertical-align:middle;">`;
 }
 
 /* ---- reused helpers (icons, dates, rich text, nav) ---- */
@@ -4783,8 +4797,7 @@ async function claimSparkle(el){
       const awarded = data.awarded;
       state.profile.gold = data.total || (state.profile.gold + awarded);
 
-      const goldBadge = document.querySelector('.nav-gold-badge');
-      if(goldBadge) goldBadge.textContent = ' ' + (state.profile.gold || 0);
+      updateNavbarUserInfo();
 
       if(awarded > 0){
         showGoldFloat(rect.left + rect.width/2, rect.top, awarded);
@@ -4868,14 +4881,14 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
 
     if(won && state.profile){
       state.profile.gold = data.total;
-      const goldBadge = document.querySelector('.nav-gold-badge');
-      if(goldBadge) goldBadge.textContent = ' ' + data.total;
+      updateNavbarUserInfo();
       if(data.awarded !== undefined && data.awarded > 0){
         showGoldFloat(x, y, data.awarded);
       }
       // Murloc wins also award food (server-side)
       if(data.food_awarded > 0){
         state.profile.food = data.food_total;
+        updateNavbarUserInfo();
         showToast(`+${data.food_awarded} Food for your pet!`);
         refreshPetWidget();
       }
@@ -6902,7 +6915,7 @@ function renderShopModal(){
           <span style="font-size:18px;">${formatLeaderboardRank(index)}</span>
           <span class="gold-text" style="font-weight:600;">${esc(name)}</span>
         </div>
-        <span class="muted sans">&#x1F4B0; ${earnedGold.toLocaleString()}</span>
+        <span class="muted sans">${goldIconHtml()} ${earnedGold.toLocaleString()}</span>
       </div>`;
   }
 
@@ -6933,7 +6946,7 @@ function renderShopModal(){
         <div class="shop-card-name">${esc(item.name)}</div>
         <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
         <div class="shop-card-footer">
-          <span class="nav-gold-badge">&#x1F4B0; ${item.cost}</span>
+          <span class="nav-gold-badge">${goldIconHtml()} ${item.cost}</span>
           ${ officer ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
         </div>
         ${ isRaidLeader ? `
@@ -6965,7 +6978,7 @@ function renderShopModal(){
         <div class="shop-card-name">${esc(item.name)}</div>
         <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
         <div class="shop-card-footer">
-          <span class="nav-gold-badge">&#x1F4B0; ${item.cost}</span>
+          <span class="nav-gold-badge">${goldIconHtml()} ${item.cost}</span>
           ${ officer ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
         </div>
         ${ isRaidLeader ? `
@@ -6996,7 +7009,7 @@ function renderShopModal(){
         <div class="shop-card-name">Rank ${order}: ${esc(item.name)}</div>
         <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
         <div class="shop-card-footer">
-          <span class="nav-gold-badge">&#x1F4B0; ${item.cost}</span>
+          <span class="nav-gold-badge">${goldIconHtml()} ${item.cost}</span>
           ${ officer ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
         </div>
         ${ owned ? `<div class="shop-owned-badge">&#10003; Owned</div>` :
@@ -7013,7 +7026,7 @@ function renderShopModal(){
         <img src="${esc(img.url)}" alt="${esc(img.caption||'')}" class="shop-sticker-preview">
         <div class="shop-card-name">${esc(img.caption||'Sticker')}</div>
         <div class="shop-card-footer">
-          <span class="nav-gold-badge">&#x1F4B0; ${price}</span>
+          <span class="nav-gold-badge">${goldIconHtml()} ${price}</span>
           ${ officer ? `<button class="btn secondary" type="button" data-edit-sticker-price="${img.id}|${price}" style="font-size:11px; padding:4px 8px;">Edit</button>` : '' }
         </div>
         <button class="btn" type="button" data-buy-sticker="${img.id}" ${canAfford?'':'disabled'} style="width:100%; margin-top:10px;">
@@ -7029,7 +7042,7 @@ function renderShopModal(){
         <h3>Reward Shop</h3>
         <button class="modal-x" id="modal-close">&times;</button>
       </div>
-      <div class="nav-gold-badge" style="margin-bottom:16px;">&#x1F4B0; ${gold} gold available</div>
+      <div class="nav-gold-badge" style="margin-bottom:16px;">${goldIconHtml()} ${gold} gold available</div>
 
       ${ state.goldLeaderboard && state.goldLeaderboard.length ? `
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
@@ -7064,7 +7077,7 @@ function renderShopModal(){
             <div class="shop-card-name">${esc(item.name)}</div>
             <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
             <div class="shop-card-footer">
-              <span class="nav-gold-badge">&#x1F4B0; ${item.cost}</span>
+              <span class="nav-gold-badge">${goldIconHtml()} ${item.cost}</span>
             </div>
             <button class="btn" type="button" data-buy-pet-egg="${item.id}" ${gold >= item.cost ? '' : 'disabled'} style="width:100%; margin-top:10px;">
               ${ gold >= item.cost ? 'Purchase Egg' : 'Not enough gold' }
@@ -8477,7 +8490,7 @@ function renderAdmin(){
           <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-input); border-radius:4px;">
             <div style="flex:1;">
               <div style="color:var(--text-normal); font-weight:500;">${displayName}</div>
-              <div style="color:var(--text-muted); font-size:12px;">&#x1F4B0; ${p.cost_paid} gold  ${date}</div>
+              <div style="color:var(--text-muted); font-size:12px;">${goldIconHtml()} ${p.cost_paid} gold  ${date}</div>
             </div>
             <button class="btn-small" data-refund-purchase="${p.id}" data-refund-name="${userName}" style="margin-left:12px;">Refund</button>
           </div>
@@ -9388,7 +9401,7 @@ async function init3DViewer(){
     const width = container.clientWidth || 260;
     const height = container.clientHeight || 130;
 
-    model3D.camera = makePetCamera(width / height);
+    model3D.camera = makePetCamera(width / height, PET_EGG_NEST_MODELS.gryphon.camY);
 
     model3D.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     model3D.renderer.setSize(width, height);
@@ -9400,7 +9413,7 @@ async function init3DViewer(){
     addPetLights(model3D.scene);
 
     model3D.isLoaded = true;
-    await loadOBJModel(PET_EGG_MODELS.gryphon);
+    await loadOBJModel(PET_EGG_NEST_MODELS.gryphon);
     animate3DModel();
   } catch(e) {
     // Usually the R2 bucket's CORS policy blocking the .obj/.mtl - show a 2D egg instead
@@ -9413,19 +9426,26 @@ async function init3DViewer(){
 // Download + parse each OBJ/MTL once; every viewer gets its own clone.
 // WoW exports pack several alternate shells (geosets) into one OBJ, so `keep` picks the
 // meshes to show. The result is centered and scaled to 1 unit so one camera fits every model.
+// Geosets in the gryphon egg OBJ: 0 = white/gold shell, 2 = black overlay, 3 = glow shell,
+// 4-16 = crack pieces, 17 = black ember nest, 18 = stone/gold ember nest
+const GRYPHON_EGG_OBJ = PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.obj';
+const GRYPHON_EGG_MTL = PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.mtl';
 const PET_EGG_MODELS = {
-  gryphon: {
-    obj: PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.obj',
-    mtl: PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.mtl',
-    keep: ['Geoset0'] // white/gold shell (2 = black overlay, 3 = glow shell, 4-16 = crack pieces, 17-18 = base)
-  }
+  gryphon: { obj: GRYPHON_EGG_OBJ, mtl: GRYPHON_EGG_MTL, keep: ['Geoset0'], camY: 0.1 }
+};
+// Pet window shows the egg sitting in its nest
+const PET_EGG_NEST_MODELS = {
+  gryphon: { obj: GRYPHON_EGG_OBJ, mtl: GRYPHON_EGG_MTL, keep: ['Geoset0', 'Geoset18'], camY: 0.5 }
 };
 const PET_CAMERA = { fov: 35, y: 0.1, z: 2.1 };
+const PET_SPIN_PER_FRAME = 0.008; // shared so the shop egg and pet window spin at the same rate
 
+// One download per file; each mesh selection is centered/scaled once and cached
+const petModelFiles = {};
 const petModelCache = {};
-function getPetModel(model){
-  if(!petModelCache[model.obj]){
-    petModelCache[model.obj] = new Promise((resolve, reject) => {
+function loadPetModelFile(model){
+  if(!petModelFiles[model.obj]){
+    petModelFiles[model.obj] = new Promise((resolve, reject) => {
       const mtlLoader = new THREE.MTLLoader();
       mtlLoader.load(model.mtl, (materials) => {
         materials.preload();
@@ -9433,7 +9453,16 @@ function getPetModel(model){
         objLoader.setMaterials(materials);
         objLoader.load(model.obj, resolve, undefined, reject);
       }, undefined, reject);
-    }).then(obj => {
+    }).catch(err => { delete petModelFiles[model.obj]; throw err; });
+  }
+  return petModelFiles[model.obj];
+}
+
+function getPetModel(model){
+  const key = model.obj + '|' + (model.keep || []).join(',');
+  if(!petModelCache[key]){
+    petModelCache[key] = loadPetModelFile(model).then(file => {
+      const obj = file.clone();
       if(model.keep) obj.children.filter(c => !model.keep.includes(c.name)).forEach(c => obj.remove(c));
       const box = new THREE.Box3().setFromObject(obj);
       const size = box.getSize(new THREE.Vector3());
@@ -9442,9 +9471,9 @@ function getPetModel(model){
       pivot.add(obj);
       pivot.scale.setScalar(1 / Math.max(size.x, size.y, size.z, 0.0001));
       return pivot;
-    }).catch(err => { delete petModelCache[model.obj]; throw err; });
+    }).catch(err => { delete petModelCache[key]; throw err; });
   }
-  return petModelCache[model.obj].then(pivot => pivot.clone());
+  return petModelCache[key].then(pivot => pivot.clone());
 }
 
 function addPetLights(scene){
@@ -9453,9 +9482,9 @@ function addPetLights(scene){
   scene.add(light, new THREE.AmbientLight(0xffffff, 0.9));
 }
 
-function makePetCamera(aspect){
+function makePetCamera(aspect, y = PET_CAMERA.y){
   const camera = new THREE.PerspectiveCamera(PET_CAMERA.fov, aspect, 0.01, 100);
-  camera.position.set(0, PET_CAMERA.y, PET_CAMERA.z);
+  camera.position.set(0, y, PET_CAMERA.z);
   camera.lookAt(0, 0, 0);
   return camera;
 }
@@ -9486,7 +9515,7 @@ function mountShopEggViewers(){
       viewer.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       viewer.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       viewer.scene = new THREE.Scene();
-      viewer.camera = makePetCamera(2);
+      viewer.camera = makePetCamera(2, model.camY);
       addPetLights(viewer.scene);
       getPetModel(model).then(obj => {
         viewer.model = obj;
@@ -9512,7 +9541,7 @@ function mountShopEggViewers(){
       const tick = () => {
         // Stop when the shop closes; the next mount restarts it
         if(!document.body.contains(canvas)){ viewer.raf = null; return; }
-        viewer.model.rotation.y += 0.008;
+        viewer.model.rotation.y += PET_SPIN_PER_FRAME;
         viewer.renderer.render(viewer.scene, viewer.camera);
         viewer.raf = requestAnimationFrame(tick);
       };
@@ -9526,10 +9555,7 @@ function animate3DModel(){
 
   model3D.animationId = requestAnimationFrame(animate3DModel);
 
-  if(model3D.model){
-    model3D.model.rotation.y += 0.005;
-    model3D.model.rotation.x = Math.sin(Date.now() * 0.0003) * 0.2;
-  }
+  if(model3D.model) model3D.model.rotation.y += PET_SPIN_PER_FRAME;
 
   model3D.renderer.render(model3D.scene, model3D.camera);
 }
@@ -9804,17 +9830,16 @@ function updateButtonStates(){
   const pet = getCurrentPet();
   if(!pet || pet.status === 'egg') return;
 
-  const petBtn = document.getElementById('pet-button');
-  const petLabel = document.getElementById('pet-button-label');
+  // Runs every second: only touch the DOM when something actually changed
+  const setIfChanged = (el, prop, value) => { if(el && el[prop] !== value) el[prop] = value; };
+
   const timeLeft = PET_COOLDOWN_MS - (Date.now() - (pet.last_pet_action_time || 0));
-  const petReady = timeLeft <= 0 && !petUI.busy;
-  petBtn.disabled = !petReady;
-  petLabel.textContent = timeLeft > 0 ? formatDuration(timeLeft) : '+5 EXP';
+  setIfChanged(document.getElementById('pet-button'), 'disabled', timeLeft > 0 || petUI.busy);
+  setIfChanged(document.getElementById('pet-button-label'), 'textContent', timeLeft > 0 ? formatDuration(timeLeft) : '+5 EXP');
 
   const food = state.profile?.food || 0;
-  const feedBtn = document.getElementById('feed-button');
-  feedBtn.disabled = food < PET_FEED_COST || petUI.busy;
-  document.getElementById('feed-button-label').textContent = `${PET_FEED_COST} food · +10 EXP`;
+  setIfChanged(document.getElementById('feed-button'), 'disabled', food < PET_FEED_COST || petUI.busy);
+  setIfChanged(document.getElementById('feed-button-label'), 'textContent', `${PET_FEED_COST} food · +10 EXP`);
 }
 
 // Apply the server's view of the pet after pet/feed
@@ -9870,6 +9895,7 @@ async function handleFeedButton(){
       return;
     }
     state.profile.food = data.food_remaining;
+    updateNavbarUserInfo();
     celebratePet('🍗');
     applyPetResult(pet, data);
     showToast(`+10 EXP, -${PET_FEED_COST} Food`);
@@ -10031,11 +10057,13 @@ boot();
 
   #pet-action-buttons, #pet-shop-row{ display:grid; gap:6px; }
   #pet-action-buttons{ grid-template-columns:1fr 1fr; margin-bottom:6px; }
-  .pet-img-btn{ position:relative; padding:0; background:none; border:none; cursor:pointer; transition:transform 0.1s, filter 0.2s; }
-  .pet-img-btn img{ display:block; width:100%; height:auto; }
-  .pet-img-btn:hover:not(:disabled){ transform:translateY(-1px); filter:brightness(1.15); }
-  .pet-img-btn:active:not(:disabled){ transform:translateY(1px); }
-  .pet-img-btn:disabled{ cursor:not-allowed; filter:grayscale(0.85) brightness(0.6); }
+  .pet-img-btn{ position:relative; padding:0; background:none; border:none; cursor:pointer; }
+  /* Glow lives on the image and holds for as long as the button is hovered (no movement, so no hover flicker) */
+  .pet-img-btn img{ display:block; width:100%; height:auto; transition:filter 0.15s ease, transform 0.1s ease; }
+  .pet-img-btn:hover:not(:disabled) img{ filter:brightness(1.25) drop-shadow(0 0 8px rgba(255,200,90,0.85)); }
+  .pet-img-btn:active:not(:disabled) img{ transform:scale(0.97); }
+  .pet-img-btn:disabled{ cursor:not-allowed; }
+  .pet-img-btn:disabled img{ filter:grayscale(0.85) brightness(0.6); }
   .pet-img-btn .pet-btn-label{ display:block; margin-top:2px; font-size:10px; text-align:center; color:#c9a85c; font-family:system-ui, sans-serif; }
   #pet-shop-row{ grid-template-columns:1fr; justify-items:center; }
 
