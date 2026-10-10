@@ -9348,9 +9348,7 @@ const PET_ASSETS = {
   feedBtn: PET_R2 + '/FeedButton.png',
   shopBtn: PET_R2 + '/ShopButton.png',
   food: PET_R2 + '/FoodIcon.png',
-  icon: PET_R2 + '/GryphonIcon.png',
-  eggObj: PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.obj',
-  eggMtl: PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.mtl'
+  icon: PET_R2 + '/GryphonIcon.png'
 };
 const PET_COOLDOWN_MS = 3600000;
 const PET_FEED_COST = 5;
@@ -9390,25 +9388,19 @@ async function init3DViewer(){
     const width = container.clientWidth || 260;
     const height = container.clientHeight || 130;
 
-    model3D.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    model3D.camera.position.set(0, 0, 150);
+    model3D.camera = makePetCamera(width / height);
 
     model3D.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     model3D.renderer.setSize(width, height);
-    model3D.renderer.setPixelRatio(window.devicePixelRatio);
+    model3D.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
     container.innerHTML = '';
     container.appendChild(model3D.renderer.domElement);
 
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(5, 5, 5);
-    model3D.scene.add(light);
-
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    model3D.scene.add(ambientLight);
+    addPetLights(model3D.scene);
 
     model3D.isLoaded = true;
-    await loadOBJModel(PET_ASSETS.eggObj, PET_ASSETS.eggMtl);
+    await loadOBJModel(PET_EGG_MODELS.gryphon);
     animate3DModel();
   } catch(e) {
     // Usually the R2 bucket's CORS policy blocking the .obj/.mtl - show a 2D egg instead
@@ -9418,39 +9410,67 @@ async function init3DViewer(){
   }
 }
 
-// Download + parse each OBJ/MTL once; every viewer gets its own clone
+// Download + parse each OBJ/MTL once; every viewer gets its own clone.
+// WoW exports pack several alternate shells (geosets) into one OBJ, so `keep` picks the
+// meshes to show. The result is centered and scaled to 1 unit so one camera fits every model.
+const PET_EGG_MODELS = {
+  gryphon: {
+    obj: PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.obj',
+    mtl: PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.mtl',
+    keep: ['Geoset0'] // white/gold shell (2 = black overlay, 3 = glow shell, 4-16 = crack pieces, 17-18 = base)
+  }
+};
+const PET_CAMERA = { fov: 35, y: 0.1, z: 2.1 };
+
 const petModelCache = {};
-function getPetModel(objUrl, mtlUrl){
-  if(!petModelCache[objUrl]){
-    petModelCache[objUrl] = new Promise((resolve, reject) => {
+function getPetModel(model){
+  if(!petModelCache[model.obj]){
+    petModelCache[model.obj] = new Promise((resolve, reject) => {
       const mtlLoader = new THREE.MTLLoader();
-      mtlLoader.load(mtlUrl, (materials) => {
+      mtlLoader.load(model.mtl, (materials) => {
         materials.preload();
         const objLoader = new THREE.OBJLoader();
         objLoader.setMaterials(materials);
-        objLoader.load(objUrl, resolve, undefined, reject);
+        objLoader.load(model.obj, resolve, undefined, reject);
       }, undefined, reject);
-    }).catch(err => { delete petModelCache[objUrl]; throw err; });
+    }).then(obj => {
+      if(model.keep) obj.children.filter(c => !model.keep.includes(c.name)).forEach(c => obj.remove(c));
+      const box = new THREE.Box3().setFromObject(obj);
+      const size = box.getSize(new THREE.Vector3());
+      obj.position.sub(box.getCenter(new THREE.Vector3()));
+      const pivot = new THREE.Group();
+      pivot.add(obj);
+      pivot.scale.setScalar(1 / Math.max(size.x, size.y, size.z, 0.0001));
+      return pivot;
+    }).catch(err => { delete petModelCache[model.obj]; throw err; });
   }
-  return petModelCache[objUrl].then(obj => obj.clone());
+  return petModelCache[model.obj].then(pivot => pivot.clone());
 }
 
-async function loadOBJModel(objUrl, mtlUrl){
-  const object = await getPetModel(objUrl, mtlUrl);
+function addPetLights(scene){
+  const light = new THREE.DirectionalLight(0xffffff, 0.9);
+  light.position.set(2, 3, 4);
+  scene.add(light, new THREE.AmbientLight(0xffffff, 0.9));
+}
+
+function makePetCamera(aspect){
+  const camera = new THREE.PerspectiveCamera(PET_CAMERA.fov, aspect, 0.01, 100);
+  camera.position.set(0, PET_CAMERA.y, PET_CAMERA.z);
+  camera.lookAt(0, 0, 0);
+  return camera;
+}
+
+async function loadOBJModel(model){
+  const object = await getPetModel(model);
   if(!model3D.scene) return; // disposed while loading
   if(model3D.model) model3D.scene.remove(model3D.model);
   model3D.model = object;
-  model3D.model.scale.set(1, 1, 1);
-  model3D.model.position.set(0, 0, 0);
   model3D.scene.add(model3D.model);
 }
 
 /* ---------------- Shop egg previews ----------------
    The shop is rebuilt by render(), so each preview keeps one renderer/canvas and
    re-attaches it to the new placeholder after every render (no new WebGL contexts). */
-const PET_EGG_MODELS = {
-  gryphon: { obj: PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.obj', mtl: PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.mtl' }
-};
 const shopEggViewers = {};
 
 function mountShopEggViewers(){
@@ -9466,12 +9486,9 @@ function mountShopEggViewers(){
       viewer.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       viewer.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       viewer.scene = new THREE.Scene();
-      viewer.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-      viewer.camera.position.set(0, 0, 150);
-      const light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(5, 5, 5);
-      viewer.scene.add(light, new THREE.AmbientLight(0xffffff, 0.6));
-      getPetModel(model.obj, model.mtl).then(obj => {
+      viewer.camera = makePetCamera(2);
+      addPetLights(viewer.scene);
+      getPetModel(model).then(obj => {
         viewer.model = obj;
         viewer.scene.add(obj);
         viewer.ready = true;
