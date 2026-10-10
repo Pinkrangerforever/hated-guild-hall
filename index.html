@@ -10743,6 +10743,20 @@ boot();
   #pet-name-cancel{ padding:10px; background:#6b5a3a; border:1px solid #8b7355; color:#d4af37; border-radius:4px; cursor:pointer; }
   #pet-name-submit{ padding:10px; background:#d4af37; border:1px solid #d4af37; color:#2a1f10; border-radius:4px; cursor:pointer; font-weight:bold; }
 
+  /* Pet window text: Cinzel (site display font), gold, with steady-width digits for timers */
+  #pet-level-display, #pet-exp-section, #pet-exp-section .row, #pet-food-row, .pet-img-btn .pet-btn-label,
+  #pet-hatching-overlay .label, #hatch-countdown, #pet-bar-sub, #pet-bar-count{
+    font-family:'Cinzel', Georgia, serif; font-variant-numeric:tabular-nums lining-nums;
+  }
+  #pet-level-display{ font-size:15px; font-weight:700; letter-spacing:0.08em; color:#f0d27a; text-shadow:0 1px 2px #000, 0 0 8px rgba(212,175,55,0.35); margin:2px 0 8px; }
+  #pet-exp-section .row{ font-size:12px; font-weight:700; letter-spacing:0.06em; color:#d9b866; text-shadow:0 1px 2px #000; }
+  #pet-exp-text{ color:#fff3c4; }
+  #pet-food-row{ font-size:13px; font-weight:700; color:#e8d3a0; text-shadow:0 1px 2px #000; }
+  .pet-img-btn .pet-btn-label{ font-size:11px; font-weight:700; letter-spacing:0.04em; color:#e0c06a; text-shadow:0 1px 2px #000; }
+  #pet-hatching-overlay .label{ font-size:12px; font-weight:600; letter-spacing:0.06em; color:#e8d3a0; }
+  #hatch-countdown{ font-size:17px; font-weight:900; letter-spacing:0.05em; color:#ffe08a; text-shadow:0 1px 3px #000, 0 0 10px rgba(255,200,80,0.45); }
+  #pet-bar-sub{ font-size:12px; font-weight:600; letter-spacing:0.04em; color:#d9b866; }
+  #pet-bar-count{ font-size:11px; font-weight:600; }
   /* Bigger stages get a bigger window */
   #pet-widget[data-stage="adult"]{ width:468px; }
   #pet-widget[data-stage="boss"]{ width:520px; }
