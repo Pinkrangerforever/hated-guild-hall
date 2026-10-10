@@ -3305,26 +3305,6 @@
   .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(1)::before{ animation-delay: 0s !important; }
   .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(2)::before{ animation-delay: 5s !important; }
   .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(3)::before{ animation-delay: 10s !important; }
-  .gold-leaderboard-entries .leaderboard-entry.rank-top-3 .leaderboard-rank{
-    position:relative; width:26px; height:26px; min-width:26px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center; align-self:center;
-    font-family:'Cinzel', Georgia, serif; font-size:11px !important; font-weight:900 !important;
-    color:#1a1108 !important; text-shadow:0 1px 0 rgba(255,255,255,0.35);
-    box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), inset 0 -2px 3px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.6);
-  }
-  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(1) .leaderboard-rank{
-    background: radial-gradient(circle at 35% 30%, #fff1b8, #e8b84a 45%, #9a6a12) !important;
-  }
-  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(2) .leaderboard-rank{
-    background: radial-gradient(circle at 35% 30%, #ffffff, #c5cad3 45%, #6f747d) !important;
-  }
-  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(3) .leaderboard-rank{
-    background: radial-gradient(circle at 35% 30%, #ffd9b0, #c8803f 45%, #7a4318) !important;
-  }
-  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(1) .leaderboard-rank::after{
-    content:'♛'; position:absolute; top:-15px; left:50%; transform:translateX(-50%);
-    font-size:14px; color:#f0c95a; text-shadow:0 0 6px rgba(240,201,90,0.8), 0 1px 1px #000;
-  }
   .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(1){
     margin:4px 0 2px; padding:10px 8px !important;
     animation: hhGoldBreath 4s ease-in-out infinite !important;
@@ -3334,6 +3314,15 @@
     50%{ box-shadow: 0 0 22px rgba(217,171,69,0.7), inset 0 1px 0 rgba(255,232,160,0.45); }
   }
 
+  /* #1 crown: fantasy crown on the first-place card's top-left corner */
+  .gold-leaderboard-entries{ position:relative; }
+  .gold-leaderboard-entries:has(> .leaderboard-entry.rank-top-3:first-child)::before{
+    content:''; position:absolute; top:-14px; left:-14px; width:38px; height:30px; z-index:20; pointer-events:none;
+    background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 50%22%3E %3Cdefs%3E %3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%220%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%23fff6c4%22/%3E%3Cstop offset=%22.35%22 stop-color=%22%23f2c64a%22/%3E%3Cstop offset=%22.7%22 stop-color=%22%23c88a1c%22/%3E%3Cstop offset=%221%22 stop-color=%22%237a4a08%22/%3E%3C/linearGradient%3E %3ClinearGradient id=%22b%22 x1=%220%22 y1=%220%22 x2=%220%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%23f7d46a%22/%3E%3Cstop offset=%221%22 stop-color=%22%238a560c%22/%3E%3C/linearGradient%3E %3CradialGradient id=%22r%22 cx=%22.35%22 cy=%22.3%22 r=%22.7%22%3E%3Cstop offset=%220%22 stop-color=%22%23ffb3b3%22/%3E%3Cstop offset=%22.45%22 stop-color=%22%23d0121e%22/%3E%3Cstop offset=%221%22 stop-color=%22%235a0006%22/%3E%3C/radialGradient%3E %3CradialGradient id=%22u%22 cx=%22.35%22 cy=%22.3%22 r=%22.7%22%3E%3Cstop offset=%220%22 stop-color=%22%23d8f3ff%22/%3E%3Cstop offset=%22.45%22 stop-color=%22%232f8fe0%22/%3E%3Cstop offset=%221%22 stop-color=%22%230a2a5a%22/%3E%3C/radialGradient%3E %3C/defs%3E %3Cpath d=%22M5 36 L9 13 L21 25 L32 5 L43 25 L55 13 L59 36 Z%22 fill=%22url(%23g)%22 stroke=%22%233d2304%22 stroke-width=%221.6%22 stroke-linejoin=%22round%22/%3E %3Cpath d=%22M12 33 L14 20 L22 29 L32 13 L42 29 L50 20 L52 33 Z%22 fill=%22%23000%22 opacity=%22.18%22/%3E %3Crect x=%224%22 y=%2234%22 width=%2256%22 height=%2211%22 rx=%222.5%22 fill=%22url(%23b)%22 stroke=%22%233d2304%22 stroke-width=%221.6%22/%3E %3Cpath d=%22M6 37 H58%22 stroke=%22%23fff3b8%22 stroke-width=%221%22 opacity=%22.7%22/%3E %3Ccircle cx=%229%22 cy=%2212%22 r=%223.6%22 fill=%22url(%23u)%22 stroke=%22%233d2304%22 stroke-width=%221%22/%3E %3Ccircle cx=%2255%22 cy=%2212%22 r=%223.6%22 fill=%22url(%23u)%22 stroke=%22%233d2304%22 stroke-width=%221%22/%3E %3Ccircle cx=%2232%22 cy=%225.5%22 r=%224.6%22 fill=%22url(%23r)%22 stroke=%22%233d2304%22 stroke-width=%221%22/%3E %3Cellipse cx=%2232%22 cy=%2239.5%22 rx=%224.2%22 ry=%223.2%22 fill=%22url(%23r)%22 stroke=%22%233d2304%22 stroke-width=%22.9%22/%3E %3Cellipse cx=%2217%22 cy=%2239.5%22 rx=%223%22 ry=%222.4%22 fill=%22url(%23u)%22 stroke=%22%233d2304%22 stroke-width=%22.8%22/%3E %3Cellipse cx=%2247%22 cy=%2239.5%22 rx=%223%22 ry=%222.4%22 fill=%22url(%23u)%22 stroke=%22%233d2304%22 stroke-width=%22.8%22/%3E %3Ccircle cx=%2230.6%22 cy=%224%22 r=%221.2%22 fill=%22%23fff%22 opacity=%22.8%22/%3E %3C/svg%3E") center / contain no-repeat;
+    transform:rotate(-22deg);
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,0.8)) drop-shadow(0 0 6px rgba(240,201,90,0.55));
+  }
+  .hh-zap{ color:#eaf8ff !important; text-shadow:0 0 6px #bfe8ff, 0 0 16px #7fd4ff, 0 0 28px rgba(127,212,255,0.6) !important; transition:color .15s, text-shadow .15s; }
 </style>
 </head>
 <body>
@@ -10976,6 +10965,130 @@ setInterval(()=>{
     updateButtonStates();
   }
 }, 1000);
+
+
+/* ---------------- Ambient lightning ----------------
+   Every 15-30s a procedurally generated, branching blue-white bolt arcs off one of the panel
+   headings and flickers out, and the heading briefly lights up. Off for "reduce motion" users
+   and while the tab is hidden. Tune via HH_LIGHTNING. */
+const HH_LIGHTNING = {
+  targets: '.coming-up-header, .gold-leaderboard-widget-title, #module-announcements-display .announcement-header h3',
+  minDelayMs: 15000,
+  maxDelayMs: 30000
+};
+(function initAmbientLightning(){
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let canvas = null, ctx = null;
+
+  function ensureCanvas(){
+    if(canvas) return;
+    canvas = document.createElement('canvas');
+    canvas.id = 'hh-lightning';
+    canvas.style.cssText = 'position:fixed; inset:0; width:100vw; height:100vh; pointer-events:none; z-index:8000;';
+    document.body.appendChild(canvas);
+    ctx = canvas.getContext('2d');
+    const fit = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(window.innerWidth * dpr);
+      canvas.height = Math.round(window.innerHeight * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    fit();
+    window.addEventListener('resize', fit);
+  }
+
+  // Midpoint displacement: a jagged path between two points
+  function boltPath(x1, y1, x2, y2, roughness){
+    let pts = [[x1, y1], [x2, y2]];
+    let offset = roughness;
+    for(let gen = 0; gen < 6; gen++){
+      const next = [pts[0]];
+      for(let i = 0; i < pts.length - 1; i++){
+        const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
+        const mx = (ax + bx) / 2, my = (ay + by) / 2;
+        const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy) || 1;
+        const n = (Math.random() * 2 - 1) * offset;
+        next.push([mx - dy / len * n, my + dx / len * n], pts[i + 1]);
+      }
+      pts = next;
+      offset /= 2;
+    }
+    return pts;
+  }
+
+  function strokePath(pts, width, color, blur, alpha){
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.shadowColor = '#7fd4ff';
+    ctx.shadowBlur = blur;
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function strike(){
+    const els = [...document.querySelectorAll(HH_LIGHTNING.targets)].filter(el => {
+      const r = el.getBoundingClientRect();
+      return r.width && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
+    });
+    if(!els.length) return;
+    ensureCanvas();
+    const el = els[Math.floor(Math.random() * els.length)];
+    const r = el.getBoundingClientRect();
+
+    // Start on the heading's text, arc up and outward
+    const fromLeft = Math.random() < 0.5;
+    const sx = fromLeft ? r.left + r.width * (0.1 + Math.random() * 0.25) : r.right - r.width * (0.1 + Math.random() * 0.25);
+    const sy = r.top + r.height * 0.5;
+    const len = 70 + Math.random() * 90;
+    const angle = (fromLeft ? -Math.PI * 0.75 : -Math.PI * 0.25) + (Math.random() - 0.5) * 0.6;
+    const ex = sx + Math.cos(angle) * len, ey = sy + Math.sin(angle) * len;
+    const main = boltPath(sx, sy, ex, ey, len * 0.28);
+    const branches = [];
+    for(let b = 0; b < 2; b++){
+      const p = main[Math.floor(main.length * (0.3 + Math.random() * 0.4))];
+      const bl = len * (0.25 + Math.random() * 0.3);
+      const ba = angle + (Math.random() < 0.5 ? -1 : 1) * (0.4 + Math.random() * 0.5);
+      branches.push(boltPath(p[0], p[1], p[0] + Math.cos(ba) * bl, p[1] + Math.sin(ba) * bl, bl * 0.3));
+    }
+
+    el.classList.add('hh-zap');
+    // Real lightning flickers: bright, dim, bright again, gone
+    const frames = [1, 0.25, 0.95, 0.6, 0];
+    let f = 0;
+    const draw = () => {
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      const a = frames[f];
+      if(a > 0){
+        strokePath(main, 6, 'rgba(127,212,255,0.45)', 18, a);
+        strokePath(main, 2, '#f2fbff', 8, a);
+        branches.forEach(bp => {
+          strokePath(bp, 3, 'rgba(127,212,255,0.4)', 12, a * 0.8);
+          strokePath(bp, 1.2, '#e6f7ff', 6, a * 0.8);
+        });
+      }
+      f++;
+      if(f < frames.length) setTimeout(draw, 55);
+      else setTimeout(() => el.classList.remove('hh-zap'), 150);
+    };
+    draw();
+  }
+
+  function schedule(){
+    const delay = HH_LIGHTNING.minDelayMs + Math.random() * (HH_LIGHTNING.maxDelayMs - HH_LIGHTNING.minDelayMs);
+    setTimeout(() => {
+      if(!document.hidden) strike();
+      schedule();
+    }, delay);
+  }
+  window.hhLightningStrike = strike; // console: hhLightningStrike() to preview
+  schedule();
+})();
 
 window.payDealer = payDealer;
 window.startFootprintTrail = startFootprintTrail;
