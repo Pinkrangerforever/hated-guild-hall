@@ -7157,15 +7157,6 @@ function renderShopModal(){
         ${ borderItems.length ? `<div class="shop-grid">${borderItems.map(renderBorderCard).join('')}</div>` : emptyState('No name borders set up yet.') }
       </div>
 
-      ${ state.goldLeaderboard && state.goldLeaderboard.length ? `
-      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
-        <h4 class="shop-section-title">Top Gold Earners</h4>
-        <div style="padding:8px 0;">
-          ${state.goldLeaderboard.map((member, idx) => renderLeaderboardRow(member, idx)).join('')}
-        </div>
-      </div>
-      ` : '' }
-
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
         <h4 class="shop-section-title">Sticker Wall</h4>
         <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Place a sticker on the wall with your name under it. Stickers stay up for 7 days before auto-deleting.</p>
@@ -9445,16 +9436,53 @@ const PET_ASSETS = {
 // One entry per pet species: shown name + icon (emoji until an icon image exists)
 const PET_TYPES = {
   gryphon: { label: 'Gryphon', icon: PET_R2 + '/GryphonIcon.png', emoji: '🦅' },
-  dragon:  { label: 'Dragon',  icon: null, emoji: '🐉' }
+  dragon:  { label: 'Dragon',  icon: null, emoji: '🐉', snapshot: () => DRAGON_JUVENILE_MODEL }
 };
+// Species without an icon image get a one-time 3D snapshot of their juvenile model as their icon
+const petIconSnapshots = {};
+function ensurePetIconSnapshot(type){
+  const info = petTypeInfo(type);
+  if(info.icon || !info.snapshot || petIconSnapshots[type] || typeof THREE === 'undefined') return;
+  petIconSnapshots[type] = 'pending';
+  const model = info.snapshot();
+  getPetModel(model).then(obj => {
+    const size = 160;
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+    renderer.setSize(size, size);
+    const scene = new THREE.Scene();
+    addPetLights(scene);
+    obj.rotation.y = model.facing || 0;
+    scene.add(obj);
+    const clips = obj.userData.animations || [];
+    if(clips.length){
+      const mixer = new THREE.AnimationMixer(obj.children[0]);
+      const idle = clips.find(c => c.name === (model.anims && model.anims.idle)) || clips[0];
+      mixer.clipAction(idle).play();
+      mixer.setTime(0.3);
+    }
+    scene.updateMatrixWorld(true);
+    obj.traverse(m => { if(m.isSkinnedMesh) m.skeleton.update(); });
+    const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
+    camera.position.set(0, 0.15, 1.55);
+    camera.lookAt(0, 0, 0);
+    renderer.render(scene, camera);
+    petIconSnapshots[type] = renderer.domElement.toDataURL('image/png');
+    renderer.dispose();
+    renderer.forceContextLoss();
+    const barIcon = document.getElementById('pet-bar-icon');
+    if(barIcon) barIcon.dataset.type = ''; // re-render with the new icon
+    refreshPetWidget();
+  }).catch(() => { delete petIconSnapshots[type]; });
+}
 function petTypeInfo(type){
   return PET_TYPES[type] || { label: 'Pet', icon: null, emoji: '🐾' };
 }
 function petIconHtml(type, size){
   const t = petTypeInfo(type);
-  return t.icon
-    ? `<img src="${t.icon}" alt="" style="width:${size}px; height:${size}px; object-fit:contain;">`
-    : `<span class="pet-emoji-icon" style="font-size:${Math.round(size * 0.8)}px; line-height:${size}px;">${t.emoji}</span>`;
+  const src = t.icon || (petIconSnapshots[type] !== 'pending' && petIconSnapshots[type]);
+  if(src) return `<img src="${src}" alt="" style="width:${size}px; height:${size}px; object-fit:contain;">`;
+  ensurePetIconSnapshot(type);
+  return `<span class="pet-emoji-icon" style="font-size:${Math.round(size * 0.8)}px; line-height:${size}px;">${t.emoji}</span>`;
 }
 const PET_COOLDOWN_MS = 3600000;
 const PET_FEED_COST = 5;
@@ -9610,9 +9638,23 @@ const DRAGON_ADULT_MODEL = {
     evolve: 'Land' // comes in to land when a whelp grows up
   }
 };
+// Dragon boss = WoW Onyxia. Kept on the ground: this model's flight clips shift the body far below
+// its standing position, out of the frame. Its two unused frostwurm textures (not on R2) were trimmed.
+const DRAGON_BOSS_MODEL = {
+  gltf: 'models/dragon-boss.gltf', // R2: Dragon-Boss/
+  camY: 0.12, camZ: 1.15, alphaCutout: true,
+  spin: false, facing: -Math.PI / 2 + 0.6,
+  anims: {
+    idle: 'Stand',
+    routine: [{ once: 'StandAlt' }, { once: 'Tail' }],
+    squawk: ['Roar', 'FireBreath'], // picks one at random
+    feed: 'Bite',
+    evolve: 'Land'
+  }
+};
 const PET_STAGE_MODELS = {
   gryphon: { juvenile: GRYPHON_JUVENILE_MODEL, adult: GRYPHON_ADULT_MODEL, boss: GRYPHON_BOSS_MODEL },
-  dragon: { juvenile: DRAGON_JUVENILE_MODEL, adult: DRAGON_ADULT_MODEL, boss: DRAGON_ADULT_MODEL }
+  dragon: { juvenile: DRAGON_JUVENILE_MODEL, adult: DRAGON_ADULT_MODEL, boss: DRAGON_BOSS_MODEL }
 };
 function petModelFor(pet){
   if(!pet) return null;
@@ -9971,7 +10013,9 @@ function petSquawk(){
   const config = petAnim.config;
   const resume = petAnim.loopName || config.idle;
   const inAir = (config.airLoops || []).includes(resume);
-  playPetOnceThen(inAir && config.airSquawk ? config.airSquawk : config.squawk, resume);
+  let clip = inAir && config.airSquawk ? config.airSquawk : config.squawk;
+  if(Array.isArray(clip)) clip = clip[Math.floor(Math.random() * clip.length)];
+  playPetOnceThen(clip, resume);
 }
 
 // Feeding: eat if the model can (and is on the ground), otherwise squawk
