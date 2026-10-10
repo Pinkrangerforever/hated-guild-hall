@@ -4171,6 +4171,16 @@ async function onAuthResolved(){
     }
     updateNavbarUserInfo();
     render();
+
+    // CRITICAL SAFEGUARD: Always close naming modal on page load
+    // The modal should NEVER appear unless user explicitly purchases and hatches an egg
+    const namingModal = document.getElementById('pet-naming-modal');
+    if(namingModal) namingModal.style.display = 'none';
+
+    // Also close pet card modal on page load (not relevant on entry page)
+    const petCardModal = document.getElementById('pet-card-modal');
+    if(petCardModal) petCardModal.style.display = 'none';
+
   } finally {
     __authResolveInFlight = false;
   }
@@ -9575,11 +9585,20 @@ async function hatchPetEgg(petId){
 }
 
 function showPetNamingModal(petId){
-  // CRITICAL: Only show naming modal if pet card widget is actually visible
-  // This prevents auto-triggering naming modal on page load or entry page
-  const petCardWidget = document.getElementById('pet-card-widget');
-  if(!petCardWidget || petCardWidget.style.display === 'none') return;
+  // CRITICAL SAFEGUARDS: Multiple checks to prevent accidental auto-trigger on page load
 
+  // 1. Modal should NEVER show unless pet card modal is explicitly open
+  const petCardModal = document.getElementById('pet-card-modal');
+  if(!petCardModal || petCardModal.style.display !== 'flex') return;
+
+  // 2. Modal should NEVER show if currentPetId doesn't match the pet being named
+  if(state.currentPetId !== petId) return;
+
+  // 3. Modal should NEVER show if pet doesn't exist or already has a name
+  const pet = state.profile?.pets?.find(p => p.id === petId);
+  if(!pet || pet.name) return;
+
+  // 4. If all safeguards passed, show the naming modal
   const modal = document.getElementById('pet-naming-modal');
   if(modal){
     modal.style.display = 'flex';
@@ -9703,9 +9722,14 @@ async function loadPets(){
   const { data, error } = await sb.from('pets').select('*').eq('user_id', state.profile.id).order('created_at', { ascending: false });
   if(!error && data){
     state.profile.pets = data;
-    // CRITICAL: NEVER auto-open naming modal on page load
-    // Naming modal should ONLY appear when egg actually hatches (countdown reaches 0)
-    // NOT just because a pet exists in database with status='juvenile'
+
+    // CRITICAL SAFEGUARD: After loading pets, ensure NO modals are open
+    // Naming modal and pet card modal should NEVER auto-open on page load
+    // They should ONLY appear when explicitly triggered by user actions
+    const namingModal = document.getElementById('pet-naming-modal');
+    if(namingModal) namingModal.style.display = 'none';
+    const petCardModal = document.getElementById('pet-card-modal');
+    if(petCardModal) petCardModal.style.display = 'none';
   }
 }
 
