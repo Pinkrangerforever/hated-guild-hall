@@ -4,3 +4,10 @@ Tokens.env
 .env
 package.json
 package-lock.json
+backups/
+# Database dumps and scripts with credentials - never commit (repo is public)
+prod_*.sql
+*_data.sql
+*_with_data.sql
+upload_to_r2.py
+upload_guild_board.py
