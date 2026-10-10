@@ -9451,6 +9451,7 @@ const petUI = {
   expanded: false,
   busy: false,
   hatchInFlight: false,
+  pendingEvolution: null,
   displayMode: null
 };
 
@@ -9542,7 +9543,8 @@ const GRYPHON_ADULT_MODEL = {
   anims: {
     idle: 'Stand',
     routine: [{ once: 'StandAlt' }, { loop: 'Fly', ms: 4000 }, { loop: 'Glide', ms: 3000 }],
-    squawk: 'Whirlwind'
+    squawk: 'Whirlwind',
+    evolve: 'Birth' // swoops in when a pet evolves into this stage
   }
 };
 const PET_STAGE_MODELS = {
@@ -9659,6 +9661,7 @@ async function loadOBJModel(model){
   model3D.scene.add(model3D.model);
   if(object.userData.animations && object.userData.animations.length) setupPetAnimations(object, model.anims);
   else stopPetAnimations();
+  if(petUI.pendingEvolution) finishPetEvolution(model);
   model3D.camera.position.set(0, model.camY ?? PET_CAMERA.y, model.camZ ?? PET_CAMERA.z);
   model3D.camera.lookAt(0, 0, 0);
   positionEggGlow();
@@ -10041,6 +10044,7 @@ function renderPetPanel(pet){
   document.getElementById('pet-level-display').textContent =
     isEgg ? 'Egg' : `Level ${level} · ${PET_STAGE_LABEL[pet.status] || ''}`;
 
+  if(!isEgg) checkPetEvolution(pet);
   setPetDisplayMode(pet);
   document.getElementById('pet-hatching-overlay').style.display = isEgg ? 'flex' : 'none';
   document.getElementById('pet-exp-section').style.display = isEgg ? 'none' : 'block';
@@ -10196,6 +10200,48 @@ async function hatchPetEgg(petId){
     petUI.hatchInFlight = false;
     updateHatchCountdown();
   }
+}
+
+/* ---------------- Evolution ----------------
+   The browser remembers the last stage it showed for each pet. When the open pet window shows a
+   higher stage (from feeding/petting, or a change made elsewhere), play the evolution once:
+   golden flash -> new model plays its `evolve` clip -> flash fades -> toast. */
+const PET_STAGE_ORDER = { juvenile: 1, adult: 2, boss: 3 };
+
+function checkPetEvolution(pet){
+  if(!pet || !PET_STAGE_ORDER[pet.status] || petUI.pendingEvolution) return;
+  const key = 'petStageSeen:' + pet.id;
+  let seen = null;
+  try { seen = localStorage.getItem(key); } catch(e){}
+  try { localStorage.setItem(key, pet.status); } catch(e){}
+  const previous = seen || 'juvenile'; // every hatched pet starts as a juvenile
+  if(PET_STAGE_ORDER[pet.status] <= (PET_STAGE_ORDER[previous] || 1)) return;
+
+  petUI.pendingEvolution = { petId: pet.id, to: pet.status };
+  document.getElementById('pet-hatch-flash').classList.add('on');
+  // Same model already on screen (e.g. adult -> boss share a model): evolve in place
+  const model = petModelFor(pet);
+  if(model && petUI.displayMode === petModelKey(model) && model3D.model) setTimeout(() => finishPetEvolution(model), 450);
+  // Safety net if the model never loads (offline, CORS): don't leave the flash on
+  setTimeout(() => { if(petUI.pendingEvolution && petUI.pendingEvolution.petId === pet.id) finishPetEvolution(null); }, 8000);
+}
+
+// Called once the new stage's model is on screen (from loadOBJModel)
+function finishPetEvolution(model){
+  const ev = petUI.pendingEvolution;
+  if(!ev) return;
+  petUI.pendingEvolution = null;
+  const anims = model && model.anims;
+  if(anims && anims.evolve && petAnim.mixer) playPetOnceThen(anims.evolve, anims.idle);
+  setTimeout(() => {
+    document.getElementById('pet-hatch-flash')?.classList.remove('on');
+    celebratePet('✨');
+    const pet = getMyPets().find(p => p.id === ev.petId);
+    showToast(`${pet ? petDisplayName(pet) : 'Your pet'} evolved into ${/^[aeiou]/i.test(ev.to) ? 'an' : 'a'} ${PET_STAGE_LABEL[ev.to] || ev.to}!`);
+    const panel = document.getElementById('pet-panel');
+    panel?.classList.add('pet-levelup');
+    setTimeout(() => panel?.classList.remove('pet-levelup'), 1600);
+  }, 350);
 }
 
 function showPetNamingModal(petId){
