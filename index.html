@@ -9547,8 +9547,24 @@ const GRYPHON_ADULT_MODEL = {
     evolve: 'Birth' // swoops in when a pet evolves into this stage
   }
 };
+// Boss = WoW dragonriding gryphon. Its 4096px PNG is replaced by a 2048px JPEG kept in the repo
+// (models/textures/); the alpha channel there is a shading mask, not cutouts, so it renders opaque.
+// Geoset0/2 are small glowing effect pieces drawn additively.
+const GRYPHON_BOSS_MODEL = {
+  gltf: 'models/gryphon-boss.gltf', // R2: Gryphon-Boss/
+  camY: 0.25, camZ: 2.0, alphaCutout: false,
+  additiveMaterials: ['dwarfgryphon_fx_blue'],
+  spin: false, facing: -Math.PI / 2 + 0.6,
+  anims: {
+    idle: 'Stand',
+    routine: [{ once: 'StandAlt' }, { once: 'ToFly' }, { loop: 'Hover', ms: 4000 }, { loop: 'Fly', ms: 4000 }, { loop: 'Hover', ms: 2500 }, { once: 'FlyToGround' }],
+    squawk: 'WingFlare', airSquawk: 'FlyBattleRoar', airLoops: ['Hover', 'Fly'],
+    feed: 'EmoteEat',      // eats when fed (others squawk)
+    evolve: 'MountSummon'  // swoops in from off-screen
+  }
+};
 const PET_STAGE_MODELS = {
-  gryphon: { juvenile: GRYPHON_JUVENILE_MODEL, adult: GRYPHON_ADULT_MODEL, boss: GRYPHON_ADULT_MODEL }
+  gryphon: { juvenile: GRYPHON_JUVENILE_MODEL, adult: GRYPHON_ADULT_MODEL, boss: GRYPHON_BOSS_MODEL }
 };
 function petModelFor(pet){
   if(!pet) return null;
@@ -9595,6 +9611,11 @@ function getAnimatedPetModel(model){
         if(model.alphaCutout){
           m.material.alphaTest = 0.5;
           m.material.side = THREE.DoubleSide;
+        }
+        if((model.additiveMaterials || []).includes(m.material.name)){
+          m.material.transparent = true;
+          m.material.blending = THREE.AdditiveBlending;
+          m.material.depthWrite = false;
         }
       });
       const box = new THREE.Box3().setFromObject(root);
@@ -9895,6 +9916,15 @@ function petSquawk(){
   const resume = petAnim.loopName || config.idle;
   const inAir = (config.airLoops || []).includes(resume);
   playPetOnceThen(inAir && config.airSquawk ? config.airSquawk : config.squawk, resume);
+}
+
+// Feeding: eat if the model can (and is on the ground), otherwise squawk
+function petFeedReaction(){
+  if(!petAnim.mixer || petAnim.after) return;
+  const config = petAnim.config;
+  const resume = petAnim.loopName || config.idle;
+  if(config.feed && !(config.airLoops || []).includes(resume)) playPetOnceThen(config.feed, resume);
+  else petSquawk();
 }
 
 function dispose3DModel(){
@@ -10357,7 +10387,7 @@ async function handleFeedButton(){
     state.profile.food = data.food_remaining;
     updateNavbarUserInfo();
     celebratePet('🍗');
-    petSquawk();
+    petFeedReaction();
     applyPetResult(pet, data);
     showToast(`+10 EXP, -${PET_FEED_COST} Food`);
   } finally {
