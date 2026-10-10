@@ -4171,16 +4171,7 @@ async function onAuthResolved(){
     }
     updateNavbarUserInfo();
     render();
-
-    // CRITICAL SAFEGUARD: Always close naming modal on page load
-    // The modal should NEVER appear unless user explicitly purchases and hatches an egg
-    const namingModal = document.getElementById('pet-naming-modal');
-    if(namingModal) namingModal.style.display = 'none';
-
-    // Also close pet card modal on page load (not relevant on entry page)
-    const petCardModal = document.getElementById('pet-card-modal');
-    if(petCardModal) petCardModal.style.display = 'none';
-
+    refreshPetWidget();
   } finally {
     __authResolveInFlight = false;
   }
@@ -4876,6 +4867,12 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       if(goldBadge) goldBadge.textContent = ' ' + data.total;
       if(data.awarded !== undefined && data.awarded > 0){
         showGoldFloat(x, y, data.awarded);
+      }
+      // Murloc wins also award food (server-side)
+      if(data.food_awarded > 0){
+        state.profile.food = data.food_total;
+        showToast(`+${data.food_awarded} Food for your pet!`);
+        refreshPetWidget();
       }
     }
 
@@ -9056,29 +9053,7 @@ function bindApp(){
   document.querySelectorAll('[data-set-name-custom]').forEach(b=>b.addEventListener('click', ()=>setActiveNameCustomization(b.dataset.setNameCustom)));
   document.querySelectorAll('[data-set-name-border]').forEach(b=>b.addEventListener('click', ()=>setActiveNameBorder(b.dataset.setNameBorder)));
 
-  const petCardCloseBtn = document.getElementById('pet-card-close');
-  if(petCardCloseBtn) petCardCloseBtn.addEventListener('click', closePetCard);
-  const petCardModal = document.getElementById('pet-card-modal');
-  if(petCardModal) petCardModal.addEventListener('click', (e)=>{ if(e.target === petCardModal) closePetCard(); });
-
-  const petBtn = document.getElementById('pet-button');
-  if(petBtn) petBtn.addEventListener('click', handlePetButton);
-  const feedBtn = document.getElementById('feed-button');
-  if(feedBtn) feedBtn.addEventListener('click', handleFeedButton);
-
-  const petHomeBtn = document.getElementById('pet-home-button');
-  if(petHomeBtn) petHomeBtn.addEventListener('click', ()=>{ closePetCard(); state.tab = 'profile'; render(); });
-  const petShopBtn = document.getElementById('pet-shop-button');
-  if(petShopBtn) petShopBtn.addEventListener('click', ()=>{ closePetCard(); openShop(); });
-
-  const petNamingModal = document.getElementById('pet-naming-modal');
-  if(petNamingModal) petNamingModal.addEventListener('click', (e)=>{ if(e.target === petNamingModal) document.getElementById('pet-name-cancel').click(); });
-  const petNameSubmitBtn = document.getElementById('pet-name-submit');
-  if(petNameSubmitBtn) petNameSubmitBtn.addEventListener('click', submitPetName);
-  const petNameCancelBtn = document.getElementById('pet-name-cancel');
-  if(petNameCancelBtn) petNameCancelBtn.addEventListener('click', ()=>{ document.getElementById('pet-naming-modal').style.display = 'none'; });
-  const petNameInput = document.getElementById('pet-name-input');
-  if(petNameInput) petNameInput.addEventListener('keypress', (e)=>{ if(e.key === 'Enter') submitPetName(); });
+  // Pet widget buttons are bound once in initPetWidget(), not on every render
   document.querySelectorAll('[data-set-nameplate-icon]').forEach(b=>b.addEventListener('click', ()=>setActiveNameplateIcon(b.dataset.setNameplateIcon)));
 
   // Sticker drag-and-drop handlers - set up after each render
@@ -9356,7 +9331,35 @@ async function payDealer() {
 
 const EXP_REQUIREMENTS = [0, 100, 250, 450, 725, 1075, 1525, 2100, 2800, 3675, 4775];
 
-// 3D Model Viewer (Client-side cached)
+/* ---------------- Pet widget (bottom-right, collapsible) ----------------
+   Lives outside #app so render() never touches it. Buttons are bound once.
+   Server is the source of truth for exp/level/status/cooldowns; the client only
+   counts down timers and shows state. */
+const PET_R2 = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev';
+const PET_ASSETS = {
+  frame: PET_R2 + '/PetUI.png',
+  petBtn: PET_R2 + '/PetButton.png',
+  feedBtn: PET_R2 + '/FeedButton.png',
+  shopBtn: PET_R2 + '/ShopButton.png',
+  food: PET_R2 + '/FoodIcon.png',
+  icon: PET_R2 + '/GryphonIcon.png',
+  eggObj: PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.obj',
+  eggMtl: PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.mtl'
+};
+const PET_COOLDOWN_MS = 3600000;
+const PET_FEED_COST = 5;
+const PET_STAGE_LABEL = { egg:'Egg', juvenile:'Juvenile', adult:'Adult', boss:'Boss' };
+
+const petUI = {
+  bound: false,
+  expanded: false,
+  busy: false,
+  hatchInFlight: false,
+  hatchRetryAt: 0,
+  displayMode: null
+};
+
+// 3D Model Viewer (Client-side cached) - used for eggs
 let model3D = {
   scene: null,
   camera: null,
@@ -9368,9 +9371,9 @@ let model3D = {
 };
 
 async function init3DViewer(){
-  if(model3D.isLoaded) return;
+  if(model3D.isLoaded || typeof THREE === 'undefined') return;
 
-  const container = document.getElementById('pet-display');
+  const container = document.getElementById('pet-model-canvas');
   if(!container) return;
 
   try {
@@ -9378,8 +9381,8 @@ async function init3DViewer(){
     model3D.scene = new THREE.Scene();
     model3D.scene.background = null;
 
-    const width = container.clientWidth || 300;
-    const height = container.clientHeight || 200;
+    const width = container.clientWidth || 260;
+    const height = container.clientHeight || 130;
 
     model3D.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     model3D.camera.position.set(0, 0, 150);
@@ -9388,8 +9391,7 @@ async function init3DViewer(){
     model3D.renderer.setSize(width, height);
     model3D.renderer.setPixelRatio(window.devicePixelRatio);
 
-    const existingCanvas = container.querySelector('canvas');
-    if(existingCanvas) container.removeChild(existingCanvas);
+    container.innerHTML = '';
     container.appendChild(model3D.renderer.domElement);
 
     const light = new THREE.DirectionalLight(0xffffff, 1);
@@ -9399,13 +9401,14 @@ async function init3DViewer(){
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     model3D.scene.add(ambientLight);
 
-    await loadOBJModel('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Gryphon-Egg/12du_darkwellraid_phoenixegg01.obj',
-                       'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Gryphon-Egg/12du_darkwellraid_phoenixegg01.mtl');
-
     model3D.isLoaded = true;
+    await loadOBJModel(PET_ASSETS.eggObj, PET_ASSETS.eggMtl);
     animate3DModel();
   } catch(e) {
+    // Usually the R2 bucket's CORS policy blocking the .obj/.mtl - show a 2D egg instead
     console.error('3D viewer init error:', e);
+    dispose3DModel();
+    container.innerHTML = '<div class="pet-egg-fallback">🥚</div>';
   }
 }
 
@@ -9417,6 +9420,7 @@ async function loadOBJModel(objUrl, mtlUrl){
       const objLoader = new THREE.OBJLoader();
       objLoader.setMaterials(materials);
       objLoader.load(objUrl, (object) => {
+        if(!model3D.scene) return resolve(); // disposed while loading
         if(model3D.model) model3D.scene.remove(model3D.model);
         model3D.model = object;
         model3D.model.scale.set(1, 1, 1);
@@ -9467,274 +9471,392 @@ function calculatePetLevel(totalExp){
   return 1;
 }
 
-function openPetCard(petId){
-  if(!petId || !state.profile || !state.profile.pets) return;
-  const pet = state.profile.pets.find(p => p.id === petId);
-  if(!pet) return;
+function getMyPets(){
+  return (state.profile && state.profile.pets) || [];
+}
 
-  // CRITICAL: Never auto-open naming modal - it should only appear when egg countdown reaches 0
-  // If naming modal is open, close it (prevents accidental auto-trigger)
-  const namingModal = document.getElementById('pet-naming-modal');
-  if(namingModal) namingModal.style.display = 'none';
+function getCurrentPet(){
+  return getMyPets().find(p => p.id === state.currentPetId) || null;
+}
 
+function formatDuration(ms){
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function petDisplayName(pet){
+  if(pet.name) return pet.name;
+  return pet.status === 'egg' ? 'Gryphon Egg' : 'Unnamed Gryphon';
+}
+
+// Pick a valid current pet: keep the current one, else the last one viewed, else the newest
+function ensureCurrentPet(){
+  const pets = getMyPets();
+  if(!pets.length){ state.currentPetId = null; return null; }
+  if(pets.some(p => p.id === state.currentPetId)) return getCurrentPet();
+  let saved = null;
+  try { saved = localStorage.getItem('petWidgetCurrentPet'); } catch(e){}
+  state.currentPetId = pets.some(p => p.id === saved) ? saved : pets[0].id;
+  return getCurrentPet();
+}
+
+function selectPet(petId){
   state.currentPetId = petId;
-  const modal = document.getElementById('pet-card-modal');
-  const container = document.getElementById('pet-card-container');
-  if(!modal) return;
+  try { localStorage.setItem('petWidgetCurrentPet', petId); } catch(e){}
+  refreshPetWidget();
+}
 
-  modal.style.display = 'flex';
-  renderPetTabs();
-  updatePetDisplay();
-  setTimeout(() => init3DViewer(), 50);
+// Called by the shop after buying an egg, and by anything that wants to show a pet
+function openPetCard(petId){
+  if(petId) selectPet(petId);
+  petUI.expanded = true;
+  refreshPetWidget();
+}
+
+function closePetCard(){
+  petUI.expanded = false;
+  document.getElementById('pet-naming-modal')?.classList.remove('open');
+  refreshPetWidget();
+}
+
+function togglePetWidget(){
+  if(petUI.expanded) closePetCard(); else openPetCard();
+}
+
+function refreshPetWidget(){
+  const widget = document.getElementById('pet-widget');
+  if(!widget) return;
+
+  const visible = !!(state.session && state.profile && getMyPets().length);
+  widget.style.display = visible ? 'block' : 'none';
+  if(!visible){
+    petUI.expanded = false;
+    if(model3D.isLoaded) dispose3DModel();
+    petUI.displayMode = null;
+    return;
+  }
+
+  const pet = ensureCurrentPet();
+  widget.classList.toggle('expanded', petUI.expanded);
+  renderPetBar(pet);
+  if(petUI.expanded){
+    renderPetPanel(pet);
+  } else if(model3D.isLoaded){
+    dispose3DModel();
+    petUI.displayMode = null;
+  }
+}
+
+function renderPetBar(pet){
+  const nameEl = document.getElementById('pet-bar-name');
+  const subEl = document.getElementById('pet-bar-sub');
+  if(!nameEl || !subEl || !pet) return;
+  nameEl.textContent = petDisplayName(pet);
+  if(pet.status === 'egg'){
+    const left = pet.hatch_time - Date.now();
+    subEl.textContent = left > 0 ? `Hatches in ${formatDuration(left)}` : 'Ready to hatch!';
+  } else {
+    const level = calculatePetLevel(pet.exp || 0);
+    subEl.textContent = `Lv ${level} ${PET_STAGE_LABEL[pet.status] || ''}`;
+  }
+  const count = getMyPets().length;
+  document.getElementById('pet-bar-count').textContent = count > 1 ? `${count} pets` : '';
 }
 
 function renderPetTabs(){
   const tabsContainer = document.getElementById('pet-tabs');
-  if(!tabsContainer || !state.profile || !state.profile.pets) return;
-
-  tabsContainer.innerHTML = state.profile.pets.map(pet => `
-    <button class="pet-tab ${pet.id === state.currentPetId ? 'active' : ''}"
-            data-pet-id="${pet.id}"
-            style="padding:6px 12px; background:${pet.id === state.currentPetId ? '#8b7355' : '#5a4a30'};
-                   border:1px solid #8b7355; color:#d4af37; border-radius:3px; cursor:pointer;
-                   font-size:11px; white-space:nowrap; transition:all 0.2s;">
-      ${pet.name || '(Unnamed)'} ${pet.status === 'egg' ? '🥚' : '🐉'}
+  if(!tabsContainer) return;
+  const pets = getMyPets();
+  if(pets.length < 2){ tabsContainer.innerHTML = ''; tabsContainer.style.display = 'none'; return; }
+  tabsContainer.style.display = 'flex';
+  tabsContainer.innerHTML = pets.map(pet => `
+    <button type="button" class="pet-tab ${pet.id === state.currentPetId ? 'active' : ''}" data-pet-id="${esc(pet.id)}">
+      ${pet.status === 'egg' ? '🥚' : `<img src="${PET_ASSETS.icon}" alt="">`} ${esc(petDisplayName(pet))}
     </button>
   `).join('');
-
-  // Bind click handlers to tabs
-  tabsContainer.querySelectorAll('.pet-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const petId = tab.dataset.petId;
-      state.currentPetId = petId;
-      renderPetTabs();
-      updatePetDisplay();
-    });
-  });
 }
 
-function closePetCard(){
-  const modal = document.getElementById('pet-card-modal');
-  if(modal) modal.style.display = 'none';
-  state.currentPetId = null;
-  dispose3DModel();
-}
-
-function updatePetDisplay(){
-  if(!state.currentPetId || !state.profile || !state.profile.pets) return;
-  const pet = state.profile.pets.find(p => p.id === state.currentPetId);
+function renderPetPanel(pet){
   if(!pet) return;
+  renderPetTabs();
+
+  const isEgg = pet.status === 'egg';
+  const nameEl = document.getElementById('pet-name-display');
+  nameEl.textContent = petDisplayName(pet);
+  nameEl.classList.toggle('nameable', !isEgg);
+  nameEl.title = isEgg ? '' : (pet.name ? 'Click to rename' : 'Click to name your gryphon');
 
   const level = calculatePetLevel(pet.exp || 0);
-  const nextLevelExp = EXP_REQUIREMENTS[Math.min(level, EXP_REQUIREMENTS.length - 1)];
-  const currentLevelExp = level > 1 ? EXP_REQUIREMENTS[level - 2] : 0;
-  const expInCurrentLevel = (pet.exp || 0) - currentLevelExp;
-  const expNeeded = nextLevelExp - currentLevelExp;
-  const expPercent = Math.min(100, (expInCurrentLevel / expNeeded) * 100);
+  document.getElementById('pet-level-display').textContent =
+    isEgg ? 'Egg' : `Level ${level} · ${PET_STAGE_LABEL[pet.status] || ''}`;
 
-  document.getElementById('pet-name-display').textContent = pet.name || 'Unnamed Gryphon';
-  document.getElementById('pet-level-display').textContent = `Level ${level}`;
-  document.getElementById('pet-exp-text').textContent = `${pet.exp || 0} / ${nextLevelExp}`;
-  document.getElementById('pet-exp-bar').style.width = expPercent + '%';
+  setPetDisplayMode(isEgg ? 'egg' : 'hatched');
+  document.getElementById('pet-hatching-overlay').style.display = isEgg ? 'flex' : 'none';
+  document.getElementById('pet-exp-section').style.display = isEgg ? 'none' : 'block';
+  document.getElementById('pet-action-buttons').style.display = isEgg ? 'none' : 'grid';
 
-  if(pet.status === 'egg'){
-    document.getElementById('pet-display').querySelector('#pet-image').textContent = '🥚';
-    document.getElementById('pet-hatching-overlay').style.display = 'flex';
-    document.getElementById('pet-action-buttons').style.display = 'none';
+  if(isEgg){
     updateHatchCountdown();
   } else {
-    document.getElementById('pet-display').querySelector('#pet-image').textContent = '';
-    document.getElementById('pet-hatching-overlay').style.display = 'none';
-    document.getElementById('pet-action-buttons').style.display = 'grid';
-    updateButtonStates();
+    const maxLevel = EXP_REQUIREMENTS.length;
+    const exp = pet.exp || 0;
+    const currentLevelExp = EXP_REQUIREMENTS[level - 1];
+    const nextLevelExp = level < maxLevel ? EXP_REQUIREMENTS[level] : null;
+    const expPercent = nextLevelExp ? Math.min(100, ((exp - currentLevelExp) / (nextLevelExp - currentLevelExp)) * 100) : 100;
+    document.getElementById('pet-exp-text').textContent = nextLevelExp ? `${exp} / ${nextLevelExp}` : `${exp} (MAX)`;
+    document.getElementById('pet-exp-bar').style.width = expPercent + '%';
   }
+
+  document.getElementById('pet-food-count').textContent = state.profile?.food || 0;
+  updateButtonStates();
+}
+
+// Swap between the 3D egg and the hatched gryphon portrait
+function setPetDisplayMode(mode){
+  if(petUI.displayMode === mode) return;
+  petUI.displayMode = mode;
+  const canvas = document.getElementById('pet-model-canvas');
+  const portrait = document.getElementById('pet-portrait');
+  if(mode === 'egg'){
+    portrait.style.display = 'none';
+    canvas.style.display = 'block';
+    setTimeout(() => init3DViewer(), 50);
+  } else {
+    if(model3D.isLoaded) dispose3DModel();
+    canvas.style.display = 'none';
+    portrait.style.display = 'block';
+  }
+}
+
+// Kept for callers that refresh the open card
+function updatePetDisplay(){
+  refreshPetWidget();
 }
 
 function updateHatchCountdown(){
-  if(!state.currentPetId || !state.profile || !state.profile.pets) return;
-  const pet = state.profile.pets.find(p => p.id === state.currentPetId);
+  const pet = getCurrentPet();
   if(!pet || pet.status !== 'egg') return;
+  const timeLeft = pet.hatch_time - Date.now();
+  const el = document.getElementById('hatch-countdown');
+  if(el) el.textContent = timeLeft > 0 ? formatDuration(timeLeft) : 'Hatching...';
 
-  const now = Date.now();
-  const hatchTime = pet.hatch_time;
-  const timeLeft = hatchTime - now;
-
-  if(timeLeft <= 0){
-    pet.status = 'juvenile';
-    pet.name = null;
+  // Only hatch while the card is open, so the naming popup appears in front of the player
+  if(timeLeft <= 0 && petUI.expanded && !petUI.hatchInFlight && Date.now() >= petUI.hatchRetryAt){
     hatchPetEgg(pet.id);
-    return;
   }
-
-  const hours = Math.floor(timeLeft / 3600000);
-  const minutes = Math.floor((timeLeft % 3600000) / 60000);
-  const seconds = Math.floor((timeLeft % 60000) / 1000);
-
-  document.getElementById('hatch-countdown').textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
 async function hatchPetEgg(petId){
-  const { data, error } = await sb.rpc('hatch_egg', { p_pet_id: petId });
-  if(error || !data || !data.success) return;
-
-  const pet = state.profile.pets.find(p => p.id === petId);
-  if(pet){
-    pet.status = 'juvenile';
+  petUI.hatchInFlight = true;
+  try {
+    const { data, error } = await sb.rpc('hatch_egg', { p_pet_id: petId });
+    const pet = getMyPets().find(p => p.id === petId);
+    if(error || !data || !data.success){
+      // Server clock says not yet: resync our countdown and try again later
+      if(pet && data && data.ms_remaining) pet.hatch_time = Date.now() + data.ms_remaining;
+      petUI.hatchRetryAt = Date.now() + 15000;
+      return;
+    }
+    if(pet){
+      pet.status = 'juvenile';
+      pet.hatched_at = new Date().toISOString();
+    }
+    refreshPetWidget();
+    celebratePet('🎉');
     showPetNamingModal(petId);
+  } finally {
+    petUI.hatchInFlight = false;
   }
 }
 
 function showPetNamingModal(petId){
-  // CRITICAL SAFEGUARDS: Multiple checks to prevent accidental auto-trigger on page load
-
-  // 1. Modal should NEVER show unless pet card modal is explicitly open
-  const petCardModal = document.getElementById('pet-card-modal');
-  if(!petCardModal || petCardModal.style.display !== 'flex') return;
-
-  // 2. Modal should NEVER show if currentPetId doesn't match the pet being named
+  // Only from an open card, for the pet being viewed, once it has hatched
+  if(!petUI.expanded) return;
   if(state.currentPetId !== petId) return;
+  const pet = getCurrentPet();
+  if(!pet || pet.status === 'egg') return;
 
-  // 3. Modal should NEVER show if pet doesn't exist or already has a name
-  const pet = state.profile?.pets?.find(p => p.id === petId);
-  if(!pet || pet.name) return;
-
-  // 4. If all safeguards passed, show the naming modal
   const modal = document.getElementById('pet-naming-modal');
-  if(modal){
-    modal.style.display = 'flex';
-    document.getElementById('pet-name-input').value = '';
-    document.getElementById('pet-name-input').focus();
-  }
+  if(!modal) return;
+  document.getElementById('pet-naming-title').textContent = pet.name ? 'Rename Your Gryphon' : 'Name Your Gryphon';
+  const input = document.getElementById('pet-name-input');
+  input.value = pet.name || '';
+  modal.classList.add('open');
+  input.focus();
 }
 
 async function submitPetName(){
   const nameInput = document.getElementById('pet-name-input');
   const name = nameInput.value.trim();
-  if(!name || name.length < 1 || name.length > 30){
+  if(!name || name.length > 30){
     showToast('Name must be 1-30 characters', true);
     return;
   }
-  if(!state.currentPetId){
+  const pet = getCurrentPet();
+  if(!pet){
     showToast('No pet selected', true);
     return;
   }
 
-  const { data, error } = await sb.rpc('name_pet', { p_pet_id: state.currentPetId, p_name: name });
+  const { data, error } = await sb.rpc('name_pet', { p_pet_id: pet.id, p_name: name });
   if(error || !data || !data.success){
     showToast(data?.error || 'Failed to name pet', true);
     return;
   }
 
-  const pet = state.profile.pets.find(p => p.id === state.currentPetId);
-  if(pet) pet.name = name;
-
-  document.getElementById('pet-naming-modal').style.display = 'none';
-  showToast('Pet named: ' + name);
-  updatePetDisplay();
+  pet.name = data.name || name;
+  document.getElementById('pet-naming-modal').classList.remove('open');
+  showToast('Pet named: ' + pet.name);
+  refreshPetWidget();
 }
 
 function updateButtonStates(){
-  if(!state.currentPetId || !state.profile || !state.profile.pets) return;
-  const pet = state.profile.pets.find(p => p.id === state.currentPetId);
-  if(!pet) return;
-
-  const now = Date.now();
-  const lastActionTime = pet.last_pet_action_time || 0;
-  const cooldownMs = 3600000;
-  const timeLeft = cooldownMs - (now - lastActionTime);
+  const pet = getCurrentPet();
+  if(!pet || pet.status === 'egg') return;
 
   const petBtn = document.getElementById('pet-button');
-  if(timeLeft > 0){
-    const hours = Math.floor(timeLeft / 3600000);
-    const minutes = Math.floor((timeLeft % 3600000) / 60000);
-    petBtn.disabled = true;
-    petBtn.textContent = `PET (${hours}h ${minutes}m)`;
-    petBtn.style.opacity = '0.5';
-  } else {
-    petBtn.disabled = false;
-    petBtn.textContent = 'PET';
-    petBtn.style.opacity = '1';
-  }
+  const petLabel = document.getElementById('pet-button-label');
+  const timeLeft = PET_COOLDOWN_MS - (Date.now() - (pet.last_pet_action_time || 0));
+  const petReady = timeLeft <= 0 && !petUI.busy;
+  petBtn.disabled = !petReady;
+  petLabel.textContent = timeLeft > 0 ? formatDuration(timeLeft) : '+5 EXP';
 
-  const food = state.profile.food || 0;
+  const food = state.profile?.food || 0;
   const feedBtn = document.getElementById('feed-button');
-  if(food < 5){
-    feedBtn.disabled = true;
-    feedBtn.textContent = `FEED (${food}/5)`;
-    feedBtn.style.opacity = '0.5';
-  } else {
-    feedBtn.disabled = false;
-    feedBtn.textContent = 'FEED';
-    feedBtn.style.opacity = '1';
+  feedBtn.disabled = food < PET_FEED_COST || petUI.busy;
+  document.getElementById('feed-button-label').textContent = `${PET_FEED_COST} food · +10 EXP`;
+}
+
+// Apply the server's view of the pet after pet/feed
+function applyPetResult(pet, data){
+  const oldLevel = calculatePetLevel(pet.exp || 0);
+  pet.exp = data.pet_exp;
+  if(data.level) pet.level = data.level;
+  if(data.status) pet.status = data.status;
+  const newLevel = calculatePetLevel(pet.exp || 0);
+  if(data.leveled_up || newLevel > oldLevel){
+    showToast(`${petDisplayName(pet)} reached Level ${newLevel}!`);
+    const frame = document.getElementById('pet-panel');
+    frame?.classList.add('pet-levelup');
+    setTimeout(() => frame?.classList.remove('pet-levelup'), 1600);
   }
 }
 
 async function handlePetButton(){
-  if(!state.currentPetId || !state.profile){
-    showToast('No pet selected', true);
-    return;
+  const pet = getCurrentPet();
+  if(!pet || petUI.busy) return;
+  petUI.busy = true;
+  updateButtonStates();
+  try {
+    const { data, error } = await sb.rpc('pet_action', { p_user_id: state.profile.id, p_pet_id: pet.id });
+    if(error || !data || !data.success){
+      if(data?.last_pet_action_time) pet.last_pet_action_time = data.last_pet_action_time;
+      showToast(data?.error || 'Pet action failed', true);
+      return;
+    }
+    pet.last_pet_action_time = data.last_pet_action_time || Date.now();
+    celebratePet('❤');
+    applyPetResult(pet, data);
+    showToast('+5 EXP');
+  } finally {
+    petUI.busy = false;
+    refreshPetWidget();
   }
-
-  const { data, error } = await sb.rpc('pet_action', { p_user_id: state.profile.id, p_pet_id: state.currentPetId });
-  if(error || !data || !data.success){
-    showToast(data?.error || 'Pet action failed', true);
-    return;
-  }
-
-  const pet = state.profile.pets.find(p => p.id === state.currentPetId);
-  if(pet){
-    pet.exp = data.pet_exp;
-    pet.last_pet_action_time = Date.now();
-  }
-
-  showToast('+5 EXP');
-  updatePetDisplay();
 }
 
 async function handleFeedButton(){
-  if(!state.currentPetId || !state.profile){
-    showToast('No pet selected', true);
+  const pet = getCurrentPet();
+  if(!pet || petUI.busy) return;
+  if((state.profile?.food || 0) < PET_FEED_COST){
+    showToast(`Not enough food (need ${PET_FEED_COST}) - win the Murloc minigame to earn food`, true);
     return;
   }
-
-  const food = state.profile.food || 0;
-  if(food < 5){
-    showToast('Not enough food (need 5)', true);
-    return;
+  petUI.busy = true;
+  updateButtonStates();
+  try {
+    const { data, error } = await sb.rpc('feed_pet', { p_user_id: state.profile.id, p_pet_id: pet.id });
+    if(error || !data || !data.success){
+      showToast(data?.error || 'Feeding failed', true);
+      return;
+    }
+    state.profile.food = data.food_remaining;
+    celebratePet('🍗');
+    applyPetResult(pet, data);
+    showToast(`+10 EXP, -${PET_FEED_COST} Food`);
+  } finally {
+    petUI.busy = false;
+    refreshPetWidget();
   }
+}
 
-  const { data, error } = await sb.rpc('feed_pet', { p_user_id: state.profile.id, p_pet_id: state.currentPetId });
-  if(error || !data || !data.success){
-    showToast(data?.error || 'Feeding failed', true);
-    return;
+// Little burst of floating icons over the pet
+function celebratePet(symbol){
+  const display = document.getElementById('pet-display');
+  if(!display) return;
+  for(let i = 0; i < 8; i++){
+    const s = document.createElement('span');
+    s.className = 'pet-burst';
+    s.textContent = symbol;
+    s.style.left = (15 + Math.random() * 70) + '%';
+    s.style.animationDelay = (i * 0.08) + 's';
+    s.style.fontSize = (14 + Math.random() * 12) + 'px';
+    display.appendChild(s);
+    setTimeout(() => s.remove(), 1800);
   }
-
-  const pet = state.profile.pets.find(p => p.id === state.currentPetId);
-  if(pet) pet.exp = data.pet_exp;
-  if(state.profile) state.profile.food = data.food_remaining;
-
-  showToast('+10 EXP, -5 Food');
-  updatePetDisplay();
 }
 
 async function loadPets(){
   if(!state.profile || !state.session) return;
-  const { data, error } = await sb.from('pets').select('*').eq('user_id', state.profile.id).order('created_at', { ascending: false });
+  const { data, error } = await sb.from('pets').select('*').eq('user_id', state.profile.id).order('created_at', { ascending: true });
   if(!error && data){
     state.profile.pets = data;
-
-    // CRITICAL SAFEGUARD: After loading pets, ensure NO modals are open
-    // Naming modal and pet card modal should NEVER auto-open on page load
-    // They should ONLY appear when explicitly triggered by user actions
-    const namingModal = document.getElementById('pet-naming-modal');
-    if(namingModal) namingModal.style.display = 'none';
-    const petCardModal = document.getElementById('pet-card-modal');
-    if(petCardModal) petCardModal.style.display = 'none';
   }
+  refreshPetWidget();
 }
 
+// Bind the widget's static buttons exactly once (render() never rebuilds them)
+function initPetWidget(){
+  if(petUI.bound) return;
+  const widget = document.getElementById('pet-widget');
+  if(!widget) return;
+  petUI.bound = true;
+
+  document.getElementById('pet-bar').addEventListener('click', togglePetWidget);
+  document.getElementById('pet-card-close').addEventListener('click', closePetCard);
+  document.getElementById('pet-button').addEventListener('click', handlePetButton);
+  document.getElementById('feed-button').addEventListener('click', handleFeedButton);
+  document.getElementById('pet-shop-button').addEventListener('click', () => { closePetCard(); openShop(); });
+  document.getElementById('pet-tabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.pet-tab');
+    if(tab) selectPet(tab.dataset.petId);
+  });
+  document.getElementById('pet-name-display').addEventListener('click', () => {
+    const pet = getCurrentPet();
+    if(pet && pet.status !== 'egg') showPetNamingModal(pet.id);
+  });
+
+  const namingModal = document.getElementById('pet-naming-modal');
+  const closeNaming = () => namingModal.classList.remove('open');
+  namingModal.addEventListener('click', (e) => { if(e.target === namingModal) closeNaming(); });
+  document.getElementById('pet-name-cancel').addEventListener('click', closeNaming);
+  document.getElementById('pet-name-submit').addEventListener('click', submitPetName);
+  document.getElementById('pet-name-input').addEventListener('keydown', (e) => { if(e.key === 'Enter') submitPetName(); });
+
+  refreshPetWidget();
+}
+
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initPetWidget);
+else initPetWidget();
+
 setInterval(()=>{
-  if(state.currentPetId && document.getElementById('pet-card-modal').style.display === 'flex'){
+  const widget = document.getElementById('pet-widget');
+  if(!widget) return;
+  const shouldShow = !!(state.session && state.profile && getMyPets().length);
+  if(shouldShow !== (widget.style.display === 'block')){ refreshPetWidget(); return; }
+  if(!shouldShow) return;
+  renderPetBar(getCurrentPet());
+  if(petUI.expanded){
     updateHatchCountdown();
     updateButtonStates();
   }
@@ -9757,57 +9879,155 @@ boot();
 })();
 </script>
 
-<!-- Pet Card Modal -->
-<div id="pet-card-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; display:flex; align-items:center; justify-content:center;">
-  <div id="pet-card-container" style="width:90%; max-width:500px; background:linear-gradient(135deg, #3a3020, #2a1f10); border:3px solid #8b7355; border-radius:8px; padding:20px; box-shadow:0 0 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(139,115,85,0.3); position:relative;">
-    <button id="pet-card-close" style="position:absolute; top:10px; right:15px; background:none; border:none; color:#d4af37; font-size:28px; cursor:pointer; z-index:1001;">&times;</button>
+<!-- Pet Widget (bottom-right). Hidden until the player owns a pet; starts collapsed to a bar. -->
+<style>
+  #pet-widget{ display:none; position:fixed; right:16px; bottom:16px; z-index:9000; width:320px; max-width:calc(100vw - 32px); font-family:Georgia, serif; }
+  #pet-bar{ display:flex; align-items:center; gap:10px; width:100%; padding:6px 12px 6px 6px; cursor:pointer; text-align:left;
+    background:linear-gradient(180deg, #3a2a18, #22170b); border:2px solid #8b7355; border-radius:6px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.6), inset 0 0 12px rgba(139,115,85,0.25); color:#d4af37; }
+  #pet-bar:hover{ border-color:#d4af37; }
+  #pet-bar img{ width:40px; height:40px; flex:0 0 40px; filter:drop-shadow(0 0 4px rgba(212,175,55,0.5)); }
+  #pet-bar .pet-bar-text{ flex:1; min-width:0; }
+  #pet-bar-name{ font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #pet-bar-sub{ font-size:11px; color:#b8a07a; font-family:system-ui, sans-serif; }
+  #pet-bar-count{ font-size:10px; color:#8b7355; font-family:system-ui, sans-serif; white-space:nowrap; }
+  #pet-bar .pet-bar-chevron{ font-size:14px; transition:transform 0.2s; }
+  #pet-widget.expanded #pet-bar .pet-bar-chevron{ transform:rotate(180deg); }
 
-    <div style="margin-bottom:15px;">
-      <div id="pet-tabs" style="display:flex; gap:4px; margin-bottom:12px; overflow-x:auto; padding-bottom:8px; border-bottom:1px solid #8b7355;"></div>
-      <div style="text-align:center;">
-        <h2 id="pet-name-display" style="color:#d4af37; margin:0; font-size:28px; font-family:serif;">Gryphon</h2>
-        <div id="pet-level-display" style="color:#b8860b; font-size:14px; margin-top:5px;">Level 1</div>
+  #pet-panel{ display:none; position:relative; margin-bottom:8px;
+    border-style:solid; border-width:46px 14px 16px 14px;
+    border-image:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/PetUI.png') 130 40 40 40 fill / 46px 14px 16px 14px stretch;
+    filter:drop-shadow(0 8px 24px rgba(0,0,0,0.7)); color:#d4af37; }
+  #pet-widget.expanded #pet-panel{ display:block; }
+  #pet-panel.pet-levelup{ animation:petLevelGlow 1.6s ease-out; }
+  @keyframes petLevelGlow{ 0%,100%{ filter:drop-shadow(0 8px 24px rgba(0,0,0,0.7)); } 30%{ filter:drop-shadow(0 0 28px rgba(255,215,0,0.95)); } }
+
+  #pet-name-display{ position:absolute; top:-38px; left:50%; transform:translateX(-50%); width:44%; height:26px; line-height:26px;
+    text-align:center; font-size:14px; font-weight:700; color:#f0d27a; text-shadow:0 1px 2px #000;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #pet-name-display.nameable{ cursor:pointer; }
+  #pet-name-display.nameable:hover{ color:#fff3c4; }
+  #pet-card-close{ position:absolute; top:-40px; right:-4px; width:26px; height:26px; background:none; border:none; color:#d4af37; font-size:22px; line-height:1; cursor:pointer; }
+  #pet-card-close:hover{ color:#fff3c4; }
+
+  #pet-tabs{ display:none; gap:4px; margin:2px 0 8px; overflow-x:auto; }
+  .pet-tab{ display:flex; align-items:center; gap:4px; padding:3px 8px; background:#3a2a18; border:1px solid #6b5a3a; color:#b8a07a;
+    border-radius:3px; cursor:pointer; font-size:11px; white-space:nowrap; max-width:110px; overflow:hidden; text-overflow:ellipsis; }
+  .pet-tab img{ width:14px; height:14px; }
+  .pet-tab.active{ background:#8b7355; color:#fff3c4; border-color:#d4af37; }
+
+  #pet-level-display{ text-align:center; font-size:12px; color:#c9a85c; margin:2px 0 6px; font-family:system-ui, sans-serif; }
+  #pet-display{ position:relative; height:130px; margin-bottom:8px; overflow:hidden; border-radius:4px;
+    background:radial-gradient(ellipse at center, rgba(90,70,40,0.55), rgba(20,12,4,0.35)); }
+  #pet-model-canvas{ width:100%; height:100%; }
+  .pet-egg-fallback{ display:flex; align-items:center; justify-content:center; height:100%; font-size:72px; padding-bottom:28px; box-sizing:border-box;
+    filter:drop-shadow(0 0 12px rgba(212,175,55,0.6)); animation:petBob 3s ease-in-out infinite; }
+  #pet-shop-button{ width:42%; }
+  #pet-portrait{ display:none; position:absolute; left:50%; top:50%; width:104px; height:104px; margin:-52px 0 0 -52px;
+    animation:petBob 3s ease-in-out infinite; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.6)); }
+  @keyframes petBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
+  #pet-hatching-overlay{ position:absolute; left:0; right:0; bottom:6px; display:none; flex-direction:column; align-items:center; pointer-events:none; text-shadow:0 1px 3px #000; }
+  #pet-hatching-overlay .label{ font-size:11px; font-family:system-ui, sans-serif; }
+  #hatch-countdown{ font-size:18px; font-weight:700; }
+  .pet-burst{ position:absolute; bottom:12px; pointer-events:none; animation:petBurst 1.6s ease-out forwards; opacity:0; color:#ff6b8a; }
+  @keyframes petBurst{ 0%{ transform:translateY(0) scale(0.6); opacity:0; } 20%{ opacity:1; } 100%{ transform:translateY(-110px) scale(1.2); opacity:0; } }
+
+  #pet-exp-section{ margin-bottom:8px; font-family:system-ui, sans-serif; }
+  #pet-exp-section .row{ display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px; }
+  #pet-exp-track{ height:12px; background:#1a0f05; border:1px solid #8b7355; border-radius:2px; overflow:hidden; }
+  #pet-exp-bar{ height:100%; width:0%; background:linear-gradient(90deg, #d4af37, #f0e68c); transition:width 0.3s ease; }
+
+  #pet-food-row{ display:flex; align-items:center; gap:5px; font-size:12px; margin-bottom:6px; font-family:system-ui, sans-serif; color:#e8d3a0; }
+  #pet-food-row img{ width:18px; height:18px; }
+
+  #pet-action-buttons, #pet-shop-row{ display:grid; gap:6px; }
+  #pet-action-buttons{ grid-template-columns:1fr 1fr; margin-bottom:6px; }
+  .pet-img-btn{ position:relative; padding:0; background:none; border:none; cursor:pointer; transition:transform 0.1s, filter 0.2s; }
+  .pet-img-btn img{ display:block; width:100%; height:auto; }
+  .pet-img-btn:hover:not(:disabled){ transform:translateY(-1px); filter:brightness(1.15); }
+  .pet-img-btn:active:not(:disabled){ transform:translateY(1px); }
+  .pet-img-btn:disabled{ cursor:not-allowed; filter:grayscale(0.85) brightness(0.6); }
+  .pet-img-btn .pet-btn-label{ display:block; margin-top:2px; font-size:10px; text-align:center; color:#c9a85c; font-family:system-ui, sans-serif; }
+  #pet-shop-row{ grid-template-columns:1fr; justify-items:center; }
+
+  #pet-naming-modal{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:10001; align-items:center; justify-content:center; }
+  #pet-naming-modal.open{ display:flex; }
+  #pet-naming-modal .box{ width:90%; max-width:400px; background:linear-gradient(135deg, #3a3020, #2a1f10); border:3px solid #8b7355; border-radius:8px; padding:20px; box-shadow:0 0 30px rgba(0,0,0,0.8); }
+  #pet-naming-modal h2{ color:#d4af37; text-align:center; margin:0 0 20px 0; }
+  #pet-name-input{ width:100%; padding:10px; background:#2a1a0a; border:1px solid #8b7355; color:#d4af37; border-radius:4px; margin-bottom:15px; box-sizing:border-box; }
+  #pet-naming-modal .actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  #pet-name-cancel{ padding:10px; background:#6b5a3a; border:1px solid #8b7355; color:#d4af37; border-radius:4px; cursor:pointer; }
+  #pet-name-submit{ padding:10px; background:#d4af37; border:1px solid #d4af37; color:#2a1f10; border-radius:4px; cursor:pointer; font-weight:bold; }
+
+  @media (max-width:480px){
+    #pet-widget{ right:8px; bottom:8px; max-width:calc(100vw - 16px); }
+    #pet-display{ height:110px; }
+  }
+</style>
+
+<div id="pet-widget">
+  <div id="pet-panel">
+    <div id="pet-name-display">Gryphon</div>
+    <button id="pet-card-close" type="button" aria-label="Collapse pet window">&minus;</button>
+
+    <div id="pet-tabs"></div>
+    <div id="pet-level-display">Level 1</div>
+
+    <div id="pet-display">
+      <div id="pet-model-canvas"></div>
+      <img id="pet-portrait" src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GryphonIcon.png" alt="Your gryphon">
+      <div id="pet-hatching-overlay">
+        <div class="label">Egg hatching in</div>
+        <div id="hatch-countdown">--:--:--</div>
       </div>
     </div>
 
-    <div id="pet-display" style="width:100%; height:200px; background:linear-gradient(180deg, #4a3a2a, #2a1a0a); border:2px solid #8b7355; border-radius:4px; margin-bottom:20px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden;">
-      <div id="pet-image" style="font-size:120px;">🐉</div>
-      <div id="pet-hatching-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.3); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#d4af37; display:none;">
-        <div style="font-size:14px; font-weight:bold; margin-bottom:10px;">Egg Hatching In:</div>
-        <div id="hatch-countdown" style="font-size:24px; font-weight:bold;">--:-- --</div>
-      </div>
+    <div id="pet-exp-section">
+      <div class="row"><span>Experience</span><span id="pet-exp-text">0 / 100</span></div>
+      <div id="pet-exp-track"><div id="pet-exp-bar"></div></div>
     </div>
 
-    <div id="pet-exp-section" style="margin-bottom:20px;">
-      <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px;">
-        <span style="color:#d4af37;">Experience</span>
-        <span id="pet-exp-text" style="color:#b8860b;">0 / 100</span>
-      </div>
-      <div style="width:100%; height:20px; background:#1a0f05; border:1px solid #8b7355; border-radius:2px; overflow:hidden;">
-        <div id="pet-exp-bar" style="height:100%; width:0%; background:linear-gradient(90deg, #d4af37, #f0e68c); transition:width 0.3s ease;"></div>
-      </div>
+    <div id="pet-food-row">
+      <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/FoodIcon.png" alt="Food">
+      <span>Food: <strong id="pet-food-count">0</strong></span>
     </div>
 
-    <div id="pet-action-buttons" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
-      <button id="pet-button" style="padding:12px; background:linear-gradient(135deg, #8b6f47, #5a4a30); border:2px solid #d4af37; color:#d4af37; border-radius:4px; font-weight:bold; cursor:pointer; transition:all 0.2s;">PET</button>
-      <button id="feed-button" style="padding:12px; background:linear-gradient(135deg, #8b6f47, #5a4a30); border:2px solid #d4af37; color:#d4af37; border-radius:4px; font-weight:bold; cursor:pointer; transition:all 0.2s;">FEED</button>
+    <div id="pet-action-buttons">
+      <button id="pet-button" class="pet-img-btn" type="button">
+        <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/PetButton.png" alt="Pet">
+        <span id="pet-button-label" class="pet-btn-label">+5 EXP</span>
+      </button>
+      <button id="feed-button" class="pet-img-btn" type="button">
+        <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/FeedButton.png" alt="Feed">
+        <span id="feed-button-label" class="pet-btn-label">5 food · +10 EXP</span>
+      </button>
     </div>
-
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-      <button id="pet-home-button" style="padding:10px; background:linear-gradient(135deg, #6b5a3a, #4a3a2a); border:1px solid #8b7355; color:#d4af37; border-radius:4px; cursor:pointer; font-size:12px;">HOME</button>
-      <button id="pet-shop-button" style="padding:10px; background:linear-gradient(135deg, #6b5a3a, #4a3a2a); border:1px solid #8b7355; color:#d4af37; border-radius:4px; cursor:pointer; font-size:12px;">SHOP</button>
+    <div id="pet-shop-row">
+      <button id="pet-shop-button" class="pet-img-btn" type="button">
+        <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShopButton.png" alt="Shop">
+      </button>
     </div>
   </div>
+
+  <button id="pet-bar" type="button" aria-label="Toggle pet window">
+    <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GryphonIcon.png" alt="">
+    <span class="pet-bar-text">
+      <div id="pet-bar-name">Gryphon</div>
+      <div id="pet-bar-sub"></div>
+    </span>
+    <span id="pet-bar-count"></span>
+    <span class="pet-bar-chevron">&#9650;</span>
+  </button>
 </div>
 
-<!-- Pet Naming Modal -->
-<div id="pet-naming-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10001; display:flex; align-items:center; justify-content:center;">
-  <div style="width:90%; max-width:400px; background:linear-gradient(135deg, #3a3020, #2a1f10); border:3px solid #8b7355; border-radius:8px; padding:20px; box-shadow:0 0 30px rgba(0,0,0,0.8);">
-    <h2 style="color:#d4af37; text-align:center; margin:0 0 20px 0;">Name Your Gryphon</h2>
-    <input id="pet-name-input" type="text" placeholder="Enter a name..." maxlength="30" style="width:100%; padding:10px; background:#2a1a0a; border:1px solid #8b7355; color:#d4af37; border-radius:4px; margin-bottom:15px; box-sizing:border-box;">
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-      <button id="pet-name-cancel" style="padding:10px; background:#6b5a3a; border:1px solid #8b7355; color:#d4af37; border-radius:4px; cursor:pointer;">Cancel</button>
-      <button id="pet-name-submit" style="padding:10px; background:#d4af37; border:1px solid #d4af37; color:#2a1f10; border-radius:4px; cursor:pointer; font-weight:bold;">Confirm</button>
+<!-- Pet Naming Modal (only opened from the pet widget) -->
+<div id="pet-naming-modal">
+  <div class="box">
+    <h2 id="pet-naming-title">Name Your Gryphon</h2>
+    <input id="pet-name-input" type="text" placeholder="Enter a name..." maxlength="30">
+    <div class="actions">
+      <button id="pet-name-cancel" type="button">Cancel</button>
+      <button id="pet-name-submit" type="button">Confirm</button>
     </div>
   </div>
 </div>
