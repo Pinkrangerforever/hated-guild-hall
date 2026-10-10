@@ -9638,16 +9638,19 @@ const DRAGON_ADULT_MODEL = {
     evolve: 'Land' // comes in to land when a whelp grows up
   }
 };
-// Dragon boss = WoW Onyxia. Kept on the ground: this model's flight clips shift the body far below
-// its standing position, out of the frame. Its two unused frostwurm textures (not on R2) were trimmed.
+// Dragon boss = WoW Onyxia. Her flight clips move the body far below where she stands, so
+// `recenter` measures each clip's offset at load and slides the model back into frame.
+// Her two unused frostwurm textures (not on R2) were trimmed.
 const DRAGON_BOSS_MODEL = {
   gltf: 'models/dragon-boss.gltf', // R2: Dragon-Boss/
   camY: 0.12, camZ: 1.15, alphaCutout: true,
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
-    routine: [{ once: 'StandAlt' }, { once: 'Tail' }],
+    recenter: true,
+    routine: [{ once: 'StandAlt' }, { once: 'ToFly' }, { loop: 'Hover', ms: 4000 }, { loop: 'Fly', ms: 4000 }, { loop: 'Hover', ms: 2500 }, { once: 'Land' }, { once: 'Tail' }],
     squawk: ['Roar', 'FireBreath'], // picks one at random
+    airSquawk: 'AirFire', airLoops: ['Hover', 'Fly'],
     feed: 'Bite',
     evolve: 'Land'
   }
@@ -9851,6 +9854,7 @@ function animate3DModel(){
   model3D.animationId = requestAnimationFrame(animate3DModel);
 
   if(petAnim.mixer) petAnim.mixer.update(petAnim.clock.getDelta());
+  if(petAnim.root && petAnim.targetPos) petAnim.root.position.lerp(petAnim.targetPos, 0.06); // ease clip re-centering
 
   // Follow the pet area as it grows/shrinks between stages
   const box = model3D.container;
@@ -9940,18 +9944,52 @@ function setupPetAnimations(object, config){
   petAnim.mixer = new THREE.AnimationMixer(root);
   petAnim.clock = new THREE.Clock();
   object.userData.animations.forEach(clip => { petAnim.actions[clip.name] = petAnim.mixer.clipAction(clip); });
+  petAnim.root = root;
+  petAnim.basePos = root.position.clone();
+  petAnim.targetPos = petAnim.basePos.clone();
+  petAnim.offsets = petAnim.config.recenter ? measureClipOffsets(object, root, object.userData.animations, petAnim.config.idle) : {};
   petAnim.mixer.addEventListener('finished', onPetAnimFinished);
   playPetLoop(petAnim.config.idle);
   schedulePetRoutine(true);
 }
 
+// How far each clip moves the skeleton away from the idle pose (average bone position, in the
+// model's own space). Used to slide models whose clips drift (e.g. Onyxia's flying) back into frame.
+function measureClipOffsets(pivot, root, clips, idleName){
+  const mixer = petAnim.mixer;
+  const bones = [];
+  root.traverse(o => { if(o.isBone) bones.push(o); });
+  if(!bones.length) return {};
+  const tmp = new THREE.Vector3();
+  const centroid = clip => {
+    const sum = new THREE.Vector3();
+    let n = 0;
+    for(const f of [0.25, 0.5, 0.75]){
+      mixer.stopAllAction();
+      mixer.clipAction(clip).reset().play();
+      mixer.setTime(clip.duration * f);
+      pivot.updateMatrixWorld(true);
+      bones.forEach(b => { b.getWorldPosition(tmp); pivot.worldToLocal(tmp); sum.add(tmp); n++; });
+    }
+    return sum.divideScalar(n);
+  };
+  const idle = clips.find(c => c.name === idleName) || clips[0];
+  const base = centroid(idle);
+  const offsets = {};
+  clips.forEach(c => { offsets[c.name] = centroid(c).sub(base); });
+  mixer.stopAllAction();
+  return offsets;
+}
+
 function stopPetAnimations(){
   clearTimeout(petAnim.timer);
+  if(petAnim.root && petAnim.basePos) petAnim.root.position.copy(petAnim.basePos);
   if(petAnim.mixer){
     petAnim.mixer.removeEventListener('finished', onPetAnimFinished);
     petAnim.mixer.stopAllAction();
   }
-  Object.assign(petAnim, { mixer: null, clock: null, actions: {}, current: null, loopName: null, after: null, timer: null, config: null });
+  Object.assign(petAnim, { mixer: null, clock: null, actions: {}, current: null, loopName: null, after: null, timer: null, config: null,
+                           root: null, basePos: null, targetPos: null, offsets: {} });
 }
 
 function playPetClip(name, once){
@@ -9965,6 +10003,8 @@ function playPetClip(name, once){
   if(petAnim.current && petAnim.current !== next) next.crossFadeFrom(petAnim.current, 0.3, false);
   next.play();
   petAnim.current = next;
+  const offset = petAnim.offsets && petAnim.offsets[name];
+  if(petAnim.basePos) petAnim.targetPos = offset ? petAnim.basePos.clone().sub(offset) : petAnim.basePos.clone();
   return next;
 }
 
