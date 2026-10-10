@@ -9919,6 +9919,15 @@ function petSquawk(){
 }
 
 // Feeding: eat if the model can (and is on the ground), otherwise squawk
+// Read-only debug view of the pet animation state (console: petAnimState())
+window.petAnimState = () => ({
+  loop: petAnim.loopName,
+  playing: petAnim.current ? petAnim.current.getClip().name : null,
+  oneShotPending: !!petAnim.after,
+  routineScheduled: !!petAnim.timer,
+  clips: Object.keys(petAnim.actions)
+});
+
 function petFeedReaction(){
   if(!petAnim.mixer || petAnim.after) return;
   const config = petAnim.config;
