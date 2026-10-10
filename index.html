@@ -9630,13 +9630,72 @@ function animate3DModel(){
 
   const m = model3D.model, cfg = model3D.modelConfig || {};
   if(m){
-    if(cfg.spin !== false) m.rotation.y += PET_SPIN_PER_FRAME;
+    const dragging = applyPetDrag(m, cfg);
+    if(cfg.spin !== false && !dragging) m.rotation.y += PET_SPIN_PER_FRAME;
     // Gentle hover: slow bob with a slight wing-beat tilt
     m.position.y = cfg.bob ? Math.sin(Date.now() * 0.0022) * 0.035 : 0;
     m.rotation.z = cfg.bob ? Math.sin(Date.now() * 0.0022 + 0.8) * 0.025 : 0;
   }
 
   model3D.renderer.render(model3D.scene, model3D.camera);
+}
+
+/* ---------------- Drag to turn the pet ----------------
+   Horizontal drags rotate the model with a little momentum. Non-spinning pets ease back to
+   their default facing after a few seconds; the egg keeps spinning from wherever it was left. */
+const petDrag = { pointerId: null, startX: 0, lastX: 0, lastT: 0, moved: false, velocity: 0, lastTouch: 0, suppressClick: false };
+const PET_DRAG_SPEED = 0.012;      // radians per pixel
+const PET_DRAG_RETURN_MS = 4000;   // idle time before easing back to the default facing
+
+function petDragDown(e){
+  if(!model3D.model || petDrag.pointerId !== null) return;
+  petDrag.pointerId = e.pointerId;
+  petDrag.startX = petDrag.lastX = e.clientX;
+  petDrag.lastT = performance.now();
+  petDrag.moved = false;
+  petDrag.velocity = 0;
+}
+
+function petDragMove(e){
+  if(e.pointerId !== petDrag.pointerId || !model3D.model) return;
+  if(!petDrag.moved && Math.abs(e.clientX - petDrag.startX) < 5) return; // still a tap
+  if(!petDrag.moved){
+    petDrag.moved = true;
+    document.getElementById('pet-display').setPointerCapture?.(e.pointerId);
+    document.getElementById('pet-display').classList.add('dragging');
+  }
+  const now = performance.now();
+  const dx = e.clientX - petDrag.lastX;
+  model3D.model.rotation.y += dx * PET_DRAG_SPEED;
+  petDrag.velocity = (dx * PET_DRAG_SPEED) / Math.max(1, (now - petDrag.lastT) / 16.7); // per frame
+  petDrag.lastX = e.clientX;
+  petDrag.lastT = now;
+  petDrag.lastTouch = Date.now();
+}
+
+function petDragUp(e){
+  if(e.pointerId !== petDrag.pointerId) return;
+  if(petDrag.moved) petDrag.suppressClick = true; // a drag is not a hatch click
+  petDrag.pointerId = null;
+  petDrag.lastTouch = Date.now();
+  document.getElementById('pet-display').classList.remove('dragging');
+}
+
+// Called every frame from animate3DModel
+function applyPetDrag(m, cfg){
+  const dragging = petDrag.pointerId !== null && petDrag.moved;
+  if(!dragging && Math.abs(petDrag.velocity) > 0.0005){
+    m.rotation.y += petDrag.velocity;
+    petDrag.velocity *= 0.93;
+  } else if(!dragging){
+    petDrag.velocity = 0;
+  }
+  if(cfg.spin === false && !dragging && Date.now() - petDrag.lastTouch > PET_DRAG_RETURN_MS){
+    const target = cfg.facing || 0;
+    const diff = Math.atan2(Math.sin(target - m.rotation.y), Math.cos(target - m.rotation.y));
+    m.rotation.y += diff * 0.05;
+  }
+  return dragging;
 }
 
 /* ---------------- Pet animations ----------------
@@ -9958,6 +10017,7 @@ function eggIsReadyToHatch(){
 
 // Player clicks the egg once the timer is done
 function handlePetDisplayClick(e){
+  if(petDrag.suppressClick){ petDrag.suppressClick = false; return; }
   if(!eggIsReadyToHatch() || !isPointerOnEgg(e)) return;
   hatchPetEgg(getCurrentPet().id);
 }
@@ -10194,6 +10254,10 @@ function initPetWidget(){
   document.getElementById('feed-button').addEventListener('click', handleFeedButton);
   document.getElementById('pet-shop-button').addEventListener('click', () => { closePetCard(); openShop(); });
   document.getElementById('pet-display').addEventListener('click', handlePetDisplayClick);
+  document.getElementById('pet-display').addEventListener('pointerdown', petDragDown);
+  document.getElementById('pet-display').addEventListener('pointermove', petDragMove);
+  document.getElementById('pet-display').addEventListener('pointerup', petDragUp);
+  document.getElementById('pet-display').addEventListener('pointercancel', petDragUp);
   document.getElementById('pet-display').addEventListener('mousemove', handlePetDisplayHover);
   document.getElementById('pet-display').addEventListener('mouseleave', () => document.getElementById('pet-display').classList.remove('egg-hover'));
   document.getElementById('pet-tabs').addEventListener('click', (e) => {
@@ -10299,6 +10363,8 @@ boot();
   #pet-hatching-overlay .label{ font-size:11px; font-family:system-ui, sans-serif; }
   #hatch-countdown{ font-size:15px; font-weight:700; }
   #pet-display.hatch-ready #hatch-countdown{ color:#fff3c4; }
+  #pet-display{ touch-action:pan-y; cursor:grab; user-select:none; -webkit-user-select:none; }
+  #pet-display.dragging{ cursor:grabbing; }
   #pet-display.egg-hover{ cursor:pointer; }
   #pet-model-canvas{ position:relative; z-index:1; }
   #pet-egg-glow{ position:absolute; z-index:0; display:none; pointer-events:none; border-radius:50%; transform:translate(-50%,-50%);
