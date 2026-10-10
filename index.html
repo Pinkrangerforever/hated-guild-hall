@@ -5614,11 +5614,13 @@ async function purchasePetEgg(itemId){
   if(!data.success){ showToast(data.error || 'Purchase failed', true); return; }
   if(state.profile) state.profile.gold = data.new_gold;
   if(!state.profile.pets) state.profile.pets = [];
-  state.profile.pets.push({ id: data.pet_id, user_id: state.profile.id, pet_type: data.pet_type, status: 'egg', hatch_time: data.hatch_time_ms, exp: 0, level: 1, name: null, last_pet_action_time: null });
-  showToast(`${item.name} purchased! It will hatch in 24 hours.`);
+  const status = data.status || 'egg';
+  state.profile.pets.push({ id: data.pet_id, user_id: state.profile.id, pet_type: data.pet_type, status, hatch_time: data.hatch_time_ms, exp: 0, level: 1, name: null, last_pet_action_time: null });
+  showToast(status === 'egg' ? `${item.name} purchased! It will hatch in 24 hours.` : `${item.name} adopted!`);
   state.modal = null;
   render();
   openPetCard(data.pet_id);
+  if(status !== 'egg') setTimeout(() => { celebratePet('🎉'); showPetNamingModal(data.pet_id); }, 900); // no hatch: name it now
 }
 async function purchaseRank(itemId){
   const { data, error } = await sb.rpc('purchase_rank', { p_item_id: itemId });
@@ -7125,8 +7127,8 @@ function renderShopModal(){
 
       ${ hasTraderAccess && petEggItems.length ? `
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
-        <h4 class="shop-section-title">Pet Eggs</h4>
-        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Smuggled in by the Shadowy Dealer and sold only to those who know the secret. Raise your own companion &mdash; eggs hatch in 24 hours.</p>
+        <h4 class="shop-section-title">Pets &amp; Eggs</h4>
+        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Smuggled in by the Shadowy Dealer and sold only to those who know the secret. Raise your own companion &mdash; eggs hatch in 24 hours, kittens are ready right away.</p>
         <div class="shop-grid">${petEggItems.map(item=>`
           <div class="shop-card">
             <div class="shop-egg-3d" data-egg-3d="${esc(item.metadata?.pet_type || 'gryphon')}">
@@ -7138,7 +7140,7 @@ function renderShopModal(){
               <span class="nav-gold-badge">${goldIconHtml()} ${item.cost}</span>
             </div>
             <button class="btn" type="button" data-buy-pet-egg="${item.id}" ${gold >= item.cost ? '' : 'disabled'} style="width:100%; margin-top:10px;">
-              ${ gold >= item.cost ? 'Purchase Egg' : 'Not enough gold' }
+              ${ gold < item.cost ? 'Not enough gold' : (item.metadata?.starts_as ? 'Adopt' : 'Purchase Egg') }
             </button>
           </div>
         `).join('')}</div>
@@ -9436,7 +9438,8 @@ const PET_ASSETS = {
 // One entry per pet species: shown name + icon (emoji until an icon image exists)
 const PET_TYPES = {
   gryphon: { label: 'Gryphon', icon: PET_R2 + '/GryphonIcon.png', emoji: '🦅' },
-  dragon:  { label: 'Dragon',  icon: null, emoji: '🐉', snapshot: () => DRAGON_JUVENILE_MODEL }
+  dragon:  { label: 'Dragon',  icon: null, emoji: '🐉', snapshot: () => DRAGON_JUVENILE_MODEL },
+  cat:     { label: 'Cat',     icon: null, emoji: '🐯', snapshot: () => CAT_JUVENILE_MODEL }
 };
 // Species without an icon image get a one-time 3D snapshot of their juvenile model as their icon
 const petIconSnapshots = {};
@@ -9561,7 +9564,8 @@ const GRYPHON_EGG_MTL = PET_R2 + '/Gryphon-Egg/12du_darkwellraid_phoenixegg01.mt
 const DRAGON_EGG_GLTF = 'models/dragon-egg.gltf';
 const PET_EGG_MODELS = {
   gryphon: { obj: GRYPHON_EGG_OBJ, mtl: GRYPHON_EGG_MTL, keep: ['Geoset0'], camY: 0.1 },
-  dragon: { gltf: DRAGON_EGG_GLTF, camY: 0.1 }
+  dragon: { gltf: DRAGON_EGG_GLTF, camY: 0.1 },
+  cat: { gltf: 'models/cat-juvenile.gltf', camY: 0.1, camZ: 1.9 } // kitten is sold as-is
 };
 // Pet window shows the egg sitting in its nest
 const PET_EGG_NEST_MODELS = {
@@ -9655,9 +9659,23 @@ const DRAGON_BOSS_MODEL = {
     evolve: 'Land'
   }
 };
+// Cat juvenile = orange sabre cub (models/cat-juvenile.gltf, R2: Cat-Juvenile/). Cats have no egg:
+// the Orange Kitten is bought as a juvenile. Adult/boss reuse it until their models exist.
+const CAT_JUVENILE_MODEL = {
+  gltf: 'models/cat-juvenile.gltf',
+  camY: 0.2, camZ: 1.6, alphaCutout: true,
+  spin: false, facing: -Math.PI / 2 + 0.6,
+  anims: {
+    idle: 'Stand',
+    routine: [{ once: 'StandAlt' }, { once: 'SitDown' }, { loop: 'Sit', ms: 4000 }, { once: 'SitUp' }, { once: 'StandAlt2' }],
+    squawk: ['Roar', 'Pounce', 'Dance'],
+    feed: 'Eat'
+  }
+};
 const PET_STAGE_MODELS = {
   gryphon: { juvenile: GRYPHON_JUVENILE_MODEL, adult: GRYPHON_ADULT_MODEL, boss: GRYPHON_BOSS_MODEL },
-  dragon: { juvenile: DRAGON_JUVENILE_MODEL, adult: DRAGON_ADULT_MODEL, boss: DRAGON_BOSS_MODEL }
+  dragon: { juvenile: DRAGON_JUVENILE_MODEL, adult: DRAGON_ADULT_MODEL, boss: DRAGON_BOSS_MODEL },
+  cat: { juvenile: CAT_JUVENILE_MODEL }
 };
 function petModelFor(pet){
   if(!pet) return null;
