@@ -10,7 +10,8 @@ Usage:
 
 Each clip argument is matched as a prefix of the animation name (variation 0 is listed first by
 wow.export, so "Stand (ID 0 variation 0)" etc.). The output animation names are shortened to
-the part before " (ID", e.g. "Stand", "Hover".
+the part before " (ID", e.g. "Stand", "Hover". To keep two variations of the same animation,
+rename one with "=>": "Stand (ID 0 variation 1=>StandAlt".
 """
 import json
 import sys
@@ -26,12 +27,15 @@ def main():
 
     # 1) Keep the requested animations (first match per prefix, in the order requested)
     kept = []
-    for prefix in clip_prefixes:
+    for arg in clip_prefixes:
+        prefix, _, rename = arg.partition('=>')
         match = next((a for a in g.get('animations', []) if a.get('name', '').startswith(prefix)), None)
         if not match:
             sys.exit(f'No animation starts with {prefix!r}')
         match = dict(match)
-        match['name'] = match['name'].split(' (ID')[0]
+        match['name'] = rename or match['name'].split(' (ID')[0]
+        if any(k['name'] == match['name'] for k in kept):
+            sys.exit(f'Duplicate clip name {match["name"]!r} - rename one with "=>"')
         kept.append(match)
     g['animations'] = kept
 
