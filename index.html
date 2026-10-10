@@ -9628,7 +9628,7 @@ const DRAGON_JUVENILE_MODEL = {
 // Dragon adult = WoW Onyxia mount (saddle geoset trimmed out). Boss reuses it until its model exists.
 const DRAGON_ADULT_MODEL = {
   gltf: 'models/dragon-adult.gltf', // R2: Dragon-Adult/
-  camY: 0.1, camZ: 0.9, alphaCutout: true, // sized by the spread-wing rest pose, so frame tight
+  camY: 0.1, camZ: 1.05, alphaCutout: true, // sized by the spread-wing rest pose, so frame tight
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
@@ -9832,6 +9832,17 @@ function mountShopEggViewers(){
       viewer.raf = requestAnimationFrame(tick);
     }
   });
+}
+
+// Match the renderer + camera to the pet area's current size
+function resizePetViewer(){
+  if(!model3D.renderer || !model3D.container) return;
+  const w = model3D.container.clientWidth, h = model3D.container.clientHeight;
+  if(!w || !h) return;
+  model3D.renderer.setSize(w, h);
+  model3D.camera.aspect = w / h;
+  model3D.camera.updateProjectionMatrix();
+  positionEggGlow();
 }
 
 function animate3DModel(){
@@ -10180,6 +10191,11 @@ function renderPetPanel(pet){
   renderPetTabs();
 
   const isEgg = pet.status === 'egg';
+  const widget = document.getElementById('pet-widget');
+  if(widget.dataset.stage !== pet.status){
+    widget.dataset.stage = pet.status;
+    setTimeout(resizePetViewer, 450); // after the size transition
+  }
   const nameEl = document.getElementById('pet-name-display');
   nameEl.textContent = petDisplayName(pet);
   nameEl.classList.toggle('nameable', !isEgg);
@@ -10720,6 +10736,13 @@ boot();
   #pet-name-cancel{ padding:10px; background:#6b5a3a; border:1px solid #8b7355; color:#d4af37; border-radius:4px; cursor:pointer; }
   #pet-name-submit{ padding:10px; background:#d4af37; border:1px solid #d4af37; color:#2a1f10; border-radius:4px; cursor:pointer; font-weight:bold; }
 
+  /* Bigger stages get a bigger window */
+  #pet-widget[data-stage="adult"]{ width:360px; }
+  #pet-widget[data-stage="boss"]{ width:400px; }
+  #pet-widget[data-stage="adult"] #pet-display{ height:175px; }
+  #pet-widget[data-stage="boss"] #pet-display{ height:215px; }
+  #pet-widget{ transition:width 0.4s ease; }
+  #pet-display{ transition:height 0.4s ease; }
   @media (max-width:480px){
     #pet-widget{ right:8px; bottom:8px; max-width:calc(100vw - 16px); }
     #pet-display{ height:110px; }
