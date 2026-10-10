@@ -17,6 +17,13 @@ Write-Host "Setting up Daily Database Backups"
 Write-Host "=========================================="
 Write-Host ""
 
+# Task uses RunLevel Highest, so registering it requires an elevated PowerShell
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Write-Host "ERROR: Run this from PowerShell opened with 'Run as administrator'" -ForegroundColor Red
+    exit 1
+}
+
 # Check if script exists
 if (-not (Test-Path $scriptPath)) {
     Write-Host "❌ ERROR: Backup script not found at $scriptPath" -ForegroundColor Red
@@ -34,13 +41,15 @@ if (-not (Test-Path $backupDir)) {
 $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 if ($existingTask) {
     Write-Host "Removing existing task..."
-    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+    Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction Stop
 }
 
 # Create the scheduled task action
 $action = New-ScheduledTaskAction `
     -Execute "powershell.exe" `
-    -Argument "-NoProfile -NoExit -File `"$scriptPath`""
+    -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scriptPath`"" `
+    -WorkingDirectory "C:\Users\Chuck\Documents\hated-guild-hall"
 
 # Create the scheduled task trigger (daily at specified time)
 $trigger = New-ScheduledTaskTrigger `
@@ -50,8 +59,11 @@ $trigger = New-ScheduledTaskTrigger `
 # Create task settings
 $settings = New-ScheduledTaskSettingsSet `
     -MultipleInstances IgnoreNew `
+    -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries `
-    -StartWhenAvailable
+    -StartWhenAvailable `
+    -WakeToRun `
+    -ExecutionTimeLimit (New-TimeSpan -Hours 1)
 
 # Register the scheduled task
 try {
@@ -60,9 +72,10 @@ try {
         -Action $action `
         -Trigger $trigger `
         -Settings $settings `
-        -Description "Daily backup of HATED Guild Hall Supabase staging database" `
+        -Description "Daily backup of HATED Guild Hall Supabase databases (staging + prod: roles, schema, data)" `
         -RunLevel Highest `
-        -Force | Out-Null
+        -Force `
+        -ErrorAction Stop | Out-Null
 
     Write-Host ""
     Write-Host "✅ SUCCESS! Daily backup task created" -ForegroundColor Green
