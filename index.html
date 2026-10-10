@@ -9522,7 +9522,7 @@ const PET_EGG_NEST_MODELS = {
 // Hatched gryphon models by stage: animated glTFs trimmed by tools/trim_gltf.py (models/*.gltf);
 // their .bin/.png files stay on R2. `anims` drives the behavior:
 //   idle      - looping clip shown by default
-//   routine   - played every 20-40s: {once: clip} waits for the clip to end, {loop: clip, ms} holds
+//   routine   - played every 8-15s (first one 4-7s after opening): {once: clip} waits for the clip to end, {loop: clip, ms} holds
 //   squawk    - one-shot on PET/FEED (airSquawk instead while in one of airLoops)
 // Boss reuses the adult until its model exists.
 const GRYPHON_JUVENILE_MODEL = {
@@ -9819,7 +9819,7 @@ function applyPetDrag(m, cfg){
 }
 
 /* ---------------- Pet animations ----------------
-   Driven by the model's `anims` config: idle loop, a routine every 20-40s, and a squawk on PET/FEED. */
+   Driven by the model's `anims` config: idle loop, a routine every 8-15s, and a squawk on PET/FEED. */
 const petAnim = { mixer: null, clock: null, actions: {}, current: null, loopName: null, after: null, timer: null, config: null };
 
 function setupPetAnimations(object, config){
@@ -9831,7 +9831,7 @@ function setupPetAnimations(object, config){
   object.userData.animations.forEach(clip => { petAnim.actions[clip.name] = petAnim.mixer.clipAction(clip); });
   petAnim.mixer.addEventListener('finished', onPetAnimFinished);
   playPetLoop(petAnim.config.idle);
-  schedulePetRoutine();
+  schedulePetRoutine(true);
 }
 
 function stopPetAnimations(){
@@ -9882,9 +9882,13 @@ function onPetAnimFinished(e){
   if(after.fn) after.fn();
 }
 
-function schedulePetRoutine(){
+// First routine soon after the window opens, then every 8-15s
+const PET_ROUTINE_FIRST_MS = [4000, 7000];
+const PET_ROUTINE_EVERY_MS = [8000, 15000];
+function schedulePetRoutine(first){
   clearTimeout(petAnim.timer);
-  petAnim.timer = setTimeout(runPetRoutine, 20000 + Math.random() * 20000);
+  const [min, max] = first ? PET_ROUTINE_FIRST_MS : PET_ROUTINE_EVERY_MS;
+  petAnim.timer = setTimeout(runPetRoutine, min + Math.random() * (max - min));
 }
 
 function runPetRoutine(){
