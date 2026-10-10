@@ -9456,7 +9456,7 @@ const shopEggViewers = {};
 function mountShopEggViewers(){
   if(typeof THREE === 'undefined') return;
   document.querySelectorAll('[data-egg-3d]').forEach(slot => {
-    const petType = slot.dataset.egg3d;
+    const petType = slot.getAttribute('data-egg-3d'); // dataset can't camelCase "-3d"
     const model = PET_EGG_MODELS[petType];
     if(!model) return;
 
