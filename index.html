@@ -9387,39 +9387,42 @@ let model3D = {
   container: null
 };
 
-async function init3DViewer(){
-  if(model3D.isLoaded || typeof THREE === 'undefined') return;
-
+// Pet window viewer: one renderer, swaps models as the pet changes (egg -> juvenile -> ...)
+async function init3DViewer(model){
+  if(typeof THREE === 'undefined') return;
   const container = document.getElementById('pet-model-canvas');
-  if(!container) return;
+  if(!container || !model) return;
 
   try {
-    model3D.container = container;
-    model3D.scene = new THREE.Scene();
-    model3D.scene.background = null;
-
-    const width = container.clientWidth || 260;
-    const height = container.clientHeight || 130;
-
-    model3D.camera = makePetCamera(width / height, PET_EGG_NEST_MODELS.gryphon.camY, PET_EGG_NEST_MODELS.gryphon.camZ);
-
-    model3D.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    model3D.renderer.setSize(width, height);
-    model3D.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-
-    container.innerHTML = '';
-    container.appendChild(model3D.renderer.domElement);
-
-    addPetLights(model3D.scene);
-
-    model3D.isLoaded = true;
-    await loadOBJModel(PET_EGG_NEST_MODELS.gryphon);
-    animate3DModel();
+    if(!model3D.isLoaded){
+      model3D.container = container;
+      model3D.scene = new THREE.Scene();
+      model3D.scene.background = null;
+      const width = container.clientWidth || 260;
+      const height = container.clientHeight || 130;
+      model3D.camera = makePetCamera(width / height);
+      model3D.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      model3D.renderer.setSize(width, height);
+      model3D.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      container.innerHTML = '';
+      container.appendChild(model3D.renderer.domElement);
+      addPetLights(model3D.scene);
+      model3D.isLoaded = true;
+      animate3DModel();
+    }
+    await loadOBJModel(model);
   } catch(e) {
-    // Usually the R2 bucket's CORS policy blocking the .obj/.mtl - show a 2D egg instead
+    // Usually the R2 bucket's CORS policy blocking the .obj/.mtl - fall back to 2D
     console.error('3D viewer init error:', e);
     dispose3DModel();
-    container.innerHTML = '<div class="pet-egg-fallback">🥚</div>';
+    petUI.displayMode = null;
+    const pet = getCurrentPet();
+    if(pet && pet.status === 'egg'){
+      container.innerHTML = '<div class="pet-egg-fallback">🥚</div>';
+    } else {
+      container.style.display = 'none';
+      document.getElementById('pet-portrait').style.display = 'block';
+    }
   }
 }
 
@@ -9437,6 +9440,25 @@ const PET_EGG_MODELS = {
 const PET_EGG_NEST_MODELS = {
   gryphon: { obj: GRYPHON_EGG_OBJ, mtl: GRYPHON_EGG_MTL, keep: ['Geoset0', 'Geoset18'], camY: 0.45, camZ: 1.6 }
 };
+// Hatched gryphon models by stage. Juvenile OBJ geosets: 0 = small detail, 1 = body with folded
+// wings, 2 = flat spread-wing planes (hidden). Adult/boss reuse the juvenile until their models exist.
+const GRYPHON_JUVENILE_MODEL = {
+  obj: PET_R2 + '/Gryphon-Juvenile/gryphonpetgeneric_gryphonpet.obj',
+  mtl: PET_R2 + '/Gryphon-Juvenile/gryphonpetgeneric_gryphonpet.mtl',
+  keep: ['Geoset0', 'Geoset1'], camY: 0.25, camZ: 1.7, alphaCutout: true
+};
+const PET_STAGE_MODELS = {
+  gryphon: { juvenile: GRYPHON_JUVENILE_MODEL, adult: GRYPHON_JUVENILE_MODEL, boss: GRYPHON_JUVENILE_MODEL }
+};
+function petModelFor(pet){
+  if(!pet) return null;
+  if(pet.status === 'egg') return PET_EGG_NEST_MODELS[pet.pet_type] || PET_EGG_NEST_MODELS.gryphon;
+  const stages = PET_STAGE_MODELS[pet.pet_type];
+  return stages ? (stages[pet.status] || stages.juvenile) : null;
+}
+function petModelKey(model){
+  return model ? model.obj + '|' + (model.keep || []).join(',') : 'portrait';
+}
 const PET_CAMERA = { fov: 35, y: 0.1, z: 2.1 };
 const PET_SPIN_PER_FRAME = 0.008; // shared so the shop egg and pet window spin at the same rate
 
@@ -9464,6 +9486,14 @@ function getPetModel(model){
     petModelCache[key] = loadPetModelFile(model).then(file => {
       const obj = file.clone();
       if(model.keep) obj.children.filter(c => !model.keep.includes(c.name)).forEach(c => obj.remove(c));
+      if(model.alphaCutout){
+        obj.traverse(m => {
+          if(!m.isMesh) return;
+          m.material = m.material.clone();
+          m.material.alphaTest = 0.5;
+          m.material.side = THREE.DoubleSide;
+        });
+      }
       const box = new THREE.Box3().setFromObject(obj);
       const size = box.getSize(new THREE.Vector3());
       obj.position.sub(box.getCenter(new THREE.Vector3()));
@@ -9492,9 +9522,12 @@ function makePetCamera(aspect, y = PET_CAMERA.y, z = PET_CAMERA.z){
 async function loadOBJModel(model){
   const object = await getPetModel(model);
   if(!model3D.scene) return; // disposed while loading
+  if(petUI.displayMode !== petModelKey(model)) return; // pet changed while this was loading
   if(model3D.model) model3D.scene.remove(model3D.model);
   model3D.model = object;
   model3D.scene.add(model3D.model);
+  model3D.camera.position.set(0, model.camY ?? PET_CAMERA.y, model.camZ ?? PET_CAMERA.z);
+  model3D.camera.lookAt(0, 0, 0);
 }
 
 /* ---------------- Shop egg previews ----------------
@@ -9706,7 +9739,7 @@ function renderPetPanel(pet){
   document.getElementById('pet-level-display').textContent =
     isEgg ? 'Egg' : `Level ${level} · ${PET_STAGE_LABEL[pet.status] || ''}`;
 
-  setPetDisplayMode(isEgg ? 'egg' : 'hatched');
+  setPetDisplayMode(pet);
   document.getElementById('pet-hatching-overlay').style.display = isEgg ? 'flex' : 'none';
   document.getElementById('pet-exp-section').style.display = isEgg ? 'none' : 'block';
   document.getElementById('pet-action-buttons').style.display = isEgg ? 'none' : 'grid';
@@ -9727,16 +9760,18 @@ function renderPetPanel(pet){
   updateButtonStates();
 }
 
-// Swap between the 3D egg and the hatched gryphon portrait
-function setPetDisplayMode(mode){
-  if(petUI.displayMode === mode) return;
-  petUI.displayMode = mode;
+// Show the 3D model for this pet's stage (or the 2D portrait if there's no model)
+function setPetDisplayMode(pet){
+  const model = petModelFor(pet);
+  const key = petModelKey(model);
+  if(petUI.displayMode === key) return;
+  petUI.displayMode = key;
   const canvas = document.getElementById('pet-model-canvas');
   const portrait = document.getElementById('pet-portrait');
-  if(mode === 'egg'){
+  if(model){
     portrait.style.display = 'none';
     canvas.style.display = 'block';
-    setTimeout(() => init3DViewer(), 50);
+    setTimeout(() => init3DViewer(model), 50);
   } else {
     if(model3D.isLoaded) dispose3DModel();
     canvas.style.display = 'none';
