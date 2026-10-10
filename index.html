@@ -9844,6 +9844,7 @@ function positionEggGlow(){
   const glow = document.getElementById('pet-egg-glow');
   if(!glow || !model3D.isLoaded || !model3D.model || !model3D.renderer) return;
   model3D.camera.updateMatrixWorld();
+  model3D.model.updateMatrixWorld(true); // may not have been rendered yet
   const shell = model3D.model.getObjectByName('Geoset0') || model3D.model;
   const box = new THREE.Box3().setFromObject(shell);
   if(box.isEmpty()) return;
