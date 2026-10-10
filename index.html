@@ -9924,7 +9924,9 @@ function celebratePet(symbol){
 async function loadPets(){
   if(!state.profile || !state.session) return;
   const { data, error } = await sb.from('pets').select('*').eq('user_id', state.profile.id).order('created_at', { ascending: true });
-  if(!error && data){
+  if(error){
+    console.error('loadPets failed:', error);
+  } else if(data){
     state.profile.pets = data;
   }
   refreshPetWidget();
