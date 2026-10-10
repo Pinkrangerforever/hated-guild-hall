@@ -9531,6 +9531,7 @@ async function loadOBJModel(model){
   model3D.scene.add(model3D.model);
   model3D.camera.position.set(0, model.camY ?? PET_CAMERA.y, model.camZ ?? PET_CAMERA.z);
   model3D.camera.lookAt(0, 0, 0);
+  positionEggGlow();
 }
 
 /* ---------------- Shop egg previews ----------------
@@ -9797,24 +9798,63 @@ function updateHatchCountdown(){
   const pet = getCurrentPet();
   const display = document.getElementById('pet-display');
   if(!pet || pet.status !== 'egg'){
-    display?.classList.remove('hatch-ready');
+    display?.classList.remove('hatch-ready', 'egg-hover');
     return;
   }
   const timeLeft = pet.hatch_time - Date.now();
   const ready = timeLeft <= 0;
   display?.classList.toggle('hatch-ready', ready && !petUI.hatchInFlight);
+  if(ready) positionEggGlow();
   const label = document.querySelector('#pet-hatching-overlay .label');
   const el = document.getElementById('hatch-countdown');
   if(label) label.textContent = ready ? 'Your egg is ready!' : 'Egg hatching in';
   if(el) el.textContent = ready ? (petUI.hatchInFlight ? 'Hatching...' : 'Click the egg to hatch!') : formatDuration(timeLeft);
 }
 
-// Player clicks the egg once the timer is done
-function handlePetDisplayClick(){
+// True when the pointer event lands on the egg/nest model (or the 2D egg fallback)
+function isPointerOnEgg(e){
+  if(e.target.closest && e.target.closest('.pet-egg-fallback')) return true;
+  if(!model3D.isLoaded || !model3D.model || !model3D.renderer) return false;
+  const rect = model3D.renderer.domElement.getBoundingClientRect();
+  if(!rect.width || !rect.height) return false;
+  const ndc = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera(ndc, model3D.camera);
+  return ray.intersectObject(model3D.model, true).length > 0;
+}
+
+function eggIsReadyToHatch(){
   const pet = getCurrentPet();
-  if(!pet || pet.status !== 'egg' || petUI.hatchInFlight) return;
-  if(pet.hatch_time > Date.now()) return;
-  hatchPetEgg(pet.id);
+  return !!(pet && pet.status === 'egg' && !petUI.hatchInFlight && pet.hatch_time <= Date.now());
+}
+
+// Player clicks the egg once the timer is done
+function handlePetDisplayClick(e){
+  if(!eggIsReadyToHatch() || !isPointerOnEgg(e)) return;
+  hatchPetEgg(getCurrentPet().id);
+}
+
+function handlePetDisplayHover(e){
+  const display = document.getElementById('pet-display');
+  display.classList.toggle('egg-hover', eggIsReadyToHatch() && isPointerOnEgg(e));
+}
+
+// Center the halo on the egg shell (Geoset0) as drawn on screen
+function positionEggGlow(){
+  const glow = document.getElementById('pet-egg-glow');
+  if(!glow || !model3D.isLoaded || !model3D.model || !model3D.renderer) return;
+  model3D.camera.updateMatrixWorld();
+  const shell = model3D.model.getObjectByName('Geoset0') || model3D.model;
+  const box = new THREE.Box3().setFromObject(shell);
+  if(box.isEmpty()) return;
+  const canvas = model3D.renderer.domElement;
+  const toPx = v => { const p = v.clone().project(model3D.camera); return { x: (p.x + 1) / 2 * canvas.clientWidth, y: (1 - p.y) / 2 * canvas.clientHeight }; };
+  const center = toPx(box.getCenter(new THREE.Vector3()));
+  const top = toPx(new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2));
+  const size = Math.max(40, Math.abs(center.y - top.y) * 2 * 1.9);
+  glow.style.left = (canvas.offsetLeft + center.x) + 'px';
+  glow.style.top = (canvas.offsetTop + center.y) + 'px';
+  glow.style.width = glow.style.height = size + 'px';
 }
 
 const petWait = ms => new Promise(r => setTimeout(r, ms));
@@ -10024,6 +10064,8 @@ function initPetWidget(){
   document.getElementById('feed-button').addEventListener('click', handleFeedButton);
   document.getElementById('pet-shop-button').addEventListener('click', () => { closePetCard(); openShop(); });
   document.getElementById('pet-display').addEventListener('click', handlePetDisplayClick);
+  document.getElementById('pet-display').addEventListener('mousemove', handlePetDisplayHover);
+  document.getElementById('pet-display').addEventListener('mouseleave', () => document.getElementById('pet-display').classList.remove('egg-hover'));
   document.getElementById('pet-tabs').addEventListener('click', (e) => {
     const tab = e.target.closest('.pet-tab');
     if(tab) selectPet(tab.dataset.petId);
@@ -10126,9 +10168,14 @@ boot();
   #pet-hatching-overlay{ position:absolute; left:0; right:0; top:5px; display:none; justify-content:center; align-items:baseline; gap:6px; pointer-events:none; text-shadow:0 1px 3px #000; }
   #pet-hatching-overlay .label{ font-size:11px; font-family:system-ui, sans-serif; }
   #hatch-countdown{ font-size:15px; font-weight:700; }
-  #pet-display.hatch-ready{ cursor:pointer; animation:petHatchReady 1.6s ease-in-out infinite; }
   #pet-display.hatch-ready #hatch-countdown{ color:#fff3c4; }
-  @keyframes petHatchReady{ 0%,100%{ box-shadow:inset 0 0 10px rgba(255,215,0,0.25); } 50%{ box-shadow:inset 0 0 26px rgba(255,215,0,0.75); } }
+  #pet-display.egg-hover{ cursor:pointer; }
+  #pet-model-canvas{ position:relative; z-index:1; }
+  #pet-egg-glow{ position:absolute; z-index:0; display:none; pointer-events:none; border-radius:50%; transform:translate(-50%,-50%);
+    background:radial-gradient(circle, rgba(255,232,140,0.85) 0%, rgba(255,205,70,0.45) 38%, rgba(255,190,60,0) 70%); }
+  #pet-display.hatch-ready #pet-egg-glow{ display:block; animation:petEggGlow 1.6s ease-in-out infinite; }
+  #pet-display.hatch-ready.egg-hover #pet-egg-glow{ animation-duration:0.8s; }
+  @keyframes petEggGlow{ 0%,100%{ opacity:0.45; transform:translate(-50%,-50%) scale(0.9); } 50%{ opacity:1; transform:translate(-50%,-50%) scale(1.12); } }
   #pet-display.hatch-shake #pet-model-canvas{ animation:petEggShake 0.9s ease-in-out; }
   @keyframes petEggShake{
     0%,100%{ transform:rotate(0); } 10%{ transform:rotate(-5deg); } 20%{ transform:rotate(5deg); } 30%{ transform:rotate(-7deg); }
@@ -10186,6 +10233,7 @@ boot();
     <div id="pet-level-display">Level 1</div>
 
     <div id="pet-display">
+      <div id="pet-egg-glow"></div>
       <div id="pet-model-canvas"></div>
       <img id="pet-portrait" src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GryphonIcon.png" alt="Your gryphon">
       <div id="pet-hatch-flash"></div>
