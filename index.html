@@ -7052,25 +7052,10 @@ function renderShopModal(){
         ${ borderItems.length ? `<div class="shop-grid">${borderItems.map(renderBorderCard).join('')}</div>` : emptyState('No name borders set up yet.') }
       </div>
 
-      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
-        <h4 class="shop-section-title">Sticker Wall</h4>
-        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Place a sticker on the wall with your name under it. Stickers stay up for 7 days before auto-deleting.</p>
-        ${ officer ? `
-        <div class="field" style="max-width:220px; margin-bottom:14px;">
-          <label>Sticker price (gold)</label>
-          <div style="display:flex; gap:8px;">
-            <input type="number" min="0" id="sticker-price-input" value="${stickerPrice}">
-            <button class="btn secondary" type="button" id="save-sticker-price-btn">Save</button>
-          </div>
-        </div>` : '' }
-        ${ stickerImages.length ? `<div class="shop-grid">${stickerImages.map(renderStickerCard).join('')}</div>` :
-          emptyState(officer ? 'No images are flagged as stickers yet  go to the Gallery to enable some.' : 'No stickers available yet.') }
-      </div>
-
       ${ hasTraderAccess && petEggItems.length ? `
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
         <h4 class="shop-section-title">Pet Eggs</h4>
-        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Purchase an egg and raise your companion. Eggs hatch in 24 hours.</p>
+        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Smuggled in by the Shadowy Dealer and sold only to those who know the secret. Raise your own companion &mdash; eggs hatch in 24 hours.</p>
         <div class="shop-grid">${petEggItems.map(item=>`
           <div class="shop-card">
             <div class="shop-egg-3d" data-egg-3d="${esc(item.metadata?.pet_type || 'gryphon')}">
@@ -7088,6 +7073,21 @@ function renderShopModal(){
         `).join('')}</div>
       </div>
       ` : '' }
+
+      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
+        <h4 class="shop-section-title">Sticker Wall</h4>
+        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Place a sticker on the wall with your name under it. Stickers stay up for 7 days before auto-deleting.</p>
+        ${ officer ? `
+        <div class="field" style="max-width:220px; margin-bottom:14px;">
+          <label>Sticker price (gold)</label>
+          <div style="display:flex; gap:8px;">
+            <input type="number" min="0" id="sticker-price-input" value="${stickerPrice}">
+            <button class="btn secondary" type="button" id="save-sticker-price-btn">Save</button>
+          </div>
+        </div>` : '' }
+        ${ stickerImages.length ? `<div class="shop-grid">${stickerImages.map(renderStickerCard).join('')}</div>` :
+          emptyState(officer ? 'No images are flagged as stickers yet  go to the Gallery to enable some.' : 'No stickers available yet.') }
+      </div>
 
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
         <h4 class="shop-section-title">Discord Rank Upgrades</h4>
