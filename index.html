@@ -9597,9 +9597,22 @@ const DRAGON_JUVENILE_MODEL = {
     feed: 'AttackUnarmed'  // snaps up the food
   }
 };
+// Dragon adult = WoW Onyxia mount (saddle geoset trimmed out). Boss reuses it until its model exists.
+const DRAGON_ADULT_MODEL = {
+  gltf: 'models/dragon-adult.gltf', // R2: Dragon-Adult/
+  camY: 0.2, camZ: 1.7, alphaCutout: true,
+  spin: false, facing: -Math.PI / 2 + 0.6,
+  anims: {
+    idle: 'Stand',
+    routine: [{ once: 'StandAlt' }, { once: 'ToFly' }, { loop: 'Hover', ms: 4000 }, { loop: 'Fly', ms: 4000 }, { loop: 'Hover', ms: 2500 }, { once: 'Land' }],
+    squawk: 'Roar', airSquawk: 'FireBreath', airLoops: ['Hover', 'Fly'],
+    feed: 'Bite',
+    evolve: 'Land' // comes in to land when a whelp grows up
+  }
+};
 const PET_STAGE_MODELS = {
   gryphon: { juvenile: GRYPHON_JUVENILE_MODEL, adult: GRYPHON_ADULT_MODEL, boss: GRYPHON_BOSS_MODEL },
-  dragon: { juvenile: DRAGON_JUVENILE_MODEL }
+  dragon: { juvenile: DRAGON_JUVENILE_MODEL, adult: DRAGON_ADULT_MODEL, boss: DRAGON_ADULT_MODEL }
 };
 function petModelFor(pet){
   if(!pet) return null;
