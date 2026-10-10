@@ -3323,6 +3323,36 @@
     filter:drop-shadow(0 2px 3px rgba(0,0,0,0.8)) drop-shadow(0 0 6px rgba(240,201,90,0.55));
   }
   .hh-zap{ color:#eaf8ff !important; text-shadow:0 0 6px #bfe8ff, 0 0 16px #7fd4ff, 0 0 28px rgba(127,212,255,0.6) !important; transition:color .15s, text-shadow .15s; }
+
+  /* ======================================================================
+     THEME PASS 3 (2026-10-10): Horde red / ember orange from the banner.
+     Red = Horde. Calm announcements panel. Revert this block to remove.
+     ====================================================================== */
+  :root{ --hh-blood:#8e1c18; --hh-ember:#e0662a; }
+  #module-announcements-display{ animation:none !important; transform:none !important; }
+  #module-announcements-display:hover{ border-color: rgba(201,150,63,0.75) !important; }
+  .coming-up-panel, .gold-leaderboard-widget, #module-announcements-display{ position:relative; }
+  /* Banner-style blood-to-ember band across the top of every panel */
+  .coming-up-panel::before, .gold-leaderboard-widget::before, #module-announcements-display::before{
+    content:''; display:block !important; position:absolute; left:0; right:0; top:0; height:4px; pointer-events:none;
+    border-radius: var(--hh-radius) var(--hh-radius) 0 0;
+    background: linear-gradient(90deg, transparent, var(--hh-blood) 18%, var(--hh-ember) 50%, var(--hh-blood) 82%, transparent);
+    box-shadow: 0 0 10px rgba(224,102,42,0.45);
+  }
+  /* Ember glow rising from the bottom of each panel */
+  .coming-up-panel, .gold-leaderboard-widget, #module-announcements-display{
+    background:
+      radial-gradient(ellipse at 50% 115%, rgba(142,28,24,0.32), transparent 55%),
+      var(--hh-panel-bg) !important;
+  }
+  /* Headings: ember underglow */
+  .coming-up-header, .gold-leaderboard-widget-title, #module-announcements-display .announcement-header h3{
+    text-shadow: 0 1px 2px #000, 0 0 12px rgba(224,102,42,0.35) !important;
+  }
+  /* Leaderboard ranks 4+ and countdowns in ember; hover rows get a blood edge */
+  .gold-leaderboard-entries .leaderboard-entry:not(.rank-top-3) .leaderboard-rank{ color: var(--hh-ember) !important; }
+  .gold-leaderboard-entries .leaderboard-entry:not(.rank-top-3):hover{ border-color: var(--hh-ember) !important; box-shadow: inset 3px 0 0 var(--hh-blood) !important; }
+  .coming-up-item:hover{ box-shadow: inset 3px 0 0 var(--hh-blood) !important; }
 </style>
 </head>
 <body>
@@ -10973,6 +11003,7 @@ setInterval(()=>{
    and while the tab is hidden. Tune via HH_LIGHTNING. */
 const HH_LIGHTNING = {
   targets: '.coming-up-header, .gold-leaderboard-widget-title, #module-announcements-display .announcement-header h3',
+  panels: '.coming-up-panel, .gold-leaderboard-widget, #module-announcements-display',
   minDelayMs: 15000,
   maxDelayMs: 30000
 };
@@ -11031,8 +11062,8 @@ const HH_LIGHTNING = {
     ctx.restore();
   }
 
-  function strike(){
-    const els = [...document.querySelectorAll(HH_LIGHTNING.targets)].filter(el => {
+  function strike(only){
+    const els = (only ? [only] : [...document.querySelectorAll(HH_LIGHTNING.targets)]).filter(el => {
       const r = el.getBoundingClientRect();
       return r.width && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
     });
@@ -11086,6 +11117,22 @@ const HH_LIGHTNING = {
       schedule();
     }, delay);
   }
+  // Hovering a panel: its heading strikes every 2-5s
+  let hoverTimer = null;
+  function hoverLoop(heading){
+    hoverTimer = setTimeout(() => { if(!document.hidden) strike(heading); hoverLoop(heading); }, 2000 + Math.random() * 3000);
+  }
+  document.addEventListener('mouseover', e => {
+    const panel = e.target.closest && e.target.closest(HH_LIGHTNING.panels);
+    if(!panel || panel.dataset.hhHover) return;
+    const heading = panel.querySelector(HH_LIGHTNING.targets);
+    if(!heading) return;
+    panel.dataset.hhHover = '1';
+    clearTimeout(hoverTimer);
+    setTimeout(() => strike(heading), 400);
+    hoverLoop(heading);
+    panel.addEventListener('mouseleave', () => { delete panel.dataset.hhHover; clearTimeout(hoverTimer); }, { once:true });
+  });
   window.hhLightningStrike = strike; // console: hhLightningStrike() to preview
   schedule();
 })();
