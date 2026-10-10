@@ -9401,7 +9401,7 @@ async function init3DViewer(){
     const width = container.clientWidth || 260;
     const height = container.clientHeight || 130;
 
-    model3D.camera = makePetCamera(width / height, PET_EGG_NEST_MODELS.gryphon.camY);
+    model3D.camera = makePetCamera(width / height, PET_EGG_NEST_MODELS.gryphon.camY, PET_EGG_NEST_MODELS.gryphon.camZ);
 
     model3D.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     model3D.renderer.setSize(width, height);
@@ -9435,7 +9435,7 @@ const PET_EGG_MODELS = {
 };
 // Pet window shows the egg sitting in its nest
 const PET_EGG_NEST_MODELS = {
-  gryphon: { obj: GRYPHON_EGG_OBJ, mtl: GRYPHON_EGG_MTL, keep: ['Geoset0', 'Geoset18'], camY: 0.5 }
+  gryphon: { obj: GRYPHON_EGG_OBJ, mtl: GRYPHON_EGG_MTL, keep: ['Geoset0', 'Geoset18'], camY: 0.45, camZ: 1.6 }
 };
 const PET_CAMERA = { fov: 35, y: 0.1, z: 2.1 };
 const PET_SPIN_PER_FRAME = 0.008; // shared so the shop egg and pet window spin at the same rate
@@ -9482,9 +9482,9 @@ function addPetLights(scene){
   scene.add(light, new THREE.AmbientLight(0xffffff, 0.9));
 }
 
-function makePetCamera(aspect, y = PET_CAMERA.y){
+function makePetCamera(aspect, y = PET_CAMERA.y, z = PET_CAMERA.z){
   const camera = new THREE.PerspectiveCamera(PET_CAMERA.fov, aspect, 0.01, 100);
-  camera.position.set(0, y, PET_CAMERA.z);
+  camera.position.set(0, y, z);
   camera.lookAt(0, 0, 0);
   return camera;
 }
@@ -10041,9 +10041,9 @@ boot();
   #pet-portrait{ display:none; position:absolute; left:50%; top:50%; width:104px; height:104px; margin:-52px 0 0 -52px;
     animation:petBob 3s ease-in-out infinite; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.6)); }
   @keyframes petBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
-  #pet-hatching-overlay{ position:absolute; left:0; right:0; bottom:6px; display:none; flex-direction:column; align-items:center; pointer-events:none; text-shadow:0 1px 3px #000; }
+  #pet-hatching-overlay{ position:absolute; left:0; right:0; top:5px; display:none; justify-content:center; align-items:baseline; gap:6px; pointer-events:none; text-shadow:0 1px 3px #000; }
   #pet-hatching-overlay .label{ font-size:11px; font-family:system-ui, sans-serif; }
-  #hatch-countdown{ font-size:18px; font-weight:700; }
+  #hatch-countdown{ font-size:15px; font-weight:700; }
   .pet-burst{ position:absolute; bottom:12px; pointer-events:none; animation:petBurst 1.6s ease-out forwards; opacity:0; color:#ff6b8a; }
   @keyframes petBurst{ 0%{ transform:translateY(0) scale(0.6); opacity:0; } 20%{ opacity:1; } 100%{ transform:translateY(-110px) scale(1.2); opacity:0; } }
 
