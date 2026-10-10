@@ -9584,8 +9584,22 @@ const GRYPHON_BOSS_MODEL = {
     evolve: 'MountSummon'  // swoops in from off-screen
   }
 };
+// Dragon juvenile = WoW black whelp: always hovering (its Stand flaps), no take-off/land clips.
+// Adult/boss reuse it until their models exist.
+const DRAGON_JUVENILE_MODEL = {
+  gltf: 'models/dragon-juvenile.gltf', // R2: Dragon-Juvenile/
+  camY: 0.25, camZ: 1.9, alphaCutout: true,
+  spin: false, facing: -Math.PI / 2 + 0.6,
+  anims: {
+    idle: 'Stand',
+    routine: [{ once: 'StandAlt' }, { loop: 'Fly', ms: 3000 }, { once: 'WingFlare' }],
+    squawk: 'SpellCast',   // rears up, claws out
+    feed: 'AttackUnarmed'  // snaps up the food
+  }
+};
 const PET_STAGE_MODELS = {
-  gryphon: { juvenile: GRYPHON_JUVENILE_MODEL, adult: GRYPHON_ADULT_MODEL, boss: GRYPHON_BOSS_MODEL }
+  gryphon: { juvenile: GRYPHON_JUVENILE_MODEL, adult: GRYPHON_ADULT_MODEL, boss: GRYPHON_BOSS_MODEL },
+  dragon: { juvenile: DRAGON_JUVENILE_MODEL }
 };
 function petModelFor(pet){
   if(!pet) return null;
