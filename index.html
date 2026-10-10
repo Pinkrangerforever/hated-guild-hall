@@ -9672,10 +9672,35 @@ const CAT_JUVENILE_MODEL = {
     feed: 'Eat'
   }
 };
+// Cat adult = orange frostsaber/tiger (R2: Cat-Adult/), cat boss = armored PvP sabre with orange skin
+// and green eye glow (R2: Cat-Boss/). Same clip set as the cub so the stages feel consistent.
+const CAT_ANIMS = {
+  idle: 'Stand',
+  routine: [{ once: 'StandAlt' }, { once: 'SitDown' }, { loop: 'Sit', ms: 4000 }, { once: 'SitUp' }, { once: 'StandAlt2' }],
+  squawk: ['Roar', 'Pounce', 'Dance'],
+  feed: 'Eat',
+  evolve: 'Roar'
+};
+const CAT_ADULT_MODEL = {
+  gltf: 'models/cat-adult.gltf',
+  camY: 0.15, camZ: 1.25, alphaCutout: true,
+  spin: false, facing: -Math.PI / 2 + 0.6,
+  anims: CAT_ANIMS
+};
+const CAT_BOSS_MODEL = {
+  gltf: 'models/cat-boss.gltf',
+  camY: 0.15, camZ: 1.3, alphaCutout: true,
+  spin: false, facing: -Math.PI / 2 + 0.6,
+  additiveMaterials: ['pvpridingtigereyeglowgreen'],
+  // Armor tint: the exported armor texture is red; set a color here (e.g. '#b9e6b4') to tint it,
+  // or swap in a green armor texture from wow.export.
+  tints: {},
+  anims: CAT_ANIMS
+};
 const PET_STAGE_MODELS = {
   gryphon: { juvenile: GRYPHON_JUVENILE_MODEL, adult: GRYPHON_ADULT_MODEL, boss: GRYPHON_BOSS_MODEL },
   dragon: { juvenile: DRAGON_JUVENILE_MODEL, adult: DRAGON_ADULT_MODEL, boss: DRAGON_BOSS_MODEL },
-  cat: { juvenile: CAT_JUVENILE_MODEL }
+  cat: { juvenile: CAT_JUVENILE_MODEL, adult: CAT_ADULT_MODEL, boss: CAT_BOSS_MODEL }
 };
 function petModelFor(pet){
   if(!pet) return null;
@@ -9722,6 +9747,11 @@ function getAnimatedPetModel(model){
         if(model.alphaCutout){
           m.material.alphaTest = 0.5;
           m.material.side = THREE.DoubleSide;
+        }
+        const tint = model.tints && model.tints[m.material.name];
+        if(tint){
+          m.material = m.material.clone();
+          m.material.color = new THREE.Color(tint);
         }
         if((model.additiveMaterials || []).includes(m.material.name)){
           m.material.transparent = true;
