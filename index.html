@@ -10,6 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -9439,14 +9440,14 @@ const PET_EGG_MODELS = {
 const PET_EGG_NEST_MODELS = {
   gryphon: { obj: GRYPHON_EGG_OBJ, mtl: GRYPHON_EGG_MTL, keep: ['Geoset0', 'Geoset18'], camY: 0.45, camZ: 1.6 }
 };
-// Hatched gryphon models by stage. Juvenile OBJ geosets: 0 = small detail, 1 = body with folded
-// wings, 2 = flat spread-wing planes (hidden). Adult/boss reuse the juvenile until their models exist.
+// Hatched gryphon models by stage. The juvenile is an animated glTF: models/gryphon-juvenile.gltf is
+// the wow.export file trimmed to 7 clips by tools/trim_gltf.py (its .bin/.png files stay on R2 in
+// Gryphon-Juvenile/). Clips: Stand, ToFly, Fly, Hover, Settle, MountSpecial, FlyBattleRoar.
+// Adult/boss reuse the juvenile until their models exist.
 const GRYPHON_JUVENILE_MODEL = {
-  obj: PET_R2 + '/Gryphon-Juvenile/gryphonpetgeneric_gryphonpet.obj',
-  mtl: PET_R2 + '/Gryphon-Juvenile/gryphonpetgeneric_gryphonpet.mtl',
-  keep: ['Geoset0', 'Geoset1'], camY: 0.25, camZ: 1.7, alphaCutout: true,
-  // OBJ has no animations: hold a 3/4 view and float gently until a glTF with the real hover clip exists
-  spin: false, facing: -Math.PI / 2 + 0.6, bob: true
+  gltf: 'models/gryphon-juvenile.gltf',
+  camY: 0.3, camZ: 2.3, alphaCutout: true,
+  spin: false, facing: -Math.PI / 2 + 0.6
 };
 const PET_STAGE_MODELS = {
   gryphon: { juvenile: GRYPHON_JUVENILE_MODEL, adult: GRYPHON_JUVENILE_MODEL, boss: GRYPHON_JUVENILE_MODEL }
@@ -9458,7 +9459,7 @@ function petModelFor(pet){
   return stages ? (stages[pet.status] || stages.juvenile) : null;
 }
 function petModelKey(model){
-  return model ? model.obj + '|' + (model.keep || []).join(',') : 'portrait';
+  return model ? (model.gltf || model.obj) + '|' + (model.keep || []).join(',') : 'portrait';
 }
 const PET_CAMERA = { fov: 35, y: 0.1, z: 2.1 };
 const PET_SPIN_PER_FRAME = 0.008; // shared so the shop egg and pet window spin at the same rate
@@ -9481,7 +9482,38 @@ function loadPetModelFile(model){
   return petModelFiles[model.obj];
 }
 
+// Animated glTF: one shared instance (Object3D.clone() would break the skinning), sized by the body
+// rather than the wingspan, with the clips kept on userData.animations
+function getAnimatedPetModel(model){
+  const key = petModelKey(model);
+  if(!petModelCache[key]){
+    petModelCache[key] = new Promise((resolve, reject) => {
+      new THREE.GLTFLoader().load(model.gltf, resolve, undefined, reject);
+    }).then(gltf => {
+      const root = gltf.scene;
+      root.traverse(m => {
+        if(!m.isMesh) return;
+        m.frustumCulled = false; // skinned bounds don't follow the animation
+        if(model.alphaCutout){
+          m.material.alphaTest = 0.5;
+          m.material.side = THREE.DoubleSide;
+        }
+      });
+      const box = new THREE.Box3().setFromObject(root);
+      const size = box.getSize(new THREE.Vector3());
+      root.position.sub(box.getCenter(new THREE.Vector3()));
+      const pivot = new THREE.Group();
+      pivot.add(root);
+      pivot.scale.setScalar(1 / Math.max(size.x, size.y, 0.0001));
+      pivot.userData.animations = gltf.animations;
+      return pivot;
+    }).catch(err => { delete petModelCache[key]; throw err; });
+  }
+  return petModelCache[key];
+}
+
 function getPetModel(model){
+  if(model.gltf) return getAnimatedPetModel(model);
   const key = model.obj + '|' + (model.keep || []).join(',');
   if(!petModelCache[key]){
     petModelCache[key] = loadPetModelFile(model).then(file => {
@@ -9529,6 +9561,8 @@ async function loadOBJModel(model){
   model3D.modelConfig = model;
   if(model.spin === false) object.rotation.y = model.facing || 0;
   model3D.scene.add(model3D.model);
+  if(object.userData.animations && object.userData.animations.length) setupPetAnimations(object);
+  else stopPetAnimations();
   model3D.camera.position.set(0, model.camY ?? PET_CAMERA.y, model.camZ ?? PET_CAMERA.z);
   model3D.camera.lookAt(0, 0, 0);
   positionEggGlow();
@@ -9592,6 +9626,8 @@ function animate3DModel(){
 
   model3D.animationId = requestAnimationFrame(animate3DModel);
 
+  if(petAnim.mixer) petAnim.mixer.update(petAnim.clock.getDelta());
+
   const m = model3D.model, cfg = model3D.modelConfig || {};
   if(m){
     if(cfg.spin !== false) m.rotation.y += PET_SPIN_PER_FRAME;
@@ -9603,7 +9639,99 @@ function animate3DModel(){
   model3D.renderer.render(model3D.scene, model3D.camera);
 }
 
+/* ---------------- Pet animations ----------------
+   Default: Stand. Every 20-40s: ToFly -> Hover -> Fly -> Hover -> Settle -> Stand.
+   PET button: squawk (MountSpecial on the ground, FlyBattleRoar in the air). */
+const PET_FLYING_LOOPS = ['Hover', 'Fly'];
+const petAnim = { mixer: null, clock: null, actions: {}, current: null, loopName: null, after: null, timer: null };
+
+function setupPetAnimations(object){
+  stopPetAnimations();
+  const root = object.children[0];
+  petAnim.mixer = new THREE.AnimationMixer(root);
+  petAnim.clock = new THREE.Clock();
+  object.userData.animations.forEach(clip => { petAnim.actions[clip.name] = petAnim.mixer.clipAction(clip); });
+  petAnim.mixer.addEventListener('finished', onPetAnimFinished);
+  playPetLoop('Stand');
+  schedulePetRoutine();
+}
+
+function stopPetAnimations(){
+  clearTimeout(petAnim.timer);
+  if(petAnim.mixer){
+    petAnim.mixer.removeEventListener('finished', onPetAnimFinished);
+    petAnim.mixer.stopAllAction();
+  }
+  Object.assign(petAnim, { mixer: null, clock: null, actions: {}, current: null, loopName: null, after: null, timer: null });
+}
+
+function playPetClip(name, once){
+  const next = petAnim.actions[name];
+  if(!next) return null;
+  next.reset();
+  next.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity);
+  next.clampWhenFinished = once;
+  next.enabled = true;
+  next.setEffectiveWeight(1);
+  if(petAnim.current && petAnim.current !== next) next.crossFadeFrom(petAnim.current, 0.3, false);
+  next.play();
+  petAnim.current = next;
+  return next;
+}
+
+function playPetLoop(name){
+  petAnim.after = null;
+  petAnim.loopName = name;
+  playPetClip(name, false);
+}
+
+// Play a one-shot clip, then switch to `thenLoop` and run `thenFn`
+function playPetOnceThen(name, thenLoop, thenFn){
+  const action = playPetClip(name, true);
+  if(!action){
+    if(thenLoop) playPetLoop(thenLoop);
+    if(thenFn) thenFn();
+    return;
+  }
+  petAnim.after = { action, loop: thenLoop, fn: thenFn };
+}
+
+function onPetAnimFinished(e){
+  const after = petAnim.after;
+  if(!after || e.action !== after.action) return;
+  petAnim.after = null;
+  if(after.loop) playPetLoop(after.loop);
+  if(after.fn) after.fn();
+}
+
+function schedulePetRoutine(){
+  clearTimeout(petAnim.timer);
+  petAnim.timer = setTimeout(runPetFlightRoutine, 20000 + Math.random() * 20000);
+}
+
+function runPetFlightRoutine(){
+  if(!petAnim.mixer) return;
+  if(petAnim.after){ schedulePetRoutine(); return; } // mid squawk: try again later
+  const step = (fn, ms) => { petAnim.timer = setTimeout(() => { if(petAnim.mixer) fn(); }, ms); };
+  playPetOnceThen('ToFly', 'Hover', () => {
+    step(() => {
+      playPetLoop('Fly');
+      step(() => {
+        playPetLoop('Hover');
+        step(() => playPetOnceThen('Settle', 'Stand', schedulePetRoutine), 2500);
+      }, 4000);
+    }, 4000);
+  });
+}
+
+function petSquawk(){
+  if(!petAnim.mixer || petAnim.after) return;
+  const resume = petAnim.loopName || 'Stand';
+  playPetOnceThen(PET_FLYING_LOOPS.includes(resume) ? 'FlyBattleRoar' : 'MountSpecial', resume);
+}
+
 function dispose3DModel(){
+  stopPetAnimations();
   if(model3D.animationId) cancelAnimationFrame(model3D.animationId);
   if(model3D.renderer){
     model3D.renderer.dispose();
@@ -9991,6 +10119,7 @@ async function handlePetButton(){
     }
     pet.last_pet_action_time = data.last_pet_action_time || Date.now();
     celebratePet('❤');
+    petSquawk();
     applyPetResult(pet, data);
     showToast('+5 EXP');
   } finally {
