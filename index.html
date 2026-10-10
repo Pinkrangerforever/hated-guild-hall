@@ -3069,6 +3069,154 @@
     letter-spacing: 0.05em;
   }
 
+
+  /* ======================================================================
+     THEME PASS 1 (2026-10-10): one palette + one panel style site-wide.
+     Overrides only - revert this block to restore the previous look.
+     ====================================================================== */
+  :root{
+    --hh-panel-top: #2b1d12;
+    --hh-panel-bottom: #170f09;
+    --hh-gold: #c9963f;          /* antique gold: borders, headings */
+    --hh-gold-bright: #f0d27a;   /* highlights */
+    --hh-parchment: #e9dcc0;     /* body text */
+    --hh-muted: #a8977a;
+    --hh-horde: #8e1c18;         /* Horde red: danger / Horde accents only */
+    --hh-radius: 6px;
+    --hh-panel-bg:
+      radial-gradient(ellipse at 50% 0%, rgba(201,150,63,0.10), transparent 60%),
+      linear-gradient(180deg, var(--hh-panel-top), var(--hh-panel-bottom));
+    --hh-panel-shadow:
+      0 0 0 1px rgba(0,0,0,0.9),            /* dark outer line */
+      0 0 0 3px rgba(201,150,63,0.16),      /* faint second gold line */
+      0 14px 34px rgba(0,0,0,0.85),
+      inset 0 1px 0 rgba(240,210,122,0.14),
+      inset 0 0 40px rgba(0,0,0,0.45);
+  }
+
+  /* Soft vignette so the page reads as lit from the center */
+  body::after{
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:1;
+    background:radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(0,0,0,0.55) 100%);
+  }
+
+  /* ---- One panel style: Coming Up, Gold Leaderboard, Announcements ---- */
+  .coming-up-panel,
+  .gold-leaderboard-widget,
+  #module-announcements-display{
+    background: var(--hh-panel-bg) !important;
+    border: 1px solid rgba(201,150,63,0.75) !important;
+    border-radius: var(--hh-radius) !important;
+    box-shadow: var(--hh-panel-shadow) !important;
+  }
+  #module-announcements-display:hover{
+    border-color: var(--hh-gold-bright) !important;
+    box-shadow: var(--hh-panel-shadow) !important;
+  }
+  .coming-up-panel::after,
+  .gold-leaderboard-widget::after{ display:none; }
+
+  /* ---- One header style: Cinzel, gold, with a fading divider ---- */
+  .coming-up-header,
+  .gold-leaderboard-widget-title,
+  #module-announcements-display .announcement-header h3{
+    font-family:'Cinzel', Georgia, serif !important;
+    font-size:15px !important; font-weight:700 !important;
+    letter-spacing:0.1em !important; text-transform:uppercase;
+    color: var(--hh-gold-bright) !important;
+    text-shadow: 0 1px 2px #000, 0 0 10px rgba(201,150,63,0.25);
+  }
+  .coming-up-header{ border-bottom:none !important; padding-bottom:10px !important; }
+  .coming-up-header::after{ background:linear-gradient(90deg, rgba(201,150,63,0.6), transparent) !important; }
+  .gold-leaderboard-widget-title{
+    display:flex; align-items:center; justify-content:center; gap:4px;
+    padding-bottom:10px; margin-bottom:14px !important;
+    background:linear-gradient(90deg, transparent, rgba(201,150,63,0.6), transparent) bottom / 100% 1px no-repeat;
+  }
+  .gold-leaderboard-widget-title img{ width:26px !important; height:26px !important; }
+  #module-announcements-display .announcement-header{
+    padding-bottom:10px;
+    background:linear-gradient(90deg, rgba(201,150,63,0.6), transparent) bottom / 100% 1px no-repeat;
+  }
+
+  /* ---- Coming Up rows ---- */
+  .coming-up-item{
+    background: rgba(0,0,0,0.35) !important;
+    border: 1px solid rgba(201,150,63,0.2) !important;
+    border-radius: 4px !important;
+  }
+  .coming-up-item:hover{
+    background: rgba(201,150,63,0.1) !important;
+    border-color: rgba(201,150,63,0.55) !important;
+  }
+  .coming-up-title{ color: var(--hh-parchment) !important; }
+  .coming-up-date{ color: var(--hh-muted) !important; }
+  .coming-up-countdown{ color: var(--hh-gold-bright) !important; }
+
+  /* ---- Gold Leaderboard: dark cards with gold / silver / bronze rims ---- */
+  .gold-leaderboard-entries .leaderboard-entry{
+    background: rgba(0,0,0,0.38) !important;
+    border: 1px solid rgba(201,150,63,0.18) !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+  }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3{ animation:none !important; }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(1){
+    background: linear-gradient(180deg, rgba(74,54,16,0.95), rgba(30,21,8,0.95)) !important;
+    border: 1px solid #d9ab45 !important;
+    box-shadow: 0 0 14px rgba(217,171,69,0.45), inset 0 1px 0 rgba(255,232,160,0.3) !important;
+  }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(2){
+    background: linear-gradient(180deg, rgba(58,60,66,0.95), rgba(24,25,28,0.95)) !important;
+    border: 1px solid #b9bec8 !important;
+    box-shadow: 0 0 12px rgba(185,190,200,0.35), inset 0 1px 0 rgba(240,244,250,0.25) !important;
+  }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(3){
+    background: linear-gradient(180deg, rgba(70,40,18,0.95), rgba(28,16,8,0.95)) !important;
+    border: 1px solid #c4793a !important;
+    box-shadow: 0 0 12px rgba(196,121,58,0.4), inset 0 1px 0 rgba(255,200,150,0.25) !important;
+  }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(1) .leaderboard-rank{ color:#f0c95a !important; }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(2) .leaderboard-rank{ color:#d6dae2 !important; }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(3) .leaderboard-rank{ color:#e09a5c !important; }
+  .gold-leaderboard-entries .leaderboard-entry:hover{
+    transform: scale(1.04) !important;
+    border-color: var(--hh-gold-bright) !important;
+  }
+
+  /* ---- Nav: slimmer currency pills, quieter Sign Out ---- */
+  .nav-user-info .nav-gold-badge{
+    padding: 2px 10px 2px 6px !important;
+    background: linear-gradient(180deg, rgba(43,29,18,0.95), rgba(20,13,8,0.95)) !important;
+    border: 1px solid rgba(201,150,63,0.55) !important;
+    border-radius: 999px !important;
+    color: var(--hh-parchment) !important;
+    font-family:'Cinzel', Georgia, serif; font-size:13px !important;
+    box-shadow: inset 0 1px 0 rgba(240,210,122,0.12);
+  }
+  .nav-user-info .nav-gold-badge img{ width:24px !important; height:24px !important; }
+  #logout-btn{
+    background: transparent !important;
+    border: 1px solid rgba(201,150,63,0.45) !important;
+    color: var(--hh-parchment) !important;
+    border-radius: 4px !important;
+  }
+  #logout-btn:hover{
+    background: rgba(142,28,24,0.35) !important;
+    border-color: #b0524f !important;
+    transform: none !important;
+  }
+
+  /* ---- Construction banner: antique gold instead of bright yellow ---- */
+  #construction-banner{
+    color: var(--hh-gold-bright) !important;
+    font-family:'Cinzel', Georgia, serif !important; font-weight:900 !important;
+    background: linear-gradient(180deg, #24180f, #140d08) !important;
+    border-top: 1px solid rgba(201,150,63,0.75) !important;
+    border-bottom: 1px solid rgba(201,150,63,0.75) !important;
+    box-shadow: 0 0 0 3px rgba(201,150,63,0.12), 0 6px 16px rgba(0,0,0,0.6) !important;
+  }
+
 </style>
 </head>
 <body>
