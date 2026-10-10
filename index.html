@@ -7115,27 +7115,6 @@ function renderShopModal(){
       </div>
       <div class="nav-gold-badge" style="margin-bottom:16px;">${goldIconHtml()} ${gold} gold available</div>
 
-      ${ state.goldLeaderboard && state.goldLeaderboard.length ? `
-      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
-        <h4 class="shop-section-title">Top Gold Earners</h4>
-        <div style="padding:8px 0;">
-          ${state.goldLeaderboard.map((member, idx) => renderLeaderboardRow(member, idx)).join('')}
-        </div>
-      </div>
-      ` : '' }
-
-      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
-        <h4 class="shop-section-title">Roster Name Customization</h4>
-        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Make your roster name stand out with special effects and animations. Make sure to set your active nameplate in the Settings Tab!</p>
-        ${ nameCustomItems.length ? `<div class="shop-grid">${nameCustomItems.map(renderSimpleCard).join('')}</div>` : emptyState('No name customizations set up yet.') }
-      </div>
-
-      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
-        <h4 class="shop-section-title">Roster Name Borders</h4>
-        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Add a shimmering border around your roster name. Higher tiers have more vivid effects.</p>
-        ${ borderItems.length ? `<div class="shop-grid">${borderItems.map(renderBorderCard).join('')}</div>` : emptyState('No name borders set up yet.') }
-      </div>
-
       ${ resourceItems.length ? `
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
         <h4 class="shop-section-title">The Auction House</h4>
@@ -7163,6 +7142,27 @@ function renderShopModal(){
             </button>
           </div>
         `).join('')}</div>
+      </div>
+      ` : '' }
+
+      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
+        <h4 class="shop-section-title">Roster Name Customization</h4>
+        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Make your roster name stand out with special effects and animations. Make sure to set your active nameplate in the Settings Tab!</p>
+        ${ nameCustomItems.length ? `<div class="shop-grid">${nameCustomItems.map(renderSimpleCard).join('')}</div>` : emptyState('No name customizations set up yet.') }
+      </div>
+
+      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
+        <h4 class="shop-section-title">Roster Name Borders</h4>
+        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Add a shimmering border around your roster name. Higher tiers have more vivid effects.</p>
+        ${ borderItems.length ? `<div class="shop-grid">${borderItems.map(renderBorderCard).join('')}</div>` : emptyState('No name borders set up yet.') }
+      </div>
+
+      ${ state.goldLeaderboard && state.goldLeaderboard.length ? `
+      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
+        <h4 class="shop-section-title">Top Gold Earners</h4>
+        <div style="padding:8px 0;">
+          ${state.goldLeaderboard.map((member, idx) => renderLeaderboardRow(member, idx)).join('')}
+        </div>
       </div>
       ` : '' }
 
