@@ -9663,7 +9663,7 @@ const DRAGON_BOSS_MODEL = {
 // the Orange Kitten is bought as a juvenile. Adult/boss reuse it until their models exist.
 const CAT_JUVENILE_MODEL = {
   gltf: 'models/cat-juvenile.gltf',
-  camY: 0.2, camZ: 1.6, alphaCutout: true,
+  camY: 0.15, camZ: 1.15, alphaCutout: true,
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
@@ -9914,7 +9914,7 @@ function petDragMove(e){
   if(!petDrag.moved && Math.abs(e.clientX - petDrag.startX) < 5) return; // still a tap
   if(!petDrag.moved){
     petDrag.moved = true;
-    document.getElementById('pet-display').setPointerCapture?.(e.pointerId);
+    try { document.getElementById('pet-display').setPointerCapture(e.pointerId); } catch(err){}
     document.getElementById('pet-display').classList.add('dragging');
   }
   const now = performance.now();
