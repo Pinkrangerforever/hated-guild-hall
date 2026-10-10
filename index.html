@@ -2049,6 +2049,12 @@
   .shop-egg-3d{ position:relative; width:100%; height:80px; margin-bottom:8px; overflow:hidden; border-radius:8px; border:2px solid #d4af37;
     background:radial-gradient(circle, #8b6f47, #5a4a30); box-shadow:inset 0 0 10px rgba(212,175,55,0.3); }
   .shop-egg-3d canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; display:block; }
+  .resource-card-art{ position:relative; display:flex; align-items:center; justify-content:center; height:80px; margin-bottom:8px; border-radius:8px;
+    border:2px solid #d4af37; background:radial-gradient(circle, #8b6f47, #5a4a30); box-shadow:inset 0 0 10px rgba(212,175,55,0.3); }
+  .resource-card-art img{ width:56px; height:56px; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6)); }
+  .resource-card-art span{ position:absolute; right:10px; bottom:6px; font-weight:800; color:#fff3c4; text-shadow:0 1px 3px #000; }
+  .resource-card-cap{ font-size:11px; margin-top:6px; }
+  .resource-card.coming-soon .resource-card-art{ filter:grayscale(0.7) brightness(0.75); }
   .shop-egg-fallback{ display:flex; align-items:center; justify-content:center; height:100%; font-size:36px; }
   .shop-egg-3d.loaded .shop-egg-fallback{ display:none; }
   /* Realistic cork board */
@@ -3101,6 +3107,7 @@
         <span id="nav-username" class="nav-username">Loading...</span>
         <span id="nav-gold-badge" class="nav-gold-badge"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:4px;"> 0</span>
         <span id="nav-food-badge" class="nav-gold-badge nav-food-badge" title="Food"></span>
+        <span id="nav-wood-badge" class="nav-gold-badge nav-food-badge" title="Wood"></span>
       </div>
       <button id="layout-lock-btn" class="nav-action-btn" title="Toggle Layout Lock" style="display:none;">Layout</button>
       <button id="reset-member-btn" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
@@ -3146,6 +3153,7 @@
       <span id="mobile-username" class="nav-username">Loading...</span>
       <span id="mobile-gold-badge" class="nav-gold-badge"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:4px;"> 0</span>
       <span id="mobile-food-badge" class="nav-gold-badge nav-food-badge" title="Food"></span>
+      <span id="mobile-wood-badge" class="nav-gold-badge nav-food-badge" title="Wood"></span>
     </div>
     <button id="layout-lock-btn-mobile" class="nav-action-btn" title="Toggle Layout Lock">Layout</button>
     <button id="reset-member-btn-mobile" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
@@ -3288,6 +3296,12 @@ function updateNavbarUserInfo(){
   const mobileFood = document.getElementById('mobile-food-badge');
   if(navFood) navFood.innerHTML = foodHtml;
   if(mobileFood) mobileFood.innerHTML = foodHtml;
+
+  const woodHtml = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/WoodIcon.png" alt="Wood" style="width:28px; height:28px; vertical-align:middle; margin-right:4px;"> ${state.profile.wood || 0}`;
+  const navWood = document.getElementById('nav-wood-badge');
+  const mobileWood = document.getElementById('mobile-wood-badge');
+  if(navWood) navWood.innerHTML = woodHtml;
+  if(mobileWood) mobileWood.innerHTML = woodHtml;
 }
 
 // Gold icon for prices/balances (replaces the money-bag emoji so it matches the navbar)
@@ -5539,9 +5553,39 @@ async function openShop(){
     }
   } catch(e){ console.error('Leaderboard fetch failed:', e); }
   
+  // How much food/wood this player has already bought today (Auction House daily caps)
+  try {
+    const { data } = await sb.rpc('get_resource_purchases_today');
+    state.resourceBoughtToday = data || { food: 0, wood: 0 };
+  } catch(e){ state.resourceBoughtToday = { food: 0, wood: 0 }; }
+
   state.modal = { type:'shop' };
   render();
 }
+// The Auction House: buy food/wood bundles; price, amount and daily cap are enforced server-side
+async function buyResourceBundle(itemId){
+  if(state.resourceBuyInFlight) return;
+  state.resourceBuyInFlight = true;
+  try {
+    const { data, error } = await sb.rpc('buy_resource_bundle', { p_item_id: itemId });
+    if(error || !data){ showToast("Couldn't complete purchase - try again", true); return; }
+    if(!data.success){
+      if(data.bought_today != null) state.resourceBoughtToday = { ...(state.resourceBoughtToday || {}), [data.resource || 'food']: data.bought_today };
+      showToast(data.error || 'Purchase failed', true);
+      return;
+    }
+    state.profile.gold = data.new_gold;
+    state.profile[data.resource] = data.new_balance;
+    state.resourceBoughtToday = { ...(state.resourceBoughtToday || {}), [data.resource]: data.bought_today };
+    updateNavbarUserInfo();
+    refreshPetWidget();
+    showToast(`+${data.amount} ${data.resource === 'food' ? 'Food' : 'Wood'} (${data.bought_today}/${data.daily_cap} today)`);
+  } finally {
+    state.resourceBuyInFlight = false;
+    render();
+  }
+}
+
 async function purchaseShopItem(itemId){
   const { data, error } = await sb.rpc('purchase_shop_item', { p_item_id: itemId });
   if(error || !data){ showToast("Couldn't complete purchase  try again", true); return; }
@@ -6897,6 +6941,31 @@ function renderShopModal(){
   const nameCustomItems = state.shopItems.filter(i=>i.category==='name_customization' && !i.name.includes('Border') && !i.name.includes('Alpha')).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const borderItems = state.shopItems.filter(i=>i.name.includes('Roster Name Border')).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const petEggItems = state.shopItems.filter(i=>i.category==='pet_egg').sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const resourceItems = state.shopItems.filter(i=>i.category==='resource_bundle').sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const resourceIcons = { food: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/FoodIcon.png', wood: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/WoodIcon.png' };
+  function renderResourceCard(item){
+    const meta = item.metadata || {};
+    const resource = meta.resource || 'food';
+    const label = resource === 'food' ? 'Food' : 'Wood';
+    const comingSoon = !item.active || meta.coming_soon;
+    const cap = meta.daily_cap || 0;
+    const boughtToday = (state.resourceBoughtToday && state.resourceBoughtToday[resource]) || 0;
+    const capReached = cap && boughtToday + (meta.amount || 0) > cap;
+    const canAfford = gold >= item.cost;
+    const disabled = comingSoon || capReached || !canAfford || state.resourceBuyInFlight;
+    const buttonText = comingSoon ? 'Coming soon' : capReached ? 'Sold out today' : !canAfford ? 'Not enough gold' : `Buy ${meta.amount} ${label}`;
+    return `
+      <div class="shop-card resource-card${comingSoon ? ' coming-soon' : ''}">
+        <div class="resource-card-art"><img src="${resourceIcons[resource]}" alt="${label}"><span>&times;${meta.amount}</span></div>
+        <div class="shop-card-name">${esc(item.name)}</div>
+        <div class="shop-card-desc muted sans">${esc(item.description || '')}</div>
+        <div class="shop-card-footer">
+          <span class="nav-gold-badge">${goldIconHtml()} ${item.cost}</span>
+        </div>
+        ${ cap ? `<div class="resource-card-cap muted sans">${comingSoon ? `Limit ${cap} per day` : `Bought today: ${boughtToday} / ${cap}`}</div>` : '' }
+        <button class="btn" type="button" data-buy-resource="${item.id}" ${disabled ? 'disabled' : ''} style="width:100%; margin-top:10px;">${buttonText}</button>
+      </div>`;
+  }
   const stickerImages = state.galleryImages.filter(g=>g.is_sticker);
   const isRaidLeader = testIsRaidLeader();
   const stickerPrice = state.settings.sticker_price != null ? state.settings.sticker_price : 25;
@@ -7065,6 +7134,14 @@ function renderShopModal(){
         <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Add a shimmering border around your roster name. Higher tiers have more vivid effects.</p>
         ${ borderItems.length ? `<div class="shop-grid">${borderItems.map(renderBorderCard).join('')}</div>` : emptyState('No name borders set up yet.') }
       </div>
+
+      ${ resourceItems.length ? `
+      <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
+        <h4 class="shop-section-title">The Auction House</h4>
+        <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Trade your gold for supplies. Stock is limited &mdash; each item has a daily limit that restocks at midnight.</p>
+        <div class="shop-grid">${resourceItems.map(renderResourceCard).join('')}</div>
+      </div>
+      ` : '' }
 
       ${ hasTraderAccess && petEggItems.length ? `
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
@@ -9060,6 +9137,7 @@ function bindApp(){
   if(shopBtnMobile) shopBtnMobile.addEventListener('click', ()=>{ state.mobileNavOpen = false; openShop(); });
   document.querySelectorAll('[data-buy-shop-item]').forEach(b=>b.addEventListener('click', ()=>purchaseShopItem(b.dataset.buyShopItem)));
   document.querySelectorAll('[data-buy-pet-egg]').forEach(b=>b.addEventListener('click', ()=>purchasePetEgg(b.dataset.buyPetEgg)));
+  document.querySelectorAll('[data-buy-resource]').forEach(b=>b.addEventListener('click', ()=>buyResourceBundle(b.dataset.buyResource)));
   mountShopEggViewers();
   document.querySelectorAll('[data-move-shop-item]').forEach(b=>b.addEventListener('click', ()=>moveShopItem(b.dataset.moveShopItem, b.dataset.direction)));
   document.querySelectorAll('[data-refund-purchase]').forEach(b=>b.addEventListener('click', ()=>refundPurchase(b.dataset.refundPurchase, b.dataset.refundName)));
