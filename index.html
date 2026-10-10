@@ -3217,6 +3217,101 @@
     box-shadow: 0 0 0 3px rgba(201,150,63,0.12), 0 6px 16px rgba(0,0,0,0.6) !important;
   }
 
+
+  /* ======================================================================
+     THEME PASS 2 (2026-10-10): lightning blue-white from the banner as the
+     "magic / interaction" accent. Gold = value, blue = magic, red = Horde.
+     Overrides only - revert this block to remove.
+     ====================================================================== */
+  :root{
+    --hh-arcane: #7fd4ff;
+    --hh-arcane-white: #e6f7ff;
+    --hh-arcane-glow: 0 0 6px rgba(127,212,255,0.9), 0 0 14px rgba(127,212,255,0.45);
+  }
+  @keyframes hhCrackle{
+    0%, 100% { opacity:1; }
+    7%  { opacity:0.35; }
+    9%  { opacity:1; }
+    48% { opacity:0.85; }
+    50% { opacity:0.4; }
+    52% { opacity:1; }
+  }
+
+  /* ---- Nav: electric underline + blue glow on hover, steady on the active tab ---- */
+  .nav-link, .nav-dropdown-btn{ position:relative; }
+  .nav-link:hover, .nav-dropdown-btn:hover{
+    color: var(--hh-arcane-white) !important;
+    text-shadow: 0 0 8px rgba(127,212,255,0.65) !important;
+  }
+  .nav-link:hover::before, .nav-link:hover::after{ color: var(--hh-arcane) !important; }
+  .nav-link:not(.mobile):hover, .nav-dropdown-btn:hover,
+  .nav-link.active:not(.mobile){
+    background-image: linear-gradient(90deg, transparent, var(--hh-arcane-white) 30%, var(--hh-arcane) 50%, var(--hh-arcane-white) 70%, transparent) !important;
+    background-repeat: no-repeat !important;
+    background-position: center bottom 2px !important;
+    background-size: 80% 1px !important;
+  }
+  .nav-link:not(.mobile):hover, .nav-dropdown-btn:hover{ animation: hhCrackle 1.4s steps(1) infinite; }
+  .nav-link.active:not(.mobile){ text-shadow: 0 0 10px rgba(127,212,255,0.4) !important; }
+
+  /* ---- Buttons: thin blue rim glow on hover ---- */
+  .btn:not(:disabled):hover, .nav-action-btn:hover{
+    box-shadow: 0 0 0 1px rgba(127,212,255,0.75), 0 0 12px rgba(127,212,255,0.35) !important;
+  }
+  #logout-btn:hover{ box-shadow: none !important; } /* keep Sign Out red-only */
+
+  /* ---- Keyboard focus + content links in arcane blue ---- */
+  :focus-visible{ outline: 2px solid var(--hh-arcane) !important; outline-offset: 2px; }
+  #module-announcements-display a, .coming-up-panel a{ color: var(--hh-arcane) !important; }
+  #module-announcements-display a:hover{ color: var(--hh-arcane-white) !important; text-shadow: var(--hh-arcane-glow); }
+
+  /* ---- Header dividers: gold line with a blue-white spark in the middle ---- */
+  .gold-leaderboard-widget-title,
+  #module-announcements-display .announcement-header{
+    background-image:
+      radial-gradient(circle, var(--hh-arcane-white) 0, rgba(127,212,255,0.8) 2px, transparent 7px),
+      linear-gradient(90deg, transparent, rgba(201,150,63,0.6), transparent) !important;
+    background-size: 14px 7px, 100% 1px !important;
+    background-position: center bottom -3px, center bottom !important;
+    background-repeat: no-repeat !important;
+  }
+  #module-announcements-display .announcement-header{
+    background-position: 30% bottom -3px, center bottom !important;
+  }
+  .coming-up-header::after{
+    background:
+      radial-gradient(circle, var(--hh-arcane-white) 0, rgba(127,212,255,0.8) 2px, transparent 7px) left 35% center / 14px 7px no-repeat,
+      linear-gradient(90deg, rgba(201,150,63,0.6), transparent) !important;
+  }
+
+  /* ---- Countdown badges ("in 11d") ---- */
+  .coming-up-countdown{
+    color: var(--hh-arcane) !important;
+    text-shadow: 0 0 8px rgba(127,212,255,0.45);
+  }
+
+  /* ---- Construction banner: crackling lightning along the edges ---- */
+  #construction-banner{ position:relative; overflow:hidden; }
+  #construction-banner::before, #construction-banner::after{
+    content:''; position:absolute; left:0; right:0; height:2px; pointer-events:none;
+    background: linear-gradient(90deg, transparent, var(--hh-arcane-white) 15%, var(--hh-arcane) 35%, transparent 50%, var(--hh-arcane) 65%, var(--hh-arcane-white) 85%, transparent);
+    box-shadow: var(--hh-arcane-glow);
+    animation: hhCrackle 2.6s steps(1) infinite;
+  }
+  #construction-banner::before{ top:0; }
+  #construction-banner::after{ bottom:0; animation-delay: 1.1s; }
+
+  /* ---- Magic moments: pet EXP + level-up glow in arcane blue ---- */
+  #pet-exp-bar{
+    background: linear-gradient(90deg, #3a8fd6, var(--hh-arcane) 60%, var(--hh-arcane-white)) !important;
+    box-shadow: 0 0 8px rgba(127,212,255,0.6);
+  }
+  @keyframes petLevelGlowArcane{
+    0%,100%{ filter: drop-shadow(0 8px 24px rgba(0,0,0,0.7)); }
+    30%{ filter: drop-shadow(0 0 28px rgba(127,212,255,0.95)); }
+  }
+  #pet-panel.pet-levelup{ animation: petLevelGlowArcane 1.6s ease-out !important; }
+
 </style>
 </head>
 <body>
