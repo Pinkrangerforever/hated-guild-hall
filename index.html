@@ -9852,6 +9852,13 @@ function animate3DModel(){
 
   if(petAnim.mixer) petAnim.mixer.update(petAnim.clock.getDelta());
 
+  // Follow the pet area as it grows/shrinks between stages
+  const box = model3D.container;
+  if(box && model3D.renderer){
+    const size = model3D.renderer.getSize(new THREE.Vector2());
+    if(box.clientWidth && box.clientHeight && (Math.abs(size.x - box.clientWidth) > 1 || Math.abs(size.y - box.clientHeight) > 1)) resizePetViewer();
+  }
+
   const m = model3D.model, cfg = model3D.modelConfig || {};
   if(m){
     const dragging = applyPetDrag(m, cfg);
