@@ -3535,7 +3535,8 @@
   .home-active-note{ color:var(--hh-gold-bright); font-family:'Cinzel', Georgia, serif; font-size:13px; }
   .home-shop-preview{ width:100%; aspect-ratio:16 / 9; object-fit:cover; border-radius:3px; margin-bottom:8px;
     border:2px solid #c9963f; box-shadow:0 0 0 1px #000; background:#000; }
-  .home-scene{ position:absolute; inset:0; z-index:1; pointer-events:none; }
+  /* Larger than the frame (12% each side, 15% above, 8% below) so props can stand in front of it */
+  .home-scene{ position:absolute; top:-15%; bottom:-8%; left:-12%; right:-12%; z-index:4; pointer-events:none; }
   .home-scene canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
 </style>
 </head>
@@ -7258,9 +7259,10 @@ const HOME_ZONES = {
   mulgore_bluffs: {
     label: 'Mulgore Bluffs',
     video: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/Mulgore%20Bluffs.mp4',
-    // Comes with the home location (not the house)
+    // Comes with the home location (not the house). Coordinates are in the scene layer, which
+    // extends past the frame: x -0.8 is about the frame's left edge, bottom 0.065 its bottom edge.
     props: [
-      { gltf: 'models/housing/taurenlamppost.gltf', x: -0.8, bottom: 0.02, height: 0.55, rotY: 0.5 }
+      { gltf: 'models/housing/taurenlamppost.gltf', x: -0.8, bottom: 0.02, height: 0.48, rotY: 0.5 + Math.PI }
     ]
   }
 };
@@ -7326,9 +7328,9 @@ function renderHomeSection(p, isMe){
         <div class="home-frame-inner">
           ${ zone.video ? `<video class="home-video" src="${esc(zone.video)}" autoplay muted loop playsinline preload="auto"></video>` : '' }
           <div class="home-ground"></div>
-          <div class="home-scene" data-home-scene="${esc(home.zone)}"></div>
           <div class="home-plaque">${esc(zone.label)}</div>
         </div>
+        <div class="home-scene" data-home-scene="${esc(home.zone)}"></div>
         <span class="home-frame-corner tl"></span><span class="home-frame-corner tr"></span>
         <span class="home-frame-corner bl"></span><span class="home-frame-corner br"></span>
       </div>
