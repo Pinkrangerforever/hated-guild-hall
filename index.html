@@ -3438,6 +3438,52 @@
     background: linear-gradient(90deg, var(--hh-arcane-white), var(--hh-arcane) 40%, transparent) !important;
     box-shadow: 0 0 8px rgba(127,212,255,0.9);
   }
+
+  /* ======================================================================
+     PROFILE PAGES (Phase 3)
+     ====================================================================== */
+  .profile-page{ max-width:900px; margin:24px auto 0; padding:0 16px; display:flex; flex-direction:column; gap:18px; }
+  .profile-back{ align-self:flex-start; }
+  .profile-panel{
+    position:relative; padding:22px 24px;
+    background:
+      linear-gradient(90deg, transparent, var(--hh-blood) 18%, var(--hh-ember) 50%, var(--hh-blood) 82%, transparent) top / 100% 4px no-repeat,
+      radial-gradient(ellipse at 50% 115%, rgba(142,28,24,0.32), transparent 55%),
+      var(--hh-panel-bg);
+    border:1px solid rgba(201,150,63,0.75); border-radius:var(--hh-radius); box-shadow:var(--hh-panel-shadow);
+    color:var(--hh-parchment);
+  }
+  .profile-header{ display:flex; flex-direction:column; align-items:center; gap:18px; }
+  .profile-nameplate{ justify-content:center; min-width:min(420px, 100%); min-height:64px !important; font-size:22px; font-weight:700; margin:0 !important; }
+  .profile-stats{ display:flex; flex-wrap:wrap; justify-content:center; gap:12px; width:100%; }
+  .profile-stat{ flex:1 1 150px; max-width:220px; display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 12px;
+    background:rgba(0,0,0,0.35); border:1px solid rgba(201,150,63,0.25); border-radius:4px; }
+  .profile-stat-label{ font-family:'Cinzel', Georgia, serif; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--hh-gold); }
+  .profile-stat-value{ font-size:16px; font-weight:700; color:var(--hh-gold-bright); display:flex; align-items:center; gap:4px; }
+  .profile-stat-value img{ width:22px; height:22px; }
+  .profile-section-title{
+    font-family:'Cinzel', Georgia, serif; font-size:15px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--hh-gold-bright); text-shadow:0 1px 2px #000, 0 0 12px rgba(224,102,42,0.35);
+    padding-bottom:10px; margin:0 0 16px;
+    background:linear-gradient(90deg, rgba(201,150,63,0.6), transparent) bottom / 100% 1px no-repeat;
+  }
+  .profile-pets{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; }
+  .profile-pet-card{ display:flex; flex-direction:column; align-items:center; padding:12px 14px 16px;
+    background:linear-gradient(180deg, rgba(43,29,18,0.9), rgba(20,13,8,0.95)); border:1px solid rgba(201,150,63,0.3); border-radius:4px;
+    box-shadow:inset 0 1px 0 rgba(240,210,122,0.1), 0 4px 12px rgba(0,0,0,0.5); }
+  .profile-pet-card.stage-boss{ border-color:#d9ab45; box-shadow:0 0 14px rgba(217,171,69,0.35), inset 0 1px 0 rgba(255,232,160,0.25); }
+  .profile-pet-stage{ position:relative; width:100%; height:200px; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at 50% 70%, rgba(127,212,255,0.08), transparent 65%); }
+  .profile-pet-stage canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
+  .profile-pet-stage.loaded .profile-pet-fallback{ display:none; }
+  .profile-pet-name{ font-family:'Cinzel', Georgia, serif; font-size:17px; font-weight:700; color:var(--hh-gold-bright); margin-top:6px; text-align:center; }
+  .profile-pet-sub{ font-size:12px; color:var(--hh-muted); margin-top:2px; }
+  .profile-exp{ width:100%; height:8px; margin-top:10px; background:rgba(0,0,0,0.5); border:1px solid rgba(201,150,63,0.3); border-radius:4px; overflow:hidden; }
+  .profile-exp-fill{ height:100%; background:linear-gradient(90deg, #3a8fd6, var(--hh-arcane) 60%, var(--hh-arcane-white)); box-shadow:0 0 8px rgba(127,212,255,0.6); }
+  .profile-exp-text{ font-size:11px; color:var(--hh-arcane); margin-top:4px; }
+  .profile-house-placeholder{ text-align:center; padding:26px 12px; border:1px dashed rgba(201,150,63,0.35); border-radius:4px; background:rgba(0,0,0,0.25); color:var(--hh-muted); }
+  .profile-house-icon{ font-size:40px; opacity:0.7; margin-bottom:6px; }
+  .gold-leaderboard-entries .leaderboard-entry[data-profile-id]:hover .comp-slot span{ text-decoration:underline; text-decoration-color:rgba(240,210,122,0.6); }
 </style>
 </head>
 <body>
@@ -4559,11 +4605,13 @@ async function onAuthResolved(){
         updateNavbarUserInfo();
         await loadGuildData();
         await loadShopPurchases();
-        if(window.location.hash){
+        const startProfileId = profileIdFromHash();
+        if(window.location.hash && !startProfileId){
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
         // Load layout BEFORE rendering so elements have correct positions from the start
         await loadLayout();
+        if(startProfileId) openProfile(startProfileId, true);
         startSparkleSystem();
       } else {
         state.view = 'app';
@@ -7144,8 +7192,223 @@ function renderTab(){
     case 'settings': return renderSettings();
     case 'admin': return renderAdmin();
     case 'dealer': return renderDealerPage();
+    case 'profile': return renderProfilePage();
     default: return '';
   }
+}
+
+/* ---------------- Profile pages (Phase 3) ----------------
+   #/profile/<userId>. Profiles are already loaded for the whole guild (state.profilesById);
+   the page makes one extra query for that player's pets (public read via RLS), cached per visit. */
+const profilePets = {};          // userId -> pets[] | 'loading' | 'error'
+const profilePetViewers = {};    // petId -> { renderer, scene, camera, model, mixer, clock, raf, ready, failed }
+
+function profileIdFromHash(){
+  const m = (window.location.hash || '').match(/^#\/profile\/([0-9a-f-]{36})$/i);
+  return m ? m[1] : null;
+}
+
+function openProfile(userId, fromHash){
+  if(!userId) return;
+  state.tab = 'profile';
+  state.profileUserId = userId;
+  state.modal = null;
+  state.mobileNavOpen = false;
+  if(!fromHash && profileIdFromHash() !== userId) history.pushState(null, '', '#/profile/' + userId);
+  loadProfilePets(userId);
+  render();
+  window.scrollTo({ top: 0 });
+}
+
+function closeProfile(){
+  state.tab = 'news';
+  state.profileUserId = null;
+  if(profileIdFromHash()) history.pushState(null, '', window.location.pathname + window.location.search);
+  render();
+  setTimeout(() => {
+    const board = document.querySelector('.gold-leaderboard-widget');
+    if(board) board.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 0);
+}
+
+// Browser back/forward between profiles and the home page
+window.addEventListener('popstate', () => {
+  if(!state.session) return;
+  const id = profileIdFromHash();
+  if(id) openProfile(id, true);
+  else if(state.tab === 'profile'){ state.tab = 'news'; state.profileUserId = null; render(); }
+});
+
+// Any element with data-profile-id opens that player's profile (bound once, survives re-renders)
+document.addEventListener('click', e => {
+  const el = e.target.closest && e.target.closest('[data-profile-id]');
+  if(!el || !state.session) return;
+  e.preventDefault();
+  openProfile(el.getAttribute('data-profile-id'));
+});
+
+async function loadProfilePets(userId, force){
+  if(!force && Array.isArray(profilePets[userId])) return;
+  // Your own pets are already in memory
+  if(state.profile && userId === state.profile.id && state.profile.pets){
+    profilePets[userId] = state.profile.pets;
+    return;
+  }
+  profilePets[userId] = 'loading';
+  const { data, error } = await sb.from('pets').select('*').eq('user_id', userId).order('created_at', { ascending: true });
+  profilePets[userId] = error ? 'error' : (data || []);
+  if(error) console.error('loadProfilePets failed:', error);
+  if(state.tab === 'profile' && state.profileUserId === userId) render();
+}
+
+function profileLeaderboardRank(userId){
+  const ranked = Object.values(state.profilesById || {})
+    .filter(p => (p.gold_earned_total || 0) > 0)
+    .sort((a, b) => (b.gold_earned_total || 0) - (a.gold_earned_total || 0));
+  const i = ranked.findIndex(p => p.id === userId);
+  return i >= 0 ? i + 1 : null;
+}
+
+function profilePetExp(pet){
+  const level = calculatePetLevel(pet.exp || 0);
+  const exp = pet.exp || 0;
+  const cur = EXP_REQUIREMENTS[level - 1];
+  const next = level < EXP_REQUIREMENTS.length ? EXP_REQUIREMENTS[level] : null;
+  const pct = next ? Math.min(100, ((exp - cur) / (next - cur)) * 100) : 100;
+  return { level, exp, next, pct };
+}
+
+function renderProfilePetCard(pet){
+  const type = petTypeInfo(pet.pet_type);
+  let stats;
+  if(pet.status === 'egg'){
+    const left = pet.hatch_time - Date.now();
+    stats = `<div class="profile-pet-sub">${esc((type.label || 'Pet') + ' Egg')} &middot; ${left > 0 ? 'Hatches in ' + formatDuration(left) : 'Ready to hatch!'}</div>`;
+  } else {
+    const x = profilePetExp(pet);
+    stats = `
+      <div class="profile-pet-sub">Level ${x.level} ${esc(PET_STAGE_LABEL[pet.status] || '')}</div>
+      <div class="profile-exp"><div class="profile-exp-fill" style="width:${x.pct}%"></div></div>
+      <div class="profile-exp-text">${x.next ? `${x.exp} / ${x.next} EXP` : `${x.exp} EXP (MAX)`}</div>`;
+  }
+  return `
+    <div class="profile-pet-card stage-${esc(pet.status)}">
+      <div class="profile-pet-stage" data-profile-pet="${esc(pet.id)}">
+        <div class="profile-pet-fallback">${petIconHtml(pet.pet_type, 72)}</div>
+      </div>
+      <div class="profile-pet-name">${esc(petDisplayName(pet))}</div>
+      ${stats}
+    </div>`;
+}
+
+function renderProfilePage(){
+  const id = state.profileUserId;
+  const p = id && state.profilesById && state.profilesById[id];
+  const back = `<button class="btn secondary profile-back" type="button" id="profile-back-btn">&larr; Back to Leaderboard</button>`;
+  if(!p){
+    return `<div class="profile-page">${back}<div class="profile-panel"><p class="muted sans">We couldn't find that player.</p></div></div>`;
+  }
+  const c = getUserNameCustomization(p.id);
+  const slotClasses = [c.border, c.nameCustom].filter(Boolean).join(' ');
+  const rank = profileLeaderboardRank(p.id);
+  const roleLabel = p.protected ? 'Raid Leader' : (p.role === 'officer' ? 'Officer' : 'Member');
+  const pets = profilePets[p.id];
+  const isMe = state.profile && state.profile.id === p.id;
+
+  let petsHtml;
+  if(pets === undefined || pets === 'loading') petsHtml = `<p class="muted sans">Calling the pets&hellip;</p>`;
+  else if(pets === 'error') petsHtml = `<p class="muted sans">Couldn't load pets right now.</p>`;
+  else if(!pets.length) petsHtml = `<p class="muted sans">${isMe ? "You don't have a pet yet. The Shadowy Dealer might be able to help..." : 'No pets yet.'}</p>`;
+  else petsHtml = `<div class="profile-pets">${pets.map(renderProfilePetCard).join('')}</div>`;
+
+  return `
+    <div class="profile-page">
+      ${back}
+      <div class="profile-panel profile-header">
+        <div class="comp-slot profile-nameplate ${slotClasses}">
+          <span style="position:relative; z-index:100;">${esc(p.character_name || 'Unknown')}</span>
+          ${ c.nameplateIcon ? `<div class="comp-slot-nameplate-icon"><img src="${esc(c.nameplateIcon)}" alt=""></div>` : '' }
+        </div>
+        <div class="profile-stats">
+          <div class="profile-stat"><span class="profile-stat-label">Rank</span><span class="profile-stat-value">${esc(roleLabel)}</span></div>
+          <div class="profile-stat"><span class="profile-stat-label">Gold Earned</span><span class="profile-stat-value">${goldIconHtml()} ${(p.gold_earned_total || 0).toLocaleString()}</span></div>
+          <div class="profile-stat"><span class="profile-stat-label">Leaderboard</span><span class="profile-stat-value">${rank ? '#' + rank : '&mdash;'}</span></div>
+        </div>
+      </div>
+
+      <div class="profile-panel">
+        <h3 class="profile-section-title">Companions</h3>
+        ${petsHtml}
+      </div>
+
+      <div class="profile-panel profile-house">
+        <h3 class="profile-section-title">House</h3>
+        <div class="profile-house-placeholder">
+          <div class="profile-house-icon">&#127984;</div>
+          <p class="sans">The builders are still at work. Houses are coming soon.</p>
+        </div>
+      </div>
+    </div>`;
+}
+
+// One renderer per pet, re-attached after every render (no new WebGL contexts)
+function mountProfilePetViewers(){
+  if(typeof THREE === 'undefined') return;
+  const back = document.getElementById('profile-back-btn');
+  if(back) back.addEventListener('click', closeProfile);
+  const pets = profilePets[state.profileUserId];
+  if(!Array.isArray(pets)) return;
+  document.querySelectorAll('[data-profile-pet]').forEach(slot => {
+    const pet = pets.find(x => x.id === slot.getAttribute('data-profile-pet'));
+    const model = pet && petModelFor(pet);
+    if(!model) return;
+    let v = profilePetViewers[pet.id];
+    if(v && v.modelKey !== petModelKey(model)){ v.renderer.dispose(); v = null; } // evolved since last view
+    if(!v){
+      v = profilePetViewers[pet.id] = { modelKey: petModelKey(model), ready: false, failed: false, raf: null };
+      v.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      v.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      v.scene = new THREE.Scene();
+      v.camera = makePetCamera(1, model.camY ?? PET_CAMERA.y, model.camZ ?? PET_CAMERA.z);
+      addPetLights(v.scene);
+      v.spin = model.spin !== false;
+      getPetModel(model).then(obj => {
+        v.model = obj;
+        if(!v.spin) obj.rotation.y = model.facing || 0;
+        v.scene.add(obj);
+        const clips = obj.userData.animations || [];
+        const idle = model.anims && model.anims.idle;
+        const clip = clips.find(c => c.name === idle) || clips[0];
+        if(clip){
+          v.mixer = new THREE.AnimationMixer(obj.children[0]);
+          v.mixer.clipAction(clip).play();
+          v.clock = new THREE.Clock();
+        }
+        v.ready = true;
+        mountProfilePetViewers();
+      }).catch(err => { console.error('Profile pet model failed to load:', err); v.failed = true; });
+    }
+    if(v.failed || !v.ready) return; // keep the icon fallback
+
+    const canvas = v.renderer.domElement;
+    if(canvas.parentNode !== slot) slot.appendChild(canvas);
+    slot.classList.add('loaded');
+    const w = slot.clientWidth || 220, h = slot.clientHeight || 200;
+    v.renderer.setSize(w, h, false);
+    v.camera.aspect = w / h;
+    v.camera.updateProjectionMatrix();
+
+    if(!v.raf){
+      const tick = () => {
+        if(!document.body.contains(canvas)){ v.raf = null; return; } // left the page; next mount restarts
+        if(v.mixer) v.mixer.update(v.clock.getDelta());
+        if(v.spin) v.model.rotation.y += PET_SPIN_PER_FRAME;
+        v.renderer.render(v.scene, v.camera);
+        v.raf = requestAnimationFrame(tick);
+      };
+      v.raf = requestAnimationFrame(tick);
+    }
+  });
 }
 
 /* ---------------- calendar tab ---------------- */
@@ -8197,7 +8460,7 @@ function renderGoldLeaderboard(){
     const animDelay = isTopRank ? `animation-delay:${animationDelay};` : '';
 
     return `
-      <div class="leaderboard-entry ${entryClass}" style="align-items:flex-start; gap:4px; ${bgStyle} padding:8px; border-radius:4px; box-shadow:${boxShadow}; ${cssVars} ${animDelay}">
+      <div class="leaderboard-entry ${entryClass}" data-profile-id="${esc(profile.id)}" title="View profile" style="cursor:pointer; align-items:flex-start; gap:4px; ${bgStyle} padding:8px; border-radius:4px; box-shadow:${boxShadow}; ${cssVars} ${animDelay}">
         <div class="leaderboard-rank" style="flex-shrink:0;">${rankSparkle || '#' + rank}</div>
         <div style="flex:1; min-width:0;">
           <div class="comp-slot ${slotClasses}" style="height:24px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10px; font-weight:600; overflow:visible; text-overflow:ellipsis; position:relative;">
@@ -9480,6 +9743,7 @@ function bindApp(){
   document.querySelectorAll('[data-buy-pet-egg]').forEach(b=>b.addEventListener('click', ()=>purchasePetEgg(b.dataset.buyPetEgg)));
   document.querySelectorAll('[data-buy-resource]').forEach(b=>b.addEventListener('click', ()=>buyResourceBundle(b.dataset.buyResource)));
   mountShopEggViewers();
+  if(state.tab === 'profile') mountProfilePetViewers();
   document.querySelectorAll('[data-move-shop-item]').forEach(b=>b.addEventListener('click', ()=>moveShopItem(b.dataset.moveShopItem, b.dataset.direction)));
   document.querySelectorAll('[data-refund-purchase]').forEach(b=>b.addEventListener('click', ()=>refundPurchase(b.dataset.refundPurchase, b.dataset.refundName)));
   document.querySelectorAll('[data-buy-rank]').forEach(b=>b.addEventListener('click', ()=>purchaseRank(b.dataset.buyRank)));
