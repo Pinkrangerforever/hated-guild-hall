@@ -3866,7 +3866,7 @@
     pointer-events:none; animation:encDimIn .3s ease-out both; }
   .encounter-dim.closing{ animation:encDimOut .4s ease-in forwards; }
   @keyframes encDimIn{ from{ opacity:0; } } @keyframes encDimOut{ to{ opacity:0; } }
-  .encounter-card{ position:fixed; width:min(440px, calc(100vw - 24px)); pointer-events:auto; z-index:2;
+  .encounter-card{ position:fixed; width:min(440px, calc(100vw - 24px)); max-height:calc(100vh - 16px); overflow-y:auto; overflow-x:hidden; pointer-events:auto; z-index:2;
     padding:14px 16px 12px; border-radius:6px; color:var(--hh-parchment, #e9dcc0);
     background:
       linear-gradient(90deg, transparent, var(--hh-blood, #8e1c18) 18%, var(--hh-ember, #e0662a) 50%, var(--hh-blood, #8e1c18) 82%, transparent) top / 100% 4px no-repeat,
@@ -6078,7 +6078,9 @@ function openEncounterCard(rect, opts){
   const cw = card.offsetWidth, ch = card.offsetHeight;
   const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
   const left = Math.max(12, Math.min(window.innerWidth - cw - 12, cx - cw / 2));
-  const top = Math.max(70, Math.min(window.innerHeight - ch - 12, cy - ch / 2));
+  // Below the nav bar when there's room; on short screens it may use the full height
+  const minTop = window.innerHeight - ch - 12 >= 70 ? 70 : 8;
+  const top = Math.max(minTop, Math.min(window.innerHeight - ch - 12, cy - ch / 2));
   card.style.left = left + 'px';
   card.style.top = top + 'px';
   const fill = card.querySelector('.enc-timer-fill');
