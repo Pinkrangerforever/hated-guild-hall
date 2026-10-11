@@ -3305,10 +3305,10 @@
   /* Metal glare: a fast, hard-edged streak (~0.35s) with a hot white core and soft bloom,
      brightening the metal underneath (screen blend), every 12s, then rest */
   @keyframes hhCoinGlint{
-    0%   { transform:translateX(-130%) skewX(-22deg); opacity:0; }
+    0%   { transform:translateX(calc(var(--glint-dir, 1) * -130%)) skewX(var(--glint-skew, -22deg)); opacity:0; }
     0.5% { opacity:1; }
-    3%   { transform:translateX(130%) skewX(-22deg); opacity:1; }
-    3.5%, 100% { transform:translateX(130%) skewX(-22deg); opacity:0; }
+    3%   { transform:translateX(calc(var(--glint-dir, 1) * 130%)) skewX(var(--glint-skew, -22deg)); opacity:1; }
+    3.5%, 100% { transform:translateX(calc(var(--glint-dir, 1) * 130%)) skewX(var(--glint-skew, -22deg)); opacity:0; }
   }
   .gold-leaderboard-entries .leaderboard-entry.rank-top-3::before{
     background:linear-gradient(105deg,
@@ -11990,6 +11990,16 @@ setInterval(()=>{
   }
 }, 1000);
 
+
+/* Leaderboard glare: new random angle and direction for every pass (CSS reads the variables) */
+function randomizeGlint(el){
+  const skew = (8 + Math.random() * 30) * (Math.random() < 0.5 ? -1 : 1);
+  el.style.setProperty('--glint-skew', skew.toFixed(1) + 'deg');
+  el.style.setProperty('--glint-dir', Math.random() < 0.7 ? '1' : '-1'); // mostly left-to-right
+}
+document.addEventListener('animationiteration', e => {
+  if(e.animationName === 'hhCoinGlint' && e.target.classList && e.target.classList.contains('rank-top-3')) randomizeGlint(e.target);
+}, true);
 
 /* ---------------- Ambient lightning ----------------
    Every 15-30s a procedurally generated, branching blue-white bolt arcs off one of the panel
