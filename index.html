@@ -3959,6 +3959,57 @@
   .enc-body .blacksmith-forge{ position:relative; width:150px; height:150px; margin:46px auto 6px; }
   .enc-forge .sword-graphic{ transition:filter 0.25s ease-out; }
   .enc-stamp{ max-width:94%; white-space:normal; text-align:center; }
+
+  /* ---- Lumberjack ---- */
+  .lj-arena{ position:relative; height:120px; cursor:crosshair; user-select:none; border-radius:5px;
+    background:radial-gradient(ellipse at 50% 100%, rgba(60,90,40,0.45), transparent 70%), linear-gradient(180deg, rgba(20,30,15,0.6), rgba(10,14,8,0.8));
+    border:1px solid rgba(127,208,107,0.25); overflow:hidden; }
+  .lj-log{ position:absolute; left:2%; right:2%; top:44px; height:62px; }
+  .lj-log svg{ width:100%; height:100%; display:block; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.7)); }
+  .lj-notch{ position:absolute; top:44px; height:62px; transform:translateX(-50%); border-radius:4px; pointer-events:none;
+    background:linear-gradient(180deg, rgba(127,208,107,0.55), rgba(127,208,107,0.2)); box-shadow:0 0 12px rgba(127,208,107,0.8), inset 0 0 8px rgba(255,255,255,0.4);
+    border:1px solid #7fd06b; animation:ljNotch 0.9s ease-in-out infinite; transition:left .2s ease-out; }
+  @keyframes ljNotch{ 50%{ box-shadow:0 0 20px rgba(127,208,107,1), inset 0 0 10px rgba(255,255,255,0.6); } }
+  .lj-axe{ position:absolute; top:4px; width:30px; height:46px; margin-left:-15px; pointer-events:none; transform-origin:50% 90%; }
+  .lj-axe svg{ width:100%; height:100%; filter:drop-shadow(0 2px 3px rgba(0,0,0,0.8)); }
+  .lj-axe.swing{ animation:ljSwing 0.22s ease-in; }
+  @keyframes ljSwing{ 0%{ transform:rotate(-35deg); } 70%{ transform:rotate(25deg) translateY(10px); } 100%{ transform:rotate(0); } }
+  .lj-arena.thunk{ animation:ljThunk 0.25s ease-out; }
+  @keyframes ljThunk{ 30%{ transform:translateY(2px); } }
+  .lj-arena.miss{ animation:ljMiss 0.3s ease-out; }
+  @keyframes ljMiss{ 20%{ transform:translateX(-4px); } 50%{ transform:translateX(4px); } 80%{ transform:translateX(-2px); } }
+  .lj-chips{ position:absolute; top:52px; width:0; height:0; pointer-events:none; }
+  .lj-chips i{ position:absolute; width:6px; height:4px; background:#e1b878; border-radius:1px; opacity:0; }
+  .lj-chips.go i{ animation:ljChip 0.6s ease-out forwards; }
+  .lj-chips i:nth-child(1){ --x:-30px; --y:-26px; } .lj-chips i:nth-child(2){ --x:24px; --y:-30px; } .lj-chips i:nth-child(3){ --x:-12px; --y:-38px; }
+  .lj-chips i:nth-child(4){ --x:34px; --y:-14px; } .lj-chips i:nth-child(5){ --x:-36px; --y:-8px; } .lj-chips i:nth-child(6){ --x:8px; --y:-42px; } .lj-chips i:nth-child(7){ --x:18px; --y:-20px; }
+  @keyframes ljChip{ 0%{ opacity:1; transform:translate(0,0) rotate(0); } 100%{ opacity:0; transform:translate(var(--x), calc(var(--y) + 30px)) rotate(200deg); } }
+  .lj-score{ display:flex; align-items:center; justify-content:center; gap:14px; margin-top:8px; font-family:'Cinzel', Georgia, serif; font-size:12px; color:var(--hh-muted, #a8977a); }
+  .lj-pips{ display:inline-flex; gap:6px; }
+  .lj-pips i{ width:14px; height:14px; border-radius:50%; border:1px solid rgba(201,150,63,0.6); background:rgba(0,0,0,0.4); }
+  .lj-pips i.on{ background:radial-gradient(circle at 35% 30%, #fff2c0, #f0c95a 55%, #8a5f22); box-shadow:0 0 8px rgba(240,201,90,0.8); }
+
+  /* ---- Rare spawn ---- */
+  .enc-rare{ border-color:#f0c95a !important; box-shadow:0 0 0 1px #000, 0 0 24px rgba(240,201,90,0.45), 0 18px 44px rgba(0,0,0,0.9) !important; }
+  .enc-rare .enc-title{ color:#f6dc8a; animation:rareTitle 0.8s ease-in-out infinite; }
+  @keyframes rareTitle{ 50%{ text-shadow:0 0 16px rgba(240,201,90,1), 0 0 4px #fff; } }
+  .rare-arena{ position:relative; height:200px; cursor:crosshair; user-select:none; border-radius:5px; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 60%, rgba(142,28,24,0.35), transparent 70%), linear-gradient(180deg, #160c08, #0a0503);
+    border:1px solid rgba(240,201,90,0.4); }
+  .rare-mob{ position:absolute; width:62px; height:62px; margin:-31px 0 0 -31px; padding:0; border:none; background:none; cursor:crosshair; }
+  .rare-mob svg{ width:100%; height:100%; display:block; filter:drop-shadow(0 0 8px rgba(240,201,90,0.7)) drop-shadow(0 4px 6px rgba(0,0,0,0.8)); pointer-events:none; }
+  .rare-weak{ position:absolute; left:50%; top:58%; width:16px; height:16px; margin:-8px 0 0 -8px; border-radius:50%; pointer-events:none;
+    background:radial-gradient(circle, #fff, #ff5a3a 50%, transparent 72%); animation:rareWeak 0.5s ease-in-out infinite; }
+  @keyframes rareWeak{ 50%{ transform:scale(1.4); opacity:0.7; } }
+  .rare-mob.blink{ animation:rareBlink 0.18s ease-out; }
+  @keyframes rareBlink{ from{ transform:scale(0.2); opacity:0; filter:brightness(3); } }
+  .rare-mob.struck{ animation:rareStruck 0.25s ease-out; }
+  @keyframes rareStruck{ 30%{ transform:scale(0.85) rotate(-8deg); filter:brightness(2.2) saturate(0.4); } }
+  .rare-mob.fled{ transition:transform .5s ease-in, opacity .5s ease-in; transform:translateY(-40px) scale(0.3); opacity:0; }
+  .rare-fx{ position:absolute; transform:translate(-50%, -50%); pointer-events:none; font-family:'Cinzel', Georgia, serif; font-weight:900; font-size:14px;
+    animation:rareFx 0.65s ease-out forwards; text-shadow:0 2px 3px #000; white-space:nowrap; }
+  .rare-fx.hit{ color:#ffd76a; font-size:18px; } .rare-fx.miss{ color:#b9a98e; font-size:12px; }
+  @keyframes rareFx{ 0%{ opacity:1; transform:translate(-50%, -50%) scale(1.3); } 100%{ opacity:0; transform:translate(-50%, -150%) scale(1); } }
 </style>
 </head>
 <body>
@@ -5704,6 +5755,10 @@ async function claimSparkle(el){
       return startFishingEvent(rect, data.pending_id, params);
     } else if(data.event === 'trivia') {
       return startTriviaEvent(rect, data.pending_id, params);
+    } else if(data.event === 'lumberjack') {
+      return startLumberjackEvent(rect, data.pending_id, params);
+    } else if(data.event === 'rarespawn') {
+      return startRareSpawnEvent(rect, data.pending_id, params);
     }
 
     // normal claim: update gold directly without full render to preserve video
@@ -5797,6 +5852,7 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings, opts){
         showGoldFloat(x, y, data.awarded || 0, data.food_awarded || 0, data.wood_awarded || 0);
       }
       // Murloc and fishing wins also award food (server-side)
+      if(data.wood_awarded > 0 && data.wood_total != null){ state.profile.wood = data.wood_total; updateNavbarUserInfo(); }
       if(data.food_awarded > 0){
         state.profile.food = data.food_total;
         updateNavbarUserInfo();
@@ -6161,6 +6217,185 @@ function startTriviaEvent(rect, pendingId, params){
   enc.body.querySelectorAll('[data-trv]').forEach(b => b.addEventListener('click', () => pick(Number(b.getAttribute('data-trv')))));
 }
 
+/* ---------------- Lumberjack (Ashenvale): chop on the glowing notch ----------------
+   The axe marker sweeps 0 -> 1 -> 0 along the log every sweep_ms (same formula the server replays).
+   3 good chops in 5 swings; the notch moves after each good chop. Pays wood. */
+const LOG_SVG = `<svg viewBox="0 0 300 70" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="lgBark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5a2b"/><stop offset="0.5" stop-color="#6b4220"/><stop offset="1" stop-color="#3f2410"/></linearGradient>
+  <radialGradient id="lgEnd" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#f1d59a"/><stop offset="0.55" stop-color="#c99a5b"/><stop offset="1" stop-color="#7a4f24"/></radialGradient></defs>
+  <rect x="18" y="8" width="268" height="54" rx="10" fill="url(#lgBark)" stroke="#2a1608" stroke-width="2"/>
+  <path d="M40 20 h60 M120 30 h80 M60 44 h70 M200 18 h50 M150 50 h90 M230 38 h40" stroke="#4a2c12" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+  <ellipse cx="20" cy="35" rx="14" ry="27" fill="url(#lgEnd)" stroke="#2a1608" stroke-width="2"/>
+  <ellipse cx="20" cy="35" rx="8" ry="16" fill="none" stroke="#8a5a2b" stroke-width="1.5"/><ellipse cx="20" cy="35" rx="3" ry="7" fill="none" stroke="#8a5a2b" stroke-width="1.2"/>
+</svg>`;
+const AXE_SVG = `<svg viewBox="0 0 40 60" xmlns="http://www.w3.org/2000/svg"><rect x="18" y="14" width="5" height="44" rx="2" fill="#7a4f24" stroke="#3a250a"/>
+  <path d="M20 4 C34 4 38 16 36 28 C30 22 24 22 20 24 Z" fill="#cfd6df" stroke="#4a4f57" stroke-width="1.5"/><path d="M23 8 C31 9 34 15 34 21" stroke="#fff" stroke-width="1.2" fill="none" opacity="0.8"/></svg>`;
+
+function startLumberjackEvent(rect, pendingId, params){
+  params = params || {};
+  const sweep = params.sweep_ms || 1300, width = params.width || 0.12, need = params.hits_needed || 3;
+  const maxTries = params.max_attempts || 5, gameMs = params.game_ms || 9000;
+  const notches = params.notches || [0.3, 0.7, 0.5];
+  const enc = openEncounterCard(rect, {
+    cls: 'enc-lumber', icon: '&#129683;', title: 'Ashenvale Lumberjack',
+    instruction: `Chop when the axe is over the <b style="color:#7fd06b">glowing notch</b> &mdash; ${need} good chops in ${maxTries} swings!`,
+    reward: '4&ndash;8 wood &middot; 5&ndash;10 gold', durationMs: gameMs
+  });
+  enc.body.innerHTML = `
+    <div class="lj-arena">
+      <div class="lj-log">${LOG_SVG}</div>
+      <div class="lj-notch"></div>
+      <div class="lj-axe">${AXE_SVG}</div>
+      <div class="lj-chips"></div>
+    </div>
+    <div class="lj-score"><span class="lj-pips">${'<i></i>'.repeat(need)}</span> <span class="lj-tries">Swings: 0/${maxTries}</span></div>`;
+  const arena = enc.body.querySelector('.lj-arena'), axe = enc.body.querySelector('.lj-axe'), notchEl = enc.body.querySelector('.lj-notch');
+  const pips = [...enc.body.querySelectorAll('.lj-pips i')], triesEl = enc.body.querySelector('.lj-tries');
+  const start = performance.now();
+  let hits = 0, tries = 0, lastChop = -1000, done = false;
+  const timings = [];
+  const markerAt = t => { const p = (t % sweep) / sweep; return p < 0.5 ? p * 2 : 2 - p * 2; };
+  // the log art spans 6%..94% of the arena; map 0..1 onto it
+  const toX = f => 6 + f * 88;
+  const placeNotch = () => { notchEl.style.left = toX(notches[Math.min(hits, notches.length - 1)]) + '%'; notchEl.style.width = (width * 88) + '%'; };
+  placeNotch();
+  let raf;
+  const tick = () => {
+    if(done) return;
+    axe.style.left = toX(markerAt(performance.now() - start)) + '%';
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+  const timeout = setTimeout(() => finish(), gameMs);
+
+  function chop(){
+    if(done) return;
+    const t = performance.now() - start;
+    if(t - lastChop < 300) return; // the axe needs a moment between swings
+    lastChop = t;
+    timings.push(Math.round(t));
+    tries++;
+    triesEl.textContent = `Swings: ${tries}/${maxTries}`;
+    const good = Math.abs(markerAt(t) - notches[Math.min(hits, notches.length - 1)]) <= width / 2;
+    axe.classList.remove('swing'); void axe.offsetWidth; axe.classList.add('swing');
+    if(good){
+      pips[hits] && pips[hits].classList.add('on');
+      hits++;
+      const chips = enc.body.querySelector('.lj-chips');
+      chips.style.left = axe.style.left;
+      chips.innerHTML = '<i></i>'.repeat(7);
+      chips.classList.remove('go'); void chips.offsetWidth; chips.classList.add('go');
+      arena.classList.remove('thunk'); void arena.offsetWidth; arena.classList.add('thunk');
+      if(hits < need) placeNotch();
+    } else {
+      arena.classList.remove('miss'); void arena.offsetWidth; arena.classList.add('miss');
+    }
+    if(hits >= need || tries >= maxTries) finish();
+  }
+  arena.addEventListener('pointerdown', chop);
+
+  function finish(){
+    if(done) return;
+    done = true;
+    cancelAnimationFrame(raf);
+    clearTimeout(timeout);
+    enc.stopTimer();
+    const vr = enc.card.getBoundingClientRect();
+    resolveSparkleEvent(pendingId, hits >= need, vr.left + vr.width / 2, vr.top + 20, timings, { silent: true })
+      .then(d => enc.finish(!!(d && d.won), d && d.won ? 'Timber!' : 'Blunt axe...'));
+  }
+}
+
+/* ---------------- Rare spawn (5%): an elite blinks around the arena ----------------
+   It jumps to a new server-chosen spot every jump_ms. Land 3 hits on its glowing weak spot,
+   one per jump and not the instant it lands. Big payout. */
+const ELITE_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs><radialGradient id="elFace" cx="0.45" cy="0.4" r="0.6"><stop offset="0" stop-color="#7a2a20"/><stop offset="1" stop-color="#2a0806"/></radialGradient>
+  <linearGradient id="elGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2c0"/><stop offset="0.5" stop-color="#f0c95a"/><stop offset="1" stop-color="#8a5f22"/></linearGradient></defs>
+  <path d="M8 40 C2 22 12 8 26 14 C24 26 26 34 32 40 Z" fill="url(#elGold)" stroke="#3a250a"/>
+  <path d="M92 40 C98 22 88 8 74 14 C76 26 74 34 68 40 Z" fill="url(#elGold)" stroke="#3a250a"/>
+  <circle cx="50" cy="54" r="34" fill="url(#elGold)" stroke="#3a250a" stroke-width="2"/>
+  <circle cx="50" cy="54" r="27" fill="url(#elFace)"/>
+  <path d="M33 48 l9 4 l-9 3 z M67 48 l-9 4 l9 3 z" fill="#ffcf4a"/>
+  <path d="M38 68 q12 8 24 0" stroke="#ffcf4a" stroke-width="2.5" fill="none"/>
+  <path d="M40 30 l4 -10 l6 8 l6 -8 l4 10" fill="url(#elGold)" stroke="#3a250a"/></svg>`;
+
+function startRareSpawnEvent(rect, pendingId, params){
+  params = params || {};
+  const jump = params.jump_ms || 650, dur = params.duration_ms || 3250, need = params.hits_needed || 3;
+  const radius = params.radius || 95, positions = params.positions || [[500, 500]];
+  const enc = openEncounterCard(rect, {
+    cls: 'enc-rare', icon: '&#128128;', title: 'Rare Elite Spotted!',
+    instruction: `Strike its glowing weak spot ${need} times before it escapes!`,
+    reward: '<b style="color:#f6dc8a">90&ndash;130 gold</b> &middot; 5 food &middot; 10 wood', durationMs: dur
+  });
+  enc.body.innerHTML = `
+    <div class="rare-arena">
+      <button type="button" class="rare-mob">${ELITE_SVG}<span class="rare-weak"></span></button>
+    </div>
+    <div class="lj-score"><span class="lj-pips">${'<i></i>'.repeat(need)}</span></div>`;
+  const arena = enc.body.querySelector('.rare-arena'), mob = enc.body.querySelector('.rare-mob');
+  const pips = [...enc.body.querySelectorAll('.lj-pips i')];
+  const start = performance.now();
+  let hits = 0, lastWin = -1, done = false, shownWin = -1;
+  const timings = [];
+  const place = w => {
+    const p = positions[Math.min(w, positions.length - 1)];
+    mob.style.left = (p[0] / 10) + '%';
+    mob.style.top = (p[1] / 10) + '%';
+    mob.classList.remove('blink'); void mob.offsetWidth; mob.classList.add('blink');
+  };
+  let raf;
+  const tick = () => {
+    if(done) return;
+    const w = Math.floor((performance.now() - start) / jump);
+    if(w !== shownWin && w < positions.length){ shownWin = w; place(w); }
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+  const timeout = setTimeout(() => finish(), dur);
+
+  arena.addEventListener('pointerdown', e => {
+    if(done) return;
+    const t = performance.now() - start;
+    const r = arena.getBoundingClientRect();
+    const x = Math.round((e.clientX - r.left) / r.width * 1000), y = Math.round((e.clientY - r.top) / r.height * 1000);
+    timings.push(Math.round(t), x, y);
+    const w = Math.floor(t / jump), p = positions[Math.min(w, positions.length - 1)];
+    const onMob = Math.hypot(x - p[0], y - p[1]) <= radius;
+    const counts = onMob && w !== lastWin && (t - w * jump) >= 150;
+    const fx = document.createElement('span');
+    fx.className = 'rare-fx ' + (counts ? 'hit' : 'miss');
+    fx.style.left = (x / 10) + '%'; fx.style.top = (y / 10) + '%';
+    fx.textContent = counts ? 'CRIT!' : (onMob ? 'Glancing' : 'Miss');
+    arena.appendChild(fx);
+    setTimeout(() => fx.remove(), 650);
+    if(counts){
+      lastWin = w;
+      pips[hits] && pips[hits].classList.add('on');
+      hits++;
+      mob.classList.remove('struck'); void mob.offsetWidth; mob.classList.add('struck');
+      if(hits >= need) finish();
+    }
+  });
+
+  function finish(){
+    if(done) return;
+    done = true;
+    cancelAnimationFrame(raf);
+    clearTimeout(timeout);
+    enc.stopTimer();
+    if(hits < need) mob.classList.add('fled');
+    const vr = enc.card.getBoundingClientRect();
+    resolveSparkleEvent(pendingId, hits >= need, vr.left + vr.width / 2, vr.top + 20, timings, { silent: true })
+      .then(d => {
+        const won = !!(d && d.won);
+        enc.finish(won, won ? 'Rare slain!' : 'It escaped!', 1800);
+        if(won) showToast('You slew a rare elite! Legendary loot!');
+      });
+  }
+}
+
 function showGoldFloat(x, y, amount, food, wood){
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
@@ -6440,6 +6675,8 @@ if(typeof isStaging !== 'undefined' && isStaging){
       fishing: () => startFishingEvent(rect, 'preview', { zone_start: -20, zone_width: 26, sweep_ms: 1400, game_ms: 6000, idle_ms: 6000 }),
       murloc: () => startMurlocEvent(rect, 'preview', { count: 4, duration_ms: 4500 }),
       blacksmith: () => startBlacksmithGame(rect, 'preview', { cycle_ms: 1400, hit_window: 0.15, hits_needed: 3, max_attempts: 5, game_ms: 10000 }),
+      lumberjack: () => startLumberjackEvent(rect, 'preview', { sweep_ms: 1300, width: 0.12, hits_needed: 3, max_attempts: 5, game_ms: 9000, notches: [0.25, 0.7, 0.45] }),
+      rarespawn: () => startRareSpawnEvent(rect, 'preview', { jump_ms: 650, duration_ms: 3250, radius: 95, hits_needed: 3, positions: [[200, 300], [750, 650], [400, 800], [850, 250], [500, 450]] }),
       trivia: () => startTriviaEvent(rect, 'preview', { question: 'Who is the final boss of Molten Core?', category: 'World', time_ms: 15000, answers: ['Ragnaros', 'Golemagg', 'Majordomo Executus', 'Baron Geddon'] })
     };
     (demo[type] || demo.fishing)();
