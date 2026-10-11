@@ -4010,6 +4010,25 @@
     animation:rareFx 0.65s ease-out forwards; text-shadow:0 2px 3px #000; white-space:nowrap; }
   .rare-fx.hit{ color:#ffd76a; font-size:18px; } .rare-fx.miss{ color:#b9a98e; font-size:12px; }
   @keyframes rareFx{ 0%{ opacity:1; transform:translate(-50%, -50%) scale(1.3); } 100%{ opacity:0; transform:translate(-50%, -150%) scale(1); } }
+
+  /* ---- Sound toggle + profile mini-game stats ---- */
+  .enc-sfx{ background:rgba(0,0,0,0.4); border:1px solid rgba(201,150,63,0.4); border-radius:4px; cursor:pointer; font-size:13px; line-height:1; padding:3px 5px; margin-left:4px; }
+  .enc-sfx:hover{ border-color:var(--hh-arcane, #7fd4ff); }
+  .mg-summary{ display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:14px; }
+  .mg-summary div{ display:flex; flex-direction:column; align-items:center; padding:10px; border-radius:4px; background:rgba(0,0,0,0.35); border:1px solid rgba(201,150,63,0.25); }
+  .mg-summary b{ font-family:'Cinzel', Georgia, serif; font-size:20px; color:var(--hh-gold-bright, #f0d27a); }
+  .mg-summary span{ font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--hh-muted, #a8977a); }
+  .mg-summary .mg-rare{ border-color:#f0c95a; box-shadow:0 0 12px rgba(240,201,90,0.35); }
+  .mg-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:8px 18px; }
+  .mg-row{ display:flex; align-items:center; gap:8px; font-size:13px; }
+  .mg-row.none{ opacity:0.45; }
+  .mg-icon{ width:20px; text-align:center; }
+  .mg-label{ width:90px; font-family:'Cinzel', Georgia, serif; color:var(--hh-parchment, #e9dcc0); }
+  .mg-bar{ flex:1; height:7px; border-radius:4px; background:rgba(0,0,0,0.5); border:1px solid rgba(201,150,63,0.3); overflow:hidden; }
+  .mg-bar i{ display:block; height:100%; background:linear-gradient(90deg, #c9963f, #f0d27a); }
+  .mg-num{ min-width:64px; text-align:right; color:var(--hh-muted, #a8977a); font-variant-numeric:tabular-nums; }
+  .mg-num em{ font-style:normal; color:var(--hh-arcane, #7fd4ff); font-size:11px; }
+  @media (max-width:560px){ .mg-summary{ grid-template-columns:repeat(2, 1fr); } }
 </style>
 </head>
 <body>
@@ -5721,6 +5740,7 @@ async function claimSparkle(el){
   el.dataset.claiming = 'true';
   const rect = el.getBoundingClientRect();
   sparklePopBurst(rect);
+  hhSfx.play('coin');
   el.remove();
 
   try{
@@ -5947,6 +5967,7 @@ function startMurlocEvent(rect, pendingId, params){
     el.classList.add('hit');
     el.disabled = true;
     spawnArrow(el);
+    hhSfx.play('gurgle');
   }
 
   function finish(success){
@@ -6083,11 +6104,13 @@ function startFishingEvent(rect, pendingId, params){
       clearTimeout(gameTimeout);
       enc.stopTimer();
       if(success){
+        hhSfx.play('catch');
         const jump = document.createElement('div');
         jump.className = 'fish-jump';
         jump.style.backgroundImage = "url('fishing-fish.png')";
         pool.appendChild(jump);
       } else {
+        hhSfx.play('splash');
         const splash = document.createElement('div');
         splash.className = 'fish-splash';
         splash.innerHTML = '<i></i><i></i><i></i><i></i><i></i><i></i>';
@@ -6108,6 +6131,111 @@ function startFishingEvent(rect, pendingId, params){
   }, { once:true });
 }
 
+/* ---------------- Mini-game sound effects ----------------
+   Synthesized with Web Audio (no files to download). Off by default; the speaker button on every
+   game card turns it on/off and the choice is remembered on this device. */
+const hhSfx = {
+  ctx: null,
+  get on(){ try { return localStorage.getItem('hh_sfx') === '1'; } catch(e){ return false; } },
+  set on(v){ try { localStorage.setItem('hh_sfx', v ? '1' : '0'); } catch(e){} },
+  audio(){
+    if(!this.ctx){ const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return null; this.ctx = new AC(); }
+    if(this.ctx.state === 'suspended') this.ctx.resume();
+    return this.ctx;
+  },
+  tone(freq, dur, type, vol, when, slideTo){
+    const a = this.audio(); if(!a) return;
+    const t = a.currentTime + (when || 0);
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+  },
+  noise(dur, vol, filterFreq, filterType, when){
+    const a = this.audio(); if(!a) return;
+    const t = a.currentTime + (when || 0);
+    const buf = a.createBuffer(1, Math.floor(a.sampleRate * dur), a.sampleRate);
+    const d = buf.getChannelData(0); for(let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    const src = a.createBufferSource(); src.buffer = buf;
+    const f = a.createBiquadFilter(); f.type = filterType || 'lowpass'; f.frequency.value = filterFreq || 1200;
+    const g = a.createGain(); g.gain.value = vol || 0.2;
+    src.connect(f).connect(g).connect(a.destination); src.start(t);
+  },
+  play(name){
+    if(!this.on) return;
+    try {
+      switch(name){
+        case 'open': this.tone(520, 0.12, 'triangle', 0.08); this.tone(780, 0.16, 'triangle', 0.07, 0.07); break;
+        case 'coin': this.tone(1320, 0.08, 'square', 0.05); this.tone(1980, 0.18, 'square', 0.05, 0.06); break;
+        case 'win': [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.1, i * 0.09)); break;
+        case 'lose': this.tone(392, 0.25, 'sawtooth', 0.06, 0, 196); this.tone(294, 0.35, 'sawtooth', 0.05, 0.18, 147); break;
+        case 'splash': this.noise(0.45, 0.25, 900, 'lowpass'); break;
+        case 'catch': this.noise(0.2, 0.15, 1800, 'highpass'); this.tone(880, 0.2, 'sine', 0.08, 0.05, 1320); break;
+        case 'clang': this.tone(1650, 0.35, 'square', 0.05); this.tone(2475, 0.3, 'sine', 0.05); this.noise(0.08, 0.12, 4000, 'highpass'); break;
+        case 'chop': this.noise(0.12, 0.35, 500, 'lowpass'); this.tone(140, 0.12, 'sine', 0.15, 0, 70); break;
+        case 'whiff': this.noise(0.15, 0.08, 2500, 'bandpass'); break;
+        case 'gurgle': [0, 0.06, 0.12].forEach(w => this.tone(330 + Math.random() * 120, 0.08, 'sine', 0.1, w, 200)); break;
+        case 'page': this.noise(0.18, 0.1, 3000, 'bandpass'); break;
+        case 'crit': this.tone(220, 0.08, 'square', 0.1); this.noise(0.1, 0.25, 2000, 'lowpass'); break;
+        case 'horn': this.tone(196, 0.5, 'sawtooth', 0.07); this.tone(294, 0.55, 'sawtooth', 0.05, 0.2); break;
+      }
+    } catch(e){ /* sound is optional */ }
+  }
+};
+function sfxButtonHtml(){ return `<button type="button" class="enc-sfx" data-sfx-toggle title="Sound effects">${hhSfx.on ? '&#128266;' : '&#128263;'}</button>`; }
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-sfx-toggle]');
+  if(!b) return;
+  hhSfx.on = !hhSfx.on;
+  document.querySelectorAll('[data-sfx-toggle]').forEach(x => x.innerHTML = hhSfx.on ? '&#128266;' : '&#128263;');
+  if(hhSfx.on) hhSfx.play('coin');
+});
+
+/* ---------------- Profile: mini-game stats ---------------- */
+const profileStats = {}; // userId -> stats | 'loading' | 'error'
+const MINIGAME_LABELS = [
+  ['fishing', '&#127907;', 'Fishing'], ['murloc', '&#127993;', 'Murlocs'], ['blacksmith', '&#9874;', 'Forge'],
+  ['trivia', '&#128214;', 'Trivia'], ['lumberjack', '&#129683;', 'Lumberjack'], ['rarespawn', '&#128128;', 'Rare elites']
+];
+function loadProfileStats(userId){
+  if(profileStats[userId] && profileStats[userId] !== 'error') return;
+  profileStats[userId] = 'loading';
+  sb.rpc('profile_minigame_stats', { p_user_id: userId }).then(({ data, error }) => {
+    profileStats[userId] = (error || !data) ? 'error' : data;
+    if(state.tab === 'profile' && state.profileUserId === userId) render();
+  });
+}
+function renderProfileStats(p){
+  const st = profileStats[p.id];
+  if(st === undefined){ loadProfileStats(p.id); }
+  let body;
+  if(st === undefined || st === 'loading') body = `<p class="muted sans">Tallying&hellip;</p>`;
+  else if(st === 'error') body = `<p class="muted sans">Couldn't load stats.</p>`;
+  else if(!st.total_games && !st.sparkles) body = `<p class="muted sans">No mini-games played yet.</p>`;
+  else {
+    const g = st.games || {};
+    const pct = (w, n) => n ? Math.round(100 * w / n) + '%' : '&mdash;';
+    body = `
+      <div class="mg-summary">
+        <div><b>${Number(st.total_games).toLocaleString()}</b><span>games</span></div>
+        <div><b>${pct(st.total_wins, st.total_games)}</b><span>win rate</span></div>
+        <div><b>${Number(st.sparkles).toLocaleString()}</b><span>sparkles</span></div>
+        <div class="${(g.rarespawn && g.rarespawn.wins) ? 'mg-rare' : ''}"><b>${(g.rarespawn && g.rarespawn.wins) || 0}</b><span>rares slain</span></div>
+      </div>
+      <div class="mg-grid">${MINIGAME_LABELS.map(([k, icon, label]) => {
+        const r = g[k] || { games: 0, wins: 0 };
+        const w = r.games ? Math.round(100 * r.wins / r.games) : 0;
+        return `<div class="mg-row ${r.games ? '' : 'none'}">
+          <span class="mg-icon">${icon}</span><span class="mg-label">${label}</span>
+          <span class="mg-bar"><i style="width:${w}%"></i></span>
+          <span class="mg-num">${r.wins}/${r.games}${k === 'trivia' && r.games ? ` <em>(${w}% correct)</em>` : ''}</span></div>`;
+      }).join('')}</div>`;
+  }
+  return `<div class="profile-panel profile-home-panel profile-roster-panel"><h3 class="profile-section-title">Mini-games</h3>${body}</div>`;
+}
+
 /* ---------------- Encounter card: the shared frame every mini-game opens in ----------------
    Title + one timer bar + one-line instruction + the game + reward line, placed near where the
    sparkle was but always fully on screen, with the page dimmed behind it. */
@@ -6124,12 +6252,14 @@ function openEncounterCard(rect, opts){
       <span class="enc-icon">${opts.icon || ''}</span>
       <span class="enc-title">${opts.title}</span>
       <span class="enc-timer"><span class="enc-timer-fill"></span></span>
+      ${sfxButtonHtml()}
     </div>
     <div class="enc-instruction">${opts.instruction || ''}</div>
     <div class="enc-body"></div>
     <div class="enc-foot">Reward: ${opts.reward || ''}${wearyNote}</div>`;
   layer.appendChild(dim);
   layer.appendChild(card);
+  hhSfx.play(opts.sound || 'open');
   // Near the sparkle, but always fully on screen
   const cw = card.offsetWidth, ch = card.offsetHeight;
   const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
@@ -6157,6 +6287,7 @@ function openEncounterCard(rect, opts){
     // VICTORY / DEFEAT stamp, then fold away
     finish(won, label, holdMs){
       card.classList.add('done');
+      hhSfx.play(won ? 'win' : 'lose');
       const stamp = document.createElement('div');
       stamp.className = 'enc-stamp ' + (won ? 'win' : 'lose');
       stamp.textContent = label || (won ? 'Victory!' : 'Defeat');
@@ -6185,7 +6316,7 @@ function startTriviaEvent(rect, pendingId, params){
   const answers = params.answers || [];
   const timeMs = params.time_ms || 15000;
   const enc = openEncounterCard(rect, {
-    cls: 'enc-trivia', icon: '&#128214;', title: 'Tome of Lore',
+    cls: 'enc-trivia', icon: '&#128214;', title: 'Tome of Lore', sound: 'page',
     instruction: `${esc(params.category || 'Warcraft')} &middot; choose the right answer before the runes fade`,
     reward: '20&ndash;35 gold', durationMs: timeMs
   });
@@ -6286,9 +6417,11 @@ function startLumberjackEvent(rect, pendingId, params){
       chips.innerHTML = '<i></i>'.repeat(7);
       chips.classList.remove('go'); void chips.offsetWidth; chips.classList.add('go');
       arena.classList.remove('thunk'); void arena.offsetWidth; arena.classList.add('thunk');
+      hhSfx.play('chop');
       if(hits < need) placeNotch();
     } else {
       arena.classList.remove('miss'); void arena.offsetWidth; arena.classList.add('miss');
+      hhSfx.play('whiff');
     }
     if(hits >= need || tries >= maxTries) finish();
   }
@@ -6325,7 +6458,7 @@ function startRareSpawnEvent(rect, pendingId, params){
   const jump = params.jump_ms || 650, dur = params.duration_ms || 3250, need = params.hits_needed || 3;
   const radius = params.radius || 95, positions = params.positions || [[500, 500]];
   const enc = openEncounterCard(rect, {
-    cls: 'enc-rare', icon: '&#128128;', title: 'Rare Elite Spotted!',
+    cls: 'enc-rare', icon: '&#128128;', title: 'Rare Elite Spotted!', sound: 'horn',
     instruction: `Strike its glowing weak spot ${need} times before it escapes!`,
     reward: '<b style="color:#f6dc8a">90&ndash;130 gold</b> &middot; 5 food &middot; 10 wood', durationMs: dur
   });
@@ -6375,6 +6508,7 @@ function startRareSpawnEvent(rect, pendingId, params){
       pips[hits] && pips[hits].classList.add('on');
       hits++;
       mob.classList.remove('struck'); void mob.offsetWidth; mob.classList.add('struck');
+      hhSfx.play('crit');
       if(hits >= need) finish();
     }
   });
@@ -6556,6 +6690,7 @@ function startBlacksmithGame(spawnRect, pendingId, params){
       if(progress < hitWindow){
         recordHit();
         createSparks();
+        hhSfx.play('clang');
       } else {
         recordMiss();
       }
@@ -8766,6 +8901,7 @@ function openProfile(userId, fromHash){
   if(!fromHash && profileIdFromHash() !== userId) history.pushState(null, '', '#/profile/' + userId);
   loadProfilePets(userId);
   loadProfileHomes(userId);
+  if(profileStats[userId] && profileStats[userId] !== 'loading') delete profileStats[userId]; // fresh numbers each visit
   render();
   window.scrollTo({ top: 0 });
 }
@@ -8897,6 +9033,7 @@ function renderProfilePage(){
 
       ${renderHomeSection(p, isMe)}
       ${renderPetRoster(p, isMe)}
+      ${renderProfileStats(p)}
     </div>`;
 }
 
