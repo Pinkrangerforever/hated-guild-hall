@@ -4048,6 +4048,19 @@
   .rare-mob.has-model .rare-weak{ top:48%; }
   .rare-mob.has-model::before{ content:''; position:absolute; left:10%; right:10%; bottom:2%; height:14%; border-radius:50%;
     background:radial-gradient(ellipse, rgba(240,201,90,0.45), transparent 70%); pointer-events:none; }
+
+  /* ---- Hogger intro ---- */
+  .rare-intro{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    pointer-events:none; text-align:center; transition:opacity .25s ease-out; opacity:0; }
+  .rare-arena.intro .rare-intro{ opacity:1; background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0.15), rgba(0,0,0,0.55)); }
+  .rare-intro-title{ font-family:'Cinzel', Georgia, serif; font-weight:900; font-size:22px; line-height:1.15; letter-spacing:0.04em; color:#f6dc8a;
+    text-shadow:0 2px 3px #000, 0 0 14px rgba(240,201,90,0.85), 0 0 30px rgba(224,102,42,0.6); animation:rareIntroIn .5s cubic-bezier(.2,1.6,.4,1) both; }
+  @keyframes rareIntroIn{ from{ transform:scale(0.4) rotate(-6deg); opacity:0; } }
+  .rare-intro-count{ font-family:'Cinzel', Georgia, serif; font-weight:900; font-size:34px; color:#fff; text-shadow:0 0 12px rgba(255,90,58,0.9), 0 2px 3px #000; }
+  .rare-intro-count.pop{ animation:rareCount .35s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes rareCount{ from{ transform:scale(1.8); opacity:0.3; } }
+  .rare-arena.intro{ cursor:default; }
+  .rare-arena.intro .rare-weak{ display:none; }
 </style>
 </head>
 <body>
@@ -6561,17 +6574,18 @@ function startRareSpawnEvent(rect, pendingId, params){
   const enc = openEncounterCard(rect, {
     cls: 'enc-rare', icon: '&#128128;', title: 'Hogger Spotted!', sound: 'horn',
     instruction: `The terror of Elwynn is loose! Strike his glowing weak spot ${need} times before he escapes!`,
-    reward: '<b style="color:#f6dc8a">90&ndash;130 gold</b> &middot; 5 food &middot; 10 wood', durationMs: dur
+    reward: '<b style="color:#f6dc8a">90&ndash;130 gold</b> &middot; 5 food &middot; 10 wood', durationMs: 0 // timer starts after the intro
   });
   enc.body.innerHTML = `
-    <div class="rare-arena">
-      <button type="button" class="rare-mob"><span class="rare-model"></span>${ELITE_SVG}<span class="rare-weak"></span></button>
+    <div class="rare-arena intro">
+      <button type="button" class="rare-mob" style="left:50%; top:55%;"><span class="rare-model"></span>${ELITE_SVG}<span class="rare-weak"></span></button>
+      <div class="rare-intro"><div class="rare-intro-title">A Wild Hogger<br>has appeared!!!</div><div class="rare-intro-count">3</div></div>
     </div>
     <div class="lj-score"><span class="lj-pips">${'<i></i>'.repeat(need)}</span></div>`;
   const arena = enc.body.querySelector('.rare-arena'), mob = enc.body.querySelector('.rare-mob');
   const pips = [...enc.body.querySelectorAll('.lj-pips i')];
-  mountHogger(mob.querySelector('.rare-model'));
-  const start = performance.now();
+  mountHogger(mob.querySelector('.rare-model')); // starts loading now; he roars during the intro
+  let start = 0, started = false;
   let hits = 0, lastWin = -1, done = false, shownWin = -1;
   const timings = [];
   const place = w => {
@@ -6580,18 +6594,28 @@ function startRareSpawnEvent(rect, pendingId, params){
     mob.style.top = (p[1] / 10) + '%';
     mob.classList.remove('blink'); void mob.offsetWidth; mob.classList.add('blink');
   };
-  let raf;
+  let raf, timeout;
   const tick = () => {
     if(done) return;
     const w = Math.floor((performance.now() - start) / jump);
     if(w !== shownWin && w < positions.length){ shownWin = w; place(w); }
     raf = requestAnimationFrame(tick);
   };
-  raf = requestAnimationFrame(tick);
-  const timeout = setTimeout(() => finish(), dur);
+  // Intro: "A Wild Hogger has appeared!!!" + 3-2-1, then the clock (and the server's timings) start at zero
+  const countEl = enc.body.querySelector('.rare-intro-count');
+  [2, 1].forEach((n, i) => setTimeout(() => { countEl.textContent = n; countEl.classList.remove('pop'); void countEl.offsetWidth; countEl.classList.add('pop'); hhSfx.play('coin'); }, (i + 1) * 800));
+  setTimeout(() => {
+    countEl.textContent = 'Strike!';
+    arena.classList.remove('intro');
+    hhSfx.play('crit');
+    start = performance.now(); started = true;
+    enc.restartTimer(dur);
+    raf = requestAnimationFrame(tick);
+    timeout = setTimeout(() => finish(), dur);
+  }, 2400);
 
   arena.addEventListener('pointerdown', e => {
-    if(done) return;
+    if(done || !started) return;
     const t = performance.now() - start;
     const r = arena.getBoundingClientRect();
     const x = Math.round((e.clientX - r.left) / r.width * 1000), y = Math.round((e.clientY - r.top) / r.height * 1000);
