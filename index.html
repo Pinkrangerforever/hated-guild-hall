@@ -8729,6 +8729,15 @@ const HOME_ZONES = {
       2: { gltf: 'models/housing/mulgore-house-t2.gltf', x: 1.0, z: -2.3, height: 2.7, rotY: Math.PI / 2 + 10 * Math.PI / 180 },
       3: { gltf: 'models/housing/mulgore-house-t3.gltf', x: -3.9, z: -1.7, height: 7.6, rotY: -Math.PI / 4 }
     }
+  },
+  elwynn_cabin: {
+    label: 'Cabin in Elwynn',
+    video: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Elwynn%20Cabin/Cabin%20In%20the%20Woods%20of%20Elwynn3(best).mp4',
+    props: [
+      { gltf: 'models/housing/elwynn-lamppost.gltf', x: -1.6, z: 1.4, height: 2.4, rotY: 0 },   // flickering lamp by the path
+      { gltf: 'models/housing/elwynn-tree.gltf', x: 4.3, z: -1.8, height: 6, rotY: 0.4 }        // swaying in the breeze
+    ],
+    houses: {}
   }
 };
 const HOUSE_TIER_COSTS = { 1: 100, 2: 500, 3: 1000 }; // wood; enforced server-side in build_house_tier
@@ -8966,6 +8975,12 @@ const HOME_GROUND_TEX = {
     path: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgoreroad01.png',
     clearing: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgorecrackeddirt.png',
     fog: 0xcdb48a
+  },
+  elwynn_cabin: {
+    base: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Elwynn%20Cabin/elwynngrassbase.png',
+    dirt: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Elwynn%20Cabin/elwynnflowerbase.png',
+    path: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Elwynn%20Cabin/elwynncobblestonedock.png',
+    clearing: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Elwynn%20Cabin/elwynncobblestonedock.png'
   }
 };
 const homeGroundCache = {};
