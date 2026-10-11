@@ -3598,6 +3598,8 @@
     border:2px solid #c9963f; box-shadow:0 0 0 1px #000; background:#000; }
   /* The 3D diorama (backdrop + stage) fills the frame; the flat video shows until it is ready */
   .home-scene{ position:absolute; inset:0; z-index:1; pointer-events:none; }
+  .home-frame-inner{ cursor:grab; touch-action:pan-y; user-select:none; }
+  .home-frame-inner.dragging{ cursor:grabbing; }
   .home-frame-inner::after{ z-index:3; }
   .home-scene canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
   /* The home panel breaks out of the 900px profile column so the scene can be large */
@@ -9342,6 +9344,42 @@ function homeScenePetsSig(pets){
   return pets.map(p => p.id + ':' + p.status).join(',');
 }
 
+// Drag the scene to swing the camera around the diorama (the backdrop is one-sided, so the swing is limited)
+const HOME_VIEW_LIMITS = { yaw: 0.85, minH: 2.2, maxH: 9 };
+function homeCameraUpdate(v, k){
+  const o = v.view;
+  o.yaw += (o.tYaw - o.yaw) * k; o.height += (o.tHeight - o.height) * k;
+  v.camera.position.set(-15 * Math.sin(o.yaw), o.height, 15 * Math.cos(o.yaw) - 0.3);
+  v.camera.lookAt(0.3, 2.4, -0.3);
+}
+let homeDrag = null;
+document.addEventListener('pointerdown', e => {
+  const inner = e.target.closest && e.target.closest('.home-frame-inner');
+  if(!inner || e.button !== 0) return;
+  const v = Object.values(homeSceneViewers).find(x => x.slot && inner.contains(x.slot) && x.view);
+  if(!v) return;
+  homeDrag = { v, x: e.clientX, y: e.clientY, yaw: v.view.tYaw, height: v.view.tHeight };
+  inner.classList.add('dragging');
+  e.preventDefault();
+});
+document.addEventListener('pointermove', e => {
+  if(!homeDrag) return;
+  const o = homeDrag.v.view, L = HOME_VIEW_LIMITS;
+  o.tYaw = Math.max(-L.yaw, Math.min(L.yaw, homeDrag.yaw - (e.clientX - homeDrag.x) * 0.006));
+  o.tHeight = Math.max(L.minH, Math.min(L.maxH, homeDrag.height + (e.clientY - homeDrag.y) * 0.03));
+});
+document.addEventListener('pointerup', () => {
+  if(!homeDrag) return;
+  document.querySelectorAll('.home-frame-inner.dragging').forEach(el => el.classList.remove('dragging'));
+  homeDrag = null;
+});
+// Double-click puts the camera back where it started
+document.addEventListener('dblclick', e => {
+  const inner = e.target.closest && e.target.closest('.home-frame-inner');
+  const v = inner && Object.values(homeSceneViewers).find(x => x.slot && inner.contains(x.slot) && x.view);
+  if(v){ v.view.tYaw = DIORAMA.viewYaw; v.view.tHeight = 5.2; }
+});
+
 function disposeHomeViewer(key){
   const v = homeSceneViewers[key];
   if(!v) return;
@@ -9378,8 +9416,8 @@ function mountHomeScenes(){
       // Slightly raised camera looking down onto the stage, backdrop behind
       v.camera = new THREE.PerspectiveCamera(HOME_SCENE_FOV, 16 / 9, 0.1, 100);
       // seen from a little left of centre, so the diorama sits at an angle with its right side receding
-      v.camera.position.set(-15 * Math.sin(DIORAMA.viewYaw), 5.2, 15 * Math.cos(DIORAMA.viewYaw) - 0.3);
-      v.camera.lookAt(0.3, 2.4, -0.3);
+      v.view = { yaw: DIORAMA.viewYaw, height: 5.2, tYaw: DIORAMA.viewYaw, tHeight: 5.2 };
+      homeCameraUpdate(v, 1);
       buildHomeStage(v, zoneKey);
       v.clock = new THREE.Clock();
       // Each model loads on its own: one failing model never hides the others
@@ -9430,6 +9468,7 @@ function mountHomeScenes(){
         if(!document.body.contains(canvas)){ v.raf = null; return; }
         const dt = Math.min(v.clock.getDelta(), 0.1); // no big jumps after a background tab
         const now = performance.now();
+        homeCameraUpdate(v, Math.min(1, dt * 8));
         v.mixers.forEach(m => m.update(dt));
         v.actors.forEach(a => updateHomePetActor(v, a, dt, now));
         updateHomePetOverlays(v, v.slot, now);
