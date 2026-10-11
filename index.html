@@ -4084,6 +4084,12 @@
   .float-weary.tier-tired{ color:#e6c35c; border-color:rgba(230,195,92,0.6); }
   .float-weary.tier-weary{ color:#e0662a; border-color:rgba(224,102,42,0.6); }
   .float-weary.tier-exhausted{ color:#e07a6a; border-color:rgba(224,122,106,0.6); }
+  /* Calendar pills: dot + time on a small top line, the title underneath at full width */
+  .cal-event-pill{ flex-direction:column !important; align-items:stretch !important; gap:2px !important; }
+  .cal-event-meta{ display:flex; align-items:center; gap:5px; }
+  .cal-event-meta .rsvp-dot{ margin-top:0 !important; }
+  .cal-event-time{ font-size:10px; letter-spacing:0.03em; opacity:0.85; white-space:nowrap; }
+  .cal-event-pill .cal-event-title{ display:block; width:100%; overflow-wrap:break-word; word-break:normal; hyphens:auto; }
 </style>
 </head>
 <body>
@@ -9533,8 +9539,7 @@ function renderCalendar(){
             <div class="cal-events">
               ${ evs.map(ev=>`
                 <button class="cal-event-pill kind-${eventKind(ev)} ${isPast?'past-event':''}" data-open-event="${ev.id}" title="${esc(ev.title)}${ev.time ? ' - ' + esc(ev.time) : ''}">
-                  <span class="rsvp-dot ${myRsvpFor(ev.id) || 'none'}"></span>
-                  ${ ev.time ? `<span class="cal-event-time">${esc(ev.time.replace(/\s*server\s*/i, ''))}</span>` : '' }
+                  <span class="cal-event-meta"><span class="rsvp-dot ${myRsvpFor(ev.id) || 'none'}"></span>${ ev.time ? `<span class="cal-event-time">${esc(ev.time.replace(/\s*server\s*/i, ''))}</span>` : '' }</span>
                   <span class="cal-event-title">${esc(ev.title)}</span>
                 </button>
               `).join('') }
