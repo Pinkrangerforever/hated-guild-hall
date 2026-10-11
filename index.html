@@ -4039,6 +4039,15 @@
   .cal-event-pill .rsvp-dot{ margin-top:3px; }
   .enc-foot{ font-family:'Cinzel', Georgia, serif !important; font-size:13px !important; letter-spacing:0.04em; color:var(--hh-gold-bright, #f0d27a) !important;
     text-shadow:0 1px 2px #000; }
+
+  /* ---- Hogger 3D ---- */
+  .rare-mob{ width:96px !important; height:96px !important; margin:-48px 0 0 -48px !important; }
+  .rare-model{ position:absolute; inset:-6px; pointer-events:none; }
+  .rare-model canvas{ width:100% !important; height:100% !important; display:block; filter:drop-shadow(0 0 10px rgba(240,201,90,0.55)) drop-shadow(0 6px 6px rgba(0,0,0,0.8)); }
+  .rare-mob.has-model > svg{ display:none; }
+  .rare-mob.has-model .rare-weak{ top:48%; }
+  .rare-mob.has-model::before{ content:''; position:absolute; left:10%; right:10%; bottom:2%; height:14%; border-radius:50%;
+    background:radial-gradient(ellipse, rgba(240,201,90,0.45), transparent 70%); pointer-events:none; }
 </style>
 </head>
 <body>
@@ -6480,6 +6489,71 @@ const ELITE_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"
   <path d="M30 70 C24 74 22 82 26 88 M70 70 C76 74 78 82 74 88" stroke="#5a2c12" stroke-width="3" fill="none" stroke-linecap="round"/>
   <path d="M38 22 l4 -10 l8 7 l8 -7 l4 10" fill="url(#elGold)" stroke="#3a250a"/></svg>`;
 
+/* ---------------- Hogger in 3D (rare spawn) ----------------
+   One small transparent renderer, re-used every encounter and moved along with the mob button.
+   Clips: Stand, ReadyUnarmed, AttackUnarmed, CombatWound, BattleRoar, Death, Run. */
+const HOGGER_MODEL = { gltf: 'models/minigames/hogger.gltf' };
+let hoggerViewer = null;
+function hoggerPlay(name, once, then){
+  const v = hoggerViewer; if(!v || !v.actions) return;
+  const next = v.actions[name]; if(!next) return;
+  if(v.current && v.current !== next) v.current.fadeOut(0.15);
+  next.reset();
+  next.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity);
+  next.clampWhenFinished = !!once;
+  next.fadeIn(0.15).play();
+  v.current = next;
+  v.after = once ? (then || null) : null;
+}
+function mountHogger(slot){
+  if(typeof THREE === 'undefined') return;
+  if(!hoggerViewer){
+    const v = hoggerViewer = { ready: false, failed: false, raf: null };
+    v.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    v.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    v.renderer.outputEncoding = THREE.sRGBEncoding;
+    v.scene = new THREE.Scene();
+    v.camera = new THREE.PerspectiveCamera(32, 1, 0.01, 100);
+    v.camera.position.set(0, 0.12, 2.3);
+    v.camera.lookAt(0, 0, 0);
+    const key = new THREE.DirectionalLight(0xfff0d0, 1.3); key.position.set(-2, 3, 4);
+    const rim = new THREE.DirectionalLight(0xff9a50, 0.8); rim.position.set(3, 1, -2);
+    v.scene.add(key, rim, new THREE.HemisphereLight(0xffe8c8, 0x3a1a0a, 0.7));
+    v.clock = new THREE.Clock();
+    getAnimatedPetModel(HOGGER_MODEL).then(obj => {
+      v.model = obj;
+      obj.rotation.y = -Math.PI / 2 + 0.35; // face the player, slightly turned
+      v.scene.add(obj);
+      v.mixer = new THREE.AnimationMixer(obj.children[0]);
+      v.actions = {};
+      (obj.userData.animations || []).forEach(c => { v.actions[c.name] = v.mixer.clipAction(c); });
+      v.mixer.addEventListener('finished', () => { const f = v.after; v.after = null; if(f) f(); });
+      v.ready = true;
+      if(v.pendingSlot) mountHogger(v.pendingSlot);
+    }).catch(err => { console.error('Hogger model failed to load:', err); v.failed = true; });
+  }
+  const v = hoggerViewer;
+  if(v.failed) return;
+  if(!v.ready){ v.pendingSlot = slot; return; }
+  v.pendingSlot = null;
+  const canvas = v.renderer.domElement;
+  canvas.className = 'hogger-canvas';
+  if(canvas.parentNode !== slot) slot.appendChild(canvas);
+  slot.closest('.rare-mob')?.classList.add('has-model');
+  v.renderer.setSize(slot.clientWidth || 96, slot.clientHeight || 96, false);
+  hoggerPlay('BattleRoar', true, () => hoggerPlay('ReadyUnarmed'));
+  if(!v.raf){
+    const tick = () => {
+      if(!document.body.contains(canvas)){ v.raf = null; return; }
+      v.mixer.update(Math.min(v.clock.getDelta(), 0.1));
+      v.renderer.render(v.scene, v.camera);
+      v.raf = requestAnimationFrame(tick);
+    };
+    v.clock.getDelta();
+    v.raf = requestAnimationFrame(tick);
+  }
+}
+
 function startRareSpawnEvent(rect, pendingId, params){
   params = params || {};
   const jump = params.jump_ms || 650, dur = params.duration_ms || 3250, need = params.hits_needed || 3;
@@ -6491,11 +6565,12 @@ function startRareSpawnEvent(rect, pendingId, params){
   });
   enc.body.innerHTML = `
     <div class="rare-arena">
-      <button type="button" class="rare-mob">${ELITE_SVG}<span class="rare-weak"></span></button>
+      <button type="button" class="rare-mob"><span class="rare-model"></span>${ELITE_SVG}<span class="rare-weak"></span></button>
     </div>
     <div class="lj-score"><span class="lj-pips">${'<i></i>'.repeat(need)}</span></div>`;
   const arena = enc.body.querySelector('.rare-arena'), mob = enc.body.querySelector('.rare-mob');
   const pips = [...enc.body.querySelectorAll('.lj-pips i')];
+  mountHogger(mob.querySelector('.rare-model'));
   const start = performance.now();
   let hits = 0, lastWin = -1, done = false, shownWin = -1;
   const timings = [];
@@ -6536,6 +6611,7 @@ function startRareSpawnEvent(rect, pendingId, params){
       hits++;
       mob.classList.remove('struck'); void mob.offsetWidth; mob.classList.add('struck');
       hhSfx.play('crit');
+      if(hits < need) hoggerPlay('CombatWound', true, () => hoggerPlay('ReadyUnarmed'));
       if(hits >= need) finish();
     }
   });
@@ -6546,7 +6622,8 @@ function startRareSpawnEvent(rect, pendingId, params){
     cancelAnimationFrame(raf);
     clearTimeout(timeout);
     enc.stopTimer();
-    if(hits < need) mob.classList.add('fled');
+    if(hits >= need) hoggerPlay('Death', true);
+    else { hoggerPlay('Run'); setTimeout(() => mob.classList.add('fled'), 250); }
     const vr = enc.card.getBoundingClientRect();
     resolveSparkleEvent(pendingId, hits >= need, vr.left + vr.width / 2, vr.top + 20, timings, { silent: true })
       .then(d => {
