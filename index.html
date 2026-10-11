@@ -3364,6 +3364,75 @@
   .gold-leaderboard-entries .leaderboard-entry:not(.rank-top-3) .leaderboard-rank{ color: var(--hh-ember) !important; }
   .gold-leaderboard-entries .leaderboard-entry:not(.rank-top-3):hover{ border-color: var(--hh-ember) !important; box-shadow: inset 3px 0 0 var(--hh-blood) !important; }
   .coming-up-item:hover{ box-shadow: inset 3px 0 0 var(--hh-blood) !important; }
+
+  /* ======================================================================
+     THEME PASS 4 (2026-10-10): popups (shop, schedule event, every modal)
+     get the home-page panel look. Revert this block to remove.
+     ====================================================================== */
+  .modal-backdrop{ background: radial-gradient(ellipse at 50% 40%, rgba(20,10,6,0.72), rgba(0,0,0,0.88)) !important; backdrop-filter: blur(2px); }
+  .modal-panel{
+    background:
+      linear-gradient(90deg, transparent, var(--hh-blood) 18%, var(--hh-ember) 50%, var(--hh-blood) 82%, transparent) top / 100% 4px no-repeat,
+      radial-gradient(ellipse at 50% 110%, rgba(142,28,24,0.28), transparent 55%),
+      var(--hh-panel-bg) !important;
+    border: 1px solid rgba(201,150,63,0.75) !important;
+    border-radius: var(--hh-radius) !important;
+    box-shadow: var(--hh-panel-shadow), 0 0 40px rgba(0,0,0,0.6) !important;
+    color: var(--hh-parchment);
+  }
+  .modal-header{
+    padding-bottom: 12px; margin-bottom: 16px !important;
+    background:
+      radial-gradient(circle, var(--hh-arcane-white) 0, rgba(127,212,255,0.8) 2px, transparent 7px) center bottom -3px / 14px 7px no-repeat,
+      linear-gradient(90deg, transparent, rgba(201,150,63,0.6), transparent) bottom / 100% 1px no-repeat;
+  }
+  .modal-header h3{
+    font-family:'Cinzel', Georgia, serif !important; font-size:20px !important; font-weight:700 !important;
+    letter-spacing:0.1em; text-transform:uppercase; color: var(--hh-gold-bright) !important;
+    text-shadow: 0 1px 2px #000, 0 0 12px rgba(224,102,42,0.35);
+  }
+  .modal-x{ color: var(--hh-gold) !important; transition: color .15s, text-shadow .15s; }
+  .modal-x:hover{ color: var(--hh-arcane-white) !important; text-shadow: var(--hh-arcane-glow); }
+
+  /* Form fields inside popups */
+  .modal-panel .field label{ color: var(--hh-gold) !important; font-family:'Cinzel', Georgia, serif; letter-spacing:0.08em; }
+  .modal-panel .field input, .modal-panel .field select, .modal-panel .field textarea{
+    background: rgba(0,0,0,0.4) !important; color: var(--hh-parchment) !important;
+    border: 1px solid rgba(201,150,63,0.3) !important; border-radius: 4px !important;
+  }
+  .modal-panel .field input:focus, .modal-panel .field select:focus, .modal-panel .field textarea:focus{
+    border-color: var(--hh-arcane) !important; box-shadow: 0 0 0 1px rgba(127,212,255,0.5), 0 0 12px rgba(127,212,255,0.25) !important;
+  }
+  .modal-panel .field input[type=date]{ color-scheme: dark; }
+
+  /* Shop sections: dark inset vaults with a Cinzel title */
+  .modal-panel .shop-section{
+    background: rgba(0,0,0,0.32) !important;
+    border: 1px solid rgba(201,150,63,0.28) !important;
+    border-radius: var(--hh-radius) !important;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(240,210,122,0.08);
+  }
+  .modal-panel .shop-section-title{
+    font-family:'Cinzel', Georgia, serif !important; font-size:15px !important; letter-spacing:0.1em; text-transform:uppercase;
+    color: var(--hh-gold-bright) !important; text-shadow: 0 1px 2px #000, 0 0 10px rgba(224,102,42,0.3);
+    padding-bottom: 8px; margin-bottom: 8px !important;
+    background: linear-gradient(90deg, rgba(201,150,63,0.6), transparent) bottom / 100% 1px no-repeat;
+  }
+  /* Shop cards: same dark cards as the leaderboard */
+  .shop-card{
+    background: linear-gradient(180deg, rgba(43,29,18,0.9), rgba(20,13,8,0.95)) !important;
+    border: 1px solid rgba(201,150,63,0.3) !important; border-radius: 4px !important;
+    box-shadow: inset 0 1px 0 rgba(240,210,122,0.1), 0 4px 12px rgba(0,0,0,0.5);
+    transition: transform .15s, border-color .15s, box-shadow .15s;
+  }
+  .shop-card:not(.inactive):hover{
+    transform: translateY(-2px);
+    border-color: var(--hh-gold-bright) !important;
+    box-shadow: inset 0 1px 0 rgba(240,210,122,0.18), inset 0 -3px 0 var(--hh-blood), 0 8px 20px rgba(0,0,0,0.6), 0 0 14px rgba(224,102,42,0.2);
+  }
+  .shop-card-name{ font-family:'Cinzel', Georgia, serif; color: var(--hh-gold-bright); letter-spacing:0.03em; }
+  .shop-card-desc{ color: var(--hh-muted) !important; }
+  .shop-owned-badge{ color: var(--hh-arcane) !important; text-shadow: 0 0 8px rgba(127,212,255,0.4); }
 </style>
 </head>
 <body>
