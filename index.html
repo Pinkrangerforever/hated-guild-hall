@@ -3566,6 +3566,21 @@
   .pet-roster-sub{ font-size:12px; color:var(--hh-muted); }
   .pet-roster-card .profile-exp{ margin-top:6px; height:6px; }
   .pet-roster-exp-text{ font-size:11px; color:var(--hh-arcane); margin-top:3px; }
+
+  /* ---- Admin anti-cheat dashboard ---- */
+  .cheat-h{ font-family:'Cinzel', Georgia, serif; font-size:14px; letter-spacing:0.08em; text-transform:uppercase; color:var(--hh-gold-bright, #f0d27a); margin:22px 0 10px; }
+  .cheat-list{ display:flex; flex-direction:column; gap:8px; }
+  .cheat-scroll{ max-height:420px; overflow-y:auto; }
+  .cheat-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 12px;
+    background:rgba(0,0,0,0.35); border:1px solid rgba(201,150,63,0.25); border-left:3px solid #c9963f; border-radius:4px; font-size:13px; }
+  .cheat-row.compact{ display:block; }
+  .cheat-row.sev-HIGH{ border-left-color:#b05253; } .cheat-row.sev-MEDIUM{ border-left-color:#d4a574; } .cheat-row.sev-LOW{ border-left-color:#7fa363; }
+  .cheat-row-main{ flex:1; min-width:240px; }
+  .cheat-reasons{ color:#e0662a; font-size:12px; margin-top:3px; }
+  .cheat-stats{ display:block; color:var(--hh-muted, #a8977a); font-size:11px; margin-top:3px; word-break:break-word; }
+  .cheat-pill{ display:inline-block; margin-left:6px; padding:1px 7px; border:1px solid; border-radius:999px; font-size:11px; font-weight:700; }
+  .cheat-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+  .cheat-act{ padding:4px 10px !important; font-size:12px !important; }
 </style>
 </head>
 <body>
@@ -3609,7 +3624,7 @@
       </div>
       <button id="layout-lock-btn" class="nav-action-btn" title="Toggle Layout Lock" style="display:none;">Layout</button>
       <button id="reset-member-btn" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
-      <button id="admin-btn" class="nav-action-btn btn-nav-admin" style="display:none;" title="Admin">Admin</button>
+      <button id="admin-btn" class="nav-action-btn btn-nav-admin" data-tab="admin" style="display:none;" title="Admin: anti-cheat records">Admin</button>
       <button id="logout-btn" class="nav-action-btn" style="display:none;">Sign Out</button>
       <button id="discord-signin-btn" class="nav-action-btn" style="background:#5865f2; border-color:#5865f2; color:#fff; display:flex; align-items:center; gap:6px;">🎮 Sign in</button>
     </div>
@@ -3656,7 +3671,7 @@
     <button id="layout-lock-btn-mobile" class="nav-action-btn" title="Toggle Layout Lock">Layout</button>
     <button id="reset-member-btn-mobile" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
     <button id="open-shop-btn-mobile" class="nav-action-btn">Shop</button>
-    <button id="admin-btn-mobile" class="nav-action-btn btn-nav-admin" style="display:none;" title="Admin">Admin</button>
+    <button id="admin-btn-mobile" class="nav-action-btn btn-nav-admin" data-tab="admin" style="display:none;" title="Admin: anti-cheat records">Admin</button>
     <button id="discord-signin-btn-mobile" class="nav-action-btn" style="background:#5865f2; border-color:#5865f2; color:#fff; display:flex; align-items:center; gap:6px;">🎮 Sign in</button>
     <button id="logout-btn-mobile" class="nav-action-btn" style="display:none;">Sign Out</button>
   </div>
@@ -3759,19 +3774,26 @@ function updateNavbarUserInfo(){
 
   // Logged in: show user section, hide Discord sign-in
   if(userInfo) userInfo.style.display = 'flex';
-  if(layoutBtn) layoutBtn.style.display = 'inline-block';
+  if(layoutBtn) layoutBtn.style.display = 'none'; // layout editing retired; Admin replaces it
   if(shopBtn) shopBtn.style.display = 'inline-block';
   if(logoutBtn) logoutBtn.style.display = 'inline-block';
   if(discordBtn) discordBtn.style.display = 'none';
 
   // Mobile
   if(mobileUserInfo) mobileUserInfo.style.display = 'flex';
-  if(mobileLayoutBtn) mobileLayoutBtn.style.display = 'inline-block';
+  if(mobileLayoutBtn) mobileLayoutBtn.style.display = 'none';
   if(mobileShopBtn) mobileShopBtn.style.display = 'inline-block';
   if(mobileLogoutBtn) mobileLogoutBtn.style.display = 'inline-block';
   if(mobileDiscordBtn) mobileDiscordBtn.style.display = 'none';
 
   if(!state.profile) return;
+
+  // Admin (anti-cheat records) is for the protected Raid Leader account only; the server checks too
+  const isRaidLeader = !!state.profile.protected;
+  ['admin-btn', 'admin-btn-mobile'].forEach(id => {
+    const b = document.getElementById(id);
+    if(b) b.style.display = isRaidLeader ? 'inline-block' : 'none';
+  });
 
   const username = state.profile.character_name || state.profile.discord_username || 'Member';
   const gold = state.profile.gold || 0;
@@ -4474,47 +4496,26 @@ async function loadAdminPurchases(){
 
 async function loadCheatData(){
   if(!state.profile || !state.profile.protected) return;
-
-  try {
-    // Load cheat suspects (top suspects ranked by points)
-    // TODO: Convert to direct query instead of RPC
-    // const { data: suspects, error: suspectsError } = await sb.rpc('cheat_suspects');
-    // if(suspectsError) throw suspectsError;
-    const suspects = [];
-
-    // Load recent audit log
-    const { data: auditLog, error: auditError } = await sb
-      .from('cheat_audit_log')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20);
-    if(auditError) throw auditError;
-
-    // Load flagged games
-    const { data: flaggedGames, error: gamesError } = await sb
-      .from('game_events')
-      .select('*')
-      .not('flags', 'eq', '{}')
-      .order('created_at', { ascending: false })
-      .limit(20);
-    if(gamesError) throw gamesError;
-
-    state.cheatData = {
-      suspects: suspects || [],
-      auditLog: auditLog || [],
-      flaggedGames: flaggedGames || []
-    };
-    console.log('Cheat data loaded:', {
-      suspects: suspects?.length || 0,
-      auditLog: auditLog?.length || 0,
-      flaggedGames: flaggedGames?.length || 0
-    });
-    render();
-  } catch(err) {
-    console.error('Failed to load cheat data:', err);
-    state.cheatData = { suspects: [], auditLog: [], flaggedGames: [] };
-    render();
+  const { data, error } = await sb.rpc('admin_cheat_overview');
+  if(error || !data || data.error){
+    console.error('admin_cheat_overview failed:', error || data);
+    state.cheatData = { error: true, suspects: [], top_earners_24h: [], audit_log: [], flagged_games: [] };
+  } else {
+    state.cheatData = data;
   }
+  render();
+}
+
+async function setCheatStatus(userId, status){
+  const labels = { CLEAN: 'clear this player (resets their cheat points)', WATCH: 'put this player on the watch list',
+                   SOFT_BAN: 'soft-ban this player (games play but earn nothing)', BANNED: 'ban this player from earning' };
+  const note = prompt(`Are you sure you want to ${labels[status]}?\n\nOptional note:`, '');
+  if(note === null) return;
+  const { data, error } = await sb.rpc('admin_set_cheat_status', { p_user_id: userId, p_status: status, p_note: note || null });
+  if(error || !data || !data.success){ showToast("Couldn't update that player", true); return; }
+  showToast('Updated');
+  state.cheatData = undefined;
+  loadCheatData();
 }
 
 async function moveShopItem(itemId, direction){
@@ -5256,20 +5257,14 @@ async function claimSparkle(el){
     const { data, error } = await sb.rpc('claim_sparkle_gold');
 
     if(error) {
-      console.error('RPC Error details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-        fullError: JSON.stringify(error)
-      });
-      showToast('RPC Error: ' + (error.message || 'Unknown error'), true);
+      console.error('claim_sparkle_gold failed:', error);
+      showToast("The sparkle fizzled - try the next one", true);
       return;
     }
 
     if(!data || !data.success) {
-      console.error('RPC returned no success:', data);
-      return;
+      if(data && data.error === 'rate_limited') showToast('Easy there! Take a short break from sparkles.', true);
+      return; // too_soon etc.: nothing to show
     }
 
     // Store challenge for later signing
@@ -5280,13 +5275,14 @@ async function claimSparkle(el){
     // Store nonce for replay prevention
     window.currentNonce = data.nonce;
 
-    // Use the event type from RPC, not client-side random
+    // The server picks the game and its settings (and later decides the result)
+    const params = data.params || {};
     if(data.event === 'blacksmith') {
-      return startBlacksmithGame(rect, data.pending_id);
+      return startBlacksmithGame(rect, data.pending_id, params);
     } else if(data.event === 'murloc') {
-      return startMurlocEvent(rect, data.pending_id);
+      return startMurlocEvent(rect, data.pending_id, params);
     } else if(data.event === 'fishing') {
-      return startFishingEvent(rect, data.pending_id);
+      return startFishingEvent(rect, data.pending_id, params);
     }
 
     // normal claim: update gold directly without full render to preserve video
@@ -5298,14 +5294,13 @@ async function claimSparkle(el){
 
       if(awarded > 0){
         showGoldFloat(rect.left + rect.width/2, rect.top, awarded);
-        console.log('Gold popup shown:', awarded);
+      } else if(data.capped){
+        showToast("You've hit today's mini-game limit - come back tomorrow!");
       }
-    } else {
-      console.error('Normal claim failed - data:', data, 'profile:', state.profile);
     }
   }catch(e){
     console.error('claimSparkle error:', e);
-    showToast('Sparkle error: ' + e.message, true);
+    showToast("The sparkle fizzled - try the next one", true);
   }
 }
 async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
@@ -5361,22 +5356,22 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       p_payload: payload
     });
 
-    if(error) {
-      console.error('Resolve error:', error);
-      if (error.message.includes('SIGNATURE_INVALID')) {
-        showToast('Security validation failed - possible tampering detected', true);
-      } else {
-        showToast('Error resolving game: ' + error.message, true);
-      }
+    localStorage.removeItem(`challenge_${pendingId}`);
+    if(error || !data) {
+      console.error('resolve_sparkle_event failed:', error);
+      showToast("Couldn't record that game - sorry!", true);
       return;
     }
-
-    if(!data || !data.success) {
-      console.log('Game result:', data);
+    // The server replays the clicks and has the final say
+    if(!data.won){
+      if(won) showToast("That one didn't count - the timing couldn't be verified", true);
       return;
     }
+    if(data.capped && !(data.awarded > 0)){
+      showToast("You've hit today's mini-game limit - come back tomorrow!");
+    }
 
-    if(won && state.profile){
+    if(state.profile){
       state.profile.gold = data.total;
       updateNavbarUserInfo();
       if((data.awarded || 0) > 0 || (data.food_awarded || 0) > 0 || (data.wood_awarded || 0) > 0){
@@ -5390,11 +5385,9 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       }
     }
 
-    localStorage.removeItem(`challenge_${pendingId}`);
-
   }catch(e){
     console.error('resolveSparkleEvent error:', e);
-    showToast('Game resolution error: ' + e.message, true);
+    showToast("Couldn't record that game - sorry!", true);
   }
 }
 
@@ -5422,11 +5415,12 @@ const MURLOC_SVG = `<svg viewBox="0 0 60 66" xmlns="http://www.w3.org/2000/svg">
   <defs><radialGradient id="murlocShade" cx="35%" cy="25%" r="70%"><stop offset="0%" stop-color="#fff" stop-opacity="0.5"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
 </svg>`;
 
-function startMurlocEvent(rect, pendingId){
+function startMurlocEvent(rect, pendingId, params){
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
   const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
-  const count = 3 + Math.floor(Math.random()*3); // 3, 4, or 5
+  const count = (params && params.count) || 3; // chosen by the server
+  const durationMs = (params && params.duration_ms) || window.__MURLOC_DURATION_MS;
   const size = count >= 5 ? 40 : (count === 4 ? 46 : 52);
   const gap = count >= 5 ? 8 : 14;
   const stageWidth = count*size + (count-1)*gap;
@@ -5439,18 +5433,19 @@ function startMurlocEvent(rect, pendingId){
 
   let murlocButtons = '';
   for(let i=0;i<count;i++){
-    murlocButtons += '<button type="button" class="murloc" data-murloc="' + i + '" style="width:' + size + 'px; height:' + (size*1.1) + 'px; animation-duration:' + window.__MURLOC_DURATION_MS + 'ms;">' + MURLOC_SVG + '</button>';
+    murlocButtons += '<button type="button" class="murloc" data-murloc="' + i + '" style="width:' + size + 'px; height:' + (size*1.1) + 'px; animation-duration:' + durationMs + 'ms;">' + MURLOC_SVG + '</button>';
   }
 
   container.innerHTML =
     '<div class="murloc-label">Shoot them before they escape with the gold!</div>' +
-    '<div class="murloc-timer-bar"><div class="murloc-timer-fill" style="animation-duration:' + window.__MURLOC_DURATION_MS + 'ms;"></div></div>' +
+    '<div class="murloc-timer-bar"><div class="murloc-timer-fill" style="animation-duration:' + durationMs + 'ms;"></div></div>' +
     '<div class="murloc-stage" style="gap:' + gap + 'px;">' + murlocButtons + '</div>';
   layer.appendChild(container);
 
   let hits = 0, resolved = false;
   const total = count;
-  const clickTimings = [];
+  const clickTimings = []; // ms since the murlocs appeared
+  const gameStart = performance.now();
 
   function spawnArrow(murlocEl){
     const arrow = document.createElement('div');
@@ -5464,7 +5459,7 @@ function startMurlocEvent(rect, pendingId){
   }
 
   function hitMurloc(el){
-    clickTimings.push(Math.floor(performance.now()));
+    clickTimings.push(Math.round(performance.now() - gameStart));
     const computed = window.getComputedStyle(el).transform;
     el.style.animation = 'none';
     el.style.transform = computed === 'none' ? '' : computed;
@@ -5496,7 +5491,7 @@ function startMurlocEvent(rect, pendingId){
     });
   });
 
-  const timeoutId = setTimeout(()=>finish(false), window.__MURLOC_DURATION_MS);
+  const timeoutId = setTimeout(()=>finish(false), durationMs);
 }
 
 /* ---------------- fishing pool sub-event ---------------- */
@@ -5547,7 +5542,10 @@ function buildFishGaugeMarkup(zoneStart, zoneEnd){
   '</button>';
 }
 
-function startFishingEvent(rect, pendingId){
+function startFishingEvent(rect, pendingId, params){
+  params = params || {};
+  const sweepMs = params.sweep_ms || window.__FISHING_SWEEP_MS;
+  const gameMs = params.game_ms || window.__FISHING_GAME_MS;
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
   const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
@@ -5563,24 +5561,26 @@ function startFishingEvent(rect, pendingId){
   layer.appendChild(pool);
 
   let resolved = false;
-  const clickTimings = [];
+  const clickTimings = []; // [ms to click the pond, ms after the gauge appeared]
+  const poolShown = performance.now();
 
   const idleTimeout = setTimeout(()=>{
     if(resolved) return;
     resolved = true;
     resolveSparkleEvent(pendingId, false, cx, cy, clickTimings);
     pool.remove();
-  }, FISHING_IDLE_TIMEOUT_MS);
+  }, params.idle_ms || FISHING_IDLE_TIMEOUT_MS);
 
   const hintBtn = pool.querySelector('.pool-click-hint');
   hintBtn.addEventListener('click', function startGauge(){
     if(resolved) return;
-    clickTimings.push(Math.floor(performance.now()));
+    clickTimings.push(Math.round(performance.now() - poolShown));
     clearTimeout(idleTimeout);
     hintBtn.remove();
 
-    const zoneStart = -80 + Math.random()*(160-FISHING_ZONE_WIDTH_DEG);
-    const zoneEnd = zoneStart + FISHING_ZONE_WIDTH_DEG;
+    // The green zone comes from the server, which checks the catch the same way
+    const zoneStart = params.zone_start != null ? params.zone_start : -80 + Math.random()*(160-FISHING_ZONE_WIDTH_DEG);
+    const zoneEnd = zoneStart + (params.zone_width || FISHING_ZONE_WIDTH_DEG);
 
     const gaugeWrap = document.createElement('div');
     gaugeWrap.className = 'fish-gauge-wrap';
@@ -5588,10 +5588,10 @@ function startFishingEvent(rect, pendingId){
     pool.appendChild(gaugeWrap);
 
     const needle = gaugeWrap.querySelector('.fish-needle');
-    needle.style.animationDuration = window.__FISHING_SWEEP_MS + 'ms';
+    needle.style.animationDuration = sweepMs + 'ms';
     const startTime = performance.now();
     let gameResolved = false;
-    const gameTimeout = setTimeout(()=>finishGame(false), window.__FISHING_GAME_MS);
+    const gameTimeout = setTimeout(()=>finishGame(false), gameMs);
 
     function finishGame(success){
       if(gameResolved) return;
@@ -5614,9 +5614,9 @@ function startFishingEvent(rect, pendingId){
 
     gaugeWrap.querySelector('.fish-gauge-btn').addEventListener('click', ()=>{
       if(gameResolved) return;
-      clickTimings.push(Math.floor(performance.now()));
       const elapsed = performance.now() - startTime;
-      const angle = window.__fishingNeedleAngleAt(elapsed, window.__FISHING_SWEEP_MS);
+      clickTimings.push(Math.round(elapsed));
+      const angle = window.__fishingNeedleAngleAt(elapsed, sweepMs);
       finishGame(angle >= zoneStart && angle <= zoneEnd);
     });
   }, { once:true });
@@ -5634,12 +5634,11 @@ function showGoldFloat(x, y, amount, food, wood){
   setTimeout(()=>{ if(el.parentNode) el.remove(); }, 2700);
 }
 
-function startBlacksmithGame(spawnRect, pendingId){
+function startBlacksmithGame(spawnRect, pendingId, params){
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
-
-  const item = 'Thunderfury';
-  const baseReward = 25 + Math.floor(Math.random() * 25);
+  params = params || {};
+  const BLACKSMITH_ART = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Minigames/';
 
   const cx = spawnRect.left + spawnRect.width/2, cy = spawnRect.top + spawnRect.height/2;
 
@@ -5649,9 +5648,9 @@ function startBlacksmithGame(spawnRect, pendingId){
   forge.style.top = (cy - 60) + 'px';
   forge.innerHTML = `
     <div style="position:relative; width:100%; height:100%;">
-      <img class="anvil-graphic" src="https://housing-media.wowdb.com/decor/thumb/7425323.png" style="position:absolute; left:50%; bottom:0; transform:translateX(-50%); height:70%; max-width:90%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));" alt="anvil"/>
-      <img class="sword-graphic" src="https://wow.zamimg.com/modelviewer/classic/webthumbs/item/142/30606.webp" style="position:absolute; left:50%; top:15%; transform:translateX(-50%); height:60%; max-width:60%; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));" alt="sword"/>
-      <img class="hammer-graphic" src="https://wow.zamimg.com/modelviewer/live/webthumbs/item/60/664636.webp" style="position:absolute; right:0%; top:0%; transform:rotate(90deg); transform-origin:0% 100%; height:55%; max-width:40%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));" alt="hammer"/>
+      <img class="anvil-graphic" src="${BLACKSMITH_ART}anvil.png" style="position:absolute; left:50%; bottom:0; transform:translateX(-50%); height:70%; max-width:90%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));" alt="anvil"/>
+      <img class="sword-graphic" src="${BLACKSMITH_ART}thunderfury.webp" style="position:absolute; left:50%; top:15%; transform:translateX(-50%); height:60%; max-width:60%; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));" alt="sword"/>
+      <img class="hammer-graphic" src="${BLACKSMITH_ART}hammer.webp" style="position:absolute; right:0%; top:0%; transform:rotate(90deg); transform-origin:0% 100%; height:55%; max-width:40%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));" alt="hammer"/>
       <svg class="timing-gauge" viewBox="0 0 180 100" xmlns="http://www.w3.org/2000/svg" style="position:absolute; left:50%; top:-20%; transform:translateX(-50%); width:210px; height:128px; pointer-events:none; z-index:10;">
         <defs>
           <linearGradient id="arcGradient" x1="0%" y1="50%" x2="100%" y2="50%">
@@ -5674,19 +5673,18 @@ function startBlacksmithGame(spawnRect, pendingId){
   `;
   layer.appendChild(forge);
 
-  const gameStartTime = performance.now();
   let gameState = {
     hits: 0,
     misses: 0,
-    maxHits: 3,
-    maxAttempts: 5,
+    maxHits: params.hits_needed || 3,
+    maxAttempts: params.max_attempts || 5,
     resolved: false,
     difficulty: 1,
     hammerCycle: null,
     gameTimeout: null
   };
 
-  const clickTimings = [];
+  const clickTimings = []; // ms since the forge appeared, one per counted swing
 
   const hammer = forge.querySelector('.hammer-graphic');
   const hitDisplay = forge.querySelector('.hit-display');
@@ -5699,12 +5697,13 @@ function startBlacksmithGame(spawnRect, pendingId){
       return;
     }
 
-    const baseSpeed = 1600 - (gameState.difficulty * 200);
-    const cycleTime = Math.max(baseSpeed, 600);
+    // One fixed rhythm per game, set by the server (which replays the swings against it)
+    const cycleTime = params.cycle_ms || Math.max(1600 - (gameState.difficulty * 200), 600);
+    const hitWindow = params.hit_window || 0.15;
 
     const indicator = forge.querySelector('.gauge-indicator');
     const cycleStart = performance.now();
-    let clickedInWindow = false;
+    let lastSwingCycle = -1;
     let animationId = null;
 
     const animate = (now) => {
@@ -5739,11 +5738,6 @@ function startBlacksmithGame(spawnRect, pendingId){
       const swing = easeProgress * 110;
       hammer.style.transform = `rotate(${swing - 90}deg)`;
 
-      // Reset clickedInWindow when indicator returns to right side (angle < 30)
-      if(angle < 30 && clickedInWindow){
-        clickedInWindow = false;
-      }
-
       if(!gameState.resolved){
         animationId = requestAnimationFrame(animate);
       }
@@ -5755,11 +5749,12 @@ function startBlacksmithGame(spawnRect, pendingId){
     const hitWindowEnd = cycleTime * 0.90;
 
     function handleClick(){
-      if(clickedInWindow) return;
-      clickedInWindow = true;
-      clickTimings.push(Math.floor(performance.now()));
-
+      if(gameState.resolved) return;
       const elapsed = performance.now() - cycleStart;
+      const swingCycle = Math.floor(elapsed / cycleTime);
+      if(swingCycle === lastSwingCycle) return; // one swing per hammer cycle
+      lastSwingCycle = swingCycle;
+      clickTimings.push(Math.round(elapsed));
       const progress = (elapsed / cycleTime) % 1;
 
       // Calculate angle same way as animate function
@@ -5780,8 +5775,8 @@ function startBlacksmithGame(spawnRect, pendingId){
         angle = returnProgress * 180;
       }
 
-      // Green zone is 160-180 degrees (LEFT side) during pause at left
-      if(angle >= 160 && angle <= 180 && progress < 0.15){
+      // Green zone: the opening of each cycle, while the indicator rests on the left
+      if(progress < hitWindow){
         recordHit();
         createSparks();
       } else {
@@ -5811,10 +5806,9 @@ function startBlacksmithGame(spawnRect, pendingId){
 
     forge.addEventListener('click', handleClick);
 
-    // 10 second timeout for game
     gameState.gameTimeout = setTimeout(()=>{
       if(!gameState.resolved) finishGame(false);
-    }, 10000);
+    }, params.game_ms || 10000);
   }
 
   function recordHit(){
@@ -9699,6 +9693,68 @@ function renderSettings(){
   `;
 }
 
+/* ---------------- Admin: anti-cheat dashboard ---------------- */
+const CHEAT_STATUS_STYLE = {
+  CLEAN: ['#7fa363', 'Clean'], WATCH: ['#7fd4ff', 'Watching'], UNDER_REVIEW: ['#d4a574', 'Under review'],
+  SOFT_BAN: ['#e0662a', 'Soft-banned'], BANNED: ['#b05253', 'Banned']
+};
+function cheatWho(row){
+  const p = state.profilesById && state.profilesById[row.user_id];
+  return esc(row.character_name || (p && (p.character_name || p.discord_username)) || 'Unknown');
+}
+function cheatWhen(t){ return t ? new Date(t + (String(t).endsWith('Z') ? '' : 'Z')).toLocaleString() : '-'; }
+function cheatStatusPill(status){
+  const [color, label] = CHEAT_STATUS_STYLE[status] || CHEAT_STATUS_STYLE.CLEAN;
+  return `<span class="cheat-pill" style="color:${color}; border-color:${color};">${label}</span>`;
+}
+function renderCheatDashboard(d){
+  if(d.error) return `<p class="muted sans">Couldn't load anti-cheat data. Make sure the latest database migration has been applied.</p>`;
+  const suspects = d.suspects || [], top = d.top_earners_24h || [], flagged = d.flagged_games || [], audit = d.audit_log || [];
+  const reasons = s => [
+    s.points > 0 ? `${s.points} cheat pts` : '',
+    s.games_7d >= 20 && s.win_pct_7d >= 95 ? `${s.win_pct_7d}% wins` : '',
+    s.active_hours_24h >= 18 ? `active ${s.active_hours_24h}h of 24` : '',
+    s.median_reaction_ms != null && s.median_reaction_ms < 250 ? `median reaction ${s.median_reaction_ms}ms` : ''
+  ].filter(Boolean).join(' &middot; ');
+  const actions = s => ['CLEAN', 'WATCH', 'SOFT_BAN', 'BANNED'].filter(st => st !== s.status)
+    .map(st => `<button class="btn secondary cheat-act" type="button" data-cheat-user="${esc(s.user_id)}" data-cheat-status="${st}">${CHEAT_STATUS_STYLE[st][1].replace('Watching', 'Watch').replace('Soft-banned', 'Soft-ban').replace('Banned', 'Ban').replace('Clean', 'Clear')}</button>`).join('');
+
+  let html = `<h3 class="cheat-h">Suspect list (${suspects.length})</h3>`;
+  html += suspects.length ? `<div class="cheat-list">${suspects.map(s => `
+    <div class="cheat-row">
+      <div class="cheat-row-main">
+        <div><strong>${cheatWho(s)}</strong> ${cheatStatusPill(s.status)}</div>
+        <div class="cheat-reasons">${reasons(s) || 'manual status'}</div>
+        <div class="cheat-stats">${s.games_7d} games / 7d${s.win_pct_7d != null ? ` (${s.win_pct_7d}% won)` : ''} &middot; ${s.gold_24h}g today &middot; fastest ${s.fastest_reaction_ms != null ? s.fastest_reaction_ms + 'ms' : '-'} &middot; last flag ${cheatWhen(s.last_flagged_at)}${s.status_note ? ` &middot; note: ${esc(s.status_note)}` : ''}</div>
+      </div>
+      <div class="cheat-actions">${actions(s)}</div>
+    </div>`).join('')}</div>` : `<p class="muted sans">Nobody looks suspicious right now.</p>`;
+
+  html += `<h3 class="cheat-h">Top earners, last 24h</h3>`;
+  html += top.length ? `<div class="cheat-list">${top.map(t => `
+    <div class="cheat-row compact"><strong>${cheatWho(t)}</strong> ${cheatStatusPill(t.status)}
+      <span class="cheat-stats">${t.gold_24h}g from ${t.events_24h} sparkles${t.win_pct_7d != null ? ` &middot; ${t.win_pct_7d}% wins (7d)` : ''}</span></div>`).join('')}</div>`
+    : `<p class="muted sans">No mini-game earnings in the last day.</p>`;
+
+  html += `<h3 class="cheat-h">Flagged games</h3>`;
+  html += flagged.length ? `<div class="cheat-list cheat-scroll">${flagged.map(g => `
+    <div class="cheat-row compact"><strong>${cheatWho(g)}</strong> ${esc(g.game_type)} &middot; ${g.won ? 'won' : 'lost'}${g.client_claimed_win && !g.won ? ' (browser claimed a win)' : ''}
+      <span class="cheat-stats">${(g.flags || []).map(esc).join(', ')} &middot; reaction ${g.reaction_ms != null ? g.reaction_ms + 'ms' : '-'} &middot; clicks ${esc(JSON.stringify(g.client_timings || []))} &middot; ${cheatWhen(g.created_at)}</span></div>`).join('')}</div>`
+    : `<p class="muted sans">No flagged games.</p>`;
+
+  html += `<h3 class="cheat-h">Audit log</h3>`;
+  html += audit.length ? `<div class="cheat-list cheat-scroll">${audit.map(a => `
+    <div class="cheat-row compact sev-${esc(a.severity)}"><strong>${cheatWho(a)}</strong> ${esc(a.event_type)}
+      <span class="cheat-stats">${(a.flags || []).map(esc).join(', ')} &middot; ${esc(a.severity)} &middot; ${cheatWhen(a.created_at)}</span></div>`).join('')}</div>`
+    : `<p class="muted sans">Nothing logged yet.</p>`;
+  return html;
+}
+document.addEventListener('click', e => {
+  const act = e.target.closest && e.target.closest('[data-cheat-status]');
+  if(act){ setCheatStatus(act.getAttribute('data-cheat-user'), act.getAttribute('data-cheat-status')); return; }
+  if(e.target.closest && e.target.closest('[data-cheat-refresh]')){ state.cheatData = undefined; loadCheatData(); }
+});
+
 function renderAdmin(){
   if(!state.profile || !state.profile.protected){
     state.tab = 'news';
@@ -9729,98 +9785,14 @@ function renderAdmin(){
   let html = `
     ${pageHeader('Admin', 'Raid Leader Only', "Visible only to the protected Raid Leader account  not even other officers can see this tab.")}
     <div class="panel style-glass">
-      <h2>Cheater Dashboard</h2>
-      <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Monitor anti-cheat system for suspicious activity and soft-bans.</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <h2 style="margin:0;">Anti-Cheat</h2>
+        <button class="btn secondary" type="button" data-cheat-refresh>Refresh</button>
+      </div>
+      <p style="color:var(--text-muted); font-size:13px; margin:8px 0 16px;">The server decides every mini-game result and flags anything a person couldn't do. Players reaching 100 points are soft-banned automatically (they can play but earn nothing). Daily cap: 1500 gold / 60 food from mini-games.</p>
   `;
 
-  // Cheat data
-  const cheatData = state.cheatData || {};
-  const suspects = cheatData.suspects || [];
-  const auditLog = cheatData.auditLog || [];
-  const flaggedGames = cheatData.flaggedGames || [];
-
-  // Suspects section
-  html += `<div style="margin-bottom:24px;">
-    <h3 style="font-size:14px; color:#d4a574; margin-bottom:12px;">🚨 Users Under Review / Soft-Banned (${suspects.length})</h3>`;
-
-  if(suspects.length === 0){
-    html += `<p style="color:var(--text-muted); font-size:13px;">No suspicious activity detected.</p>`;
-  } else {
-    html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
-    suspects.forEach(s=>{
-      const statusColor = s.status === 'SOFT_BAN' ? '#b05253' : '#d4a574';
-      const statusLabel = s.status === 'SOFT_BAN' ? '🔒 SOFT-BAN' : '⚠️ UNDER REVIEW';
-      html += `
-        <div style="padding:12px; background:var(--bg-input); border-radius:4px; border-left:3px solid ${statusColor};">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <span style="color:var(--text-normal); font-weight:600;">${s.discord_username}</span>
-            <span style="color:${statusColor}; font-weight:700; font-size:12px;">${statusLabel}</span>
-          </div>
-          <div style="color:var(--text-muted); font-size:12px;">
-            💥 ${s.total_points} points • 🎮 ${s.games_played_7d} games (${s.win_pct_7d}% wins) • 📊 ${s.flag_count} flags
-          </div>
-          <div style="color:var(--text-muted); font-size:11px;">Last flagged: ${new Date(s.last_flagged_at).toLocaleString()}</div>
-        </div>
-      `;
-    });
-    html += `</div>`;
-  }
-  html += `</div>`;
-
-  // Recent suspicious activity
-  html += `<div style="margin-bottom:24px;">
-    <h3 style="font-size:14px; color:#d4a574; margin-bottom:12px;">🔍 Recent Suspicious Activity (Last 20)</h3>`;
-
-  if(auditLog.length === 0){
-    html += `<p style="color:var(--text-muted); font-size:13px;">No activity logged.</p>`;
-  } else {
-    html += `<div style="display:flex; flex-direction:column; gap:6px; max-height:400px; overflow-y:auto;">`;
-    auditLog.slice(0, 20).forEach(log=>{
-      const severityColor = log.severity === 'HIGH' ? '#b05253' : (log.severity === 'MEDIUM' ? '#d4a574' : '#7fa363');
-      const user = Object.values(state.profilesById || {}).find(p=>p.id===log.user_id);
-      const userName = user?.discord_username || 'Unknown';
-      html += `
-        <div style="padding:10px; background:rgba(0,0,0,0.2); border-radius:3px; border-left:2px solid ${severityColor}; font-size:12px;">
-          <div style="color:var(--text-normal); margin-bottom:2px;">
-            <strong>${userName}</strong> - ${log.event_type}
-          </div>
-          <div style="color:var(--text-muted); font-size:11px;">
-            🏷️ ${log.flags.join(', ')} • ${new Date(log.created_at).toLocaleString()}
-          </div>
-        </div>
-      `;
-    });
-    html += `</div>`;
-  }
-  html += `</div>`;
-
-  // Flagged games
-  html += `<div style="margin-bottom:24px;">
-    <h3 style="font-size:14px; color:#d4a574; margin-bottom:12px;">🎮 Flagged Games (Last 20)</h3>`;
-
-  if(flaggedGames.length === 0){
-    html += `<p style="color:var(--text-muted); font-size:13px;">No games flagged.</p>`;
-  } else {
-    html += `<div style="display:flex; flex-direction:column; gap:6px; max-height:400px; overflow-y:auto;">`;
-    flaggedGames.slice(0, 20).forEach(g=>{
-      const user = Object.values(state.profilesById || {}).find(p=>p.id===g.user_id);
-      const userName = user?.discord_username || 'Unknown';
-      const result = g.won ? '✅ WON' : '❌ LOST';
-      html += `
-        <div style="padding:10px; background:rgba(0,0,0,0.2); border-radius:3px; border-left:2px solid #7fa363; font-size:12px;">
-          <div style="color:var(--text-normal); margin-bottom:2px;">
-            <strong>${userName}</strong> - ${g.game_type} ${result}
-          </div>
-          <div style="color:var(--text-muted); font-size:11px;">
-            🏷️ ${g.flags.join(', ')} • <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:24px; height:24px; vertical-align:middle; margin-right:2px;"> ${g.gold_awarded}g • ${new Date(g.created_at).toLocaleString()}
-          </div>
-        </div>
-      `;
-    });
-    html += `</div>`;
-  }
-  html += `</div>`;
-
+  html += renderCheatDashboard(state.cheatData || {});
   html += `</div>`;
 
   // Shop Refunds section
