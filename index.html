@@ -3651,6 +3651,10 @@
   .decor-row .decor-count{ margin-left:auto; font-size:11px; color:#c9b48a; white-space:nowrap; }
   .decor-zone-tag{ font-size:10px; color:#b48cff; }
   .decor-empty{ font-size:12px; color:rgba(233,220,192,0.55); font-style:italic; }
+  .home-sel-arrows{ position:absolute; z-index:5; display:flex; flex-direction:column; gap:4px; pointer-events:auto; }
+  .home-sel-arrows button{ width:28px; height:26px; padding:0; border-radius:4px; cursor:pointer; font-size:12px; line-height:1;
+    color:#2a1a08; background:linear-gradient(180deg, #f0d27a, #c9963f 60%, #a77a2e); border:1px solid #5a3c12; box-shadow:0 2px 5px rgba(0,0,0,0.7); }
+  .home-sel-arrows button:hover{ filter:brightness(1.15); }
   .home-edit-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px; }
   .home-edit-bar .home-edit-hint{ flex:1 1 220px; font-size:12px; color:#c9b48a; }
   .home-edit-wrap.editing .home-frame-inner{ cursor:crosshair; }
@@ -8786,7 +8790,7 @@ function homeSceneProps(zone, tier, layout){
   const base = (layout && layout.base) || {};
   const props = ((HOME_ZONES[zone] && HOME_ZONES[zone].props) || []).map((p, i) => {
     const at = base[i];
-    return Object.assign({}, p, at ? { x: +at.x, z: +at.z, rotY: +at.r } : {}, { edit: { type: 'base', i } });
+    return Object.assign({}, p, at ? { x: +at.x, z: +at.z, rotY: +at.r, y: at.y != null ? +at.y : (p.y || 0) } : {}, { edit: { type: 'base', i } });
   });
   // Houses stack: each tier adds its building, so a Tier 3 home is a little village
   const houses = (HOME_ZONES[zone] && HOME_ZONES[zone].houses) || {};
@@ -8794,11 +8798,11 @@ function homeSceneProps(zone, tier, layout){
   for(let t = 1; t <= tier; t++){
     if(!houses[t]) continue;
     const at = placed[t];
-    props.push(Object.assign({}, houses[t], at ? { x: +at.x, z: +at.z, rotY: +at.r } : {}, { edit: { type: 'house', tier: t } }));
+    props.push(Object.assign({}, houses[t], at ? { x: +at.x, z: +at.z, rotY: +at.r, y: at.y != null ? +at.y : (houses[t].y || 0) } : {}, { edit: { type: 'house', tier: t } }));
   }
   ((layout && layout.decor) || []).forEach(d => {
     const def = HOME_DECOR[d.k];
-    if(def) props.push(Object.assign({}, def, { x: +d.x, z: +d.z, rotY: +d.r, edit: { type: 'decor', k: d.k } }));
+    if(def) props.push(Object.assign({}, def, { x: +d.x, z: +d.z, rotY: +d.r, y: +(d.y || 0), edit: { type: 'decor', k: d.k } }));
   });
   return props;
 }
@@ -9582,9 +9586,14 @@ function refreshHomeEditUi(){
 
 function homeSelect(v, entry){
   if(v.selHelper){ v.scene.remove(v.selHelper); v.selHelper = null; }
+  if(v.selArrows){ v.selArrows.remove(); v.selArrows = null; }
   v.sel = entry || null;
   if(entry){
     v.selHelper = new THREE.BoxHelper(entry.holder, 0xf0c95a);
+    v.selArrows = document.createElement('div');
+    v.selArrows.className = 'home-sel-arrows';
+    v.selArrows.innerHTML = '<button type="button" data-piece-y="1" title="Raise">&#9650;</button><button type="button" data-piece-y="-1" title="Lower">&#9660;</button>';
+    v.slot.appendChild(v.selArrows);
     v.scene.add(v.selHelper);
   }
   refreshHomeEditUi();
@@ -9595,7 +9604,7 @@ function homeMovePiece(v, entry, x, z, rotY){
   if(z != null) p.z = Math.max(-HOME_STAGE_LIMIT.z, Math.min(HOME_STAGE_LIMIT.z, z));
   if(rotY != null) p.rotY = Math.atan2(Math.sin(rotY), Math.cos(rotY));
   placeHomeProp(entry.holder, p);
-  if(entry.light) entry.light.position.set(p.x, p.light.y, p.z);
+  if(entry.light) entry.light.position.set(p.x, p.light.y + (p.y || 0), p.z);
 }
 function homeGroundPoint(v, e){
   const r = v.slot.getBoundingClientRect();
@@ -9604,16 +9613,55 @@ function homeGroundPoint(v, e){
   const hit = new THREE.Vector3();
   return { ray, ground: ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit) ? hit : null };
 }
+// Keep the raise / lower arrows just right of the selected piece's top
+function homePlaceSelArrows(v){
+  if(v.selArrows.parentNode !== v.slot) v.slot.appendChild(v.selArrows);
+  const box = new THREE.Box3().setFromObject(v.sel.holder);
+  const r = v.slot.getBoundingClientRect();
+  let maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  [box.min.x, box.max.x].forEach(x => [box.min.y, box.max.y].forEach(y => [box.min.z, box.max.z].forEach(z => {
+    const p = new THREE.Vector3(x, y, z).project(v.camera);
+    maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+  })));
+  const left = Math.min(r.width - 40, (maxX + 1) / 2 * r.width + 8);
+  const top = Math.max(4, Math.min(r.height - 70, (1 - (maxY + minY) / 2) / 2 * r.height - 30));
+  v.selArrows.style.left = left + 'px';
+  v.selArrows.style.top = top + 'px';
+}
+function homeNudgeY(dir){
+  const v = homeEditViewer();
+  if(!v || !v.sel) return;
+  const p = v.sel.prop;
+  p.y = Math.max(-3, Math.min(3, Math.round(((p.y || 0) + dir * 0.1) * 100) / 100));
+  placeHomeProp(v.sel.holder, p);
+  if(v.sel.light) v.sel.light.position.y = p.light.y + p.y;
+  updateHomeObstacles(v);
+}
 // Returns true when the press landed on an editable piece (so the camera doesn't orbit)
 function homeEditPointerDown(v, e){
   if(!homeEdit || homeEditViewer() !== v) return false;
   const { ray, ground } = homeGroundPoint(v, e);
   const editable = v.holders.filter(en => en.prop.edit);
   const hits = ray.intersectObjects(editable.map(en => en.holder), true);
-  if(!hits.length){ homeSelect(v, null); return false; }
-  let o = hits[0].object;
-  const entry = editable.find(en => { let p = o; while(p){ if(p === en.holder) return true; p = p.parent; } return false; });
-  if(!entry) return false;
+  let entry = null;
+  if(hits.length){
+    const o = hits[0].object;
+    entry = editable.find(en => { let p = o; while(p){ if(p === en.holder) return true; p = p.parent; } return false; });
+  }
+  if(!entry){
+    // Some animated models (e.g. the copper vein) don't raycast where they're drawn: use their box,
+    // nearest first, smallest wins on ties so a piece in front of a house is still clickable
+    let best = null, bestD = Infinity;
+    editable.forEach(en => {
+      const box = new THREE.Box3().setFromObject(en.holder), p = new THREE.Vector3();
+      if(ray.ray.intersectBox(box, p)){
+        const d = p.distanceTo(ray.ray.origin) + box.getSize(new THREE.Vector3()).length() * 0.5;
+        if(d < bestD){ best = en; bestD = d; }
+      }
+    });
+    entry = best;
+  }
+  if(!entry){ homeSelect(v, null); return false; }
   homeSelect(v, entry);
   homePieceDrag = { v, entry, dx: ground ? entry.prop.x - ground.x : 0, dz: ground ? entry.prop.z - ground.z : 0 };
   return true;
@@ -9670,7 +9718,7 @@ async function homeSaveLayout(){
   const layout = { houses: {}, decor: [], base: {} };
   v.holders.forEach(({ prop }) => {
     if(!prop.edit) return;
-    const at = { x: +prop.x.toFixed(2), z: +(prop.z || 0).toFixed(2), r: +(prop.rotY || 0).toFixed(3) };
+    const at = { x: +prop.x.toFixed(2), z: +(prop.z || 0).toFixed(2), r: +(prop.rotY || 0).toFixed(3), y: +(prop.y || 0).toFixed(2) };
     if(prop.edit.type === 'house') layout.houses[prop.edit.tier] = at;
     else if(prop.edit.type === 'base') layout.base[prop.edit.i] = at;
     else layout.decor.push(Object.assign({ k: prop.edit.k }, at));
@@ -9749,7 +9797,7 @@ async function buyDecor(itemId){
 }
 
 document.addEventListener('click', e => {
-  const t = e.target.closest && e.target.closest('[data-home-edit],[data-decor-place],[data-decor-rot],[data-decor-store],[data-home-save],[data-home-cancel],[data-decor-shop],[data-decor-buy]');
+  const t = e.target.closest && e.target.closest('[data-home-edit],[data-piece-y],[data-decor-place],[data-decor-rot],[data-decor-store],[data-home-save],[data-home-cancel],[data-decor-shop],[data-decor-buy]');
   if(!t || !state.session) return;
   if(t.hasAttribute('data-home-edit')){
     const hm = (profileHomes[state.profile.id] || []).find(x => x.id === t.getAttribute('data-home-edit'));
@@ -9763,6 +9811,7 @@ document.addEventListener('click', e => {
     if(v && v.sel){ homeMovePiece(v, v.sel, null, null, v.sel.prop.rotY + Number(t.getAttribute('data-decor-rot')) * Math.PI / 12); updateHomeObstacles(v); }
   }
   else if(t.hasAttribute('data-decor-store')) homeStoreSelected();
+  else if(t.hasAttribute('data-piece-y')) homeNudgeY(Number(t.getAttribute('data-piece-y')));
   else if(t.hasAttribute('data-home-save')) homeSaveLayout();
   else if(t.hasAttribute('data-home-cancel')) homeCancelEdit();
   else if(t.hasAttribute('data-decor-shop')) openDecorShop(t.getAttribute('data-decor-shop'));
@@ -9785,6 +9834,7 @@ let homeDrag = null;
 document.addEventListener('pointerdown', e => {
   const inner = e.target.closest && e.target.closest('.home-frame-inner');
   if(!inner || e.button !== 0) return;
+  if(e.target.closest('.home-sel-arrows')) return; // the raise / lower buttons
   const v = Object.values(homeSceneViewers).find(x => x.slot && inner.contains(x.slot) && x.view);
   if(!v) return;
   if(homeEditPointerDown(v, e)){ e.preventDefault(); return; }
@@ -9914,6 +9964,7 @@ function mountHomeScenes(){
         const now = performance.now();
         homeCameraUpdate(v, Math.min(1, dt * 8));
         if(v.selHelper) v.selHelper.update();
+        if(v.selArrows && v.sel) homePlaceSelArrows(v);
         v.mixers.forEach(m => m.update(dt));
         v.actors.forEach(a => updateHomePetActor(v, a, dt, now));
         updateHomePetOverlays(v, v.slot, now);
