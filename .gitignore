@@ -11,3 +11,6 @@ prod_*.sql
 *_with_data.sql
 upload_to_r2.py
 upload_guild_board.py
+
+# Local-only files (e.g. trivia answer key) - never commit, the repo is public
+private/
