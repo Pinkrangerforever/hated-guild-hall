@@ -8732,9 +8732,12 @@ const HOME_ZONES = {
   },
   elwynn_cabin: {
     label: 'Cabin in Elwynn',
+    // dusk: low orange sun from the left, dim blue-violet sky, cool shadows
+    light: { sun: 0xff9a55, sunI: 0.75, sunPos: [-12, 5, 4], sky: 0x6878b0, ground: 0x3a2c28, hemiI: 0.5, amb: 0x8a90c0, ambI: 0.12 },
     video: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Elwynn%20Cabin/Elwynn%20Cabin.mp4',
     props: [
-      { gltf: 'models/housing/elwynn-lamppost.gltf', x: -1.6, z: 1.4, height: 2.4, rotY: 0 },   // flickering lamp by the path
+      { gltf: 'models/housing/elwynn-lamppost.gltf', x: -1.6, z: 1.4, height: 2.4, rotY: -Math.PI / 2,   // flickering lamp by the path
+        light: { y: 2.0, color: 0xffb05a, intensity: 1.6, distance: 6 } },
       { gltf: 'models/housing/elwynn-tree.gltf', x: 4.3, z: -1.8, height: 6, rotY: 0.4 }        // swaying in the breeze
     ],
     houses: {}
@@ -9096,15 +9099,17 @@ function buildHomeStage(v, zoneKey){
   v.scene.add(hinge);
   // haze where the stage meets the backdrop
   // light: warm sun casting soft shadows, sky / ground fill
-  const sun = new THREE.DirectionalLight(0xfff0d0, 1.05);
-  sun.position.set(-7, 11, 7);
+  // Each zone can set its own light to match its video (default: bright afternoon)
+  const L = Object.assign({ sun: 0xfff0d0, sunI: 1.05, sunPos: [-7, 11, 7], sky: 0xdfeeff, ground: 0x9a7a4a, hemiI: 0.6, amb: 0xffffff, ambI: 0.18 }, zone.light || {});
+  const sun = new THREE.DirectionalLight(L.sun, L.sunI);
+  sun.position.set(...L.sunPos);
   sun.target.position.set(0, 0, -2);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 40 });
   sun.shadow.bias = -0.0004;
   sun.shadow.radius = 4;
-  v.scene.add(sun, sun.target, new THREE.HemisphereLight(0xdfeeff, 0x9a7a4a, 0.6), new THREE.AmbientLight(0xffffff, 0.18));
+  v.scene.add(sun, sun.target, new THREE.HemisphereLight(L.sky, L.ground, L.hemiI), new THREE.AmbientLight(L.amb, L.ambI));
 }
 function setCastShadows(obj){ obj.traverse(m => { if(m.isMesh){ m.castShadow = true; m.receiveShadow = false; } }); }
 
@@ -9524,6 +9529,12 @@ function mountHomeScenes(){
           if(!h) return;
           v.holders.push({ holder: h, prop: props[i] });
           setCastShadows(h);
+          if(props[i].light){ // warm glow cast by lamps
+            const l = props[i].light;
+            const pl = new THREE.PointLight(l.color, l.intensity, l.distance, 2);
+            pl.position.set(props[i].x, l.y, props[i].z || 0);
+            v.scene.add(pl);
+          }
           v.scene.add(h);
           const clip = (h.userData.animations || [])[0];
           if(clip){
