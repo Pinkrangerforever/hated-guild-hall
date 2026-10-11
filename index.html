@@ -3304,26 +3304,36 @@
 
 
   /* ---- Top 3 leaderboard: medallions, crown, staggered shimmer, #1 breathing glow ---- */
-  /* Metal glare: a fast, hard-edged streak (~0.35s) with a hot white core and soft bloom,
-     brightening the metal underneath (screen blend), every 12s, then rest */
-  @keyframes hhCoinGlint{
-    0%   { transform:translateX(calc(var(--glint-dir, 1) * -130%)) skewX(var(--glint-skew, -22deg)); opacity:0; }
-    0.5% { opacity:1; }
-    3%   { transform:translateX(calc(var(--glint-dir, 1) * 130%)) skewX(var(--glint-skew, -22deg)); opacity:1; }
-    3.5%, 100% { transform:translateX(calc(var(--glint-dir, 1) * 130%)) skewX(var(--glint-skew, -22deg)); opacity:0; }
+  /* Top 3: the old sweep is retired */
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3::before{ display:none !important; animation:none !important; }
+
+  /* Living frame: a thin light that circles each card's border (gold / silver / bronze) */
+  @property --hh-ring{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
+  @keyframes hhRing{ to{ --hh-ring:360deg; } }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3::after{
+    content:''; position:absolute; inset:0; border-radius:inherit; padding:1.5px; pointer-events:none; z-index:2;
+    background:conic-gradient(from var(--hh-ring), transparent 0deg 250deg, var(--ring-color) 300deg, #fffbe9 320deg, var(--ring-color) 340deg, transparent 360deg);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude;
+    filter:drop-shadow(0 0 3px var(--ring-color));
+    animation:hhRing 5s linear infinite;
   }
-  .gold-leaderboard-entries .leaderboard-entry.rank-top-3::before{
-    background:linear-gradient(105deg,
-      transparent 34%, rgba(255,244,214,0.10) 41%, rgba(255,250,235,0.45) 46.5%,
-      #ffffff 49.2%, #ffffff 50.8%,
-      rgba(255,250,235,0.45) 53.5%, rgba(255,244,214,0.10) 59%, transparent 66%) !important;
-    mix-blend-mode:screen;
-    filter:blur(0.4px);
-    animation:hhCoinGlint 12s cubic-bezier(.55,.05,.45,.95) infinite !important;
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(1){ --ring-color:#f0c95a; }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(2){ --ring-color:#e3e9f2; }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(3){ --ring-color:#e39a5c; }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(2)::after{ animation-duration:6s; animation-delay:-2s; }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(3)::after{ animation-duration:7s; animation-delay:-4s; }
+
+  /* Facet glints: little four-point stars that pop on the cards at random */
+  .hh-star-glint{ position:absolute; width:14px; height:14px; margin:-7px 0 0 -7px; pointer-events:none; z-index:3;
+    animation:hhStarGlint 0.75s ease-out forwards; }
+  .hh-star-glint svg{ width:100%; height:100%; display:block; filter:drop-shadow(0 0 3px rgba(255,248,220,0.95)); }
+  @keyframes hhStarGlint{
+    0%{ transform:scale(0) rotate(0deg); opacity:0; }
+    30%{ transform:scale(1.15) rotate(25deg); opacity:1; }
+    60%{ transform:scale(0.8) rotate(45deg); opacity:0.9; }
+    100%{ transform:scale(0) rotate(70deg); opacity:0; }
   }
-  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(1)::before{ animation-delay: 0s !important; }
-  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(2)::before{ animation-delay: 4s !important; }
-  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(3)::before{ animation-delay: 8s !important; }
   .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(1){
     margin:4px 0 2px; padding:10px 8px !important;
     animation: hhGoldBreath 4s ease-in-out infinite !important;
@@ -12007,15 +12017,34 @@ setInterval(()=>{
 }, 1000);
 
 
-/* Leaderboard glare: new random angle and direction for every pass (CSS reads the variables) */
-function randomizeGlint(el){
-  const skew = (8 + Math.random() * 30) * (Math.random() < 0.5 ? -1 : 1);
-  el.style.setProperty('--glint-skew', skew.toFixed(1) + 'deg');
-  el.style.setProperty('--glint-dir', Math.random() < 0.7 ? '1' : '-1'); // mostly left-to-right
+/* Top-3 facet glints: every so often a star pops somewhere near a card's edge or corner,
+   like light catching a gem. 1st place sparkles the most. Paused when the tab is hidden. */
+const HH_STAR_SVG = '<svg viewBox="0 0 24 24"><path d="M12 0 C12.8 8 16 11.2 24 12 C16 12.8 12.8 16 12 24 C11.2 16 8 12.8 0 12 C8 11.2 11.2 8 12 0 Z" fill="#fffaf0"/></svg>';
+function spawnTopGlint(){
+  const cards = document.querySelectorAll('.gold-leaderboard-entries .leaderboard-entry.rank-top-3');
+  if(cards.length && !document.hidden && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)){
+    // Weighted: 1st place gets about half the glints
+    const weights = [0.5, 0.3, 0.2].slice(0, cards.length);
+    let pick = Math.random() * weights.reduce((a, b) => a + b, 0), idx = 0;
+    while(idx < weights.length - 1 && (pick -= weights[idx]) > 0) idx++;
+    const card = cards[idx];
+    const star = document.createElement('span');
+    star.className = 'hh-star-glint';
+    star.innerHTML = HH_STAR_SVG;
+    // Hug the edges/corners: one axis near an edge, the other anywhere along it
+    const edge = Math.random() < 0.5;
+    const nearEdge = () => (Math.random() < 0.5 ? 6 + Math.random() * 10 : 84 + Math.random() * 10);
+    star.style.left = (edge ? nearEdge() : 8 + Math.random() * 84) + '%';
+    star.style.top = (edge ? 10 + Math.random() * 80 : nearEdge()) + '%';
+    const size = 10 + Math.random() * 8;
+    star.style.width = star.style.height = size + 'px';
+    star.style.margin = (-size / 2) + 'px 0 0 ' + (-size / 2) + 'px';
+    card.appendChild(star);
+    setTimeout(() => star.remove(), 800);
+  }
+  setTimeout(spawnTopGlint, 500 + Math.random() * 1300);
 }
-document.addEventListener('animationiteration', e => {
-  if(e.animationName === 'hhCoinGlint' && e.target.classList && e.target.classList.contains('rank-top-3')) randomizeGlint(e.target);
-}, true);
+setTimeout(spawnTopGlint, 1500);
 
 /* ---------------- Ambient lightning ----------------
    Every 15-30s a procedurally generated, branching blue-white bolt arcs off one of the panel
