@@ -1644,45 +1644,79 @@
 
   /* ---- sparkle gold system ---- */
   #sparkle-layer{ position:fixed; inset:0; pointer-events:none; z-index:9999999; }
-  @keyframes sparkleTwinkle{
-    0%{ transform:scale(0.2) translateX(0) rotate(-20deg); opacity:0; }
-    10%{ transform:scale(1.3) translateX(-8px) rotate(18deg); opacity:1; }
-    18%{ transform:scale(0.75) translateX(6px) rotate(-10deg); opacity:0.7; }
-    26%{ transform:scale(1.15) translateX(-5px) rotate(5deg); opacity:0.5; }
-    34%{ transform:scale(0.9) translateX(8px) rotate(0deg); opacity:0.8; }
-    50%{ transform:scale(1.25) translateX(-3px) rotate(0deg); opacity:1; }
-    66%{ transform:scale(0.85) translateX(7px) rotate(0deg); opacity:0.5; }
-    88%{ transform:scale(1.1) translateX(-6px) rotate(0deg); opacity:0.7; }
-    100%{ transform:scale(0.3) translateX(0) rotate(25deg); opacity:0; }
-  }
-  @keyframes sparkleGlowPulse{
-    0%,100%{ opacity:0.25; transform:scale(0.8); }
-    50%{ opacity:0.65; transform:scale(1.25); }
-  }
-  @keyframes sparkleDotTwinkle{
-    0%,100%{ opacity:0; transform:scale(0.2) rotate(0deg); }
-    50%{ opacity:1; transform:scale(1) rotate(25deg); }
-  }
+  /* Sparkle: spawn shockwave + pop-in, then a bobbing star with slow rays, orbiting motes and
+     twinkles; flickers during its last ~1.4 s (lifetime 8 s, set in SPARKLE_LIFETIME_MS) */
   .sparkle{
-    position:absolute; width:38px; height:38px; pointer-events:auto; cursor:pointer;
+    position:absolute; width:46px; height:46px; margin:-4px 0 0 -4px; pointer-events:auto; cursor:pointer;
     background:none; border:none; padding:0;
-    animation:sparkleTwinkle 8s cubic-bezier(.25,1.6,.4,1) forwards;
+    animation:sparkleExpire 1.4s ease-in 6.6s forwards;
   }
-  .sparkle-glow{
-    position:absolute; inset:-8px; border-radius:50%; pointer-events:none;
-    background:radial-gradient(circle, rgba(255,224,153,0.6) 0%, rgba(255,224,153,0) 72%);
-    animation:sparkleGlowPulse 1.7s ease-in-out infinite;
+  @keyframes sparkleExpire{
+    0%{ opacity:1; } 15%{ opacity:0.35; } 25%{ opacity:1; } 45%{ opacity:0.3; } 55%{ opacity:0.9; } 75%{ opacity:0.2; } 100%{ opacity:0; transform:scale(0.4); }
   }
-  .sparkle-main{
-    position:relative; width:100%; height:100%;
-    filter:drop-shadow(0 0 7px rgba(255,224,153,0.9));
+  .sparkle-inner{ position:absolute; inset:0; animation:sparkleSpawn 0.65s cubic-bezier(.2,1.7,.35,1) both; }
+  @keyframes sparkleSpawn{
+    0%{ transform:scale(0) rotate(-120deg); opacity:0; }
+    60%{ opacity:1; }
+    100%{ transform:scale(1) rotate(0deg); opacity:1; }
+  }
+  .sparkle-main{ position:absolute; inset:0; filter:drop-shadow(0 0 6px rgba(255,224,153,0.95)) drop-shadow(0 0 14px rgba(240,201,90,0.55));
+    animation:sparkleBob 2.6s ease-in-out 0.65s infinite; }
+  @keyframes sparkleBob{
+    0%,100%{ transform:translateY(0) scale(1) rotate(0deg); }
+    25%{ transform:translateY(-4px) scale(1.08) rotate(6deg); }
+    50%{ transform:translateY(-1px) scale(0.94) rotate(0deg); filter:drop-shadow(0 0 10px rgba(255,240,200,1)) drop-shadow(0 0 20px rgba(240,201,90,0.7)); }
+    75%{ transform:translateY(-5px) scale(1.05) rotate(-6deg); }
   }
   .sparkle-main svg{ width:100%; height:100%; display:block; }
-  .sparkle:hover .sparkle-main{ filter:drop-shadow(0 0 13px rgba(255,224,153,1)); }
-  .sparkle-dot{ position:absolute; width:9px; height:9px; pointer-events:none; animation:sparkleDotTwinkle 1.4s ease-in-out infinite; }
-  .sparkle-dot svg{ width:100%; height:100%; display:block; filter:drop-shadow(0 0 4px rgba(255,224,153,0.9)); }
-  .sparkle-dot.d1{ top:-6px; right:0; animation-delay:0.25s; }
-  .sparkle-dot.d2{ bottom:-2px; left:-8px; animation-delay:0.75s; }
+  .sparkle:hover .sparkle-main{ filter:drop-shadow(0 0 10px rgba(255,240,200,1)) drop-shadow(0 0 24px rgba(240,201,90,0.9)); }
+  .sparkle:hover .sparkle-rays{ opacity:0.95; }
+
+  .sparkle-burst{ position:absolute; left:50%; top:50%; width:46px; height:46px; margin:-23px 0 0 -23px; border-radius:50%;
+    border:2px solid rgba(255,236,180,0.9); box-shadow:0 0 12px rgba(240,201,90,0.8), inset 0 0 8px rgba(255,236,180,0.6);
+    pointer-events:none; animation:sparkleShockwave 0.7s ease-out forwards; }
+  @keyframes sparkleShockwave{ 0%{ transform:scale(0.2); opacity:1; } 100%{ transform:scale(2.6); opacity:0; border-width:0.5px; } }
+
+  .sparkle-rays{ position:absolute; inset:-22px; border-radius:50%; pointer-events:none; opacity:0.6;
+    background:repeating-conic-gradient(from 0deg, rgba(255,236,180,0.55) 0deg 4deg, transparent 4deg 30deg);
+    -webkit-mask:radial-gradient(circle, #000 18%, transparent 68%); mask:radial-gradient(circle, #000 18%, transparent 68%);
+    animation:sparkleRays 9s linear infinite, sparkleFadeIn 0.8s ease-out both; }
+  @keyframes sparkleRays{ to{ transform:rotate(360deg); } }
+  @keyframes sparkleFadeIn{ from{ opacity:0; } }
+
+  .sparkle-glow{
+    position:absolute; inset:-12px; border-radius:50%; pointer-events:none;
+    background:radial-gradient(circle, rgba(255,232,170,0.7) 0%, rgba(240,201,90,0.25) 40%, rgba(240,201,90,0) 72%);
+    animation:sparkleGlowPulse 1.7s ease-in-out infinite;
+  }
+  @keyframes sparkleGlowPulse{ 0%,100%{ opacity:0.35; transform:scale(0.85); } 50%{ opacity:0.85; transform:scale(1.2); } }
+
+  .sparkle-orbit{ position:absolute; inset:-10px; pointer-events:none; animation:sparkleRays 3.2s linear infinite, sparkleFadeIn 1s ease-out both; }
+  .sparkle-orbit i{ position:absolute; width:4px; height:4px; border-radius:50%; background:#fff6dc; box-shadow:0 0 6px 1px rgba(255,224,153,0.95); }
+  .sparkle-orbit i:nth-child(1){ top:0; left:50%; }
+  .sparkle-orbit i:nth-child(2){ bottom:12%; left:6%; width:3px; height:3px; }
+  .sparkle-orbit i:nth-child(3){ bottom:18%; right:4%; width:3px; height:3px; }
+
+  @keyframes sparkleDotTwinkle{ 0%,100%{ opacity:0; transform:scale(0.2) rotate(0deg); } 50%{ opacity:1; transform:scale(1) rotate(35deg); } }
+  .sparkle-dot{ position:absolute; width:11px; height:11px; pointer-events:none; animation:sparkleDotTwinkle 1.4s ease-in-out infinite; }
+  .sparkle-dot svg{ width:100%; height:100%; display:block; filter:drop-shadow(0 0 4px rgba(255,224,153,0.95)); }
+  .sparkle-dot.d1{ top:-8px; right:-4px; animation-delay:0.35s; }
+  .sparkle-dot.d2{ bottom:-4px; left:-10px; animation-delay:0.95s; }
+
+  /* Click burst */
+  .sparkle-pop{ position:absolute; width:0; height:0; pointer-events:none; }
+  .sparkle-pop-flash{ position:absolute; left:-30px; top:-30px; width:60px; height:60px; border-radius:50%;
+    background:radial-gradient(circle, #fff 0%, rgba(255,236,180,0.8) 30%, transparent 70%); animation:sparklePopFlash 0.35s ease-out forwards; }
+  @keyframes sparklePopFlash{ 0%{ transform:scale(0.3); opacity:1; } 100%{ transform:scale(1.6); opacity:0; } }
+  .sparkle-pop-ring{ position:absolute; left:-24px; top:-24px; width:48px; height:48px; border-radius:50%;
+    border:2px solid #ffe9a8; box-shadow:0 0 10px rgba(240,201,90,0.9); animation:sparkleShockwave 0.55s ease-out forwards; }
+  .sparkle-pop i{ position:absolute; left:-3px; top:-3px; width:6px; height:6px; background:#fff3c8;
+    clip-path:polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+    filter:drop-shadow(0 0 3px #f0c95a); animation:sparkleShard 0.6s cubic-bezier(.15,.7,.3,1) forwards; }
+  @keyframes sparkleShard{
+    0%{ transform:rotate(var(--a)) translateX(0) scale(1.4); opacity:1; }
+    100%{ transform:rotate(var(--a)) translateX(var(--d)) scale(0.3); opacity:0; }
+  }
   @keyframes goldFloatUp{
     0%{ transform:translateY(0) scale(0.8); opacity:0; }
     8%{ transform:translateY(-6px) scale(1.12); opacity:1; }
@@ -5214,23 +5248,50 @@ function spawnSparkle(){
   el.className = 'sparkle';
   el.style.top = (8 + Math.random()*78) + 'vh';
   el.style.left = (6 + Math.random()*84) + 'vw';
-  const mainStar = '<path d="M12 1 L14.5 9.5 L23 12 L14.5 14.5 L12 23 L9.5 14.5 L1 12 L9.5 9.5 Z" fill="#f0dfb4" stroke="#cf9a44" stroke-width="1"/>';
-  const dotStar = '<path d="M12 0 C12 6 14 10 18 12 C14 14 12 18 12 24 C12 18 10 14 6 12 C10 10 12 6 12 0 Z" fill="#fff3d6"/>';
+  // Layers: spawn shockwave, slow light rays, pulsing glow, orbiting motes, the star itself, twinkles
+  const star = '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs><radialGradient id="spkCore" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ffffff"/><stop offset="35%" stop-color="#fff4cf"/><stop offset="100%" stop-color="#f0c95a"/></radialGradient>' +
+    '<linearGradient id="spkGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff2c0"/><stop offset="55%" stop-color="#f0c95a"/><stop offset="100%" stop-color="#c9963f"/></linearGradient></defs>' +
+    '<path d="M24 9 L26.6 21.4 L39 24 L26.6 26.6 L24 39 L21.4 26.6 L9 24 L21.4 21.4 Z" fill="url(#spkGold)" opacity="0.75" transform="rotate(45 24 24)"/>' +
+    '<path d="M24 1 C25.2 15 33 22.8 47 24 C33 25.2 25.2 33 24 47 C22.8 33 15 25.2 1 24 C15 22.8 22.8 15 24 1 Z" fill="url(#spkGold)" stroke="#8a5f22" stroke-width="0.6"/>' +
+    '<circle cx="24" cy="24" r="5.5" fill="url(#spkCore)"/></svg>';
+  const tiny = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0 C12.8 8 16 11.2 24 12 C16 12.8 12.8 16 12 24 C11.2 16 8 12.8 0 12 C8 11.2 11.2 8 12 0 Z" fill="#fffaf0"/></svg>';
   el.innerHTML =
+    '<span class="sparkle-burst"></span>' +
+    '<span class="sparkle-rays"></span>' +
     '<span class="sparkle-glow"></span>' +
-    '<span class="sparkle-main"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + mainStar + '</svg></span>' +
-    '<span class="sparkle-dot d1"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + dotStar + '</svg></span>' +
-    '<span class="sparkle-dot d2"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + dotStar + '</svg></span>';
+    '<span class="sparkle-orbit"><i></i><i></i><i></i></span>' +
+    '<span class="sparkle-inner"><span class="sparkle-main">' + star + '</span></span>' +
+    '<span class="sparkle-dot d1">' + tiny + '</span>' +
+    '<span class="sparkle-dot d2">' + tiny + '</span>';
   el.addEventListener('click', ()=>{
     claimSparkle(el);
   });
   layer.appendChild(el);
   setTimeout(()=>{ if(el.parentNode) el.remove(); }, SPARKLE_LIFETIME_MS);
 }
+// Click burst: a bright flash, a ring, and shards flying outward
+function sparklePopBurst(rect){
+  const layer = document.getElementById('sparkle-layer');
+  if(!layer) return;
+  const pop = document.createElement('div');
+  pop.className = 'sparkle-pop';
+  pop.style.left = (rect.left + rect.width / 2) + 'px';
+  pop.style.top = (rect.top + rect.height / 2) + 'px';
+  let shards = '';
+  for(let i = 0; i < 10; i++){
+    const ang = (i / 10) * 360 + Math.random() * 20;
+    shards += `<i style="--a:${ang}deg; --d:${34 + Math.random() * 26}px; animation-delay:${Math.random() * 60}ms;"></i>`;
+  }
+  pop.innerHTML = '<b class="sparkle-pop-flash"></b><b class="sparkle-pop-ring"></b>' + shards;
+  layer.appendChild(pop);
+  setTimeout(() => pop.remove(), 800);
+}
 async function claimSparkle(el){
   if(el.dataset.claiming) return;
   el.dataset.claiming = 'true';
   const rect = el.getBoundingClientRect();
+  sparklePopBurst(rect);
   el.remove();
 
   try{
