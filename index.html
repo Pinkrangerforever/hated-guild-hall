@@ -1682,13 +1682,17 @@
   .sparkle-dot.d1{ top:-6px; right:0; animation-delay:0.25s; }
   .sparkle-dot.d2{ bottom:-2px; left:-8px; animation-delay:0.75s; }
   @keyframes goldFloatUp{
-    0%{ transform:translateY(0); opacity:1; }
-    100%{ transform:translateY(-60px); opacity:0; }
+    0%{ transform:translateY(0) scale(0.8); opacity:0; }
+    8%{ transform:translateY(-6px) scale(1.12); opacity:1; }
+    16%{ transform:translateY(-10px) scale(1); opacity:1; }
+    70%{ transform:translateY(-50px); opacity:1; }
+    100%{ transform:translateY(-75px); opacity:0; }
   }
+  .food-float-line{ color:#9fe08a; font-size:16px; margin-top:2px; }
   .gold-float{
     position:absolute; pointer-events:none; font-weight:800; font-size:18px; color:#f0dfb4;
     text-shadow:0 2px 6px rgba(0,0,0,0.7);
-    animation:goldFloatUp 1.1s ease-out forwards;
+    animation:goldFloatUp 2.6s ease-out forwards; text-align:center;
   }
   @keyframes emberFloat{
     0%{ transform:translateY(0) translateX(0) rotate(0deg); opacity:1; }
@@ -5296,14 +5300,13 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
     if(won && state.profile){
       state.profile.gold = data.total;
       updateNavbarUserInfo();
-      if(data.awarded !== undefined && data.awarded > 0){
-        showGoldFloat(x, y, data.awarded);
+      if((data.awarded || 0) > 0 || (data.food_awarded || 0) > 0){
+        showGoldFloat(x, y, data.awarded || 0, data.food_awarded || 0);
       }
-      // Murloc wins also award food (server-side)
+      // Murloc and fishing wins also award food (server-side)
       if(data.food_awarded > 0){
         state.profile.food = data.food_total;
         updateNavbarUserInfo();
-        showToast(`+${data.food_awarded} Food for your pet!`);
         refreshPetWidget();
       }
     }
@@ -5540,16 +5543,16 @@ function startFishingEvent(rect, pendingId){
   }, { once:true });
 }
 
-function showGoldFloat(x, y, amount){
+function showGoldFloat(x, y, amount, food){
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
   const el = document.createElement('div');
   el.className = 'gold-float';
   el.style.left = x + 'px';
   el.style.top = y + 'px';
-  el.textContent = '+' + amount + ' Gold';
+  el.innerHTML = (amount > 0 ? `<div>+${amount} Gold</div>` : '') + (food > 0 ? `<div class="food-float-line">+${food} Food</div>` : '');
   layer.appendChild(el);
-  setTimeout(()=>{ if(el.parentNode) el.remove(); }, 1200);
+  setTimeout(()=>{ if(el.parentNode) el.remove(); }, 2700);
 }
 
 function startBlacksmithGame(spawnRect, pendingId){
