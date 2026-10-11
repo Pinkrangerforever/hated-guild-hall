@@ -3569,7 +3569,7 @@
     content:''; position:absolute; inset:5px; border:1px solid rgba(40,24,8,0.7); border-radius:4px; pointer-events:none;
     box-shadow:inset 0 0 0 1px rgba(255,230,160,0.35);
   }
-  .home-frame-inner{ position:relative; aspect-ratio:16 / 9; overflow:hidden; border-radius:3px; background:radial-gradient(ellipse at 50% 45%, #2a2016, #0d0906 75%);
+  .home-frame-inner{ position:relative; aspect-ratio:16 / 10.5; overflow:hidden; border-radius:3px; background:radial-gradient(ellipse at 50% 45%, #2a2016, #0d0906 75%);
     box-shadow:0 0 0 2px #1a0f06; }
   .home-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
   .home-frame-inner::after{ /* vignette */
@@ -8998,6 +8998,23 @@ function buildHomeStage(v, zoneKey){
   hinge.position.set(0, 0, DIORAMA.floorBack);
   hinge.rotation.x = DIORAMA.backdropTilt; // top leans away
   hinge.add(back);
+  // carved wooden frame with gold trim around the video
+  const wood = new THREE.MeshStandardMaterial({ color: 0x5a3818, roughness: 0.85, metalness: 0.05 });
+  const gold = new THREE.MeshStandardMaterial({ color: 0xc9963f, roughness: 0.35, metalness: 0.8 });
+  const t = 0.38, d = 0.3, cy = back.position.y;
+  const bar = (w, hgt, x, y, mat, depth, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, hgt, depth), mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; hinge.add(m); };
+  [[bw + t * 2, t, 0, cy + bh / 2 + t / 2], [bw + t * 2, t, 0, cy - bh / 2 - t / 2],
+   [t, bh, -bw / 2 - t / 2, cy], [t, bh, bw / 2 + t / 2, cy]].forEach(([w, hh, x, y]) => {
+    bar(w, hh, x, y, wood, d, 0);
+    // thin gold lip on the inner edge
+    const iw = w > hh ? w - t * 2 + 0.08 : 0.08, ih = w > hh ? 0.08 : hh + 0.08;
+    bar(iw, ih, x === 0 ? 0 : x - Math.sign(x) * (t / 2), x === 0 ? y - Math.sign(y - cy) * (t / 2) : y, gold, d + 0.04, 0.02);
+  });
+  // gold corner caps
+  [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sy]) => bar(t * 1.35, t * 1.35, sx * (bw / 2 + t / 2), cy + sy * (bh / 2 + t / 2), gold, d + 0.1, 0.03));
+  // plain back so the panel reads as a solid board from the side
+  const backing = new THREE.Mesh(new THREE.PlaneGeometry(bw + t * 2, bh + t * 2), wood);
+  backing.position.set(0, cy, -d / 2); backing.rotation.y = Math.PI; hinge.add(backing);
   v.scene.add(hinge);
   // haze where the stage meets the backdrop
   // light: warm sun casting soft shadows, sky / ground fill
@@ -9014,7 +9031,7 @@ function buildHomeStage(v, zoneKey){
 function setCastShadows(obj){ obj.traverse(m => { if(m.isMesh){ m.castShadow = true; m.receiveShadow = false; } }); }
 
 const homeSceneViewers = {}; // zone -> { renderer, scene, camera, mixers, clock, raf, ready, failed }
-const HOME_SCENE_FOV = 35;
+const HOME_SCENE_FOV = 42;
 
 // three r128 fails a whole glTF when any texture 404s. Fallback: load it again without textures
 // (plain shaded geometry) so a missing upload never hides the model.
@@ -9362,7 +9379,7 @@ function mountHomeScenes(){
       v.camera = new THREE.PerspectiveCamera(HOME_SCENE_FOV, 16 / 9, 0.1, 100);
       // seen from a little left of centre, so the diorama sits at an angle with its right side receding
       v.camera.position.set(-15 * Math.sin(DIORAMA.viewYaw), 5.2, 15 * Math.cos(DIORAMA.viewYaw) - 0.3);
-      v.camera.lookAt(0.3, 1.6, -0.3);
+      v.camera.lookAt(0.3, 2.4, -0.3);
       buildHomeStage(v, zoneKey);
       v.clock = new THREE.Clock();
       // Each model loads on its own: one failing model never hides the others
