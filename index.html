@@ -7269,23 +7269,19 @@ const HOME_ZONES = {
     props: [
       { gltf: 'models/housing/taurenlamppost.gltf', x: -0.78, bottom: 0.03, height: 0.27, rotY: 0.5 + Math.PI + 25 * Math.PI / 180 }
     ],
-    // House model per tier (a missing tier uses the closest lower one)
+    // One building per tier; they add up (z < 0 sits further back and appears smaller)
     houses: {
       1: { gltf: 'models/housing/mulgore-house-t1.gltf', x: 0.6, bottom: 0.14, height: 0.425, rotY: Math.PI / 2 },
-      2: { gltf: 'models/housing/mulgore-house-t2.gltf', x: -0.45, bottom: 0.14, height: 0.55, rotY: Math.PI / 2 }
+      2: { gltf: 'models/housing/mulgore-house-t2.gltf', x: -0.45, bottom: 0.14, height: 0.55, rotY: Math.PI, z: -6 }
     }
   }
 };
 const HOUSE_TIER_COSTS = { 1: 100, 2: 500, 3: 1000 }; // wood; enforced server-side in build_house_tier
-function houseModelFor(zone, tier){
-  const houses = (HOME_ZONES[zone] && HOME_ZONES[zone].houses) || {};
-  for(let t = tier; t >= 1; t--) if(houses[t]) return houses[t];
-  return null;
-}
 function homeSceneProps(zone, tier){
   const props = ((HOME_ZONES[zone] && HOME_ZONES[zone].props) || []).slice();
-  const house = tier > 0 && houseModelFor(zone, tier);
-  if(house) props.push(house);
+  // Houses stack: each tier adds its building, so a Tier 3 home is a little village
+  const houses = (HOME_ZONES[zone] && HOME_ZONES[zone].houses) || {};
+  for(let t = 1; t <= tier; t++) if(houses[t]) props.push(houses[t]);
   return props;
 }
 function homeZoneInfo(zone){
@@ -7541,7 +7537,7 @@ function placeHomeProp(holder, prop, aspect){
   const visH = 2 * HOME_SCENE_DIST * Math.tan(THREE.MathUtils.degToRad(HOME_SCENE_FOV / 2));
   const visW = visH * aspect;
   holder.scale.setScalar((prop.height * visH) / holder.userData.unitHeight);
-  holder.position.set(prop.x * visW / 2, -visH / 2 + (prop.bottom || 0) * visH, 0);
+  holder.position.set(prop.x * visW / 2, -visH / 2 + (prop.bottom || 0) * visH, prop.z || 0);
   holder.rotation.y = prop.rotY || 0;
 }
 
