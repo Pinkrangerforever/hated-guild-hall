@@ -3540,6 +3540,9 @@
   .home-scene canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
   /* The home panel breaks out of the 900px profile column so the scene can be large */
   .profile-home-panel{ width:min(1400px, calc(100vw - 32px)); align-self:center; }
+  .house-build-bar{ display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px; margin-top:18px; }
+  .house-tier-badge{ font-family:'Cinzel', Georgia, serif; font-weight:700; color:var(--hh-gold-bright); letter-spacing:0.06em; }
+  .home-tier-note{ text-align:center; margin-top:14px; font-family:'Cinzel', Georgia, serif; color:var(--hh-gold-bright); }
 </style>
 </head>
 <body>
@@ -7265,9 +7268,25 @@ const HOME_ZONES = {
     // extends past the frame: x -0.8 is about the frame's left edge, bottom 0.065 its bottom edge.
     props: [
       { gltf: 'models/housing/taurenlamppost.gltf', x: -0.8, bottom: 0.02, height: 0.48, rotY: 0.5 + Math.PI }
-    ]
+    ],
+    // House model per tier (a missing tier uses the closest lower one)
+    houses: {
+      1: { gltf: 'models/housing/mulgore-house-t1.gltf', x: 0.25, bottom: 0.14, height: 0.5, rotY: 0 }
+    }
   }
 };
+const HOUSE_TIER_COSTS = { 1: 100, 2: 500, 3: 1000 }; // wood; enforced server-side in build_house_tier
+function houseModelFor(zone, tier){
+  const houses = (HOME_ZONES[zone] && HOME_ZONES[zone].houses) || {};
+  for(let t = tier; t >= 1; t--) if(houses[t]) return houses[t];
+  return null;
+}
+function homeSceneProps(zone, tier){
+  const props = ((HOME_ZONES[zone] && HOME_ZONES[zone].props) || []).slice();
+  const house = tier > 0 && houseModelFor(zone, tier);
+  if(house) props.push(house);
+  return props;
+}
 function homeZoneInfo(zone){
   if(HOME_ZONES[zone]) return HOME_ZONES[zone];
   const item = (state.shopItems || []).find(i => i.category === 'home_location' && i.metadata && i.metadata.zone === zone);
@@ -7332,10 +7351,11 @@ function renderHomeSection(p, isMe){
           <div class="home-ground"></div>
           <div class="home-plaque">${esc(zone.label)}</div>
         </div>
-        <div class="home-scene" data-home-scene="${esc(home.zone)}"></div>
+        <div class="home-scene" data-home-scene="${esc(home.zone)}" data-home-tier="${home.house_tier || 0}"></div>
         <span class="home-frame-corner tl"></span><span class="home-frame-corner tr"></span>
         <span class="home-frame-corner bl"></span><span class="home-frame-corner br"></span>
       </div>
+      ${ isMe ? renderHouseBuildBar(home) : (home.house_tier ? `<div class="home-tier-note">Tier ${home.house_tier} house</div>` : '') }
       ${ isMe ? `
         <div class="home-actions">
           ${ home.is_active ? `<span class="home-active-note">&#9733; Shown on your profile</span>`
@@ -7372,6 +7392,39 @@ function renderHomeShopSection(gold){
     </div>`;
 }
 
+function renderHouseBuildBar(home){
+  const tier = home.house_tier || 0;
+  if(tier >= 3) return `<div class="house-build-bar"><span class="house-tier-badge">Tier 3 house</span><span class="muted sans">Fully upgraded</span></div>`;
+  const next = tier + 1, cost = HOUSE_TIER_COSTS[next];
+  const wood = (state.profile && state.profile.wood) || 0;
+  const label = tier === 0 ? 'Build a house' : `Upgrade to Tier ${next}`;
+  return `
+    <div class="house-build-bar">
+      ${ tier ? `<span class="house-tier-badge">Tier ${tier} house</span>` : `<span class="muted sans">No house yet</span>` }
+      <button class="btn" type="button" data-build-house="${esc(home.id)}" ${wood >= cost ? '' : 'disabled'}>
+        ${label} &middot; ${cost} wood${wood >= cost ? '' : ` (you have ${wood})`}
+      </button>
+    </div>`;
+}
+
+async function buildHouseTier(homeId){
+  if(state.houseBuildInFlight) return;
+  state.houseBuildInFlight = true;
+  try {
+    const { data, error } = await sb.rpc('build_house_tier', { p_home_id: homeId });
+    if(error || !data){ showToast("Couldn't build right now - try again", true); return; }
+    if(!data.success){ showToast(data.error || 'Build failed', true); return; }
+    state.profile.wood = data.wood;
+    const home = (profileHomes[state.profile.id] || []).find(h => h.id === homeId);
+    if(home) home.house_tier = data.tier;
+    updateNavbarUserInfo();
+    showToast(data.tier === 1 ? 'Your house is built!' : `House upgraded to Tier ${data.tier}!`);
+  } finally {
+    state.houseBuildInFlight = false;
+    render();
+  }
+}
+
 async function purchaseHomeLocation(itemId){
   if(state.homeBuyInFlight) return;
   state.homeBuyInFlight = true;
@@ -7399,9 +7452,11 @@ async function setActiveHome(homeId){
 
 // Delegated handlers (bound once; survive re-renders)
 document.addEventListener('click', e => {
-  const t = e.target.closest && e.target.closest('[data-home-tab],[data-set-active-home],[data-buy-home],[data-open-shop-homes]');
+  const t = e.target.closest && e.target.closest('[data-home-tab],[data-set-active-home],[data-buy-home],[data-open-shop-homes],[data-build-house]');
   if(!t || !state.session) return;
-  if(t.hasAttribute('data-home-tab')){
+  if(t.hasAttribute('data-build-house')){
+    buildHouseTier(t.getAttribute('data-build-house'));
+  } else if(t.hasAttribute('data-home-tab')){
     profileHomeSelected[t.getAttribute('data-home-user')] = t.getAttribute('data-home-tab');
     render();
   } else if(t.hasAttribute('data-set-active-home')){
@@ -7465,13 +7520,14 @@ function mountHomeScenes(){
   if(typeof THREE === 'undefined') return;
   document.querySelectorAll('[data-home-scene]').forEach(slot => {
     const zoneKey = slot.getAttribute('data-home-scene');
-    const zone = HOME_ZONES[zoneKey];
-    const props = (zone && zone.props) || [];
+    const tier = parseInt(slot.getAttribute('data-home-tier') || '0', 10);
+    const props = homeSceneProps(zoneKey, tier);
     if(!props.length) return;
 
-    let v = homeSceneViewers[zoneKey];
+    const viewerKey = zoneKey + '|' + tier;
+    let v = homeSceneViewers[viewerKey];
     if(!v){
-      v = homeSceneViewers[zoneKey] = { ready: false, failed: false, raf: null, mixers: [], holders: [] };
+      v = homeSceneViewers[viewerKey] = { ready: false, failed: false, raf: null, mixers: [], holders: [] };
       v.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       v.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       v.scene = new THREE.Scene();
