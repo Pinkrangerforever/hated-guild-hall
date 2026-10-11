@@ -7492,8 +7492,36 @@ const homeSceneViewers = {}; // zone -> { renderer, scene, camera, mixers, clock
 const HOME_SCENE_FOV = 30;
 const HOME_SCENE_DIST = 10;
 
+// three r128 fails a whole glTF when any texture 404s. Fallback: load it again without textures
+// (plain shaded geometry) so a missing upload never hides the model.
+function loadGltfWithoutTextures(url){
+  return fetch(url).then(r => r.json()).then(json => {
+    delete json.images; delete json.textures; delete json.samplers;
+    (json.materials || []).forEach(m => {
+      if(m.pbrMetallicRoughness){ delete m.pbrMetallicRoughness.baseColorTexture; delete m.pbrMetallicRoughness.metallicRoughnessTexture; }
+      delete m.normalTexture; delete m.emissiveTexture; delete m.occlusionTexture;
+      m.pbrMetallicRoughness = Object.assign({ baseColorFactor: [0.72, 0.62, 0.5, 1], metallicFactor: 0, roughnessFactor: 1 }, m.pbrMetallicRoughness || {});
+    });
+    return new Promise((resolve, reject) => new THREE.GLTFLoader().parse(JSON.stringify(json), '', resolve, reject));
+  }).then(gltf => {
+    const root = gltf.scene;
+    root.traverse(m => { if(m.isMesh) m.frustumCulled = false; });
+    const box = new THREE.Box3().setFromObject(root);
+    const size = box.getSize(new THREE.Vector3());
+    root.position.sub(box.getCenter(new THREE.Vector3()));
+    const pivot = new THREE.Group();
+    pivot.add(root);
+    pivot.scale.setScalar(1 / Math.max(size.x, size.y, 0.0001));
+    pivot.userData.animations = gltf.animations;
+    return pivot;
+  });
+}
+
 function loadHomeProp(prop){
-  return getAnimatedPetModel({ gltf: prop.gltf }).then(pivot => {
+  return getAnimatedPetModel({ gltf: prop.gltf }).catch(err => {
+    console.warn('Home prop textures missing, showing it untextured:', prop.gltf, err && err.message);
+    return loadGltfWithoutTextures(prop.gltf);
+  }).then(pivot => {
     // getAnimatedPetModel centers the model and scales it to unit size; re-seat it so its
     // bottom-center is the origin, then size it to the requested share of the frame height.
     const box = new THREE.Box3().setFromObject(pivot);
@@ -7538,8 +7566,10 @@ function mountHomeScenes(){
       sun.position.set(-3, 4, 6);
       v.scene.add(sun, new THREE.AmbientLight(0xfff0dc, 0.75));
       v.clock = new THREE.Clock();
-      Promise.all(props.map(loadHomeProp)).then(holders => {
+      // Each prop loads on its own: one failing model never hides the others
+      Promise.all(props.map(p => loadHomeProp(p).catch(err => { console.error('Home prop failed:', p.gltf, err); return null; }))).then(holders => {
         holders.forEach((h, i) => {
+          if(!h) return;
           v.holders.push({ holder: h, prop: props[i] });
           v.scene.add(h);
           const clip = (h.userData.animations || [])[0];
