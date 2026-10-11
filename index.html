@@ -3598,6 +3598,27 @@
     border:2px solid #c9963f; box-shadow:0 0 0 1px #000; background:#000; }
   /* The 3D diorama (backdrop + stage) fills the frame; the flat video shows until it is ready */
   .home-scene{ position:absolute; inset:0; z-index:1; pointer-events:none; }
+  .resource-shelf{ display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; padding:12px; border-radius:6px;
+    background:linear-gradient(180deg, #3a2412, #24160a); border:3px solid #5a3818; box-shadow:inset 0 0 24px rgba(0,0,0,0.7), 0 2px 8px rgba(0,0,0,0.5); }
+  .shelf-cubby{ position:relative; display:flex; flex-direction:column; align-items:stretch; padding:8px 6px 6px; border-radius:4px;
+    background:radial-gradient(ellipse at 50% 85%, rgba(255,210,140,0.10), transparent 70%), linear-gradient(180deg, #1a0f06, #2b1a0c);
+    box-shadow:inset 0 6px 12px rgba(0,0,0,0.75), inset 0 0 0 1px rgba(255,220,160,0.08); }
+  .shelf-pile{ position:relative; height:110px; }
+  .shelf-item{ position:absolute; width:30px; height:30px; object-fit:contain; filter:drop-shadow(0 2px 2px rgba(0,0,0,0.7));
+    animation:shelfDrop .45s cubic-bezier(.3,1.6,.6,1) both, shelfIdle 4s ease-in-out infinite; }
+  @keyframes shelfDrop{ from{ opacity:0; margin-bottom:40px; } to{ opacity:1; margin-bottom:0; } }
+  @keyframes shelfIdle{ 0%,100%{ filter:drop-shadow(0 2px 2px rgba(0,0,0,0.7)); } 50%{ filter:drop-shadow(0 2px 2px rgba(0,0,0,0.7)) brightness(1.12); } }
+  .shelf-crystal .shelf-item{ animation:shelfDrop .45s cubic-bezier(.3,1.6,.6,1) both, shelfGlow 2.4s ease-in-out infinite; }
+  @keyframes shelfGlow{ 0%,100%{ filter:drop-shadow(0 0 3px rgba(180,140,255,0.6)); } 50%{ filter:drop-shadow(0 0 9px rgba(200,170,255,1)) brightness(1.2); } }
+  .shelf-crystal.lvl-0 .shelf-pile, .shelf-cubby.lvl-0 .shelf-pile{ display:flex; align-items:center; justify-content:center; }
+  .shelf-empty{ color:rgba(233,220,192,0.35); font-size:12px; font-style:italic; }
+  .shelf-gold.lvl-5 .shelf-pile::before{ content:''; position:absolute; inset:-6px 0 0; background:radial-gradient(ellipse at 50% 80%, rgba(255,215,90,0.35), transparent 65%); animation:shelfShine 3s ease-in-out infinite; }
+  @keyframes shelfShine{ 50%{ opacity:0.4; } }
+  .shelf-plank{ height:9px; margin:0 -6px; border-radius:2px; background:linear-gradient(180deg, #8a5a2b, #5a3818 60%, #3a2410); box-shadow:0 3px 4px rgba(0,0,0,0.6); }
+  .shelf-tag{ margin-top:7px; text-align:center; font-family:'Cinzel', Georgia, serif; font-size:12px; color:#e9dcc0; letter-spacing:0.04em; }
+  .shelf-tag b{ color:var(--hh-gold-bright, #f0d27a); font-size:14px; }
+  .shelf-crystal .shelf-tag b{ color:#c9a8ff; }
+  @media (max-width:640px){ .resource-shelf{ grid-template-columns:repeat(2, 1fr); } }
   .home-frame-inner{ cursor:grab; touch-action:pan-y; user-select:none; }
   .home-frame-inner.dragging{ cursor:grabbing; }
   .home-frame-inner::after{ z-index:3; }
@@ -9678,8 +9699,50 @@ function renderProfilePage(){
       </div>
 
       ${renderProfileStats(p)}
+      ${renderResourceShelf(p, isMe)}
       ${renderHomeSection(p, isMe)}
       ${renderPetRoster(p, isMe)}
+    </div>`;
+}
+
+/* ---------------- Resource shelf ----------------
+   A wooden shelf on every profile with one cubby per resource; each pile grows through 5 sizes. */
+const SHELF_RESOURCES = [
+  { key: 'gold', label: 'Gold', icon: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png', steps: [1, 100, 500, 1500, 4000], cls: 'gold' },
+  { key: 'wood', label: 'Wood', icon: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/WoodIcon.png', steps: [1, 25, 100, 300, 800], cls: 'wood' },
+  { key: 'food', label: 'Food', icon: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/FoodIcon.png', steps: [1, 10, 40, 100, 250], cls: 'food' },
+  { key: 'crystals', label: 'Crystals', icon: null, steps: [1, 3, 6, 10, 20], cls: 'crystal' }
+];
+const SHELF_PILE = [0, 1, 3, 6, 10, 15];        // items drawn at each size
+const SHELF_NAMES = ['Empty', 'A few', 'A little stash', 'A good pile', 'A hoard', 'Overflowing!'];
+function renderResourceShelf(p, isMe){
+  const src = isMe && state.profile ? state.profile : p;
+  const cubbies = SHELF_RESOURCES.map(r => {
+    const n = Math.max(0, Math.floor(src[r.key] || 0));
+    const lvl = r.steps.filter(s => n >= s).length;
+    const icon = r.icon || CRYSTAL_ICON;
+    // pyramid: rows of 5, 4, 3, 2, 1 from the bottom, with a little jitter so it looks piled, not stacked
+    let html = '', placed = 0, seed = r.key.length * 31 + 7;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for(let row = 0; row < 5 && placed < SHELF_PILE[lvl]; row++){
+      const inRow = Math.min(5 - row, SHELF_PILE[lvl] - placed);
+      for(let i = 0; i < inRow; i++, placed++){
+        const x = 50 + (i - (inRow - 1) / 2) * 17 + (rnd() - 0.5) * 4;
+        const y = row * 19 + (rnd() - 0.5) * 3;
+        html += `<img class="shelf-item" src="${icon}" alt="" style="left:${x}%; bottom:${y}px; transform:translateX(-50%) rotate(${Math.round((rnd() - 0.5) * 30)}deg); animation-delay:${(placed * 0.05).toFixed(2)}s, ${(rnd() * 3).toFixed(2)}s">`;
+      }
+    }
+    return `
+      <div class="shelf-cubby shelf-${r.cls} lvl-${lvl}" title="${esc(r.label)}: ${n.toLocaleString()} (${SHELF_NAMES[lvl]})">
+        <div class="shelf-pile">${html || '<span class="shelf-empty">&mdash; empty &mdash;</span>'}</div>
+        <div class="shelf-plank"></div>
+        <div class="shelf-tag"><b>${n.toLocaleString()}</b> ${esc(r.label)}</div>
+      </div>`;
+  }).join('');
+  return `
+    <div class="profile-panel profile-home-panel profile-roster-panel resource-shelf-panel">
+      <h3 class="profile-section-title">${isMe ? 'Your Stash' : 'Stash'}</h3>
+      <div class="resource-shelf">${cubbies}</div>
     </div>`;
 }
 
