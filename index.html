@@ -7879,7 +7879,7 @@ function mountHomeScenes(){
       // Daylight to match the zone videos: correct color output, warm sun from the upper left,
       // pale sky above / dusty ground bounce below
       v.renderer.outputEncoding = THREE.sRGBEncoding;
-      const sun = new THREE.DirectionalLight(0xfff0d0, 1.15);
+      const sun = new THREE.DirectionalLight(0xfff0d0, 0.95);
       sun.position.set(-5, 6, 5);
       const sky = new THREE.HemisphereLight(0xdfeeff, 0x9a7a4a, 0.65);
       v.scene.add(sun, sky, new THREE.AmbientLight(0xffffff, 0.25));
