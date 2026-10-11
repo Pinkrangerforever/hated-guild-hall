@@ -544,6 +544,8 @@
   .badge.out{ background:var(--red-bg); color:var(--red); border-color:rgba(176,82,79,0.35); }
   .badge.role-officer{ background:rgba(207,154,68,0.16); color:#e0c07f; border-color:rgba(207,154,68,0.35); }
   .badge.role-raidlead{ background:linear-gradient(135deg, rgba(207,154,68,1) 0%, rgba(207,154,68,0.95) 100%); color:#ffffff; border-color:rgba(207,154,68,1); font-weight:800; box-shadow:0 0 12px rgba(207,154,68,0.8); }
+  .badge.role-raider{ background:rgba(127,212,255,0.12); color:#9fdcff; border-color:rgba(127,212,255,0.4); }
+  .rank-select{ margin-right:10px; padding:5px 8px; background:rgba(0,0,0,0.4); color:var(--hh-parchment, #e9dcc0); border:1px solid rgba(201,150,63,0.4); border-radius:4px; font-size:12px; }
   .badge.role-member{ background:rgba(255,255,255,0.05); color:var(--text-muted); border-color:var(--divider-strong); }
 
   table{ width:100%; border-collapse:collapse; font-size:14px; }
@@ -4293,8 +4295,14 @@ function getEffectiveRole(){
   if(testRole) return testRole;
   if(state.profile?.protected) return 'raidleader';
   if(state.profile?.role === 'officer') return 'officer';
+  if(state.profile?.role === 'raider') return 'raider';
   return 'member';
 }
+function testIsRaider(){ return getEffectiveRole() === 'raider'; }
+// Rank display: Member -> Raider -> Officer -> Raid Leader (protected)
+const RANK_LABEL = { member: 'Member', raider: 'Raider', officer: 'Officer' };
+function rankLabelFor(p){ return p.protected ? 'Raid Leader' : (RANK_LABEL[p.role] || 'Member'); }
+function rankBadgeClass(p){ return p.protected ? 'role-raidlead' : ('role-' + (RANK_LABEL[p.role] ? p.role : 'member')); }
 function testIsRaidLeader(){ return getEffectiveRole() === 'raidleader'; }
 function testIsOfficer(){ return getEffectiveRole() === 'officer'; }
 function testIsMember(){ return getEffectiveRole() === 'member'; }
@@ -4980,15 +4988,13 @@ async function removeCompSlot(groupIdx, slotIdx){
   state.modal = null;
   render();
 }
-async function toggleOfficer(profileId){
+async function setMemberRank(profileId, rank){
   const p = state.profilesById[profileId];
-  if(!p) return;
-  const newRole = p.role === 'officer' ? 'member' : 'officer';
-  const { data, error } = await sb.from('profiles').update({ role: newRole }).eq('id', profileId).select().single();
-  if(error){ showToast("Couldn't update  try again", true); return; }
-  state.profilesById[profileId] = data;
-  if(state.profile && state.profile.id === profileId) state.profile = data;
-  showToast(data.character_name + ' is now ' + newRole);
+  if(!p || p.role === rank) return;
+  const { data, error } = await sb.rpc('set_member_rank', { p_user_id: profileId, p_role: rank });
+  if(error || !data || !data.success){ showToast((data && data.error) || "Couldn't change rank - try again", true); render(); return; }
+  p.role = rank;
+  showToast(`${p.character_name || 'Player'} is now ${RANK_LABEL[rank]}`);
   render();
 }
 async function saveMyName(){
@@ -8017,7 +8023,7 @@ function renderProfilePage(){
   const c = getUserNameCustomization(p.id);
   const slotClasses = [c.border, c.nameCustom].filter(Boolean).join(' ');
   const rank = profileLeaderboardRank(p.id);
-  const roleLabel = p.protected ? 'Raid Leader' : (p.role === 'officer' ? 'Officer' : 'Member');
+  const roleLabel = rankLabelFor(p);
   const isMe = state.profile && state.profile.id === p.id;
 
 
@@ -8853,8 +8859,15 @@ function renderRoster(){
             </div>
             <div class="muted sans" style="font-size:12px; margin-top:2px;">Gold: ${(p.gold||0).toLocaleString()} current | Earned: ${(p.gold_earned_total||0).toLocaleString()}</div>
           </div>
-          <span class="badge ${p.protected ? 'role-raidlead' : (p.role==='officer'?'role-officer':'role-member')}" style="margin-right:10px;">${p.protected ? '&#9819; Raid Leader' : (p.role==='officer'?'Officer':'Member')}</span>
-          ${ officer && !p.protected ? `<button class="btn secondary" data-toggle-officer="${p.id}">${p.role==='officer'?'Demote':'Promote'}</button>` : '' }
+          <span class="badge ${rankBadgeClass(p)}" style="margin-right:10px;">${p.protected ? '&#9819; ' : ''}${rankLabelFor(p)}</span>
+          ${ (() => {
+            // Raid Leader: any rank below them. Officers: Member <-> Raider only.
+            if(p.protected || (state.profile && p.id === state.profile.id)) return '';
+            const ranks = isRaidLeader ? ['member', 'raider', 'officer']
+                        : (officer && p.role !== 'officer' ? ['member', 'raider'] : []);
+            if(!ranks.length) return '';
+            return `<select class="rank-select" data-set-rank="${p.id}" title="Change rank">${ranks.map(rk => `<option value="${rk}" ${p.role === rk ? 'selected' : ''}>${RANK_LABEL[rk]}</option>`).join('')}</select>`;
+          })() }
           ${ isRaidLeader ? `
             <button class="btn secondary" data-reset-current-gold="${p.id}" style="background-color:rgba(207,154,68,0.2); font-size:11px;">Reset Current</button>
             <button class="btn secondary" data-reset-earned-gold="${p.id}" style="background-color:rgba(207,154,68,0.15); font-size:11px;">Reset Earned</button>
@@ -9526,6 +9539,7 @@ function renderSettings(){
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn ${!testRole ? 'primary' : 'secondary'}" type="button" id="test-role-actual" style="flex:1; min-width:120px;">Your Actual Role</button>
         <button class="btn ${testRole === 'member' ? 'primary' : 'secondary'}" type="button" id="test-role-member" style="flex:1; min-width:120px;">Test as Member</button>
+        <button class="btn ${testRole === 'raider' ? 'primary' : 'secondary'}" type="button" id="test-role-raider" style="flex:1; min-width:120px;">Test as Raider</button>
         <button class="btn ${testRole === 'officer' ? 'primary' : 'secondary'}" type="button" id="test-role-officer" style="flex:1; min-width:120px;">Test as Officer</button>
         <button class="btn ${testRole === 'raidleader' ? 'primary' : 'secondary'}" type="button" id="test-role-raidleader" style="flex:1; min-width:120px;">Test as Raid Leader</button>
       </div>
@@ -10013,7 +10027,7 @@ function bindApp(){
   // roster: members + comp planner
   const myNameSaveBtn = document.getElementById('my-name-save-btn');
   if(myNameSaveBtn) myNameSaveBtn.addEventListener('click', saveMyName);
-  document.querySelectorAll('[data-toggle-officer]').forEach(b=>b.addEventListener('click', ()=>toggleOfficer(b.dataset.toggleOfficer)));
+  document.querySelectorAll('[data-set-rank]').forEach(sel=>sel.addEventListener('change', ()=>setMemberRank(sel.dataset.setRank, sel.value)));
   document.querySelectorAll('[data-reset-current-gold]').forEach(b=>b.addEventListener('click', ()=>resetMemberCurrentGold(b.dataset.resetCurrentGold)));
   document.querySelectorAll('[data-reset-earned-gold]').forEach(b=>b.addEventListener('click', ()=>resetMemberEarnedGold(b.dataset.resetEarnedGold)));
   document.querySelectorAll('[data-rename-member]').forEach(b=>b.addEventListener('click', ()=>openRenameMemberModal(b.dataset.renameMember)));
@@ -10490,6 +10504,8 @@ function bindApp(){
   if(testRoleActual) testRoleActual.addEventListener('click', ()=>{ setTestRole(null); render(); });
   if(testRoleMember) testRoleMember.addEventListener('click', ()=>{ setTestRole('member'); render(); });
   if(testRoleOfficer) testRoleOfficer.addEventListener('click', ()=>{ setTestRole('officer'); render(); });
+  const testRoleRaider = document.getElementById('test-role-raider');
+  if(testRoleRaider) testRoleRaider.addEventListener('click', ()=>{ setTestRole('raider'); render(); });
   if(testRoleRaidleader) testRoleRaidleader.addEventListener('click', ()=>{ setTestRole('raidleader'); render(); });
 
 }
