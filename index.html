@@ -3926,6 +3926,39 @@
   .trv-a.right{ border-color:#7fd06b; background:linear-gradient(180deg, rgba(40,90,40,0.85), rgba(20,50,20,0.9)); box-shadow:0 0 12px rgba(127,208,107,0.5); }
   .trv-a.wrong{ border-color:#e07a6a; background:linear-gradient(180deg, rgba(110,30,22,0.85), rgba(60,14,10,0.9)); }
   @media (max-width:480px){ .trv-answers{ grid-template-columns:1fr; } }
+
+  /* ---- Fishing / Murlocs / Blacksmith inside the Encounter card ---- */
+  .enc-body .murloc-event{ position:relative; margin:4px auto 0; max-width:100%; }
+  .murloc-bubble{ display:inline-block; margin-bottom:6px; padding:4px 10px; border-radius:12px; font-family:'Cinzel', Georgia, serif;
+    font-size:12px; font-weight:700; color:#2a3a3c; background:#e9f6f3; border:2px solid #4ecbdb; position:relative;
+    animation:murlocBubble 0.6s cubic-bezier(.2,1.6,.4,1) both, murlocBubbleWobble 1.2s ease-in-out .6s infinite; }
+  .murloc-bubble::after{ content:''; position:absolute; left:50%; bottom:-8px; margin-left:-6px; border:6px solid transparent; border-top-color:#4ecbdb; }
+  @keyframes murlocBubble{ from{ transform:scale(0); } }
+  @keyframes murlocBubbleWobble{ 50%{ transform:rotate(-3deg) scale(1.04); } }
+  .enc-murloc .enc-body{ text-align:center; min-height:120px; }
+  .murloc.hit{ transform:translateY(-14px) rotate(-40deg) scale(0.3) !important; }
+
+  .enc-body .fishing-pool{ position:relative; width:200px; height:200px; margin:0 auto 74px; }
+  .enc-fishing .pool-click-hint{ font-family:'Cinzel', Georgia, serif; letter-spacing:0.04em; border-color:#c9963f; color:#fff3c8;
+    box-shadow:0 0 12px rgba(240,201,90,0.4); animation:castPulse 1.2s ease-in-out infinite; }
+  @keyframes castPulse{ 50%{ box-shadow:0 0 20px rgba(240,201,90,0.8); } }
+  .pond-bobber{ position:absolute; left:58%; top:42%; width:12px; height:12px; border-radius:50%; z-index:2; pointer-events:none;
+    background:radial-gradient(circle at 35% 30%, #fff, #e05a4f 55%, #7a1f18); box-shadow:0 2px 3px rgba(0,0,0,0.5);
+    animation:bobberBob 1.3s ease-in-out infinite; }
+  .pond-bobber::after{ content:''; position:absolute; left:-6px; right:-6px; bottom:-3px; height:4px; border-radius:50%; border:1px solid rgba(200,235,255,0.6); }
+  @keyframes bobberBob{ 0%,100%{ transform:translateY(0); } 40%{ transform:translateY(3px); } 55%{ transform:translateY(-1px); } }
+  .fish-splash{ position:absolute; left:50%; top:45%; width:0; height:0; z-index:3; pointer-events:none; }
+  .fish-splash i{ position:absolute; width:8px; height:8px; border-radius:50%; background:rgba(180,225,255,0.9);
+    box-shadow:0 0 6px rgba(140,200,255,0.9); animation:splashDrop 0.7s ease-out forwards; }
+  .fish-splash i:nth-child(1){ --x:-34px; --y:-30px; } .fish-splash i:nth-child(2){ --x:30px; --y:-36px; }
+  .fish-splash i:nth-child(3){ --x:-12px; --y:-46px; } .fish-splash i:nth-child(4){ --x:16px; --y:-24px; }
+  .fish-splash i:nth-child(5){ --x:-26px; --y:-14px; } .fish-splash i:nth-child(6){ --x:38px; --y:-10px; }
+  @keyframes splashDrop{ 0%{ transform:translate(0,0) scale(1); opacity:1; } 60%{ transform:translate(var(--x), var(--y)) scale(0.8); opacity:1; }
+    100%{ transform:translate(calc(var(--x) * 1.2), calc(var(--y) * -0.2)) scale(0.3); opacity:0; } }
+
+  .enc-body .blacksmith-forge{ position:relative; width:150px; height:150px; margin:46px auto 6px; }
+  .enc-forge .sword-graphic{ transition:filter 0.25s ease-out; }
+  .enc-stamp{ max-width:94%; white-space:normal; text-align:center; }
 </style>
 </head>
 <body>
@@ -5814,20 +5847,24 @@ function startMurlocEvent(rect, pendingId, params){
 
   const container = document.createElement('div');
   container.className = 'murloc-event';
-  container.style.left = (cx - stageWidth/2 - 10) + 'px';
-  container.style.top = (cy - 55) + 'px';
   container.style.width = (stageWidth + 20) + 'px';
 
   let murlocButtons = '';
   for(let i=0;i<count;i++){
-    murlocButtons += '<button type="button" class="murloc" data-murloc="' + i + '" style="width:' + size + 'px; height:' + (size*1.1) + 'px; animation-duration:' + durationMs + 'ms;">' + MURLOC_SVG + '</button>';
+    // Each one waddles on its own rhythm and height so they don't move in lockstep
+    const bob = (Math.random() * 14 - 7).toFixed(0);
+    murlocButtons += '<button type="button" class="murloc" data-murloc="' + i + '" style="width:' + size + 'px; height:' + (size*1.1) + 'px; margin-bottom:' + (bob > 0 ? bob : 0) + 'px; animation-duration:' + Math.round(durationMs * (0.94 + Math.random() * 0.12)) + 'ms;">' + MURLOC_SVG + '</button>';
   }
 
   container.innerHTML =
-    '<div class="murloc-label">Shoot them before they escape with the gold!</div>' +
-    '<div class="murloc-timer-bar"><div class="murloc-timer-fill" style="animation-duration:' + durationMs + 'ms;"></div></div>' +
+    '<div class="murloc-bubble">Mrglglglgl!</div>' +
     '<div class="murloc-stage" style="gap:' + gap + 'px;">' + murlocButtons + '</div>';
-  layer.appendChild(container);
+  const enc = openEncounterCard(rect, {
+    cls: 'enc-murloc', icon: '&#127993;', title: 'Murloc Ambush',
+    instruction: `Shoot all ${count} murlocs before they run off with the gold!`,
+    reward: '15&ndash;25 gold &middot; 2&ndash;4 food', durationMs
+  });
+  enc.body.appendChild(container);
 
   let hits = 0, resolved = false;
   const total = count;
@@ -5860,13 +5897,10 @@ function startMurlocEvent(rect, pendingId, params){
     if(resolved) return;
     resolved = true;
     clearTimeout(timeoutId);
-    if(success){
-      showToast('Caught them all! +Gold earned');
-    } else {
-      showToast('The murlocs got away!', true);
-    }
-    resolveSparkleEvent(pendingId, success, cx, cy, clickTimings);
-    setTimeout(()=>{ if(container.parentNode) container.remove(); }, 400);
+    enc.stopTimer();
+    const vr = enc.card.getBoundingClientRect();
+    resolveSparkleEvent(pendingId, success, vr.left + vr.width / 2, vr.top + 20, clickTimings, { silent: true })
+      .then(d => enc.finish(!!(d && d.won), d && d.won ? 'Ambush foiled!' : 'They escaped!'));
   }
 
   container.querySelectorAll('.murloc').forEach(m=>{
@@ -5938,14 +5972,18 @@ function startFishingEvent(rect, pendingId, params){
   const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
   const pool = document.createElement('div');
   pool.className = 'fishing-pool';
-  pool.style.left = (cx - 120) + 'px';
-  pool.style.top = (cy - 120) + 'px';
   pool.innerHTML =
     '<span class="pool-ripple"></span>' +
     POND_SVG +
+    '<span class="pond-bobber"></span>' +
     '<img class="pond-fish" src="pond-fish.png" alt="Fish"/>' +
-    '<button type="button" class="pool-click-hint">Click to fish!</button>';
-  layer.appendChild(pool);
+    '<button type="button" class="pool-click-hint">Cast your line!</button>';
+  const enc = openEncounterCard(rect, {
+    cls: 'enc-fishing', icon: '&#127907;', title: 'Deviate Fishing',
+    instruction: 'Something is biting&hellip; cast your line into the pool!',
+    reward: '25&ndash;35 gold &middot; 2&ndash;4 food', durationMs: params.idle_ms || FISHING_IDLE_TIMEOUT_MS
+  });
+  enc.body.appendChild(pool);
 
   let resolved = false;
   const clickTimings = []; // [ms to click the pond, ms after the gauge appeared]
@@ -5954,8 +5992,8 @@ function startFishingEvent(rect, pendingId, params){
   const idleTimeout = setTimeout(()=>{
     if(resolved) return;
     resolved = true;
-    resolveSparkleEvent(pendingId, false, cx, cy, clickTimings);
-    pool.remove();
+    resolveSparkleEvent(pendingId, false, cx, cy, clickTimings, { silent: true });
+    enc.finish(false, 'Too slow!');
   }, params.idle_ms || FISHING_IDLE_TIMEOUT_MS);
 
   const hintBtn = pool.querySelector('.pool-click-hint');
@@ -5964,6 +6002,8 @@ function startFishingEvent(rect, pendingId, params){
     clickTimings.push(Math.round(performance.now() - poolShown));
     clearTimeout(idleTimeout);
     hintBtn.remove();
+    enc.restartTimer(gameMs);
+    enc.setInstruction('Click when the line is in the <b style="color:#7fd06b">green</b>!');
 
     // The green zone comes from the server, which checks the catch the same way
     const zoneStart = params.zone_start != null ? params.zone_start : -80 + Math.random()*(160-FISHING_ZONE_WIDTH_DEG);
@@ -5985,18 +6025,21 @@ function startFishingEvent(rect, pendingId, params){
       gameResolved = true;
       resolved = true;
       clearTimeout(gameTimeout);
+      enc.stopTimer();
       if(success){
-        showToast('You caught the Deviate Fish!');
         const jump = document.createElement('div');
         jump.className = 'fish-jump';
         jump.style.backgroundImage = "url('fishing-fish.png')";
         pool.appendChild(jump);
-        setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 1400);
       } else {
-        showToast('The fish got away', true);
-        setTimeout(()=>{ if(pool.parentNode) pool.remove(); }, 300);
+        const splash = document.createElement('div');
+        splash.className = 'fish-splash';
+        splash.innerHTML = '<i></i><i></i><i></i><i></i><i></i><i></i>';
+        pool.appendChild(splash);
       }
-      resolveSparkleEvent(pendingId, success, cx, cy, clickTimings);
+      const vr = enc.card.getBoundingClientRect();
+      resolveSparkleEvent(pendingId, success, vr.left + vr.width / 2, vr.top + 20, clickTimings, { silent: true })
+        .then(d => enc.finish(!!(d && d.won), d && d.won ? 'Caught it!' : 'It got away!', 1600));
     }
 
     gaugeWrap.querySelector('.fish-gauge-btn').addEventListener('click', ()=>{
@@ -6046,6 +6089,13 @@ function openEncounterCard(rect, opts){
   return {
     card, body: card.querySelector('.enc-body'),
     stopTimer(){ fill.style.animationPlayState = 'paused'; },
+    restartTimer(ms){
+      fill.classList.remove('run'); void fill.offsetWidth;
+      fill.style.animationPlayState = 'running';
+      fill.style.animationDuration = ms + 'ms';
+      fill.classList.add('run');
+    },
+    setInstruction(html){ card.querySelector('.enc-instruction').innerHTML = html; },
     // VICTORY / DEFEAT stamp, then fold away
     finish(won, label, holdMs){
       card.classList.add('done');
@@ -6131,8 +6181,6 @@ function startBlacksmithGame(spawnRect, pendingId, params){
 
   const forge = document.createElement('div');
   forge.className = 'blacksmith-forge';
-  forge.style.left = (cx - 60) + 'px';
-  forge.style.top = (cy - 60) + 'px';
   forge.innerHTML = `
     <div style="position:relative; width:100%; height:100%;">
       <img class="anvil-graphic" src="${BLACKSMITH_ART}anvil.png" style="position:absolute; left:50%; bottom:0; transform:translateX(-50%); height:70%; max-width:90%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));" alt="anvil"/>
@@ -6158,7 +6206,12 @@ function startBlacksmithGame(spawnRect, pendingId, params){
     <div class="hit-display" style="position:absolute; bottom:2px; left:50%; transform:translateX(-50%); font-size:9px; color:#f0dfb4; font-weight:700; min-width:35px; text-align:center;"></div>
     <div class="feedback-popup" style="position:absolute; top:35%; left:50%; transform:translate(-50%,-50%); font-size:13px; font-weight:700; pointer-events:none; display:none; text-shadow:0 2px 4px rgba(0,0,0,0.8);"></div>
   `;
-  layer.appendChild(forge);
+  const enc = openEncounterCard(spawnRect, {
+    cls: 'enc-forge', icon: '&#9874;', title: 'Forge Thunderfury',
+    instruction: 'Strike when the marker rests in the <b style="color:#7fd06b">green</b> &mdash; 3 perfect hits in 5 swings!',
+    reward: '20&ndash;30 gold', durationMs: params.game_ms || 10000
+  });
+  enc.body.appendChild(forge);
 
   let gameState = {
     hits: 0,
@@ -6305,6 +6358,8 @@ function startBlacksmithGame(spawnRect, pendingId, params){
     hitDisplay.textContent = `${gameState.hits}/3${attemptsSoFar > 0 ? ' (' + attemptsSoFar + '/5)' : ''}`;
 
     showFeedback('Perfect!', '#7fa363');
+    const blade = forge.querySelector('.sword-graphic');
+    if(blade) blade.style.filter = `drop-shadow(0 1px 3px rgba(0,0,0,0.8)) drop-shadow(0 0 ${6 + gameState.hits * 6}px rgba(127,212,255,${0.35 + gameState.hits * 0.2})) brightness(${1 + gameState.hits * 0.12})`;
 
     if(gameState.hits >= gameState.maxHits){
       finishGame(true);
@@ -6351,13 +6406,7 @@ function startBlacksmithGame(spawnRect, pendingId, params){
     hammer.style.animation = 'none';
     hammer.style.transform = 'rotate(0deg)';
 
-    // Show messages first (before resolver)
-    if(success){
-      showFeedback('Success!', '#7fa363');
-      showToast(`You forged Thunderfury!`);
-    } else {
-      showToast('YOU FUCKING BROKE IT!', true);
-    }
+    enc.stopTimer();
 
     // Create smoke animation
     const smoke = document.createElement('div');
@@ -6369,8 +6418,9 @@ function startBlacksmithGame(spawnRect, pendingId, params){
     `;
     forge.appendChild(smoke);
 
-    resolveSparkleEvent(pendingId, success, cx, cy, clickTimings);
-    setTimeout(()=>{ if(forge.parentNode) forge.remove(); }, 1200);
+    const vr = enc.card.getBoundingClientRect();
+    resolveSparkleEvent(pendingId, success, vr.left + vr.width / 2, vr.top + 20, clickTimings, { silent: true })
+      .then(d => enc.finish(!!(d && d.won), d && d.won ? 'Forged!' : 'YOU FUCKING BROKE IT!', 1700));
   }
 
   runHammerCycle();
@@ -6380,6 +6430,19 @@ function startBlacksmithGame(spawnRect, pendingId, params){
 // waiting for the real randomized interval. Harmless to expose  spawning a
 // sparkle grants nothing by itself; only a server-verified claim does.
 window.spawnSparkle = spawnSparkle;
+// Staging only: preview a mini-game's card without a real game (it can't pay out - no server challenge)
+if(typeof isStaging !== 'undefined' && isStaging){
+  window.previewMiniGame = (type) => {
+    const rect = { left: window.innerWidth / 2 - 20, top: window.innerHeight / 2 - 20, width: 40, height: 40 };
+    const demo = {
+      fishing: () => startFishingEvent(rect, 'preview', { zone_start: -20, zone_width: 26, sweep_ms: 1400, game_ms: 6000, idle_ms: 6000 }),
+      murloc: () => startMurlocEvent(rect, 'preview', { count: 4, duration_ms: 4500 }),
+      blacksmith: () => startBlacksmithGame(rect, 'preview', { cycle_ms: 1400, hit_window: 0.15, hits_needed: 3, max_attempts: 5, game_ms: 10000 }),
+      trivia: () => startTriviaEvent(rect, 'preview', { question: 'Who is the final boss of Molten Core?', category: 'World', time_ms: 15000, answers: ['Ragnaros', 'Golemagg', 'Majordomo Executus', 'Baron Geddon'] })
+    };
+    (demo[type] || demo.fishing)();
+  };
+}
 
 async function resetMemberCurrentGold(userId){
   const member = state.profilesById[userId];
