@@ -4669,9 +4669,11 @@ async function onAuthResolved(){
         await loadGuildData();
         await loadShopPurchases();
         const startProfileId = profileIdFromHash();
-        if(window.location.hash && !startProfileId){
+        const startTab = tabFromHash();
+        if(window.location.hash && !startProfileId && !startTab){
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
+        if(startTab) state.tab = startTab; // reopen the page you refreshed on
         // Load layout BEFORE rendering so elements have correct positions from the start
         await loadLayout();
         if(startProfileId) openProfile(startProfileId, true);
@@ -6982,6 +6984,7 @@ function render(){
   }
   if(state.view === 'landing'){ app.innerHTML = renderLanding(); bindLanding(); return; }
   app.innerHTML = renderApp();
+  syncUrlWithPage();
   bindApp();
   updateNavbarUserInfo();
   updateActiveNavLink();
@@ -7917,6 +7920,23 @@ function mountHomeScenes(){
    the page makes one extra query for that player's pets (public read via RLS), cached per visit. */
 const profilePets = {};          // userId -> pets[] | 'loading' | 'error'
 
+// Every page has its own address (#/calendar, #/roster, #/profile/<id>...), so a refresh reopens it
+const URL_TABS = ['news', 'calendar', 'strategies', 'softres', 'roster', 'loot', 'recruitment', 'gallery',
+                  'guildbank', 'raidlogs', 'settings', 'admin', 'dealer'];
+function tabFromHash(){
+  const m = (window.location.hash || '').match(/^#\/([a-z]+)$/);
+  return m && URL_TABS.includes(m[1]) ? m[1] : null;
+}
+function syncUrlWithPage(){
+  if(!state.session || state.view !== 'app') return;
+  let want = '';
+  if(state.tab === 'profile' && state.profileUserId) want = '#/profile/' + state.profileUserId;
+  else if(state.tab && state.tab !== 'news' && URL_TABS.includes(state.tab)) want = '#/' + state.tab;
+  if((window.location.hash || '') !== want){
+    history.replaceState(null, '', window.location.pathname + window.location.search + want);
+  }
+}
+
 function profileIdFromHash(){
   const m = (window.location.hash || '').match(/^#\/profile\/([0-9a-f-]{36})$/i);
   return m ? m[1] : null;
@@ -7951,7 +7971,7 @@ window.addEventListener('popstate', () => {
   if(!state.session) return;
   const id = profileIdFromHash();
   if(id) openProfile(id, true);
-  else if(state.tab === 'profile'){ state.tab = 'news'; state.profileUserId = null; render(); }
+  else { const t = tabFromHash() || 'news'; if(state.tab !== t){ state.tab = t; state.profileUserId = null; render(); } }
 });
 
 // Any element with data-profile-id opens that player's profile (bound once, survives re-renders)
