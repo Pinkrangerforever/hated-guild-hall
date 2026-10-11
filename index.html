@@ -3825,6 +3825,39 @@
     .cal-grid{ display:none !important; }
     .cal-hero{ padding:16px; } .cal-hero-title{ font-size:22px; } .cal-hero-side{ align-items:flex-start; }
   }
+
+  /* ---- Daily reward popup ---- */
+  .db-streak{ text-align:center; font-family:'Cinzel', Georgia, serif; font-size:16px; color:var(--hh-parchment, #e9dcc0); margin:4px 0 16px; }
+  .db-flame{ font-size:20px; filter:drop-shadow(0 0 6px rgba(224,102,42,0.8)); }
+  .db-grace{ font-size:12px; color:var(--hh-muted, #a8977a); }
+  .db-track{ display:grid; grid-template-columns:repeat(7, 1fr); gap:8px; margin-bottom:16px; }
+  .db-medal{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .db-medal-coin{ width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:'Cinzel', Georgia, serif; font-weight:700; font-size:16px; color:#5a3c12;
+    background:radial-gradient(circle at 35% 30%, #fff2c0, #c9963f 60%, #6b4718); border:2px solid #3a250a; box-shadow:0 2px 6px rgba(0,0,0,0.6); }
+  .db-medal.big .db-medal-coin{ width:52px; height:52px; font-size:20px; }
+  .db-medal.done .db-medal-coin{ filter:grayscale(0.6) brightness(0.7); color:#2a1a08; }
+  .db-medal.later .db-medal-coin{ filter:grayscale(0.85) brightness(0.55); }
+  .db-medal.today .db-medal-coin{ box-shadow:0 0 0 3px rgba(240,210,122,0.5), 0 0 18px rgba(240,201,90,0.9); animation:dbPulse 1.4s ease-in-out infinite; }
+  @keyframes dbPulse{ 50%{ transform:scale(1.08); box-shadow:0 0 0 4px rgba(240,210,122,0.6), 0 0 26px rgba(240,201,90,1); } }
+  .db-medal-amt{ font-size:11px; color:var(--hh-muted, #a8977a); text-align:center; line-height:1.2; }
+  .db-medal-amt span{ font-size:9px; }
+  .db-medal.today .db-medal-amt{ color:var(--hh-gold-bright, #f0d27a); font-weight:700; }
+  .db-today{ text-align:center; font-size:15px; margin-bottom:14px; }
+  .db-today b{ color:var(--hh-gold-bright, #f0d27a); } .db-today .t-food{ color:#ffa646; } .db-today .t-wood{ color:#8fdc6e; }
+  .db-claim{ display:block; margin:0 auto; min-width:200px; font-size:15px !important; padding:12px 24px !important; }
+  .db-note{ text-align:center; font-size:12px; margin-top:12px; }
+  @media (max-width:520px){ .db-track{ gap:4px; } .db-medal-coin{ width:34px; height:34px; font-size:13px; } .db-medal.big .db-medal-coin{ width:40px; height:40px; } }
+
+  /* ---- Weary indicator ---- */
+  .nav-weary{ display:inline-flex; align-items:center; gap:5px; font-family:'Cinzel', Georgia, serif; font-size:11px; letter-spacing:0.08em;
+    text-transform:uppercase; padding:3px 9px; border-radius:999px; border:1px solid; cursor:help; white-space:nowrap; }
+  .nav-weary[hidden]{ display:none; }
+  .nav-weary-dot{ width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 6px currentColor; }
+  .nav-weary.tier-rested{ color:#7fd4ff; border-color:rgba(127,212,255,0.45); background:rgba(20,50,80,0.4); }
+  .nav-weary.tier-tired{ color:#e6c35c; border-color:rgba(230,195,92,0.5); background:rgba(80,60,10,0.4); }
+  .nav-weary.tier-weary{ color:#e0662a; border-color:rgba(224,102,42,0.55); background:rgba(90,30,10,0.4); }
+  .nav-weary.tier-exhausted{ color:#e07a6a; border-color:rgba(224,122,106,0.55); background:rgba(90,15,12,0.45); }
 </style>
 </head>
 <body>
@@ -3861,6 +3894,7 @@
     </div>
     <div class="nav-user-section">
       <div id="nav-user-info" class="nav-user-info" style="display:none;">
+        <span id="nav-weary" class="nav-weary" hidden></span>
         <div class="nav-wallet" title="Your gold, food and wood">
           <span id="nav-gold-badge" class="wallet-seg" title="Gold"></span>
           <span id="nav-food-badge" class="wallet-seg" title="Food"></span>
@@ -4987,6 +5021,7 @@ async function loadProfile(){
   if (state.profile) {
     await loadPets();
     loadProfileHomes(state.profile.id);
+    checkDailyBonus();
   }
 }
 
@@ -5577,9 +5612,8 @@ async function claimSparkle(el){
 
       if(awarded > 0){
         showGoldFloat(rect.left + rect.width/2, rect.top, awarded);
-      } else if(data.capped){
-        showToast("You've hit today's mini-game limit - come back tomorrow!");
       }
+      if(data.weary) setWeary(data.weary);
     }
   }catch(e){
     console.error('claimSparkle error:', e);
@@ -5650,9 +5684,7 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       if(won) showToast("That one didn't count - the timing couldn't be verified", true);
       return;
     }
-    if(data.capped && !(data.awarded > 0)){
-      showToast("You've hit today's mini-game limit - come back tomorrow!");
-    }
+    if(data.weary) setWeary(data.weary);
 
     if(state.profile){
       state.profile.gold = data.total;
@@ -8619,6 +8651,7 @@ function renderModal(){
   if(state.modal.type === 'pick-image') return renderPickImageModal(state.modal.slotKey);
   if(state.modal.type === 'shop') return renderShopModal();
   if(state.modal.type === 'rename-member') return renderRenameMemberModal(state.modal.userId, state.modal.currentName);
+  if(state.modal.type === 'daily-bonus') return renderDailyBonusModal();
   return '';
 }
 
@@ -10089,6 +10122,104 @@ function renderSettings(){
   `;
 }
 
+/* ---------------- Daily login bonus + Weary ---------------- */
+const DAILY_REWARDS = [25, 35, 45, 55, 65, 75, 100];
+async function checkDailyBonus(){
+  const { data, error } = await sb.rpc('daily_bonus_status');
+  if(error || !data || data.error) return;
+  state.dailyBonus = data;
+  if(data.weary) setWeary(data.weary);
+  if(!data.claimed_today && !state.modal) { state.modal = { type: 'daily-bonus' }; render(); }
+}
+function renderDailyBonusModal(){
+  const d = state.dailyBonus || {};
+  const today = d.cycle_day || 1;
+  const reward = d.reward || {};
+  const track = DAILY_REWARDS.map((g, i) => {
+    const day = i + 1;
+    const cls = day < today ? 'done' : day === today ? 'today' : 'later';
+    return `<div class="db-medal ${cls} ${day === 7 ? 'big' : ''}">
+      <div class="db-medal-coin">${day < today ? '&#10003;' : day === 7 ? '&#9733;' : day}</div>
+      <div class="db-medal-amt">${g}g${day === 7 ? '<br><span>+food +wood</span>' : ''}</div>
+    </div>`;
+  }).join('');
+  const claimed = state.dailyBonusClaimed;
+  return `
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-panel daily-bonus-panel" id="modal-panel" style="max-width:620px;">
+      <div class="modal-header">
+        <h3>Daily Reward</h3>
+        <button class="modal-x" id="modal-close">&times;</button>
+      </div>
+      <div class="db-streak"><span class="db-flame">&#128293;</span> ${d.streak > 1 ? `<b>${d.streak}-day streak!</b>` : '<b>Welcome back!</b>'}${d.grace ? ' <span class="db-grace">(we forgave yesterday)</span>' : ''}</div>
+      <div class="db-track">${track}</div>
+      <div class="db-today">Today: <b>${reward.gold || 0} gold</b>${reward.food ? ` + <b class="t-food">${reward.food} food</b>` : ''}${reward.wood ? ` + <b class="t-wood">${reward.wood} wood</b>` : ''}</div>
+      <button class="btn db-claim" type="button" data-claim-daily ${claimed ? 'disabled' : ''}>${claimed ? 'Claimed!' : 'Claim reward'}</button>
+      <p class="muted sans db-note">Come back every day to grow your streak. Day 7 is the big one.</p>
+    </div>
+  </div>`;
+}
+async function claimDailyBonus(btn){
+  if(state.dailyBonusClaiming) return;
+  state.dailyBonusClaiming = true;
+  try {
+    const { data, error } = await sb.rpc('claim_daily_bonus');
+    if(error || !data){ showToast("Couldn't claim right now - try again", true); return; }
+    if(!data.success){ if(data.error === 'already_claimed'){ state.modal = null; render(); } return; }
+    if(state.profile && data.totals){
+      state.profile.gold = data.totals.gold; state.profile.food = data.totals.food; state.profile.wood = data.totals.wood;
+    }
+    state.dailyBonusClaimed = true;
+    const r = btn.getBoundingClientRect();
+    showGoldFloat(r.left + r.width / 2, r.top, data.gold, data.food, data.wood);
+    updateNavbarUserInfo();
+    refreshPetWidget();
+    setTimeout(() => { if(state.modal && state.modal.type === 'daily-bonus'){ state.modal = null; render(); } }, 1400);
+    render();
+  } finally { state.dailyBonusClaiming = false; }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-claim-daily]');
+  if(b && !b.disabled) claimDailyBonus(b);
+});
+
+// Weary indicator next to the wallet
+const WEARY_INFO = {
+  rested: ['Rested', 'Mini-games pay full rewards.'],
+  tired: ['Tired', 'Mini-game gold is halved until midnight.'],
+  weary: ['Weary', 'Mini-game gold is at 25% until midnight.'],
+  exhausted: ['Exhausted', "Mini-games pay no gold until midnight. Come back tomorrow!"]
+};
+function setWeary(w){
+  const prev = state.weary && state.weary.tier;
+  state.weary = w;
+  const el = document.getElementById('nav-weary');
+  if(!el || !w) return;
+  const [label, text] = WEARY_INFO[w.tier] || WEARY_INFO.rested;
+  el.hidden = false;
+  el.className = 'nav-weary tier-' + w.tier;
+  el.title = `${label}: ${text}${w.next_at ? ` (${w.earned} / ${w.next_at} gold earned today)` : ''}`;
+  el.innerHTML = `<span class="nav-weary-dot"></span>${label}`;
+  if(prev && prev !== w.tier && w.tier !== 'rested') showToast(`You're ${label.toLowerCase()} - ${text}`);
+}
+
+// Admin: login streaks
+function renderLoginStreaks(){
+  if(state.loginStreaks === undefined){
+    state.loginStreaks = null;
+    sb.rpc('admin_login_streaks').then(({ data, error }) => { state.loginStreaks = (error || !data || data.error) ? [] : data; render(); });
+    return `<p class="muted sans">Loading&hellip;</p>`;
+  }
+  if(state.loginStreaks === null) return `<p class="muted sans">Loading&hellip;</p>`;
+  if(!state.loginStreaks.length) return `<p class="muted sans">Nobody has claimed a daily reward yet.</p>`;
+  return `<div class="ledger-table-wrap"><table class="ledger-table"><thead><tr><th>Player</th><th>Current streak</th><th>Last claim</th><th>Claims (30 days)</th><th>Bonus gold earned</th></tr></thead><tbody>
+    ${state.loginStreaks.map(r => `<tr><td><strong>${esc(r.character_name || 'Unknown')}</strong></td>
+      <td>${r.current_streak ? `&#128293; ${r.current_streak}` : '<span class="muted">broken</span>'}</td>
+      <td>${r.last_claim ? new Date(r.last_claim + 'T12:00:00').toLocaleDateString() : '-'}</td>
+      <td>${r.claims_30d}</td><td class="ledger-plus">${Number(r.bonus_gold_total).toLocaleString()}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+
 /* ---------------- Admin: database size ---------------- */
 state.dbStats = state.dbStats || undefined;
 async function loadDbStats(){
@@ -10297,6 +10428,12 @@ function renderAdmin(){
       </div>
       <p style="color:var(--text-muted); font-size:13px; margin:8px 0 16px;">Every gold, food and wood movement: mini-games, shop, pets, homes, Auction House, house upgrades, refunds and admin changes. Click a player to filter to them.</p>
       ${renderGoldLedger()}
+    </div>`;
+  html += `
+    <div class="panel style-glass">
+      <h2 style="margin:0 0 6px;">Login Streaks</h2>
+      <p style="color:var(--text-muted); font-size:13px; margin:0 0 12px;">Daily login bonus: 25 to 75 gold on streak days 1-6, then 100 gold + 10 food + 20 wood on day 7. One missed day per week is forgiven.</p>
+      ${renderLoginStreaks()}
     </div>`;
 
   // Shop Refunds section
