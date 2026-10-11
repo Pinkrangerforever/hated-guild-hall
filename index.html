@@ -3581,6 +3581,22 @@
   .cheat-pill{ display:inline-block; margin-left:6px; padding:1px 7px; border:1px solid; border-radius:999px; font-size:11px; font-weight:700; }
   .cheat-actions{ display:flex; gap:6px; flex-wrap:wrap; }
   .cheat-act{ padding:4px 10px !important; font-size:12px !important; }
+
+  /* ---- Admin gold ledger ---- */
+  .ledger-filters{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+  .ledger-filter{ padding:7px 10px; background:rgba(0,0,0,0.4); color:var(--hh-parchment, #e9dcc0); border:1px solid rgba(201,150,63,0.35); border-radius:4px; }
+  .ledger-table-wrap{ overflow-x:auto; border:1px solid rgba(201,150,63,0.25); border-radius:4px; }
+  .ledger-scroll{ max-height:520px; overflow-y:auto; }
+  .ledger-table{ width:100%; border-collapse:collapse; font-size:12px; }
+  .ledger-table th{ position:sticky; top:0; background:#1e140b; text-align:left; padding:7px 10px; font-family:'Cinzel', Georgia, serif; font-size:11px; letter-spacing:0.06em; color:var(--hh-gold, #c9963f); border-bottom:1px solid rgba(201,150,63,0.35); }
+  .ledger-table td{ padding:6px 10px; border-bottom:1px solid rgba(201,150,63,0.1); vertical-align:top; }
+  .ledger-table tr[data-ledger-player]{ cursor:pointer; }
+  .ledger-table tr[data-ledger-player]:hover{ background:rgba(201,150,63,0.08); }
+  .ledger-plus{ color:#7fd06b; } .ledger-minus{ color:#e07a6a; } .ledger-warn{ color:#e0662a; font-weight:700; } .ledger-ok{ color:#7fa363; }
+  .ledger-when{ white-space:nowrap; color:var(--hh-muted, #a8977a); }
+  .ledger-cur{ color:var(--hh-muted, #a8977a); font-size:11px; }
+  .ledger-tag{ display:inline-block; margin-left:4px; padding:0 6px; border-radius:999px; font-size:10px; border:1px solid #7fd4ff; color:#7fd4ff; }
+  .ledger-tag.warn{ border-color:#e0662a; color:#e0662a; }
 </style>
 </head>
 <body>
@@ -4222,72 +4238,6 @@ function topNavBar(navLinks, opts){
       ${ showSignIn ? `<a href="#signin" class="mobile-nav-link" data-close-mobile-nav>Sign In</a>` : '' }
     </div>
   </nav>`;
-}
-/* ---- gold audit log ---- */
-async function loadGoldTransactions(){
-  const { data, error } = await sb.rpc('get_gold_transactions', { p_limit: 500 });
-  if(error){ console.error('Failed to load transactions:', error); return []; }
-  return data || [];
-}
-
-function renderAuditLog(transactions, playerFilter = '', typeFilter = ''){
-  const filtered = transactions.filter(t => {
-    const matchesPlayer = !playerFilter || (t.character_name || '').toLowerCase().includes(playerFilter.toLowerCase());
-    const matchesType = !typeFilter || t.transaction_type === typeFilter;
-    return matchesPlayer && matchesType;
-  });
-
-  if(!filtered.length) return '<p class="muted" style="text-align:center; padding:20px;">No transactions found</p>';
-
-  // Group by player
-  const grouped = {};
-  filtered.forEach(t => {
-    const player = t.character_name || 'Unknown';
-    if(!grouped[player]) grouped[player] = [];
-    grouped[player].push(t);
-  });
-
-  return `
-    <div style="display:flex; flex-direction:column; gap:12px;">
-      ${Object.entries(grouped).sort((a,b) => a[0].localeCompare(b[0])).map(([player, txns]) => {
-        const earned = txns.filter(t => t.transaction_type === 'earned').reduce((sum, t) => sum + t.amount, 0);
-        const spent = txns.filter(t => t.transaction_type === 'spent').reduce((sum, t) => sum + Math.abs(t.amount), 0);
-        const adjusted = txns.filter(t => t.transaction_type === 'adjusted').reduce((sum, t) => sum + t.amount, 0);
-        const net = earned - spent + adjusted;
-        const playerId = player.replace(/\s+/g, '-').toLowerCase();
-
-        return `
-        <div style="border:1px solid var(--divider); border-radius:4px; overflow:hidden;">
-          <button type="button" class="audit-player-toggle" data-player="${playerId}" style="width:100%; padding:12px; background:rgba(207,154,68,0.1); border:none; cursor:pointer; text-align:left; display:flex; justify-content:space-between; align-items:center; font-weight:600; color:#fff; transition:background 0.2s;">
-            <span>${esc(player)}</span>
-            <span style="display:flex; gap:16px; font-size:11px; font-weight:400; color:var(--text-muted);">
-              <span>Earned: <span style="color:#1eff00;">${earned.toLocaleString()}</span></span>
-              <span>Spent: <span style="color:#ff6464;">${spent.toLocaleString()}</span></span>
-              <span>Net: <span style="color:${net>0?'#1eff00':'#ff6464'};">${net>0?'+':''}${net.toLocaleString()}</span></span>
-            </span>
-            <span style="font-size:14px; transition:transform 0.2s; display:inline-block;" class="audit-toggle-icon">&gt;</span>
-          </button>
-          <div class="audit-player-content" data-player="${playerId}" style="display:none; background:rgba(0,0,0,0.2);">
-            <table style="width:100%; font-size:11px; border-collapse:collapse;">
-              <tbody>
-                ${txns.map(t => {
-                  const bgColor = t.transaction_type==='earned'?'rgba(30,255,0,0.2)':t.transaction_type==='spent'?'rgba(255,100,0,0.2)':'rgba(100,150,255,0.2)';
-                  const textColor = t.amount>0?'#1eff00':'#ff6464';
-                  return `
-                  <tr style="border-top:1px solid var(--divider-light);">
-                    <td style="padding:8px;"><span style="padding:2px 6px; border-radius:3px; background:${bgColor};">${esc(t.transaction_type)}</span></td>
-                    <td style="padding:8px; text-align:right; font-weight:600; color:${textColor}; width:60px;">${t.amount>0?'+':''}${t.amount}</td>
-                    <td style="padding:8px; color:var(--text-muted); flex:1;">${esc(t.reason || t.source)}</td>
-                    <td style="padding:8px; color:var(--text-muted); width:120px;">${new Date(t.created_at).toLocaleString()}</td>
-                  </tr>
-                  `}).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        `}).join('')}
-    </div>
-  `;
 }
 
 /* ---- state ---- */
@@ -9553,7 +9503,6 @@ function renderSettings(){
   const testRole = getTestRole();
   const isActuallyRaidLeader = state.profile && state.profile.protected;
   const showDebugPanel = isActuallyRaidLeader || testRole;
-  const showGoldAudit = testIsRaidLeader();
 
   return `
     ${pageHeader('Settings', 'Preferences', 'Customize your profile appearance')}
@@ -9572,24 +9521,6 @@ function renderSettings(){
     </div>
     ` : ''}
 
-    ${showGoldAudit ? `
-    <div class="panel style-glass" style="margin-bottom:20px;">
-      <h3 style="margin-bottom:16px;">Gold Audit Log</h3>
-      <p class="muted sans" style="margin-bottom:16px;">View complete transaction history for all players.</p>
-      <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-        <input type="text" id="audit-player-filter" placeholder="Filter by player name..." style="flex:1; min-width:200px; padding:8px; border:1px solid var(--divider); border-radius:4px; background:rgba(0,0,0,0.2); color:#fff;">
-        <select id="audit-type-filter" style="padding:8px; border:1px solid var(--divider); border-radius:4px; background:rgba(0,0,0,0.2); color:#fff;">
-          <option value="">All Types</option>
-          <option value="earned">Earned</option>
-          <option value="spent">Spent</option>
-          <option value="adjusted">Adjusted</option>
-        </select>
-      </div>
-      <div id="audit-log-container" style="max-height:600px; overflow-y:auto; border:1px solid var(--divider); border-radius:4px; padding:12px;">
-        <p class="muted" style="text-align:center;">Loading transactions...</p>
-      </div>
-    </div>
-    ` : ''}
 
     <div class="panel style-glass">
       <h3 style="margin-bottom:16px;">Name Customization</h3>
@@ -9693,6 +9624,78 @@ function renderSettings(){
   `;
 }
 
+/* ---------------- Admin: gold ledger ----------------
+   One history of every gold/food/wood movement (server: admin_gold_ledger, Raid Leader only),
+   per-player totals, and a balance check that highlights gold the history can't explain. */
+state.ledger = state.ledger || { days: 30, player: '', currency: '', kind: '', data: undefined };
+async function loadGoldLedger(){
+  const L = state.ledger;
+  const { data, error } = await sb.rpc('admin_gold_ledger', { p_user_id: null, p_days: L.days, p_limit: 3000 });
+  L.data = (error || !data || data.error) ? { error: true } : data;
+  if(error) console.error('admin_gold_ledger failed:', error);
+  render();
+}
+function renderGoldLedger(){
+  const L = state.ledger;
+  if(L.data === undefined){ loadGoldLedger(); return `<p class="muted sans">Loading the ledger&hellip;</p>`; }
+  if(L.data.error) return `<p class="muted sans">Couldn't load the ledger. Make sure the latest database migration has been applied.</p>`;
+  const players = L.data.players || [];
+  const entries = (L.data.entries || []).filter(e =>
+    (!L.player || e.user_id === L.player) && (!L.currency || e.currency === L.currency) && (!L.kind || e.kind === L.kind));
+  const num = n => Number(n || 0).toLocaleString();
+  const signed = n => `<span class="${n > 0 ? 'ledger-plus' : 'ledger-minus'}">${n > 0 ? '+' : ''}${num(n)}</span>`;
+  const playerOpts = players.slice().sort((a, b) => (a.character_name || '').localeCompare(b.character_name || ''))
+    .map(p => `<option value="${esc(p.user_id)}" ${L.player === p.user_id ? 'selected' : ''}>${esc(p.character_name || 'Unknown')}</option>`).join('');
+  const sel = (key, opts) => `<select class="ledger-filter" data-ledger-filter="${key}">${opts.map(([v, t]) => `<option value="${v}" ${String(L[key]) === String(v) ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+
+  const shownPlayers = L.player ? players.filter(p => p.user_id === L.player) : players;
+  return `
+    <div class="ledger-filters">
+      <select class="ledger-filter" data-ledger-filter="player"><option value="">All players</option>${playerOpts}</select>
+      ${sel('days', [[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'Last year']])}
+      ${sel('currency', [['', 'All currencies'], ['gold', 'Gold'], ['food', 'Food'], ['wood', 'Wood']])}
+      ${sel('kind', [['', 'Earned & spent'], ['earned', 'Earned'], ['spent', 'Spent'], ['adjusted', 'Admin changes']])}
+    </div>
+
+    <h3 class="cheat-h">Players</h3>
+    <div class="ledger-table-wrap"><table class="ledger-table">
+      <thead><tr><th>Player</th><th>Gold now</th><th>Earned</th><th>Spent</th><th>Food</th><th>Wood</th>
+        <th title="Current gold minus everything the history explains. Big positive numbers usually mean gold was added outside the game (or before logging existed).">Balance check</th></tr></thead>
+      <tbody>${shownPlayers.map(p => {
+        const off = Number(p.gold_unexplained || 0);
+        return `<tr data-ledger-player="${esc(p.user_id)}">
+          <td><strong>${esc(p.character_name || 'Unknown')}</strong></td><td>${num(p.current_gold)}</td>
+          <td class="ledger-plus">${num(p.gold_earned)}</td><td class="ledger-minus">${num(p.gold_spent)}</td>
+          <td>${signed(p.food_net)}</td><td>${signed(p.wood_net)}</td>
+          <td>${Math.abs(off) < 1 ? '<span class="ledger-ok">&#10003; matches</span>' : `<span class="${off > 0 ? 'ledger-warn' : 'ledger-minus'}">${off > 0 ? '+' : ''}${num(off)} unexplained</span>`}</td></tr>`;
+      }).join('') || '<tr><td colspan="7" class="muted">No activity in this period.</td></tr>'}</tbody>
+    </table></div>
+
+    <h3 class="cheat-h">History (${entries.length.toLocaleString()}${entries.length > 400 ? ', showing newest 400' : ''})</h3>
+    <div class="ledger-table-wrap ledger-scroll"><table class="ledger-table">
+      <thead><tr><th>When</th><th>Player</th><th>Amount</th><th>What</th></tr></thead>
+      <tbody>${entries.slice(0, 400).map(e => `<tr>
+        <td class="ledger-when">${new Date(e.at).toLocaleString()}</td>
+        <td>${esc(e.character_name || 'Unknown')}</td>
+        <td>${signed(e.amount)} <span class="ledger-cur">${esc(e.currency)}</span></td>
+        <td>${esc(e.description || '')}${e.kind === 'adjusted' ? ' <span class="ledger-tag">admin</span>' : ''}${(e.flags || []).length ? ` <span class="ledger-tag warn">${(e.flags || []).map(esc).join(', ')}</span>` : ''}</td></tr>`).join('')
+        || '<tr><td colspan="4" class="muted">Nothing matches these filters.</td></tr>'}</tbody>
+    </table></div>`;
+}
+document.addEventListener('change', e => {
+  const f = e.target.closest && e.target.closest('[data-ledger-filter]');
+  if(!f) return;
+  const key = f.getAttribute('data-ledger-filter');
+  state.ledger[key] = key === 'days' ? parseInt(f.value, 10) : f.value;
+  if(key === 'days') state.ledger.data = undefined; // re-fetch for the new window
+  render();
+});
+document.addEventListener('click', e => {
+  const row = e.target.closest && e.target.closest('[data-ledger-player]');
+  if(row){ state.ledger.player = state.ledger.player === row.getAttribute('data-ledger-player') ? '' : row.getAttribute('data-ledger-player'); render(); }
+  if(e.target.closest && e.target.closest('[data-ledger-refresh]')){ state.ledger.data = undefined; render(); }
+});
+
 /* ---------------- Admin: anti-cheat dashboard ---------------- */
 const CHEAT_STATUS_STYLE = {
   CLEAN: ['#7fa363', 'Clean'], WATCH: ['#7fd4ff', 'Watching'], UNDER_REVIEW: ['#d4a574', 'Under review'],
@@ -9794,6 +9797,16 @@ function renderAdmin(){
 
   html += renderCheatDashboard(state.cheatData || {});
   html += `</div>`;
+
+  html += `
+    <div class="panel style-glass">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <h2 style="margin:0;">Gold Ledger</h2>
+        <button class="btn secondary" type="button" data-ledger-refresh>Refresh</button>
+      </div>
+      <p style="color:var(--text-muted); font-size:13px; margin:8px 0 16px;">Every gold, food and wood movement: mini-games, shop, pets, homes, Auction House, house upgrades, refunds and admin changes. Click a player to filter to them.</p>
+      ${renderGoldLedger()}
+    </div>`;
 
   // Shop Refunds section
   html += `
@@ -10441,43 +10454,6 @@ function bindApp(){
   if(testRoleOfficer) testRoleOfficer.addEventListener('click', ()=>{ setTestRole('officer'); render(); });
   if(testRoleRaidleader) testRoleRaidleader.addEventListener('click', ()=>{ setTestRole('raidleader'); render(); });
 
-  // Gold audit log
-  if(document.getElementById('audit-log-container')){
-    (async ()=>{
-      const transactions = await loadGoldTransactions();
-      state.goldTransactions = transactions;
-      updateAuditLog();
-
-      const playerFilter = document.getElementById('audit-player-filter');
-      const typeFilter = document.getElementById('audit-type-filter');
-      if(playerFilter) playerFilter.addEventListener('input', updateAuditLog);
-      if(typeFilter) typeFilter.addEventListener('change', updateAuditLog);
-    })();
-  }
-
-  function updateAuditLog(){
-    const container = document.getElementById('audit-log-container');
-    if(!container) return;
-    const playerFilter = document.getElementById('audit-player-filter')?.value || '';
-    const typeFilter = document.getElementById('audit-type-filter')?.value || '';
-    container.innerHTML = renderAuditLog(state.goldTransactions || [], playerFilter, typeFilter);
-
-    // Add toggle handlers
-    document.querySelectorAll('.audit-player-toggle').forEach(btn => {
-      btn.addEventListener('click', ()=>{
-        const player = btn.dataset.player;
-        const content = document.querySelector(`.audit-player-content[data-player="${player}"]`);
-        const icon = btn.querySelector('.audit-toggle-icon');
-        if(content.style.display === 'none'){
-          content.style.display = 'block';
-          icon.style.transform = 'rotate(90deg)';
-        } else {
-          content.style.display = 'none';
-          icon.style.transform = 'rotate(0deg)';
-        }
-      });
-    });
-  }
 }
 
 // FOOTPRINT TRAIL SYSTEM
