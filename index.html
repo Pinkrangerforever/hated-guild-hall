@@ -7598,13 +7598,38 @@ function homeSceneDims(v){
 }
 function rand(a, b){ return a + Math.random() * (b - a); }
 
-function homePetGroundPoint(v){
-  const { visH, visW } = homeSceneDims(v);
-  return new THREE.Vector3(rand(-0.62, 0.62) * visW / 2, -visH / 2 + rand(0.09, 0.14) * visH, rand(-3, 1.5));
+// Keep-out boxes around the buildings/props (world space, refreshed whenever the scene is placed)
+function updateHomeObstacles(v){
+  v.obstacles = v.holders.map(({ holder }) => {
+    holder.updateMatrixWorld(true);
+    return new THREE.Box3().setFromObject(holder);
+  });
 }
-function homePetAirPoint(v){
+// Does a pet of height h standing/flying at p overlap any obstacle?
+function homePetBlocked(v, p, h){
+  const pad = h * 0.45;
+  const probe = new THREE.Box3(new THREE.Vector3(p.x - pad, p.y, p.z - pad), new THREE.Vector3(p.x + pad, p.y + h, p.z + pad));
+  return (v.obstacles || []).some(b => b.intersectsBox(probe));
+}
+function homePetFreePoint(v, h, make){
+  for(let i = 0; i < 25; i++){ const p = make(); if(!homePetBlocked(v, p, h)) return p; }
+  return null;
+}
+function homePetGroundPoint(v, h){
   const { visH, visW } = homeSceneDims(v);
-  return new THREE.Vector3(rand(-0.7, 0.7) * visW / 2, -visH / 2 + rand(0.42, 0.75) * visH, rand(-4, 1));
+  return homePetFreePoint(v, h || 0, () => new THREE.Vector3(rand(-0.62, 0.62) * visW / 2, -visH / 2 + rand(0.09, 0.14) * visH, rand(-3, 1.5)));
+}
+function homePetAirPoint(v, h){
+  const { visH, visW } = homeSceneDims(v);
+  return homePetFreePoint(v, h || 0, () => new THREE.Vector3(rand(-0.7, 0.7) * visW / 2, -visH / 2 + rand(0.42, 0.75) * visH, rand(-4, 1)));
+}
+function homePetBezier(p, t){
+  const it = 1 - t;
+  return new THREE.Vector3().addScaledVector(p.from, it * it).addScaledVector(p.ctrl, 2 * it * t).addScaledVector(p.to, t * t);
+}
+function homePetPathClear(v, path, h){
+  for(let i = 1; i <= 16; i++) if(homePetBlocked(v, homePetBezier(path, i / 17), h)) return false;
+  return true;
 }
 
 function createHomePetActor(v, pet, holder){
@@ -7659,12 +7684,18 @@ function homePetPlay(a, name, once){
   return clip.duration;
 }
 
-function homePetStartPath(a, to, speed, arc){
+function homePetStartPath(v, a, to, speed, arc){
+  if(!to) return false;
   const from = a.holder.position.clone();
   const dist = from.distanceTo(to);
-  const ctrl = from.clone().lerp(to, 0.5);
-  ctrl.y += arc * Math.min(dist, 4);
-  a.path = { from, ctrl, to, t: 0, dur: Math.max(0.6, dist / speed) };
+  const tries = a.kind === 'flier' ? [arc, arc + 0.6, arc + 1.2, arc + 2] : [arc];
+  for(const k of tries){
+    const ctrl = from.clone().lerp(to, 0.5);
+    ctrl.y += k * Math.min(dist, 4);
+    const path = { from, ctrl, to, t: 0, dur: Math.max(0.6, dist / speed) };
+    if(homePetPathClear(v, path, a.height || 0)){ a.path = path; return true; }
+  }
+  return false;
 }
 
 // Decide what to do next when the current state's time is up
@@ -7682,12 +7713,14 @@ function homePetNext(v, a, now){
       if(a.state !== 'hover' && a.hover && r < 0.3){
         homePetPlay(a, a.hover); a.state = 'hover'; a.until = now + rand(1800, 3500); a.path = null;
       } else if(r < 0.65){
-        homePetPlay(a, a.fly); a.state = 'fly'; a.airTarget = true;
-        homePetStartPath(a, homePetAirPoint(v), HOME_PET_FLY_SPEED, 0.3); a.until = Infinity;
-      } else {
-        homePetPlay(a, a.fly); a.state = 'fly'; a.airTarget = false;
-        homePetStartPath(a, homePetGroundPoint(v), HOME_PET_FLY_SPEED, 0.5); a.until = Infinity;
+        if(homePetStartPath(v, a, homePetAirPoint(v, a.height), HOME_PET_FLY_SPEED, 0.3)){
+          homePetPlay(a, a.fly); a.state = 'fly'; a.airTarget = true; a.until = Infinity; return;
+        }
+      } else if(homePetStartPath(v, a, homePetGroundPoint(v, a.height), HOME_PET_FLY_SPEED, 0.5)){
+        homePetPlay(a, a.fly); a.state = 'fly'; a.airTarget = false; a.until = Infinity; return;
       }
+      // No clear route right now: hang in the air a moment and try again
+      homePetPlay(a, a.hover || a.fly); a.state = 'hover'; a.until = now + rand(800, 1600); a.path = null;
       return;
     }
     if(a.state === 'fly' && !a.airTarget){
@@ -7697,9 +7730,9 @@ function homePetNext(v, a, now){
       return;
     }
   }
-  if(a.kind === 'walker' && a.state === 'idle' && Math.random() < 0.6){
-    homePetPlay(a, a.walk); a.state = 'walk';
-    homePetStartPath(a, homePetGroundPoint(v), HOME_PET_WALK_SPEED, 0); a.until = Infinity;
+  if(a.kind === 'walker' && a.state === 'idle' && Math.random() < 0.6
+     && homePetStartPath(v, a, homePetGroundPoint(v, a.height), HOME_PET_WALK_SPEED, 0)){
+    homePetPlay(a, a.walk); a.state = 'walk'; a.until = Infinity;
     return;
   }
   // Idle, with an occasional flourish
@@ -7717,9 +7750,8 @@ function updateHomePetActor(v, a, dt, now){
   if(a.path){
     const p = a.path;
     p.t = Math.min(1, p.t + dt / p.dur);
-    const t = p.t, it = 1 - t;
-    const pos = new THREE.Vector3()
-      .addScaledVector(p.from, it * it).addScaledVector(p.ctrl, 2 * it * t).addScaledVector(p.to, t * t);
+    const t = p.t;
+    const pos = homePetBezier(p, t);
     const delta = pos.clone().sub(a.holder.position);
     if(delta.x * delta.x + delta.z * delta.z > 1e-6) a.targetYaw = Math.atan2(-delta.z, delta.x) + HOME_PET_FORWARD;
     a.holder.position.copy(pos);
@@ -7740,7 +7772,8 @@ function placeHomePetActor(v, a){
   a.holder.scale.setScalar(h / a.holder.userData.unitHeight);
   a.height = h;
   if(!a.placed){
-    a.holder.position.copy(a.kind === 'flier' && Math.random() < 0.5 ? homePetAirPoint(v) : homePetGroundPoint(v));
+    const spot = (a.kind === 'flier' && Math.random() < 0.5 ? homePetAirPoint(v, h) : homePetGroundPoint(v, h)) || homePetAirPoint(v, h);
+    a.holder.position.copy(spot || new THREE.Vector3(0, 0, 2));
     if(a.kind === 'flier' && a.holder.position.y > -visH / 4){ homePetPlay(a, a.hover || a.fly); a.state = 'hover'; a.until = performance.now() + rand(500, 2000); }
     else { homePetPlay(a, a.idle); a.state = 'idle'; a.until = performance.now() + rand(1500, 5000); }
     a.placed = true;
@@ -7885,6 +7918,7 @@ function mountHomeScenes(){
     v.camera.aspect = w / h;
     v.camera.updateProjectionMatrix();
     v.holders.forEach(({ holder, prop }) => placeHomeProp(holder, prop, w / h));
+    updateHomeObstacles(v);
     v.actors.forEach(a => placeHomePetActor(v, a));
 
     if(!v.raf){
