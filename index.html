@@ -3488,6 +3488,52 @@
   .profile-house-placeholder{ text-align:center; padding:26px 12px; border:1px dashed rgba(201,150,63,0.35); border-radius:4px; background:rgba(0,0,0,0.25); color:var(--hh-muted); }
   .profile-house-icon{ font-size:40px; opacity:0.7; margin-bottom:6px; }
   .gold-leaderboard-entries .leaderboard-entry[data-profile-id]:hover .comp-slot span{ text-decoration:underline; text-decoration-color:rgba(240,210,122,0.6); }
+
+  /* ======================================================================
+     HOUSING (Phase 4): framed zone video on profiles + shop cards
+     ====================================================================== */
+  .home-tabs{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .home-tab{ font-family:'Cinzel', Georgia, serif; font-size:12px; letter-spacing:0.05em; padding:6px 12px; cursor:pointer;
+    background:rgba(0,0,0,0.4); color:var(--hh-parchment); border:1px solid rgba(201,150,63,0.35); border-radius:4px; }
+  .home-tab:hover{ border-color:var(--hh-gold-bright); }
+  .home-tab.active{ background:linear-gradient(180deg, rgba(74,54,16,0.95), rgba(30,21,8,0.95)); border-color:#d9ab45; color:var(--hh-gold-bright); }
+  .home-tab-star{ color:var(--hh-gold-bright); }
+  .home-frame{
+    position:relative; padding:12px; border-radius:6px;
+    background:linear-gradient(145deg, #f0d27a 0%, #8a5f22 22%, #d9ab45 45%, #6b4718 70%, #c9963f 88%, #f0d27a 100%);
+    box-shadow:0 0 0 1px #000, 0 0 0 4px rgba(201,150,63,0.18), 0 18px 40px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,240,190,0.6), inset 0 -2px 4px rgba(0,0,0,0.6);
+  }
+  .home-frame::before{ /* inner bevel line */
+    content:''; position:absolute; inset:5px; border:1px solid rgba(40,24,8,0.7); border-radius:4px; pointer-events:none;
+    box-shadow:inset 0 0 0 1px rgba(255,230,160,0.35);
+  }
+  .home-frame-inner{ position:relative; aspect-ratio:16 / 9; overflow:hidden; border-radius:3px; background:#000;
+    box-shadow:0 0 0 2px #1a0f06; }
+  .home-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+  .home-frame-inner::after{ /* vignette */
+    content:''; position:absolute; inset:0; pointer-events:none;
+    box-shadow:inset 0 0 50px rgba(0,0,0,0.75), inset 0 0 0 1px rgba(0,0,0,0.8);
+  }
+  .home-ground{ /* placeholder foreground depth until the 3D ground piece lands */
+    position:absolute; left:0; right:0; bottom:0; height:24%; pointer-events:none;
+    background:linear-gradient(180deg, transparent, rgba(30,18,8,0.55) 55%, rgba(16,9,4,0.9));
+  }
+  .home-plaque{
+    position:absolute; left:50%; bottom:10px; transform:translateX(-50%); z-index:2;
+    font-family:'Cinzel', Georgia, serif; font-size:13px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+    color:#2a1a08; padding:4px 16px; border-radius:3px; white-space:nowrap;
+    background:linear-gradient(180deg, #f0d27a, #c9963f 60%, #a77a2e);
+    box-shadow:0 2px 6px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,245,200,0.7); border:1px solid #5a3c12;
+  }
+  .home-frame-corner{ position:absolute; width:16px; height:16px; z-index:3; transform:rotate(45deg);
+    background:radial-gradient(circle at 35% 35%, #fff2c0, #d9ab45 45%, #6b4718); border:1px solid #3a250a;
+    box-shadow:0 0 6px rgba(240,210,122,0.6); }
+  .home-frame-corner.tl{ top:-6px; left:-6px; } .home-frame-corner.tr{ top:-6px; right:-6px; }
+  .home-frame-corner.bl{ bottom:-6px; left:-6px; } .home-frame-corner.br{ bottom:-6px; right:-6px; }
+  .home-actions{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-top:16px; }
+  .home-active-note{ color:var(--hh-gold-bright); font-family:'Cinzel', Georgia, serif; font-size:13px; }
+  .home-shop-preview{ width:100%; aspect-ratio:16 / 9; object-fit:cover; border-radius:3px; margin-bottom:8px;
+    border:2px solid #c9963f; box-shadow:0 0 0 1px #000; background:#000; }
 </style>
 </head>
 <body>
@@ -4649,6 +4695,7 @@ async function loadProfile(){
   // Load pets if profile exists
   if (state.profile) {
     await loadPets();
+    loadProfileHomes(state.profile.id);
   }
 }
 
@@ -7200,6 +7247,175 @@ function renderTab(){
   }
 }
 
+/* ---------------- Housing (Phase 4) ----------------
+   Home locations are bought in the main shop (gold) and stored in player_homes (one row per zone).
+   Each zone is a looping video in a frame on the profile page; houses (wood, tiers 1-3) and
+   add-ons layer on top in later steps. Zone art lives in HOME_ZONES; prices live in shop_items. */
+const HOME_ZONES = {
+  mulgore_bluffs: {
+    label: 'Mulgore Bluffs',
+    video: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs.mp4'
+  }
+};
+function homeZoneInfo(zone){
+  if(HOME_ZONES[zone]) return HOME_ZONES[zone];
+  const item = (state.shopItems || []).find(i => i.category === 'home_location' && i.metadata && i.metadata.zone === zone);
+  return { label: item ? item.name : zone, video: item && item.metadata.video };
+}
+
+const profileHomes = {};       // userId -> homes[] | 'loading' | 'error'
+const profileHomeSelected = {}; // userId -> home id being viewed
+
+async function loadProfileHomes(userId, force){
+  if(!force && Array.isArray(profileHomes[userId])) return;
+  profileHomes[userId] = 'loading';
+  const { data, error } = await sb.from('player_homes').select('*').eq('user_id', userId).order('created_at', { ascending: true });
+  profileHomes[userId] = error ? 'error' : (data || []);
+  if(error) console.error('loadProfileHomes failed:', error);
+  if(state.profile && userId === state.profile.id && !error) state.myHomes = data || [];
+  if(state.tab === 'profile' && state.profileUserId === userId) render();
+}
+
+function myOwnedZones(){
+  return new Set((state.myHomes || []).map(h => h.zone));
+}
+
+function renderHomeSection(p, isMe){
+  const homes = profileHomes[p.id];
+  const title = `<h3 class="profile-section-title">${isMe ? 'Your Homes' : 'Home'}</h3>`;
+  if(homes === undefined || homes === 'loading') return `<div class="profile-panel">${title}<p class="muted sans">Walking over&hellip;</p></div>`;
+  if(homes === 'error') return `<div class="profile-panel">${title}<p class="muted sans">Couldn't load homes right now.</p></div>`;
+  if(!homes.length){
+    return `
+      <div class="profile-panel">${title}
+        <div class="profile-house-placeholder">
+          <div class="profile-house-icon">&#127984;</div>
+          <p class="sans">${isMe ? 'You haven\'t claimed a home yet.' : 'No home claimed yet.'}</p>
+          ${ isMe ? `<button class="btn" type="button" data-open-shop-homes style="margin-top:10px;">Browse Home Locations</button>` : '' }
+        </div>
+      </div>`;
+  }
+  // Visitors see the owner's active home; the owner can flip through all of theirs
+  const visible = isMe ? homes : [homes.find(h => h.is_active) || homes[0]];
+  const selId = profileHomeSelected[p.id] && visible.some(h => h.id === profileHomeSelected[p.id])
+    ? profileHomeSelected[p.id]
+    : (visible.find(h => h.is_active) || visible[0]).id;
+  const home = visible.find(h => h.id === selId);
+  const zone = homeZoneInfo(home.zone);
+
+  const tabs = isMe && homes.length > 1 ? `
+    <div class="home-tabs">
+      ${homes.map(h => `
+        <button type="button" class="home-tab ${h.id === selId ? 'active' : ''}" data-home-tab="${esc(h.id)}" data-home-user="${esc(p.id)}">
+          ${esc(homeZoneInfo(h.zone).label)}${h.is_active ? ' <span class="home-tab-star" title="Shown on your profile">&#9733;</span>' : ''}
+        </button>`).join('')}
+    </div>` : '';
+
+  return `
+    <div class="profile-panel">
+      ${title}
+      ${tabs}
+      <div class="home-frame">
+        <div class="home-frame-inner">
+          ${ zone.video ? `<video class="home-video" src="${esc(zone.video)}" autoplay muted loop playsinline preload="auto"></video>` : '' }
+          <div class="home-ground"></div>
+          <div class="home-plaque">${esc(zone.label)}</div>
+        </div>
+        <span class="home-frame-corner tl"></span><span class="home-frame-corner tr"></span>
+        <span class="home-frame-corner bl"></span><span class="home-frame-corner br"></span>
+      </div>
+      ${ isMe ? `
+        <div class="home-actions">
+          ${ home.is_active ? `<span class="home-active-note">&#9733; Shown on your profile</span>`
+                            : `<button class="btn secondary" type="button" data-set-active-home="${esc(home.id)}">Show this home on my profile</button>` }
+          <button class="btn secondary" type="button" data-open-shop-homes>Buy more homes</button>
+        </div>` : '' }
+    </div>`;
+}
+
+function renderHomeShopSection(gold){
+  const items = (state.shopItems || []).filter(i => i.category === 'home_location' && i.active !== false)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  if(!items.length) return '';
+  const owned = myOwnedZones();
+  return `
+    <div class="shop-section" id="shop-homes-section" style="padding:20px; margin-bottom:20px;">
+      <h4 class="shop-section-title">Home Locations</h4>
+      <p class="muted sans" style="font-size:12px; margin-bottom:12px;">Claim a plot of land to call home. Your home shows on your profile page, and you can own more than one. Hover a card to preview it.</p>
+      <div class="shop-grid">${items.map(item => {
+        const zone = (item.metadata && item.metadata.zone) || '';
+        const video = (item.metadata && item.metadata.video) || (HOME_ZONES[zone] && HOME_ZONES[zone].video);
+        const have = owned.has(zone);
+        return `
+          <div class="shop-card home-shop-card">
+            ${ video ? `<video class="home-shop-preview" src="${esc(video)}#t=1" muted loop playsinline preload="metadata" data-hover-play></video>` : '' }
+            <div class="shop-card-name">${esc(item.name)}</div>
+            <div class="shop-card-desc muted sans">${esc(item.description || '')}</div>
+            <div class="shop-card-footer"><span class="nav-gold-badge">${goldIconHtml()} ${item.cost}</span></div>
+            ${ have ? `<div class="shop-owned-badge">&#10003; Owned</div>`
+                    : `<button class="btn" type="button" data-buy-home="${esc(item.id)}" ${gold >= item.cost ? '' : 'disabled'} style="width:100%; margin-top:10px;">
+                         ${gold >= item.cost ? 'Claim this home' : 'Not enough gold'}</button>` }
+          </div>`;
+      }).join('')}</div>
+    </div>`;
+}
+
+async function purchaseHomeLocation(itemId){
+  if(state.homeBuyInFlight) return;
+  state.homeBuyInFlight = true;
+  try {
+    const { data, error } = await sb.rpc('purchase_home_location', { p_item_id: itemId });
+    if(error || !data){ showToast("Couldn't complete purchase - try again", true); return; }
+    if(!data.success){ showToast(data.error || 'Purchase failed', true); return; }
+    state.profile.gold = data.new_gold;
+    updateNavbarUserInfo();
+    await loadProfileHomes(state.profile.id, true);
+    showToast(`${data.item_name} is yours! Visit your profile to see it.`);
+  } finally {
+    state.homeBuyInFlight = false;
+    render();
+  }
+}
+
+async function setActiveHome(homeId){
+  const { data, error } = await sb.rpc('set_active_home', { p_home_id: homeId });
+  if(error || !data || !data.success){ showToast("Couldn't save - try again", true); return; }
+  (profileHomes[state.profile.id] || []).forEach(h => { h.is_active = h.id === homeId; });
+  showToast('Your profile now shows this home');
+  render();
+}
+
+// Delegated handlers (bound once; survive re-renders)
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-home-tab],[data-set-active-home],[data-buy-home],[data-open-shop-homes]');
+  if(!t || !state.session) return;
+  if(t.hasAttribute('data-home-tab')){
+    profileHomeSelected[t.getAttribute('data-home-user')] = t.getAttribute('data-home-tab');
+    render();
+  } else if(t.hasAttribute('data-set-active-home')){
+    setActiveHome(t.getAttribute('data-set-active-home'));
+  } else if(t.hasAttribute('data-buy-home')){
+    purchaseHomeLocation(t.getAttribute('data-buy-home'));
+  } else if(t.hasAttribute('data-open-shop-homes')){
+    openShop().then(() => {
+      const sec = document.getElementById('shop-homes-section');
+      if(sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+});
+// Shop previews play while hovered
+document.addEventListener('mouseover', e => {
+  const v = e.target.closest && e.target.closest('.home-shop-card');
+  const vid = v && v.querySelector('video[data-hover-play]');
+  if(vid && vid.paused) vid.play().catch(() => {});
+});
+document.addEventListener('mouseout', e => {
+  const v = e.target.closest && e.target.closest('.home-shop-card');
+  if(!v || v.contains(e.relatedTarget)) return;
+  const vid = v.querySelector('video[data-hover-play]');
+  if(vid) vid.pause();
+});
+
 /* ---------------- Profile pages (Phase 3) ----------------
    #/profile/<userId>. Profiles are already loaded for the whole guild (state.profilesById);
    the page makes one extra query for that player's pets (public read via RLS), cached per visit. */
@@ -7219,6 +7435,7 @@ function openProfile(userId, fromHash){
   state.mobileNavOpen = false;
   if(!fromHash && profileIdFromHash() !== userId) history.pushState(null, '', '#/profile/' + userId);
   loadProfilePets(userId);
+  loadProfileHomes(userId);
   render();
   window.scrollTo({ top: 0 });
 }
@@ -7344,13 +7561,7 @@ function renderProfilePage(){
         ${petsHtml}
       </div>
 
-      <div class="profile-panel profile-house">
-        <h3 class="profile-section-title">House</h3>
-        <div class="profile-house-placeholder">
-          <div class="profile-house-icon">&#127984;</div>
-          <p class="sans">The builders are still at work. Houses are coming soon.</p>
-        </div>
-      </div>
+      ${renderHomeSection(p, isMe)}
     </div>`;
 }
 
@@ -7762,6 +7973,8 @@ function renderShopModal(){
         `).join('')}</div>
       </div>
       ` : '' }
+
+      ${ renderHomeShopSection(gold) }
 
       <div class="shop-section" style="padding:20px; background:linear-gradient(180deg, rgba(60,50,35,0.6), rgba(40,32,20,0.6)); border:1px solid rgba(207,154,68,0.2); border-radius:3px; margin-bottom:20px;">
         <h4 class="shop-section-title">Roster Name Customization</h4>
