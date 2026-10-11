@@ -3709,6 +3709,13 @@
   .nav-user-menu button:hover{ background:rgba(201,150,63,0.15); color:#fff3c8; }
   .nav-user-menu button.danger:hover{ background:rgba(142,28,24,0.35); color:#ffd8d0; }
   .nav-user-menu-sep{ height:1px; margin:5px 4px; background:linear-gradient(90deg, transparent, rgba(201,150,63,0.5), transparent); }
+
+  /* ---- Nav spans the full width: links start just right of the logo, wallet + identity pinned far right ---- */
+  @media (min-width:769px){
+    .nav-container{ max-width:none !important; padding:0 22px 0 280px !important; }
+    .nav-user-section{ margin-left:auto; }
+    .nav-user-info{ border-right:none; padding-right:0; }
+  }
 </style>
 </head>
 <body>
