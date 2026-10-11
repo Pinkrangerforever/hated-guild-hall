@@ -8782,7 +8782,12 @@ const HOME_DECOR = {
 // Everything standing in a home: the zone's fixed props, the built houses (moved wherever the owner
 // put them) and the owner's placed decor. Houses and decor carry `edit` so the editor can move them.
 function homeSceneProps(zone, tier, layout){
-  const props = ((HOME_ZONES[zone] && HOME_ZONES[zone].props) || []).slice();
+  // Pieces that come with the zone: movable too (saved by their index)
+  const base = (layout && layout.base) || {};
+  const props = ((HOME_ZONES[zone] && HOME_ZONES[zone].props) || []).map((p, i) => {
+    const at = base[i];
+    return Object.assign({}, p, at ? { x: +at.x, z: +at.z, rotY: +at.r } : {}, { edit: { type: 'base', i } });
+  });
   // Houses stack: each tier adds its building, so a Tier 3 home is a little village
   const houses = (HOME_ZONES[zone] && HOME_ZONES[zone].houses) || {};
   const placed = (layout && layout.houses) || {};
@@ -8872,8 +8877,6 @@ function renderHomeSection(p, isMe){
     <div class="profile-panel profile-home-panel">
       ${title}
       ${tabs}
-      <div class="home-frame">
-        <div class="home-frame-inner">
       <div class="home-edit-wrap ${editing ? 'editing' : ''}">
       <div class="home-frame">
         <div class="home-frame-inner">
@@ -9558,7 +9561,7 @@ function renderDecorInventory(home){
 }
 function renderHomeEditBar(){
   const v = homeEditViewer(), sel = v && v.sel;
-  const what = sel ? (sel.prop.edit.type === 'house' ? `Tier ${sel.prop.edit.tier} house` : ((decorItemsFor(homeEdit.zone).find(i => i.metadata.key === sel.prop.edit.k) || {}).name || 'Piece')) : null;
+  const what = sel ? (sel.prop.edit.type === 'house' ? `Tier ${sel.prop.edit.tier} house` : sel.prop.edit.type === 'base' ? 'Starting piece' : ((decorItemsFor(homeEdit.zone).find(i => i.metadata.key === sel.prop.edit.k) || {}).name || 'Piece')) : null;
   return `
     <div class="home-edit-bar">
       <span class="home-edit-hint">${ what ? `Selected: <b>${esc(what)}</b>` : 'Select a house or piece on the stage.' }</span>
@@ -9664,11 +9667,12 @@ function homeStoreSelected(){
 async function homeSaveLayout(){
   const v = homeEditViewer();
   if(!v || state.homeSaveInFlight) return;
-  const layout = { houses: {}, decor: [] };
+  const layout = { houses: {}, decor: [], base: {} };
   v.holders.forEach(({ prop }) => {
     if(!prop.edit) return;
     const at = { x: +prop.x.toFixed(2), z: +(prop.z || 0).toFixed(2), r: +(prop.rotY || 0).toFixed(3) };
     if(prop.edit.type === 'house') layout.houses[prop.edit.tier] = at;
+    else if(prop.edit.type === 'base') layout.base[prop.edit.i] = at;
     else layout.decor.push(Object.assign({ k: prop.edit.k }, at));
   });
   state.homeSaveInFlight = true;
