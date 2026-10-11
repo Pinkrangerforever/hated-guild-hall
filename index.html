@@ -7267,11 +7267,11 @@ const HOME_ZONES = {
     // Comes with the home location (not the house). Coordinates are in the scene layer, which
     // extends past the frame: x -0.89 is about the frame's left edge, bottom 0.065 its bottom edge.
     props: [
-      { gltf: 'models/housing/taurenlamppost.gltf', x: -0.87, bottom: 0.03, height: 0.32, rotY: 0.5 + Math.PI }
+      { gltf: 'models/housing/taurenlamppost.gltf', x: -0.72, bottom: 0.03, height: 0.32, rotY: 0.5 + Math.PI - 20 * Math.PI / 180 }
     ],
     // House model per tier (a missing tier uses the closest lower one)
     houses: {
-      1: { gltf: 'models/housing/mulgore-house-t1.gltf', x: 0.22, bottom: 0.14, height: 0.5, rotY: 0 }
+      1: { gltf: 'models/housing/mulgore-house-t1.gltf', x: 0.22, bottom: 0.14, height: 0.5, rotY: Math.PI / 2 }
     }
   }
 };
