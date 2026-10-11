@@ -3543,6 +3543,29 @@
   .house-build-bar{ display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px; margin-top:18px; }
   .house-tier-badge{ font-family:'Cinzel', Georgia, serif; font-weight:700; color:var(--hh-gold-bright); letter-spacing:0.06em; }
   .home-tier-note{ text-align:center; margin-top:14px; font-family:'Cinzel', Georgia, serif; color:var(--hh-gold-bright); }
+
+  /* ---- Pets in the home scene + companion roster ---- */
+  .home-pet-tag{ position:absolute; transform:translate(-50%, -100%); pointer-events:none; white-space:nowrap; z-index:5;
+    font-family:'Cinzel', Georgia, serif; font-size:12px; font-weight:700; color:var(--hh-gold-bright); letter-spacing:0.04em;
+    padding:2px 8px; border-radius:3px; background:rgba(12,8,4,0.78); border:1px solid rgba(201,150,63,0.6);
+    box-shadow:0 2px 6px rgba(0,0,0,0.6); text-shadow:0 1px 2px #000; opacity:0; transition:opacity .25s; }
+  .home-pet-tag span{ color:var(--hh-arcane); font-size:11px; margin-left:4px; }
+  .home-pet-tag.show{ opacity:1; }
+  .home-frame-empty .home-frame-inner{ background:radial-gradient(ellipse at 50% 35%, rgba(127,212,255,0.12), transparent 60%), linear-gradient(180deg, #1c2430, #2a1d12 70%, #170f09); }
+  .profile-roster-panel{ padding-top:16px; padding-bottom:16px; }
+  .profile-roster-panel .profile-section-title{ margin-bottom:12px; }
+  .pet-roster{ display:flex; flex-wrap:wrap; gap:12px; }
+  .pet-roster-card{ flex:1 1 220px; max-width:340px; display:flex; align-items:center; gap:12px; padding:10px 14px; cursor:default;
+    background:linear-gradient(180deg, rgba(43,29,18,0.9), rgba(20,13,8,0.95)); border:1px solid rgba(201,150,63,0.3); border-radius:4px;
+    transition:border-color .2s, box-shadow .2s; }
+  .pet-roster-card:hover, .pet-roster-card.linked{ border-color:var(--hh-gold-bright); box-shadow:0 0 12px rgba(240,201,90,0.35), inset 0 1px 0 rgba(255,232,160,0.2); }
+  .pet-roster-card.stage-boss{ border-color:#d9ab45; }
+  .pet-roster-icon{ flex-shrink:0; width:48px; height:48px; display:flex; align-items:center; justify-content:center; font-size:32px; }
+  .pet-roster-info{ flex:1; min-width:0; }
+  .pet-roster-name{ font-family:'Cinzel', Georgia, serif; font-weight:700; color:var(--hh-gold-bright); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pet-roster-sub{ font-size:12px; color:var(--hh-muted); }
+  .pet-roster-card .profile-exp{ margin-top:6px; height:6px; }
+  .pet-roster-exp-text{ font-size:11px; color:var(--hh-arcane); margin-top:3px; }
 </style>
 </head>
 <body>
@@ -7312,6 +7335,21 @@ function renderHomeSection(p, isMe){
   const title = `<h3 class="profile-section-title">${isMe ? 'Your Homes' : 'Home'}</h3>`;
   if(homes === undefined || homes === 'loading') return `<div class="profile-panel profile-home-panel">${title}<p class="muted sans">Walking over&hellip;</p></div>`;
   if(homes === 'error') return `<div class="profile-panel profile-home-panel">${title}<p class="muted sans">Couldn't load homes right now.</p></div>`;
+  const petsList = Array.isArray(profilePets[p.id]) ? profilePets[p.id].filter(x => x.status !== 'egg') : [];
+  if(!homes.length && petsList.length){
+    // No home yet: pets still get a stage to roam
+    return `
+      <div class="profile-panel profile-home-panel">${title}
+        <div class="home-frame home-frame-empty">
+          <div class="home-frame-inner"><div class="home-empty-sky"></div><div class="home-ground"></div>
+            <div class="home-plaque">${isMe ? 'Homeless... for now' : 'Wandering'}</div></div>
+          <div class="home-scene" data-home-scene="_none" data-home-tier="0" data-home-user="${esc(p.id)}"></div>
+          <span class="home-frame-corner tl"></span><span class="home-frame-corner tr"></span>
+          <span class="home-frame-corner bl"></span><span class="home-frame-corner br"></span>
+        </div>
+        ${ isMe ? `<div class="home-actions"><span class="muted sans">Claim a home and your pets will move in.</span><button class="btn secondary" type="button" data-open-shop-homes>Browse Home Locations</button></div>` : '' }
+      </div>`;
+  }
   if(!homes.length){
     return `
       <div class="profile-panel profile-home-panel">${title}
@@ -7348,7 +7386,7 @@ function renderHomeSection(p, isMe){
           <div class="home-ground"></div>
           <div class="home-plaque">${esc(zone.label)}</div>
         </div>
-        <div class="home-scene" data-home-scene="${esc(home.zone)}" data-home-tier="${home.house_tier || 0}"></div>
+        <div class="home-scene" data-home-scene="${esc(home.zone)}" data-home-tier="${home.house_tier || 0}" data-home-user="${esc(p.id)}"></div>
         <span class="home-frame-corner tl"></span><span class="home-frame-corner tr"></span>
         <span class="home-frame-corner bl"></span><span class="home-frame-corner br"></span>
       </div>
@@ -7515,9 +7553,10 @@ function loadGltfWithoutTextures(url){
 }
 
 function loadHomeProp(prop){
-  return getAnimatedPetModel({ gltf: prop.gltf }).catch(err => {
-    console.warn('Home prop textures missing, showing it untextured:', prop.gltf, err && err.message);
-    return loadGltfWithoutTextures(prop.gltf);
+  const model = prop.model || { gltf: prop.gltf };
+  return getAnimatedPetModel(model).catch(err => {
+    console.warn('Home model textures missing, showing it untextured:', model.gltf, err && err.message);
+    return loadGltfWithoutTextures(model.gltf);
   }).then(pivot => {
     // getAnimatedPetModel centers the model and scales it to unit size; re-seat it so its
     // bottom-center is the origin, then size it to the requested share of the frame height.
@@ -7541,18 +7580,260 @@ function placeHomeProp(holder, prop, aspect){
   holder.rotation.y = prop.rotY || 0;
 }
 
+/* ---------------- Pets roaming the home scene ----------------
+   Every hatched pet lives in the owner's home scene. Each one is a small state machine driven by
+   the clips its model has: fliers (Fly/Glide) take off, glide in arcs, hover and land; walkers
+   (Walk/Run) stroll along the ground; anything else idles in place with the odd flourish.
+   Positions are world units on the scene's z = 0 plane (see placeHomeProp); farther back = z < 0. */
+const HOME_PET_HEIGHT = { juvenile: 0.12, adult: 0.17, boss: 0.22 }; // share of the frame height
+const HOME_PET_FORWARD = 0;            // model-space yaw that faces +X (wow.export models face +X)
+const HOME_PET_FLY_SPEED = 2.2;        // world units / s
+const HOME_PET_WALK_SPEED = 0.8;
+const HOME_PET_FUN_CLIPS = ['StandAlt', 'StandAlt2', 'Roar', 'Dance', 'Pounce', 'Eat', 'WingFlare', 'FlyBattleRoar', 'EmoteEat'];
+let homePetHighlight = null;           // pet id hovered in the roster strip
+
+function homeSceneDims(v){
+  const visH = 2 * HOME_SCENE_DIST * Math.tan(THREE.MathUtils.degToRad(HOME_SCENE_FOV / 2));
+  return { visH, visW: visH * v.camera.aspect };
+}
+function rand(a, b){ return a + Math.random() * (b - a); }
+
+function homePetGroundPoint(v){
+  const { visH, visW } = homeSceneDims(v);
+  return new THREE.Vector3(rand(-0.62, 0.62) * visW / 2, -visH / 2 + rand(0.09, 0.14) * visH, rand(-3, 1.5));
+}
+function homePetAirPoint(v){
+  const { visH, visW } = homeSceneDims(v);
+  return new THREE.Vector3(rand(-0.7, 0.7) * visW / 2, -visH / 2 + rand(0.42, 0.75) * visH, rand(-4, 1));
+}
+
+function createHomePetActor(v, pet, holder){
+  const clips = holder.userData.animations || [];
+  const byName = {};
+  clips.forEach(c => { byName[c.name] = c; });
+  const pick = names => names.find(n => byName[n]) || null;
+  const model = petModelFor(pet) || {};
+  const a = {
+    pet, holder, byName,
+    mixer: new THREE.AnimationMixer(holder.userData.pivot.children[0]),
+    idle: (model.anims && byName[model.anims.idle] && model.anims.idle) || pick(['Stand']) || (clips[0] && clips[0].name),
+    fly: pick(['Fly', 'Glide']), hover: pick(['Hover']), takeoff: pick(['ToFly']), land: pick(['Land', 'FlyToGround', 'Settle']),
+    walk: pick(['Walk', 'Run']),
+    fun: HOME_PET_FUN_CLIPS.filter(n => byName[n]),
+    current: null, state: 'idle', until: 0, path: null, tagUntil: 0,
+    yaw: -Math.PI / 2 + rand(-0.6, 0.6), targetYaw: null
+  };
+  a.kind = a.fly ? 'flier' : (a.walk ? 'walker' : 'idler');
+  // Glow shown under the pet when its roster card (or the pet itself) is hovered
+  a.glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: homePetGlowTexture(), color: 0xf0c95a, transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 }));
+  v.scene.add(a.glow);
+  // Name tag (HTML, positioned every frame)
+  a.tag = document.createElement('div');
+  a.tag.className = 'home-pet-tag';
+  const lvl = calculatePetLevel(pet.exp || 0);
+  a.tag.innerHTML = `${esc(petDisplayName(pet))} <span>Lv ${lvl}</span>`;
+  return a;
+}
+
+let __homePetGlowTex = null;
+function homePetGlowTexture(){
+  if(__homePetGlowTex) return __homePetGlowTex;
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,240,190,0.9)'); grad.addColorStop(0.4, 'rgba(240,201,90,0.45)'); grad.addColorStop(1, 'rgba(240,201,90,0)');
+  g.fillStyle = grad; g.fillRect(0, 0, 64, 64);
+  return (__homePetGlowTex = new THREE.CanvasTexture(c));
+}
+
+function homePetPlay(a, name, once){
+  const clip = name && a.byName[name];
+  if(!clip) return 0;
+  const action = a.mixer.clipAction(clip);
+  action.reset();
+  action.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity);
+  action.clampWhenFinished = !!once;
+  if(a.current && a.current !== action) a.current.fadeOut(0.25);
+  action.fadeIn(0.25).play();
+  a.current = action;
+  return clip.duration;
+}
+
+function homePetStartPath(a, to, speed, arc){
+  const from = a.holder.position.clone();
+  const dist = from.distanceTo(to);
+  const ctrl = from.clone().lerp(to, 0.5);
+  ctrl.y += arc * Math.min(dist, 4);
+  a.path = { from, ctrl, to, t: 0, dur: Math.max(0.6, dist / speed) };
+}
+
+// Decide what to do next when the current state's time is up
+function homePetNext(v, a, now){
+  if(a.kind === 'flier'){
+    if(a.state === 'idle'){
+      const d = homePetPlay(a, a.takeoff, true);
+      a.state = 'takeoff'; a.until = now + (d ? d * 1000 * 0.85 : 0);
+      if(!d) homePetNext(v, a, now);
+      return;
+    }
+    if(a.state === 'takeoff' || a.state === 'hover' || (a.state === 'fly' && a.airTarget)){
+      // In the air: wander, hover a moment, or head down to land
+      const r = Math.random();
+      if(a.state !== 'hover' && a.hover && r < 0.3){
+        homePetPlay(a, a.hover); a.state = 'hover'; a.until = now + rand(1800, 3500); a.path = null;
+      } else if(r < 0.65){
+        homePetPlay(a, a.fly); a.state = 'fly'; a.airTarget = true;
+        homePetStartPath(a, homePetAirPoint(v), HOME_PET_FLY_SPEED, 0.3); a.until = Infinity;
+      } else {
+        homePetPlay(a, a.fly); a.state = 'fly'; a.airTarget = false;
+        homePetStartPath(a, homePetGroundPoint(v), HOME_PET_FLY_SPEED, 0.5); a.until = Infinity;
+      }
+      return;
+    }
+    if(a.state === 'fly' && !a.airTarget){
+      const d = homePetPlay(a, a.land, true);
+      a.state = 'landing'; a.until = now + (d ? d * 1000 * 0.9 : 0);
+      a.tagUntil = now + 2200;
+      return;
+    }
+  }
+  if(a.kind === 'walker' && a.state === 'idle' && Math.random() < 0.6){
+    homePetPlay(a, a.walk); a.state = 'walk';
+    homePetStartPath(a, homePetGroundPoint(v), HOME_PET_WALK_SPEED, 0); a.until = Infinity;
+    return;
+  }
+  // Idle, with an occasional flourish
+  if(a.fun.length && Math.random() < 0.35){
+    const d = homePetPlay(a, a.fun[Math.floor(Math.random() * a.fun.length)], true);
+    a.state = 'fun'; a.until = now + d * 1000; a.tagUntil = now + d * 1000 + 800;
+    return;
+  }
+  homePetPlay(a, a.idle); a.state = 'idle'; a.until = now + rand(4000, 9000); a.path = null;
+  a.targetYaw = -Math.PI / 2 + rand(-0.7, 0.7); // turn roughly toward the viewer while resting
+}
+
+function updateHomePetActor(v, a, dt, now){
+  a.mixer.update(dt);
+  if(a.path){
+    const p = a.path;
+    p.t = Math.min(1, p.t + dt / p.dur);
+    const t = p.t, it = 1 - t;
+    const pos = new THREE.Vector3()
+      .addScaledVector(p.from, it * it).addScaledVector(p.ctrl, 2 * it * t).addScaledVector(p.to, t * t);
+    const delta = pos.clone().sub(a.holder.position);
+    if(delta.x * delta.x + delta.z * delta.z > 1e-6) a.targetYaw = Math.atan2(-delta.z, delta.x) + HOME_PET_FORWARD;
+    a.holder.position.copy(pos);
+    if(t >= 1){ a.path = null; a.until = now; }
+  }
+  if(now >= a.until) homePetNext(v, a, now);
+  if(a.targetYaw != null){
+    let d = a.targetYaw - a.yaw;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    a.yaw += d * Math.min(1, dt * 5);
+  }
+  a.holder.rotation.y = a.yaw;
+}
+
+function placeHomePetActor(v, a){
+  const { visH } = homeSceneDims(v);
+  const h = (HOME_PET_HEIGHT[a.pet.status] || 0.15) * visH;
+  a.holder.scale.setScalar(h / a.holder.userData.unitHeight);
+  a.height = h;
+  if(!a.placed){
+    a.holder.position.copy(a.kind === 'flier' && Math.random() < 0.5 ? homePetAirPoint(v) : homePetGroundPoint(v));
+    if(a.kind === 'flier' && a.holder.position.y > -visH / 4){ homePetPlay(a, a.hover || a.fly); a.state = 'hover'; a.until = performance.now() + rand(500, 2000); }
+    else { homePetPlay(a, a.idle); a.state = 'idle'; a.until = performance.now() + rand(1500, 5000); }
+    a.placed = true;
+  }
+}
+
+// Screen position (px within the slot) of a point above the pet
+function homePetScreen(v, a, slotRect, up){
+  const p = a.holder.position.clone(); p.y += a.height * up;
+  p.project(v.camera);
+  return { x: (p.x + 1) / 2 * slotRect.width, y: (1 - p.y) / 2 * slotRect.height, depth: p.z };
+}
+
+function updateHomePetOverlays(v, slot, now){
+  const rect = slot.getBoundingClientRect();
+  v.actors.forEach(a => {
+    const lit = homePetHighlight === a.pet.id || v.hoverPetId === a.pet.id;
+    // glow
+    a.glow.position.copy(a.holder.position); a.glow.position.y += a.height * 0.45;
+    a.glow.scale.setScalar(a.height * 2.2);
+    a.glow.material.opacity += ((lit ? 0.9 : 0) - a.glow.material.opacity) * 0.15;
+    // tag
+    const show = lit || now < a.tagUntil;
+    if(a.tag.parentNode !== slot) slot.appendChild(a.tag);
+    const s = homePetScreen(v, a, rect, 1.15);
+    a.tag.style.left = s.x + 'px';
+    a.tag.style.top = s.y + 'px';
+    a.tag.classList.toggle('show', show);
+  });
+}
+
+// Hovering a pet in the scene lights up its tag and its roster card
+function homePetHitTest(v, slot, clientX, clientY){
+  const rect = slot.getBoundingClientRect();
+  const x = clientX - rect.left, y = clientY - rect.top;
+  let best = null, bestD = Infinity;
+  v.actors.forEach(a => {
+    const c = homePetScreen(v, a, rect, 0.5);
+    const top = homePetScreen(v, a, rect, 1);
+    const r = Math.max(18, Math.abs(c.y - top.y) * 1.1);
+    const d = Math.hypot(x - c.x, y - c.y);
+    if(d < r && d < bestD){ best = a; bestD = d; }
+  });
+  return best ? best.pet.id : null;
+}
+
+document.addEventListener('mousemove', e => {
+  const frame = e.target.closest && e.target.closest('.home-frame');
+  Object.values(homeSceneViewers).forEach(v => {
+    if(!v.slot || !v.actors) return;
+    const inside = frame && frame.contains(v.slot);
+    const id = inside ? homePetHitTest(v, v.slot, e.clientX, e.clientY) : null;
+    if(id !== v.hoverPetId){
+      v.hoverPetId = id;
+      document.querySelectorAll('.pet-roster-card').forEach(c => c.classList.toggle('linked', c.getAttribute('data-roster-pet') === id));
+    }
+  });
+});
+document.addEventListener('mouseover', e => {
+  const card = e.target.closest && e.target.closest('[data-roster-pet]');
+  homePetHighlight = card ? card.getAttribute('data-roster-pet') : null;
+});
+
+function homeScenePetsSig(pets){
+  return pets.map(p => p.id + ':' + p.status).join(',');
+}
+
+function disposeHomeViewer(key){
+  const v = homeSceneViewers[key];
+  if(!v) return;
+  if(v.raf) cancelAnimationFrame(v.raf);
+  (v.actors || []).forEach(a => { if(a.tag && a.tag.parentNode) a.tag.remove(); });
+  v.renderer.dispose();
+  delete homeSceneViewers[key];
+}
+
 function mountHomeScenes(){
   if(typeof THREE === 'undefined') return;
   document.querySelectorAll('[data-home-scene]').forEach(slot => {
     const zoneKey = slot.getAttribute('data-home-scene');
     const tier = parseInt(slot.getAttribute('data-home-tier') || '0', 10);
+    const userId = slot.getAttribute('data-home-user') || '';
     const props = homeSceneProps(zoneKey, tier);
-    if(!props.length) return;
+    const allPets = profilePets[userId];
+    const pets = (Array.isArray(allPets) ? allPets : []).filter(p => p.status !== 'egg' && petModelFor(p) && petModelFor(p).gltf);
+    if(!props.length && !pets.length) return;
 
-    const viewerKey = zoneKey + '|' + tier;
+    const viewerKey = [userId, zoneKey, tier, homeScenePetsSig(pets)].join('|');
+    // Pets or house changed since the last visit: drop the old scene for this home
+    Object.keys(homeSceneViewers).forEach(k => { if(k !== viewerKey && k.startsWith(userId + '|' + zoneKey + '|')) disposeHomeViewer(k); });
     let v = homeSceneViewers[viewerKey];
     if(!v){
-      v = homeSceneViewers[viewerKey] = { ready: false, failed: false, raf: null, mixers: [], holders: [] };
+      v = homeSceneViewers[viewerKey] = { ready: false, failed: false, raf: null, mixers: [], holders: [], actors: [] };
       v.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       v.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       v.scene = new THREE.Scene();
@@ -7567,9 +7848,13 @@ function mountHomeScenes(){
       const sky = new THREE.HemisphereLight(0xdfeeff, 0x9a7a4a, 0.65);
       v.scene.add(sun, sky, new THREE.AmbientLight(0xffffff, 0.25));
       v.clock = new THREE.Clock();
-      // Each prop loads on its own: one failing model never hides the others
-      Promise.all(props.map(p => loadHomeProp(p).catch(err => { console.error('Home prop failed:', p.gltf, err); return null; }))).then(holders => {
-        holders.forEach((h, i) => {
+      // Each model loads on its own: one failing model never hides the others
+      const safe = (p, label) => p.catch(err => { console.error('Home scene model failed:', label, err); return null; });
+      Promise.all([
+        Promise.all(props.map(p => safe(loadHomeProp(p), p.gltf))),
+        Promise.all(pets.map(pet => safe(loadHomeProp({ model: petModelFor(pet) }), pet.pet_type)))
+      ]).then(([propHolders, petHolders]) => {
+        propHolders.forEach((h, i) => {
           if(!h) return;
           v.holders.push({ holder: h, prop: props[i] });
           v.scene.add(h);
@@ -7580,12 +7865,18 @@ function mountHomeScenes(){
             v.mixers.push(mixer);
           }
         });
+        petHolders.forEach((h, i) => {
+          if(!h) return;
+          v.scene.add(h);
+          v.actors.push(createHomePetActor(v, pets[i], h));
+        });
         v.ready = true;
         mountHomeScenes();
       }).catch(err => { console.error('Home scene failed to load:', err); v.failed = true; });
     }
     if(v.failed || !v.ready) return;
 
+    v.slot = slot;
     const canvas = v.renderer.domElement;
     canvas.classList.add('home-scene-canvas');
     if(canvas.parentNode !== slot) slot.appendChild(canvas);
@@ -7594,12 +7885,16 @@ function mountHomeScenes(){
     v.camera.aspect = w / h;
     v.camera.updateProjectionMatrix();
     v.holders.forEach(({ holder, prop }) => placeHomeProp(holder, prop, w / h));
+    v.actors.forEach(a => placeHomePetActor(v, a));
 
     if(!v.raf){
       const tick = () => {
         if(!document.body.contains(canvas)){ v.raf = null; return; }
-        const dt = v.clock.getDelta();
+        const dt = Math.min(v.clock.getDelta(), 0.1); // no big jumps after a background tab
+        const now = performance.now();
         v.mixers.forEach(m => m.update(dt));
+        v.actors.forEach(a => updateHomePetActor(v, a, dt, now));
+        updateHomePetOverlays(v, v.slot, now);
         v.renderer.render(v.scene, v.camera);
         v.raf = requestAnimationFrame(tick);
       };
@@ -7612,7 +7907,6 @@ function mountHomeScenes(){
    #/profile/<userId>. Profiles are already loaded for the whole guild (state.profilesById);
    the page makes one extra query for that player's pets (public read via RLS), cached per visit. */
 const profilePets = {};          // userId -> pets[] | 'loading' | 'error'
-const profilePetViewers = {};    // petId -> { renderer, scene, camera, model, mixer, clock, raf, ready, failed }
 
 function profileIdFromHash(){
   const m = (window.location.hash || '').match(/^#\/profile\/([0-9a-f-]{36})$/i);
@@ -7690,27 +7984,34 @@ function profilePetExp(pet){
   return { level, exp, next, pct };
 }
 
-function renderProfilePetCard(pet){
-  const type = petTypeInfo(pet.pet_type);
-  let stats;
-  if(pet.status === 'egg'){
-    const left = pet.hatch_time - Date.now();
-    stats = `<div class="profile-pet-sub">${esc((type.label || 'Pet') + ' Egg')} &middot; ${left > 0 ? 'Hatches in ' + formatDuration(left) : 'Ready to hatch!'}</div>`;
-  } else {
-    const x = profilePetExp(pet);
-    stats = `
-      <div class="profile-pet-sub">Level ${x.level} ${esc(PET_STAGE_LABEL[pet.status] || '')}</div>
-      <div class="profile-exp"><div class="profile-exp-fill" style="width:${x.pct}%"></div></div>
-      <div class="profile-exp-text">${x.next ? `${x.exp} / ${x.next} EXP` : `${x.exp} EXP (MAX)`}</div>`;
-  }
-  return `
-    <div class="profile-pet-card stage-${esc(pet.status)}">
-      <div class="profile-pet-stage" data-profile-pet="${esc(pet.id)}">
-        <div class="profile-pet-fallback">${petIconHtml(pet.pet_type, 72)}</div>
-      </div>
-      <div class="profile-pet-name">${esc(petDisplayName(pet))}</div>
-      ${stats}
-    </div>`;
+function renderPetRoster(p, isMe){
+  const pets = profilePets[p.id];
+  let body;
+  if(pets === undefined || pets === 'loading') body = `<p class="muted sans">Calling the pets&hellip;</p>`;
+  else if(pets === 'error') body = `<p class="muted sans">Couldn't load pets right now.</p>`;
+  else if(!pets.length) body = `<p class="muted sans">${isMe ? "You don't have a pet yet. The Shadowy Dealer might be able to help..." : 'No pets yet.'}</p>`;
+  else body = `<div class="pet-roster">${pets.map(pet => {
+    let stats;
+    if(pet.status === 'egg'){
+      const left = pet.hatch_time - Date.now();
+      stats = `<div class="pet-roster-sub">${esc((petTypeInfo(pet.pet_type).label || 'Pet') + ' Egg')}</div>
+               <div class="pet-roster-exp-text">${left > 0 ? 'Hatches in ' + formatDuration(left) : 'Ready to hatch!'}</div>`;
+    } else {
+      const x = profilePetExp(pet);
+      stats = `<div class="pet-roster-sub">Lv ${x.level} ${esc(PET_STAGE_LABEL[pet.status] || '')}</div>
+               <div class="profile-exp"><div class="profile-exp-fill" style="width:${x.pct}%"></div></div>
+               <div class="pet-roster-exp-text">${x.next ? `${x.exp} / ${x.next} EXP` : `${x.exp} EXP (MAX)`}</div>`;
+    }
+    return `
+      <div class="pet-roster-card stage-${esc(pet.status)}" data-roster-pet="${esc(pet.id)}">
+        <div class="pet-roster-icon">${pet.status === 'egg' ? '&#129370;' : petIconHtml(pet.pet_type, 48)}</div>
+        <div class="pet-roster-info">
+          <div class="pet-roster-name">${esc(petDisplayName(pet))}</div>
+          ${stats}
+        </div>
+      </div>`;
+  }).join('')}</div>`;
+  return `<div class="profile-panel profile-home-panel profile-roster-panel"><h3 class="profile-section-title">Companions</h3>${body}</div>`;
 }
 
 function renderProfilePage(){
@@ -7724,14 +8025,8 @@ function renderProfilePage(){
   const slotClasses = [c.border, c.nameCustom].filter(Boolean).join(' ');
   const rank = profileLeaderboardRank(p.id);
   const roleLabel = p.protected ? 'Raid Leader' : (p.role === 'officer' ? 'Officer' : 'Member');
-  const pets = profilePets[p.id];
   const isMe = state.profile && state.profile.id === p.id;
 
-  let petsHtml;
-  if(pets === undefined || pets === 'loading') petsHtml = `<p class="muted sans">Calling the pets&hellip;</p>`;
-  else if(pets === 'error') petsHtml = `<p class="muted sans">Couldn't load pets right now.</p>`;
-  else if(!pets.length) petsHtml = `<p class="muted sans">${isMe ? "You don't have a pet yet. The Shadowy Dealer might be able to help..." : 'No pets yet.'}</p>`;
-  else petsHtml = `<div class="profile-pets">${pets.map(renderProfilePetCard).join('')}</div>`;
 
   return `
     <div class="profile-page">
@@ -7748,73 +8043,14 @@ function renderProfilePage(){
         </div>
       </div>
 
-      <div class="profile-panel">
-        <h3 class="profile-section-title">Companions</h3>
-        ${petsHtml}
-      </div>
-
       ${renderHomeSection(p, isMe)}
+      ${renderPetRoster(p, isMe)}
     </div>`;
 }
 
-// One renderer per pet, re-attached after every render (no new WebGL contexts)
-function mountProfilePetViewers(){
-  if(typeof THREE === 'undefined') return;
+function bindProfilePage(){
   const back = document.getElementById('profile-back-btn');
   if(back) back.addEventListener('click', closeProfile);
-  const pets = profilePets[state.profileUserId];
-  if(!Array.isArray(pets)) return;
-  document.querySelectorAll('[data-profile-pet]').forEach(slot => {
-    const pet = pets.find(x => x.id === slot.getAttribute('data-profile-pet'));
-    const model = pet && petModelFor(pet);
-    if(!model) return;
-    let v = profilePetViewers[pet.id];
-    if(v && v.modelKey !== petModelKey(model)){ v.renderer.dispose(); v = null; } // evolved since last view
-    if(!v){
-      v = profilePetViewers[pet.id] = { modelKey: petModelKey(model), ready: false, failed: false, raf: null };
-      v.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      v.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      v.scene = new THREE.Scene();
-      v.camera = makePetCamera(1, model.camY ?? PET_CAMERA.y, model.camZ ?? PET_CAMERA.z);
-      addPetLights(v.scene);
-      v.spin = model.spin !== false;
-      getPetModel(model).then(obj => {
-        v.model = obj;
-        if(!v.spin) obj.rotation.y = model.facing || 0;
-        v.scene.add(obj);
-        const clips = obj.userData.animations || [];
-        const idle = model.anims && model.anims.idle;
-        const clip = clips.find(c => c.name === idle) || clips[0];
-        if(clip){
-          v.mixer = new THREE.AnimationMixer(obj.children[0]);
-          v.mixer.clipAction(clip).play();
-          v.clock = new THREE.Clock();
-        }
-        v.ready = true;
-        mountProfilePetViewers();
-      }).catch(err => { console.error('Profile pet model failed to load:', err); v.failed = true; });
-    }
-    if(v.failed || !v.ready) return; // keep the icon fallback
-
-    const canvas = v.renderer.domElement;
-    if(canvas.parentNode !== slot) slot.appendChild(canvas);
-    slot.classList.add('loaded');
-    const w = slot.clientWidth || 220, h = slot.clientHeight || 200;
-    v.renderer.setSize(w, h, false);
-    v.camera.aspect = w / h;
-    v.camera.updateProjectionMatrix();
-
-    if(!v.raf){
-      const tick = () => {
-        if(!document.body.contains(canvas)){ v.raf = null; return; } // left the page; next mount restarts
-        if(v.mixer) v.mixer.update(v.clock.getDelta());
-        if(v.spin) v.model.rotation.y += PET_SPIN_PER_FRAME;
-        v.renderer.render(v.scene, v.camera);
-        v.raf = requestAnimationFrame(tick);
-      };
-      v.raf = requestAnimationFrame(tick);
-    }
-  });
 }
 
 /* ---------------- calendar tab ---------------- */
@@ -10151,7 +10387,7 @@ function bindApp(){
   document.querySelectorAll('[data-buy-pet-egg]').forEach(b=>b.addEventListener('click', ()=>purchasePetEgg(b.dataset.buyPetEgg)));
   document.querySelectorAll('[data-buy-resource]').forEach(b=>b.addEventListener('click', ()=>buyResourceBundle(b.dataset.buyResource)));
   mountShopEggViewers();
-  if(state.tab === 'profile'){ mountProfilePetViewers(); mountHomeScenes(); }
+  if(state.tab === 'profile'){ bindProfilePage(); mountHomeScenes(); }
   document.querySelectorAll('[data-move-shop-item]').forEach(b=>b.addEventListener('click', ()=>moveShopItem(b.dataset.moveShopItem, b.dataset.direction)));
   document.querySelectorAll('[data-refund-purchase]').forEach(b=>b.addEventListener('click', ()=>refundPurchase(b.dataset.refundPurchase, b.dataset.refundName)));
   document.querySelectorAll('[data-buy-rank]').forEach(b=>b.addEventListener('click', ()=>purchaseRank(b.dataset.buyRank)));
