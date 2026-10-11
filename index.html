@@ -4559,7 +4559,6 @@ async function onAuthResolved(){
         }
         // Load layout BEFORE rendering so elements have correct positions from the start
         await loadLayout();
-        syncDiscordRole(); // fire-and-forget: re-renders itself once it resolves
         startSparkleSystem();
       } else {
         state.view = 'app';
@@ -4611,34 +4610,6 @@ async function signOut(){
   state.tab = 'news';
   render();
   updateNavbarUserInfo();
-}
-
-let __syncInFlight = false;
-async function syncDiscordRole(showFeedback){
-  if(__syncInFlight) return;
-  __syncInFlight = true;
-  try{
-    const { data, error } = await sb.functions.invoke('sync-discord-role');
-    if(error){
-      if(showFeedback) showToast("Couldn't check Discord roles right now", true);
-      return;
-    }
-    const roleChanged = data && data.role && state.profile && data.role !== state.profile.role;
-    const protectedChanged = data && state.profile && !!data.protected !== !!state.profile.protected;
-    if((roleChanged || protectedChanged) && state.profile){
-      state.profile.role = data.role;
-      state.profile.protected = !!data.protected;
-      state.profilesById[state.profile.id] = state.profile;
-      if(showFeedback) showToast('Synced  you are now ' + (data.protected ? 'Raid Leader' : (data.role === 'officer' ? 'an Officer' : 'a Member')));
-      render();
-    } else if(showFeedback){
-      showToast('Discord roles are already up to date');
-    }
-  } catch(e){
-    if(showFeedback) showToast("Couldn't check Discord roles right now", true);
-  } finally {
-    __syncInFlight = false;
-  }
 }
 
 /* ---------------- data loading ---------------- */
@@ -7959,7 +7930,7 @@ function renderRoster(){
 
     <div class="panel style-glass">
       <h3 style="margin-bottom:14px;">Guild Members</h3>
-      <p class="muted sans" style="margin-bottom:14px;">Officer/Member status is synced from your Discord roles automatically each time you sign in.</p>
+      <p class="muted sans" style="margin-bottom:14px;">Officer/Member status is managed by officers.</p>
       <div class="field" style="max-width:320px; margin-bottom:14px;">
         <label>Your character name</label>
         <div style="display:flex; gap:8px;">
@@ -7967,7 +7938,6 @@ function renderRoster(){
           <button class="btn secondary" type="button" id="my-name-save-btn">Save</button>
         </div>
       </div>
-      <button class="btn secondary" type="button" id="sync-discord-role-btn" style="margin-bottom:14px;">Re-check my Discord roles now</button>
       <div class="rule"></div>
       ${ allProfiles.length ? allProfiles.map(p=>`
         <div class="list-item">
@@ -9071,8 +9041,6 @@ function bindApp(){
   // roster: members + comp planner
   const myNameSaveBtn = document.getElementById('my-name-save-btn');
   if(myNameSaveBtn) myNameSaveBtn.addEventListener('click', saveMyName);
-  const syncRoleBtn = document.getElementById('sync-discord-role-btn');
-  if(syncRoleBtn) syncRoleBtn.addEventListener('click', ()=>syncDiscordRole(true));
   document.querySelectorAll('[data-toggle-officer]').forEach(b=>b.addEventListener('click', ()=>toggleOfficer(b.dataset.toggleOfficer)));
   document.querySelectorAll('[data-reset-current-gold]').forEach(b=>b.addEventListener('click', ()=>resetMemberCurrentGold(b.dataset.resetCurrentGold)));
   document.querySelectorAll('[data-reset-earned-gold]').forEach(b=>b.addEventListener('click', ()=>resetMemberEarnedGold(b.dataset.resetEarnedGold)));
