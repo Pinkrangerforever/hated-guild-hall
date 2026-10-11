@@ -7267,11 +7267,11 @@ const HOME_ZONES = {
     // Comes with the home location (not the house). Coordinates are in the scene layer, which
     // extends past the frame: x -0.89 is about the frame's left edge, bottom 0.065 its bottom edge.
     props: [
-      { gltf: 'models/housing/taurenlamppost.gltf', x: -0.72, bottom: 0.03, height: 0.32, rotY: 0.5 + Math.PI - 20 * Math.PI / 180 }
+      { gltf: 'models/housing/taurenlamppost.gltf', x: -0.78, bottom: 0.03, height: 0.32, rotY: 0.5 + Math.PI - 65 * Math.PI / 180 }
     ],
     // House model per tier (a missing tier uses the closest lower one)
     houses: {
-      1: { gltf: 'models/housing/mulgore-house-t1.gltf', x: 0.22, bottom: 0.14, height: 0.5, rotY: Math.PI / 2 }
+      1: { gltf: 'models/housing/mulgore-house-t1.gltf', x: 0.78, bottom: 0.14, height: 0.5, rotY: Math.PI / 2 }
     }
   }
 };
@@ -7562,9 +7562,13 @@ function mountHomeScenes(){
       v.camera = new THREE.PerspectiveCamera(HOME_SCENE_FOV, 16 / 9, 0.1, 100);
       v.camera.position.set(0, 0, HOME_SCENE_DIST);
       v.camera.lookAt(0, 0, 0);
-      const sun = new THREE.DirectionalLight(0xffe2b8, 1.0);
-      sun.position.set(-3, 4, 6);
-      v.scene.add(sun, new THREE.AmbientLight(0xfff0dc, 0.75));
+      // Daylight to match the zone videos: correct color output, warm sun from the upper left,
+      // pale sky above / dusty ground bounce below
+      v.renderer.outputEncoding = THREE.sRGBEncoding;
+      const sun = new THREE.DirectionalLight(0xfff0d0, 1.6);
+      sun.position.set(-5, 6, 5);
+      const sky = new THREE.HemisphereLight(0xdfeeff, 0x9a7a4a, 0.9);
+      v.scene.add(sun, sky, new THREE.AmbientLight(0xffffff, 0.25));
       v.clock = new THREE.Clock();
       // Each prop loads on its own: one failing model never hides the others
       Promise.all(props.map(p => loadHomeProp(p).catch(err => { console.error('Home prop failed:', p.gltf, err); return null; }))).then(holders => {
