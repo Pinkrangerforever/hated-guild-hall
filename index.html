@@ -3535,6 +3535,8 @@
   .home-active-note{ color:var(--hh-gold-bright); font-family:'Cinzel', Georgia, serif; font-size:13px; }
   .home-shop-preview{ width:100%; aspect-ratio:16 / 9; object-fit:cover; border-radius:3px; margin-bottom:8px;
     border:2px solid #c9963f; box-shadow:0 0 0 1px #000; background:#000; }
+  .home-scene{ position:absolute; inset:0; z-index:1; pointer-events:none; }
+  .home-scene canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
 </style>
 </head>
 <body>
@@ -7255,7 +7257,11 @@ function renderTab(){
 const HOME_ZONES = {
   mulgore_bluffs: {
     label: 'Mulgore Bluffs',
-    video: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs.mp4'
+    video: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/Mulgore%20Bluffs.mp4',
+    // Comes with the home location (not the house)
+    props: [
+      { gltf: 'models/housing/taurenlamppost.gltf', x: -0.8, bottom: 0.02, height: 0.55, rotY: 0.5 }
+    ]
   }
 };
 function homeZoneInfo(zone){
@@ -7320,6 +7326,7 @@ function renderHomeSection(p, isMe){
         <div class="home-frame-inner">
           ${ zone.video ? `<video class="home-video" src="${esc(zone.video)}" autoplay muted loop playsinline preload="auto"></video>` : '' }
           <div class="home-ground"></div>
+          <div class="home-scene" data-home-scene="${esc(home.zone)}"></div>
           <div class="home-plaque">${esc(zone.label)}</div>
         </div>
         <span class="home-frame-corner tl"></span><span class="home-frame-corner tr"></span>
@@ -7416,6 +7423,99 @@ document.addEventListener('mouseout', e => {
   const vid = v.querySelector('video[data-hover-play]');
   if(vid) vid.pause();
 });
+
+/* ---------------- Home scene: 3D props in front of the zone video ----------------
+   Each zone lists props placed in frame coordinates: x from -1 (left edge) to 1 (right edge),
+   bottom from 0 (bottom edge) up, height as a fraction of the frame height. Props that come with
+   the home location are always shown; house tiers and add-ons will add to this list later.
+   One transparent canvas per zone, re-attached after every render (no new WebGL contexts). */
+const homeSceneViewers = {}; // zone -> { renderer, scene, camera, mixers, clock, raf, ready, failed }
+const HOME_SCENE_FOV = 30;
+const HOME_SCENE_DIST = 10;
+
+function loadHomeProp(prop){
+  return getAnimatedPetModel({ gltf: prop.gltf }).then(pivot => {
+    // getAnimatedPetModel centers the model and scales it to unit size; re-seat it so its
+    // bottom-center is the origin, then size it to the requested share of the frame height.
+    const box = new THREE.Box3().setFromObject(pivot);
+    const size = box.getSize(new THREE.Vector3());
+    const holder = new THREE.Group();
+    pivot.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+    holder.add(pivot);
+    holder.userData.unitHeight = size.y || 1;
+    holder.userData.animations = pivot.userData.animations;
+    holder.userData.pivot = pivot;
+    return holder;
+  });
+}
+
+function placeHomeProp(holder, prop, aspect){
+  const visH = 2 * HOME_SCENE_DIST * Math.tan(THREE.MathUtils.degToRad(HOME_SCENE_FOV / 2));
+  const visW = visH * aspect;
+  holder.scale.setScalar((prop.height * visH) / holder.userData.unitHeight);
+  holder.position.set(prop.x * visW / 2, -visH / 2 + (prop.bottom || 0) * visH, 0);
+  holder.rotation.y = prop.rotY || 0;
+}
+
+function mountHomeScenes(){
+  if(typeof THREE === 'undefined') return;
+  document.querySelectorAll('[data-home-scene]').forEach(slot => {
+    const zoneKey = slot.getAttribute('data-home-scene');
+    const zone = HOME_ZONES[zoneKey];
+    const props = (zone && zone.props) || [];
+    if(!props.length) return;
+
+    let v = homeSceneViewers[zoneKey];
+    if(!v){
+      v = homeSceneViewers[zoneKey] = { ready: false, failed: false, raf: null, mixers: [], holders: [] };
+      v.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      v.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      v.scene = new THREE.Scene();
+      v.camera = new THREE.PerspectiveCamera(HOME_SCENE_FOV, 16 / 9, 0.1, 100);
+      v.camera.position.set(0, 0, HOME_SCENE_DIST);
+      v.camera.lookAt(0, 0, 0);
+      const sun = new THREE.DirectionalLight(0xffe2b8, 1.0);
+      sun.position.set(-3, 4, 6);
+      v.scene.add(sun, new THREE.AmbientLight(0xfff0dc, 0.75));
+      v.clock = new THREE.Clock();
+      Promise.all(props.map(loadHomeProp)).then(holders => {
+        holders.forEach((h, i) => {
+          v.holders.push({ holder: h, prop: props[i] });
+          v.scene.add(h);
+          const clip = (h.userData.animations || [])[0];
+          if(clip){
+            const mixer = new THREE.AnimationMixer(h.userData.pivot.children[0]);
+            mixer.clipAction(clip).play();
+            v.mixers.push(mixer);
+          }
+        });
+        v.ready = true;
+        mountHomeScenes();
+      }).catch(err => { console.error('Home scene failed to load:', err); v.failed = true; });
+    }
+    if(v.failed || !v.ready) return;
+
+    const canvas = v.renderer.domElement;
+    canvas.classList.add('home-scene-canvas');
+    if(canvas.parentNode !== slot) slot.appendChild(canvas);
+    const w = slot.clientWidth || 640, h = slot.clientHeight || 360;
+    v.renderer.setSize(w, h, false);
+    v.camera.aspect = w / h;
+    v.camera.updateProjectionMatrix();
+    v.holders.forEach(({ holder, prop }) => placeHomeProp(holder, prop, w / h));
+
+    if(!v.raf){
+      const tick = () => {
+        if(!document.body.contains(canvas)){ v.raf = null; return; }
+        const dt = v.clock.getDelta();
+        v.mixers.forEach(m => m.update(dt));
+        v.renderer.render(v.scene, v.camera);
+        v.raf = requestAnimationFrame(tick);
+      };
+      v.raf = requestAnimationFrame(tick);
+    }
+  });
+}
 
 /* ---------------- Profile pages (Phase 3) ----------------
    #/profile/<userId>. Profiles are already loaded for the whole guild (state.profilesById);
@@ -9960,7 +10060,7 @@ function bindApp(){
   document.querySelectorAll('[data-buy-pet-egg]').forEach(b=>b.addEventListener('click', ()=>purchasePetEgg(b.dataset.buyPetEgg)));
   document.querySelectorAll('[data-buy-resource]').forEach(b=>b.addEventListener('click', ()=>buyResourceBundle(b.dataset.buyResource)));
   mountShopEggViewers();
-  if(state.tab === 'profile') mountProfilePetViewers();
+  if(state.tab === 'profile'){ mountProfilePetViewers(); mountHomeScenes(); }
   document.querySelectorAll('[data-move-shop-item]').forEach(b=>b.addEventListener('click', ()=>moveShopItem(b.dataset.moveShopItem, b.dataset.direction)));
   document.querySelectorAll('[data-refund-purchase]').forEach(b=>b.addEventListener('click', ()=>refundPurchase(b.dataset.refundPurchase, b.dataset.refundName)));
   document.querySelectorAll('[data-buy-rank]').forEach(b=>b.addEventListener('click', ()=>purchaseRank(b.dataset.buyRank)));
