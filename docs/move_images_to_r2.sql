@@ -1,0 +1,47 @@
+-- Move all images off Supabase Storage onto Cloudflare R2 (2026-10-10).
+-- Run in the SQL editor on staging, then prod. Safe to re-run.
+BEGIN;
+-- Site slots (background, banner icon, spec icons) -> resized WebP copies
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3eeil0c6lbo.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3eeil0c6lbo.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5r3k7bpre.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5r3k7bpre.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5rfxhyb2f.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5rfxhyb2f.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5ro0noj4x.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5ro0noj4x.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5rvnd7xfi.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5rvnd7xfi.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5s2lvl1f0.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5s2lvl1f0.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5satdxy79.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5satdxy79.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5siwtvoiq.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5siwtvoiq.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5sqo4sbc7.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5sqo4sbc7.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5syf9yih8.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5syf9yih8.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5t6fxo92k.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5t6fxo92k.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5tf2oc2k3.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5tf2oc2k3.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5xcbmsoh6.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5xcbmsoh6.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5xkzjmist.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5xkzjmist.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5xt8mxoac.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5xt8mxoac.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5y0t8evvf.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5y0t8evvf.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5y88ew4fk.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5y88ew4fk.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5yl6l7hpn.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5yl6l7hpn.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5ysupuu20.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5ysupuu20.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5z0bz7u55.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5z0bz7u55.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5z76alxxb.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5z76alxxb.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5zehxxo9b.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5zehxxo9b.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f5znmfyv59.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f5znmfyv59.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f6317imc6t.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f6317imc6t.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f6392x0m7r.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f6392x0m7r.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f63mvogd9s.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f63mvogd9s.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3f63tyb8hu4.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3f63tyb8hu4.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3mn0b5dsf4k.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3mn0b5dsf4k.png';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3ozsgl78faq.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3ozsgl78faq.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3ozt9sc47ze.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3ozt9sc47ze.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3ozu0d972ml.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3ozu0d972ml.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mu3ozvc7b5s5v.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mu3ozvc7b5s5v.jpg';
+UPDATE public.site_images SET image_url = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/site/mujyhqc8vdp8s.webp' WHERE image_url = 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/mujyhqc8vdp8s.jpg';
+-- Everything else -> same file on R2
+UPDATE public.site_images SET image_url = replace(image_url, 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/', 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/gallery/') WHERE image_url LIKE 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/%';
+UPDATE public.stickers SET image_url = replace(image_url, 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/', 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/gallery/') WHERE image_url LIKE 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/%';
+UPDATE public.gallery_images SET url = replace(url, 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/', 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/gallery/') WHERE url LIKE 'https://dymlprrudprwyctjqqer.supabase.co/storage/v1/object/public/gallery-images/%';
+COMMIT;
+
+-- Check: all three should be 0
+SELECT (SELECT count(*) FROM public.site_images WHERE image_url LIKE '%supabase.co/storage%') AS site_images_left,
+       (SELECT count(*) FROM public.stickers WHERE image_url LIKE '%supabase.co/storage%') AS stickers_left,
+       (SELECT count(*) FROM public.gallery_images WHERE url LIKE '%supabase.co/storage%') AS gallery_left;

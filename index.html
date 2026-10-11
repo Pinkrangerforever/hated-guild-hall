@@ -4719,11 +4719,21 @@ function handleScreenshotFile(bossId, file){
 }
 async function uploadBossScreenshot(bossId, file){
   const ext = (file.name.split('.').pop() || 'png').toLowerCase();
-  const path = `${bossId}.${ext}`;
-  const { error: uploadError } = await sb.storage.from(BOSS_SCREENSHOT_BUCKET).upload(path, file, { upsert: true });
+  // Stored on Cloudflare R2 (free downloads), not Supabase Storage
+  const fileName = `boss-screenshots/${bossId}-${Date.now()}.${ext}`;
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session?.access_token){ showToast('Please sign in first', true); return; }
+  let uploadError = null, url = null;
+  try {
+    const res = await fetch(`/api/upload-gallery-image?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(file.type)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream', 'Authorization': `Bearer ${session.access_token}` },
+      body: file
+    });
+    if(!res.ok) throw new Error(res.statusText);
+    url = (await res.json()).publicUrl;
+  } catch(err){ console.error('Upload error:', err); uploadError = err; }
   if(uploadError){ showToast("Couldn't upload  try again", true); return; }
-  const { data: pub } = sb.storage.from(BOSS_SCREENSHOT_BUCKET).getPublicUrl(path);
-  const url = pub.publicUrl + '?t=' + Date.now();
   const { data, error } = await sb.from('bosses').update({ screenshot_url: url }).eq('id', bossId).select().single();
   if(error){ showToast("Couldn't save  try again", true); return; }
   const idx = state.bosses.findIndex(b=>b.id===bossId);
