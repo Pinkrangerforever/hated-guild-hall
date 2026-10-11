@@ -3302,9 +3302,20 @@
 
 
   /* ---- Top 3 leaderboard: medallions, crown, staggered shimmer, #1 breathing glow ---- */
+  /* Coin glint: a quick narrow flash across the card every 12s, then rest */
+  @keyframes hhCoinGlint{
+    0%   { transform:translateX(-120%) skewX(-20deg); opacity:0; }
+    1%   { opacity:1; }
+    6%   { transform:translateX(120%) skewX(-20deg); opacity:1; }
+    7%, 100% { transform:translateX(120%) skewX(-20deg); opacity:0; }
+  }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3::before{
+    background:linear-gradient(110deg, transparent 40%, rgba(255,250,225,0.15) 45%, rgba(255,255,255,0.85) 50%, rgba(255,250,225,0.15) 55%, transparent 60%) !important;
+    animation:hhCoinGlint 12s ease-out infinite !important;
+  }
   .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(1)::before{ animation-delay: 0s !important; }
-  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(2)::before{ animation-delay: 5s !important; }
-  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(3)::before{ animation-delay: 10s !important; }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(2)::before{ animation-delay: 4s !important; }
+  .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(3)::before{ animation-delay: 8s !important; }
   .gold-leaderboard-entries .leaderboard-entry.rank-top-3:nth-child(1){
     margin:4px 0 2px; padding:10px 8px !important;
     animation: hhGoldBreath 4s ease-in-out infinite !important;
