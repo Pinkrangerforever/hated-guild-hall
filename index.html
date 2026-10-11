@@ -3569,7 +3569,7 @@
     content:''; position:absolute; inset:5px; border:1px solid rgba(40,24,8,0.7); border-radius:4px; pointer-events:none;
     box-shadow:inset 0 0 0 1px rgba(255,230,160,0.35);
   }
-  .home-frame-inner{ position:relative; aspect-ratio:16 / 9; overflow:hidden; border-radius:3px; background:#000;
+  .home-frame-inner{ position:relative; aspect-ratio:16 / 9; overflow:hidden; border-radius:3px; background:radial-gradient(ellipse at 50% 45%, #2a2016, #0d0906 75%);
     box-shadow:0 0 0 2px #1a0f06; }
   .home-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
   .home-frame-inner::after{ /* vignette */
@@ -8671,13 +8671,13 @@ const HOME_ZONES = {
     // Comes with the home location (not the house). World units on the diorama stage (see DIORAMA):
     // x left/right, z toward the viewer (+) or the backdrop (-), height in world units.
     props: [
-      { gltf: 'models/housing/taurenlamppost.gltf', x: -3.6, z: 1.2, height: 1.6, rotY: 0.5 + Math.PI + 25 * Math.PI / 180 }
+      { gltf: 'models/housing/taurenlamppost.gltf', x: -4.6, z: 1.6, height: 1.5, rotY: 0.5 + Math.PI + 25 * Math.PI / 180 }
     ],
     // One building per tier; they add up into a little village around the clearing
     houses: {
-      1: { gltf: 'models/housing/mulgore-house-t1.gltf', x: 2.9, z: -0.6, height: 2.3, rotY: Math.PI / 2 },
-      2: { gltf: 'models/housing/mulgore-house-t2.gltf', x: -3.0, z: -2.6, height: 3.0, rotY: Math.PI },
-      3: { gltf: 'models/housing/mulgore-house-t3.gltf', x: 0.4, z: -4.3, height: 4.4, rotY: -Math.PI / 4 }
+      1: { gltf: 'models/housing/mulgore-house-t1.gltf', x: 3.4, z: 0.4, height: 2.1, rotY: Math.PI / 2 },
+      2: { gltf: 'models/housing/mulgore-house-t2.gltf', x: -2.4, z: -1.5, height: 2.7, rotY: Math.PI },
+      3: { gltf: 'models/housing/mulgore-house-t3.gltf', x: 1.0, z: -2.5, height: 3.8, rotY: -Math.PI / 4 }
     }
   }
 };
@@ -8764,7 +8764,6 @@ function renderHomeSection(p, isMe){
       ${tabs}
       <div class="home-frame">
         <div class="home-frame-inner">
-          ${ zone.video ? `<video class="home-video" src="${esc(zone.video)}" autoplay muted loop playsinline preload="auto"></video>` : '' }
           <div class="home-scene" data-home-scene="${esc(home.zone)}" data-home-tier="${home.house_tier || 0}" data-home-user="${esc(p.id)}"></div>
           <div class="home-plaque">${esc(zone.label)}</div>
         </div>
@@ -8909,7 +8908,7 @@ document.addEventListener('mouseout', e => {
    tilted away like a theatre backdrop; in front of it a ground stage (grass, worn dirt, a pebble path and a
    cracked-earth clearing) catches real shadows from the buildings, props and pets.
    World units: the stage floor is y = 0, x from -11 to 11, z from +5 (front) to -7 (backdrop). */
-const DIORAMA = { floorFront: 5, floorBack: -7, halfWidth: 11, backdropTilt: -0.2, backdropW: 22 };
+const DIORAMA = { floorFront: 3.5, floorBack: -3.5, halfWidth: 6.5, backdropTilt: -0.22, backdropW: 13, viewYaw: 0.28 };
 const HOME_GROUND_TEX = {
   mulgore_bluffs: {
     base: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgorebasegrass.png',
@@ -8953,9 +8952,11 @@ function buildHomeGround(zone){
     g.beginPath(); g.moveTo(W * 0.48, H + 40); g.bezierCurveTo(W * 0.6, H * 0.8, W * 0.38, H * 0.6, W * 0.52, H * 0.36); g.stroke();
     g.globalAlpha = 0.5; g.lineWidth = 170; g.strokeStyle = pat(dirt); g.globalCompositeOperation = 'destination-over'; g.stroke();
     g.restore();
-    // darker toward the front lip, as if the stage edge is in shadow
-    const lip = g.createLinearGradient(0, H * 0.85, 0, H); lip.addColorStop(0, 'rgba(0,0,0,0)'); lip.addColorStop(1, 'rgba(10,6,2,0.55)');
-    g.fillStyle = lip; g.fillRect(0, 0, W, H);
+    // fade the left, right and front edges out to nothing (the back edge meets the backdrop)
+    g.globalCompositeOperation = 'destination-out';
+    const fade = (x0, y0, x1, y1) => { const gr = g.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); };
+    fade(0, 0, W * 0.16, 0); fade(W, 0, W * 0.84, 0); fade(0, H, 0, H * 0.7);
+    g.globalCompositeOperation = 'source-over';
     const tex = new THREE.CanvasTexture(c);
     tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8;
     return tex;
@@ -8967,13 +8968,13 @@ function buildHomeStage(v, zoneKey){
   const cfg = HOME_GROUND_TEX[zoneKey] || {};
   // floor
   const depth = DIORAMA.floorFront - DIORAMA.floorBack;
-  const floorMat = new THREE.MeshStandardMaterial({ color: 0x6a5434, roughness: 1, metalness: 0 });
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0x6a5434, roughness: 1, metalness: 0, transparent: true, opacity: 0 });
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(DIORAMA.halfWidth * 2, depth), floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(0, 0, (DIORAMA.floorFront + DIORAMA.floorBack) / 2);
   floor.receiveShadow = true;
   v.scene.add(floor);
-  buildHomeGround(zoneKey).then(tex => { if(tex){ floorMat.map = tex; floorMat.color.set(0xffffff); floorMat.needsUpdate = true; } });
+  buildHomeGround(zoneKey).then(tex => { if(tex){ floorMat.map = tex; floorMat.color.set(0xffffff); floorMat.opacity = 1; floorMat.needsUpdate = true; } });
   // backdrop: the zone video on a panel tilted back from the rear edge of the stage
   const bw = DIORAMA.backdropW, bh = bw * 9 / 16;
   let backMat;
@@ -8992,21 +8993,20 @@ function buildHomeStage(v, zoneKey){
     backMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), fog: false });
   }
   const back = new THREE.Mesh(new THREE.PlaneGeometry(bw, bh), backMat);
-  back.position.y = bh / 2 - 0.3;
+  back.position.y = bh / 2 - 0.05;
   const hinge = new THREE.Group();
   hinge.position.set(0, 0, DIORAMA.floorBack);
   hinge.rotation.x = DIORAMA.backdropTilt; // top leans away
   hinge.add(back);
   v.scene.add(hinge);
   // haze where the stage meets the backdrop
-  v.scene.fog = new THREE.Fog(cfg.fog || 0x2a2018, 13, 26);
   // light: warm sun casting soft shadows, sky / ground fill
   const sun = new THREE.DirectionalLight(0xfff0d0, 1.05);
   sun.position.set(-7, 11, 7);
   sun.target.position.set(0, 0, -2);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 13, bottom: -13, near: 1, far: 40 });
+  Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 40 });
   sun.shadow.bias = -0.0004;
   sun.shadow.radius = 4;
   v.scene.add(sun, sun.target, new THREE.HemisphereLight(0xdfeeff, 0x9a7a4a, 0.6), new THREE.AmbientLight(0xffffff, 0.18));
@@ -9101,12 +9101,12 @@ function homePetFreePoint(v, h, make){
   return null;
 }
 // The view widens toward the back of the stage, so the usable half-width grows with depth
-function homeStageHalfWidth(z){ return 3.4 + (2 - z) * 0.45; }
+function homeStageHalfWidth(z){ return 4.8; }
 function homePetGroundPoint(v, h){
-  return homePetFreePoint(v, h || 0, () => { const z = rand(-4.5, 2); return new THREE.Vector3(rand(-1, 1) * homeStageHalfWidth(z), 0, z); });
+  return homePetFreePoint(v, h || 0, () => { const z = rand(-2.8, 2.4); return new THREE.Vector3(rand(-1, 1) * homeStageHalfWidth(z), 0, z); });
 }
 function homePetAirPoint(v, h){
-  return homePetFreePoint(v, h || 0, () => { const z = rand(-4.5, 1); return new THREE.Vector3(rand(-0.9, 0.9) * homeStageHalfWidth(z), rand(2, 3.6), z); });
+  return homePetFreePoint(v, h || 0, () => { const z = rand(-2.6, 1.5); return new THREE.Vector3(rand(-0.9, 0.9) * homeStageHalfWidth(z), rand(2, 3.4), z); });
 }
 function homePetBezier(p, t){
   const it = 1 - t;
@@ -9360,8 +9360,9 @@ function mountHomeScenes(){
       v.scene = new THREE.Scene();
       // Slightly raised camera looking down onto the stage, backdrop behind
       v.camera = new THREE.PerspectiveCamera(HOME_SCENE_FOV, 16 / 9, 0.1, 100);
-      v.camera.position.set(0, 3.2, 9);
-      v.camera.lookAt(0, 0.8, -1);
+      // seen from a little left of centre, so the diorama sits at an angle with its right side receding
+      v.camera.position.set(-15 * Math.sin(DIORAMA.viewYaw), 5.2, 15 * Math.cos(DIORAMA.viewYaw) - 0.3);
+      v.camera.lookAt(0.3, 1.6, -0.3);
       buildHomeStage(v, zoneKey);
       v.clock = new THREE.Clock();
       // Each model loads on its own: one failing model never hides the others
