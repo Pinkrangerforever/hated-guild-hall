@@ -9107,6 +9107,8 @@ function placeHomeProp(holder, prop){
 const HOME_PET_HEIGHT = { juvenile: 0.6, adult: 0.9, boss: 1.5 }; // world units on the stage
 // Extra size for particular species at a stage (the boss dragon is long and low, so it reads small by height)
 const HOME_PET_SCALE = { 'dragon:boss': 1.35 };
+// Models whose idle pose floats above their bounding box bottom: seat them by their lowest bone instead
+const HOME_PET_FOOT_SNAP = { 'dragon:boss': true };
 const HOME_PET_FORWARD = 0;            // model-space yaw that faces +X (wow.export models face +X)
 const HOME_PET_FLY_SPEED = 2.2;        // world units / s
 const HOME_PET_WALK_SPEED = 0.8;
@@ -9293,7 +9295,23 @@ function placeHomePetActor(v, a){
     if(a.kind === 'flier' && a.holder.position.y > 0.5){ homePetPlay(a, a.hover || a.fly); a.state = 'hover'; a.until = performance.now() + rand(500, 2000); }
     else { homePetPlay(a, a.idle); a.state = 'idle'; a.until = performance.now() + rand(1500, 5000); }
     a.placed = true;
+    if(HOME_PET_FOOT_SNAP[a.pet.pet_type + ':' + a.pet.status]) homePetSnapToFeet(a);
   }
+}
+
+// Pose the idle clip, find the lowest bone and drop the model so that bone touches the ground
+function homePetSnapToFeet(a){
+  const clip = a.byName[a.idle];
+  if(!clip) return;
+  const probe = new THREE.AnimationMixer(a.holder.userData.pivot.children[0]);
+  probe.clipAction(clip).play(); probe.update(0.01);
+  a.holder.updateMatrixWorld(true);
+  let minY = Infinity; const p = new THREE.Vector3();
+  a.holder.traverse(o => { if(o.isBone){ o.getWorldPosition(p); if(p.y < minY) minY = p.y; } });
+  probe.stopAllAction();
+  if(!isFinite(minY)) return;
+  const lift = minY - a.holder.position.y;
+  if(lift > 0) a.holder.userData.pivot.position.y -= lift / a.holder.scale.y;
 }
 
 // Screen position (px within the slot) of a point above the pet
