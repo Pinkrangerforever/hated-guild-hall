@@ -4079,6 +4079,11 @@
   .wallet-crystal b{ color:#d9c6ff; }
   .crystal-float-line{ color:#c9a8ff; font-size:16px; margin-top:2px; text-shadow:0 0 8px rgba(160,110,255,0.8), 0 2px 4px #000; }
   .db-today .t-crystal{ color:#c9a8ff; }
+  .float-weary{ margin-top:4px; padding:1px 8px; border-radius:999px; border:1px solid; font-family:'Cinzel', Georgia, serif; font-size:11px;
+    font-weight:700; letter-spacing:0.06em; text-transform:uppercase; background:rgba(10,6,3,0.7); white-space:nowrap; display:inline-block; }
+  .float-weary.tier-tired{ color:#e6c35c; border-color:rgba(230,195,92,0.6); }
+  .float-weary.tier-weary{ color:#e0662a; border-color:rgba(224,102,42,0.6); }
+  .float-weary.tier-exhausted{ color:#e07a6a; border-color:rgba(224,122,106,0.6); }
 </style>
 </head>
 <body>
@@ -5843,8 +5848,9 @@ async function claimSparkle(el){
 
       updateNavbarUserInfo();
 
-      if(awarded > 0){
-        showGoldFloat(rect.left + rect.width/2, rect.top, awarded);
+      const tag = wearyTagFor(data);
+      if(awarded > 0 || tag){
+        showGoldFloat(rect.left + rect.width/2, rect.top, awarded, 0, 0, 0, tag);
       }
       if(data.weary) setWeary(data.weary);
     }
@@ -5923,8 +5929,9 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings, opts){
     if(state.profile){
       state.profile.gold = data.total;
       updateNavbarUserInfo();
-      if((data.awarded || 0) > 0 || (data.food_awarded || 0) > 0 || (data.wood_awarded || 0) > 0 || (data.crystals_awarded || 0) > 0){
-        showGoldFloat(x, y, data.awarded || 0, data.food_awarded || 0, data.wood_awarded || 0, data.crystals_awarded || 0);
+      const tag = wearyTagFor(data);
+      if((data.awarded || 0) > 0 || (data.food_awarded || 0) > 0 || (data.wood_awarded || 0) > 0 || (data.crystals_awarded || 0) > 0 || tag){
+        showGoldFloat(x, y, data.awarded || 0, data.food_awarded || 0, data.wood_awarded || 0, data.crystals_awarded || 0, tag);
       }
       // Murloc and fishing wins also award food (server-side)
       if(data.wood_awarded > 0 && data.wood_total != null){ state.profile.wood = data.wood_total; updateNavbarUserInfo(); }
@@ -6852,14 +6859,24 @@ function startMiningEvent(rect, pendingId, params){
   slotBtns.forEach(b => b.addEventListener('click', () => pick(Number(b.getAttribute('data-slot')))));
 }
 
-function showGoldFloat(x, y, amount, food, wood, crystals){
+// Which Weary tier was applied to a payout: the tier for the gold earned *before* it
+// (thresholds match minigame_gold_multiplier on the server)
+function wearyTagFor(data){
+  const w = data && data.weary;
+  if(!w || w.earned == null) return '';
+  const before = Math.max(0, w.earned - (data.awarded || 0));
+  const tier = before < 600 ? null : before < 1000 ? ['tired', 'Tired', '50%'] : before < 1300 ? ['weary', 'Weary', '25%'] : ['exhausted', 'Exhausted', '0%'];
+  if(!tier) return '';
+  return `<div class="float-weary tier-${tier[0]}">&#128564; ${tier[1]} &middot; ${tier[2]} gold</div>`;
+}
+function showGoldFloat(x, y, amount, food, wood, crystals, wearyTag){
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
   const el = document.createElement('div');
   el.className = 'gold-float';
   el.style.left = x + 'px';
   el.style.top = y + 'px';
-  el.innerHTML = (amount > 0 ? `<div>+${amount} Gold</div>` : '') + (food > 0 ? `<div class="food-float-line">+${food} Food</div>` : '') + (wood > 0 ? `<div class="wood-float-line">+${wood} Wood</div>` : '') + (crystals > 0 ? `<div class="crystal-float-line">+${crystals} Crystal${crystals > 1 ? 's' : ''}</div>` : '');
+  el.innerHTML = (amount > 0 ? `<div>+${amount} Gold</div>` : '') + (food > 0 ? `<div class="food-float-line">+${food} Food</div>` : '') + (wood > 0 ? `<div class="wood-float-line">+${wood} Wood</div>` : '') + (crystals > 0 ? `<div class="crystal-float-line">+${crystals} Crystal${crystals > 1 ? 's' : ''}</div>` : '') + (wearyTag || '');
   layer.appendChild(el);
   setTimeout(()=>{ if(el.parentNode) el.remove(); }, 2700);
 }
