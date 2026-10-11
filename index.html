@@ -4090,6 +4090,19 @@
   .cal-event-meta .rsvp-dot{ margin-top:0 !important; }
   .cal-event-time{ font-size:10px; letter-spacing:0.03em; opacity:0.85; white-space:nowrap; }
   .cal-event-pill .cal-event-title{ display:block; width:100%; overflow-wrap:break-word; word-break:normal; hyphens:auto; }
+
+  /* Footprints never wider than the screen; dealer shadow kept on screen on phones */
+  .footprint{ max-width:70vw; max-height:70vw; }
+  @media (max-width:700px){ .dealer-shadow{ transform:translateX(-50%) !important; } }
+  /* Themed dealer message */
+  .dealer-message{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:9999990; pointer-events:none;
+    background:radial-gradient(ellipse at 50% 50%, rgba(40,0,70,0.55), rgba(0,0,0,0.75)); animation:dmIn .5s ease-out both; }
+  .dealer-message.out{ animation:dmOut .6s ease-in forwards; }
+  .dealer-message-text{ max-width:min(560px, 86vw); text-align:center; font-family:'Cinzel', Georgia, serif; font-size:22px; line-height:1.4;
+    color:#e2d4ff; text-shadow:0 0 18px rgba(128,0,255,0.9), 0 2px 3px #000; animation:dmText 1.2s ease-out both; }
+  .dealer-message.error .dealer-message-text{ color:#ffd0c8; text-shadow:0 0 16px rgba(160,20,20,0.9), 0 2px 3px #000; font-size:18px; }
+  @keyframes dmIn{ from{ opacity:0; } } @keyframes dmOut{ to{ opacity:0; } }
+  @keyframes dmText{ from{ opacity:0; letter-spacing:0.3em; filter:blur(6px); } }
 </style>
 </head>
 <body>
@@ -12052,165 +12065,109 @@ function bindApp(){
 }
 
 // FOOTPRINT TRAIL SYSTEM
-let footprintIntervalId = null;
+// One trail at a time: 3 glowing footprints (below the banner, halfway, 3/4 down), then the Shadowy
+// Dealer's face peeks out by the footer and can be clicked. Repeats every ~41 s. render() calls
+// startFootprintTrail() constantly, so starting is idempotent; every timer is tracked so stopping is instant.
+const footprintTrail = { running: false, timers: [] };
+
+function shouldShowFootprints() {
+  if (state.view !== 'app') return false;                              // not on the sign-in page
+  if (state.tab === 'dealer') return false;                            // not while you're with him
+  if (state.profile && state.profile.has_trader_access) return false;  // already a customer
+  return true;
+}
+
+function trailLater(ms, fn) {
+  const id = setTimeout(() => {
+    footprintTrail.timers = footprintTrail.timers.filter(t => t !== id);
+    // Background tabs skip a step (and conditions are re-checked every step)
+    if (!footprintTrail.running || document.hidden || !shouldShowFootprints()) return;
+    fn();
+  }, ms);
+  footprintTrail.timers.push(id);
+}
 
 function spawnSingleFootprint(setIndex) {
-  // Get the banner height to spawn footprints below it
   const banner = document.querySelector('.wow-hero') || document.querySelector('[class*="banner"]');
-  const bannerHeight = banner ? banner.offsetHeight : 300;
-  const pageBodyStart = bannerHeight + 100;
-
-  // Calculate page height for proportional placement
+  const pageBodyStart = (banner ? banner.offsetHeight : 300) + 100;
   const pageHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-
+  const size = Math.min(420, Math.round(window.innerWidth * 0.7)); // never wider than the screen
   const footprint = document.createElement('img');
   footprint.src = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Footprints.png';
+  footprint.alt = '';
   footprint.className = 'footprint';
-
-  // Random horizontal position, but ensure it fits on screen (420px wide footprint)
-  const maxX = Math.max(window.innerWidth - 420, 0);
-  const x = Math.random() * maxX;
-
-  // Position based on setIndex:
-  // 0 = just below banner
-  // 1 = halfway down page
-  // 2 = 3/4ths down page
-  let baseY;
-  if (setIndex === 0) {
-    baseY = pageBodyStart;
-  } else if (setIndex === 1) {
-    baseY = pageHeight * 0.5;
-  } else {
-    baseY = pageHeight * 0.75;
-  }
-
-  footprint.style.position = 'absolute';
-  footprint.style.left = x + 'px';
-  footprint.style.top = baseY + 'px';
-
+  footprint.style.width = footprint.style.height = size + 'px';
+  footprint.style.left = Math.random() * Math.max(window.innerWidth - size - 8, 0) + 'px';
+  footprint.style.top = (setIndex === 0 ? pageBodyStart : pageHeight * (setIndex === 1 ? 0.5 : 0.75)) + 'px';
   document.body.appendChild(footprint);
-
   setTimeout(() => footprint.remove(), 7000);
 }
 
 function spawnDealerShadow() {
-  // Don't spawn shadow on dealer page or if user has access
-  if (!shouldShowFootprints()) return;
-
-  // Create shadow container if it doesn't exist
   let shadow = document.getElementById('dealer-shadow');
   if (!shadow) {
     shadow = document.createElement('div');
     shadow.id = 'dealer-shadow';
     shadow.className = 'dealer-shadow';
-
-    const img = document.createElement('img');
-    img.src = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShadowyFace.png';
-    img.alt = 'Shadowy Dealer';
-    shadow.appendChild(img);
-
+    shadow.innerHTML = '<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/ShadowyFace.png" alt="Shadowy Dealer">';
+    shadow.addEventListener('click', () => {
+      stopFootprintTrail();
+      state.tab = 'dealer';
+      state.modal = null;
+      render();
+    });
     document.body.appendChild(shadow);
   }
-
-  // Position shadow at the absolute bottom of the page (at footer level)
-  // Find the footer element
   const footer = document.querySelector('.site-footer') || document.querySelector('footer');
-  let shadowTop;
-
-  if (footer) {
-    // Position shadow at footer's position minus shadow height to center it in footer area
-    shadowTop = footer.offsetTop + (footer.offsetHeight / 2) - 66; // 66 is half of shadow height (132px)
-  } else {
-    // Fallback: position at page bottom
-    shadowTop = document.body.scrollHeight - 150;
-  }
-
-  shadow.style.top = shadowTop + 'px';
+  shadow.style.top = (footer ? footer.offsetTop + footer.offsetHeight / 2 - 66 : document.body.scrollHeight - 150) + 'px';
+  // Restart the fade every appearance (it ends at opacity 0, so a reused element would stay invisible)
+  const img = shadow.querySelector('img');
+  img.style.animation = 'none'; void img.offsetWidth; img.style.animation = '';
   shadow.style.display = 'block';
-
-  shadow.onclick = () => {
-    state.tab = 'dealer';
-    state.modal = null;
-    render();
-    shadow.style.display = 'none';
-  };
-
-  setTimeout(() => {
-    shadow.style.display = 'none';
-  }, 10000);
-}
-
-function shouldShowFootprints() {
-  // Only show footprints in the app view, not on landing/entry page
-  if (state.view !== 'app') return false;
-
-  // Don't show footprints on the dealer page
-  if (state.tab === 'dealer') return false;
-
-  // Don't show if user already has trader access
-  if (state.profile && state.profile.has_trader_access) return false;
-
-  return true;
+  trailLater(10000, () => { shadow.style.display = 'none'; });
 }
 
 function stopFootprintTrail() {
-  // Clear any existing footprints from the DOM
+  footprintTrail.running = false;
+  footprintTrail.timers.forEach(clearTimeout);
+  footprintTrail.timers = [];
   document.querySelectorAll('.footprint').forEach(fp => fp.remove());
-
-  // Clear any existing shadow
   const shadow = document.getElementById('dealer-shadow');
   if (shadow) shadow.style.display = 'none';
-
-  // Stop the trail interval
-  if (footprintIntervalId) {
-    clearTimeout(footprintIntervalId);
-    footprintIntervalId = null;
-  }
 }
 
 function startFootprintTrail() {
-  // Don't start trail if conditions aren't met
-  if (!shouldShowFootprints()) {
-    stopFootprintTrail();
+  if (!shouldShowFootprints()) { if (footprintTrail.running) stopFootprintTrail(); return; }
+  if (footprintTrail.running) return; // already going: redraws don't start another
+  footprintTrail.running = true;
+  const cycle = () => {
+    spawnSingleFootprint(0);
+    trailLater(12000, () => spawnSingleFootprint(1));
+    trailLater(24000, () => spawnSingleFootprint(2));
+    trailLater(36000, spawnDealerShadow);
+    // next lap (if the tab was hidden, the steps were skipped but the lap still repeats)
+    const id = setTimeout(() => {
+      footprintTrail.timers = footprintTrail.timers.filter(t => t !== id);
+      if (footprintTrail.running && shouldShowFootprints()) cycle(); else stopFootprintTrail();
+    }, 41000);
+    footprintTrail.timers.push(id);
+  };
+  if (document.hidden) { // don't start drawing in a background tab; begin when it's visible
+    footprintTrail.running = false;
     return;
   }
+  cycle();
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && state.view === 'app') startFootprintTrail(); });
 
-  // Prevent duplicate trails: don't start if footprints already visible
-  if (document.querySelectorAll('.footprint').length > 0) {
-    return;
-  }
-
-  // Clear any stale interval
-  if (footprintIntervalId) {
-    clearTimeout(footprintIntervalId);
-    footprintIntervalId = null;
-  }
-
-  // Spawn footprints sequentially:
-  // FP1: 0ms, animation 7s, wait 5s = done at 12s
-  // FP2: 12s, animation 7s, wait 5s = done at 24s
-  // FP3: 24s, animation 7s, wait 5s = done at 36s
-  // Shadow: 36s
-
-  spawnSingleFootprint(0); // Spawn at 0ms
-
-  setTimeout(() => {
-    spawnSingleFootprint(1); // Spawn at 12s
-  }, 12000);
-
-  setTimeout(() => {
-    spawnSingleFootprint(2); // Spawn at 24s
-  }, 24000);
-
-  // Shadow appears after all 3 footprints are done (36s)
-  setTimeout(() => {
-    spawnDealerShadow();
-  }, 36000);
-
-  // Restart the cycle after all animations complete
-  footprintIntervalId = setTimeout(() => {
-    startFootprintTrail();
-  }, 41000); // 36s + 5s wait buffer
+// Themed message instead of the browser's alert() box
+function dealerMessage(text, isError) {
+  const el = document.createElement('div');
+  el.className = 'dealer-message' + (isError ? ' error' : '');
+  el.innerHTML = `<div class="dealer-message-text">${esc(text)}</div>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add('out'), isError ? 3200 : 3800);
+  setTimeout(() => el.remove(), isError ? 3800 : 4400);
 }
 
 function renderDealerPage() {
@@ -12229,19 +12186,20 @@ function renderDealerPage() {
 }
 
 async function payDealer() {
-  if (!state.session || !state.session.user) return alert('Not authenticated');
+  if (!state.session || !state.session.user) return dealerMessage('You must be signed in.', true);
 
   const { data, error } = await sb.rpc('pay_mysterious_trader', {
     user_id: state.session.user.id
   });
 
   if (error) {
-    alert('Error: ' + error.message);
+    dealerMessage("The dealer doesn't like the look of you. Try again later.", true);
     return;
   }
 
   if (data.success) {
-    alert(data.message);
+    stopFootprintTrail();
+    dealerMessage(data.message || 'The Trader smiles, and vanishes into the shadows...');
     // Check and set trader access flag
     const { data: accessCheck } = await sb.rpc('check_trader_access', {
       user_id: state.session.user.id
@@ -12252,7 +12210,7 @@ async function payDealer() {
     render();
     startFootprintTrail();
   } else {
-    alert('Error: ' + (data.error || 'Unknown error'));
+    dealerMessage(data.error === 'Insufficient gold' ? "Not enough gold. The dealer's smile fades." : (data.error || 'The dealer turns away.'), true);
   }
 }
 
