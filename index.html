@@ -7205,19 +7205,25 @@ function bindLanding(){
   bindDesktopNav();
 }
 
+// Nav elements outside #app survive re-renders; bind their listeners only once
+function bindOnce(el, key, type, fn){
+  if(!el || el.dataset['bound' + key]) return;
+  el.dataset['bound' + key] = '1';
+  el.addEventListener(type, fn);
+}
 function bindMobileNav(){
   const hamburger = document.getElementById('nav-hamburger-btn');
-  if(hamburger) hamburger.addEventListener('click', ()=>{
+  bindOnce(hamburger, 'Burger', 'click', ()=>{
     state.mobileNavOpen = !state.mobileNavOpen;
     render();
   });
-  document.querySelectorAll('[data-close-mobile-nav]').forEach(el=>el.addEventListener('click', ()=>{
+  document.querySelectorAll('[data-close-mobile-nav]').forEach(el=>bindOnce(el, 'Close', 'click', ()=>{
     state.mobileNavOpen = false;
     render();
   }));
   // Mobile dropdown toggle
   document.querySelectorAll('.mobile-nav-dropdown-btn').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
+    bindOnce(btn, 'Drop', 'click', (e)=>{
       e.preventDefault();
       const dropdown = btn.closest('.mobile-nav-dropdown');
       if(dropdown) dropdown.classList.toggle('open');
@@ -7228,10 +7234,10 @@ function bindMobileNav(){
 function bindDesktopNav(){
   // Desktop dropdown toggle on hover
   document.querySelectorAll('.nav-dropdown').forEach(dropdown=>{
-    dropdown.addEventListener('mouseenter', ()=>{
+    bindOnce(dropdown, 'Enter', 'mouseenter', ()=>{
       dropdown.classList.add('open');
     });
-    dropdown.addEventListener('mouseleave', ()=>{
+    bindOnce(dropdown, 'Leave', 'mouseleave', ()=>{
       dropdown.classList.remove('open');
     });
   });
@@ -8062,7 +8068,15 @@ window.addEventListener('popstate', () => {
   if(!state.session) return;
   const id = profileIdFromHash();
   if(id) openProfile(id, true);
-  else { const t = tabFromHash() || 'news'; if(state.tab !== t){ state.tab = t; state.profileUserId = null; render(); } }
+  else {
+    // Back/forward to a page address. A bare "#" (old-style links) is ignored unless leaving a profile.
+    const h = window.location.hash || '';
+    const bare = h === '' || h === '#';
+    if(!bare || state.tab === 'profile'){
+      const t = tabFromHash() || 'news';
+      if(state.tab !== t){ state.tab = t; state.profileUserId = null; render(); }
+    }
+  }
 });
 
 // Any element with data-profile-id opens that player's profile (bound once, survives re-renders)
@@ -10032,7 +10046,12 @@ function renderAdmin(){
 /* ---------------- bindings ---------------- */
 function bindApp(){
   document.querySelectorAll('.nav-tab-btn, .nav-dropdown-item[data-tab], .mobile-nav-link[data-tab], .nav-link[data-tab], .btn-nav-admin').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+    // The top nav lives outside #app and survives re-renders: bind each link only once,
+    // and stop href="#" from changing the address (which would bounce the page back Home)
+    if(btn.dataset.navBound) return;
+    btn.dataset.navBound = '1';
+    btn.addEventListener('click', (e)=>{
+      e.preventDefault();
       state.tab = btn.dataset.tab;
       state.modal = null;
       state.mobileNavOpen = false;
