@@ -4029,6 +4029,16 @@
   .mg-num{ min-width:64px; text-align:right; color:var(--hh-muted, #a8977a); font-variant-numeric:tabular-nums; }
   .mg-num em{ font-style:normal; color:var(--hh-arcane, #7fd4ff); font-size:11px; }
   @media (max-width:560px){ .mg-summary{ grid-template-columns:repeat(2, 1fr); } }
+
+  /* ---- Fix pass: reward popups above cards, calendar day width, card reward font ---- */
+  #sparkle-layer .gold-float{ z-index:30; }
+  .cal-grid{ grid-template-columns:repeat(7, minmax(0, 1fr)) !important; }
+  .cal-cell{ min-width:0; }
+  .cal-event-pill{ white-space:normal !important; align-items:flex-start !important; overflow:hidden; }
+  .cal-event-title{ white-space:normal; overflow-wrap:anywhere; line-height:1.25; text-overflow:clip !important; }
+  .cal-event-pill .rsvp-dot{ margin-top:3px; }
+  .enc-foot{ font-family:'Cinzel', Georgia, serif !important; font-size:13px !important; letter-spacing:0.04em; color:var(--hh-gold-bright, #f0d27a) !important;
+    text-shadow:0 1px 2px #000; }
 </style>
 </head>
 <body>
@@ -6029,12 +6039,19 @@ function buildFishGaugeMarkup(zoneStart, zoneEnd){
   return '<button type="button" class="fish-gauge-btn">' +
     '<svg viewBox="0 0 320 172" xmlns="http://www.w3.org/2000/svg">' +
       '<defs>' +
-        '<pattern id="arcTexture" patternUnits="userSpaceOnUse" width="8" height="8"><line x1="0" y1="0" x2="8" y2="8" stroke="rgba(0,0,0,0.3)" stroke-width="1"/><line x1="8" y1="0" x2="0" y2="8" stroke="rgba(0,0,0,0.3)" stroke-width="1"/></pattern>' +
+        '<linearGradient id="fgTrack" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3a2614"/><stop offset="0.5" stop-color="#24170c"/><stop offset="1" stop-color="#3a2614"/></linearGradient>' +
+        '<linearGradient id="fgZone" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#127a00"/><stop offset="0.5" stop-color="#1eff00"/><stop offset="1" stop-color="#127a00"/></linearGradient>' +
+        '<linearGradient id="fgNeedle" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2c0"/><stop offset="1" stop-color="#c9963f"/></linearGradient>' +
+        '<filter id="fgGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
       '</defs>' +
-      '<path d="' + trackPath + '" fill="url(#arcTexture)" stroke="#0d2833" stroke-width="26" stroke-linecap="round"/>' +
-      '<path d="' + zonePath + '" fill="url(#arcTexture)" stroke="#3fd06b" stroke-width="26" stroke-linecap="round"/>' +
-      '<line class="fish-needle" x1="160" y1="152" x2="160" y2="28" stroke="#fff3d6" stroke-width="8" stroke-linecap="round"/>' +
-      '<circle cx="160" cy="152" r="12" fill="#f0dfb4" stroke="#8a6a2e" stroke-width="3"/>' +
+      '<path d="' + trackPath + '" fill="none" stroke="#c9963f" stroke-width="32" stroke-linecap="round"/>' +
+      '<path d="' + trackPath + '" fill="none" stroke="#0e0905" stroke-width="29" stroke-linecap="round"/>' +
+      '<path d="' + trackPath + '" fill="none" stroke="url(#fgTrack)" stroke-width="24" stroke-linecap="round"/>' +
+      '<path d="' + zonePath + '" fill="none" stroke="url(#fgZone)" stroke-width="24" stroke-linecap="round" filter="url(#fgGlow)"/>' +
+      '<path d="' + zonePath + '" fill="none" stroke="#d8ffd0" stroke-width="3" stroke-linecap="round" opacity="0.7"/>' +
+      '<line class="fish-needle" x1="160" y1="152" x2="160" y2="26" stroke="url(#fgNeedle)" stroke-width="7" stroke-linecap="round" style="filter:drop-shadow(0 0 3px rgba(240,201,90,0.9))"/>' +
+      '<circle cx="160" cy="152" r="13" fill="#c9963f" stroke="#3a250a" stroke-width="3"/>' +
+      '<circle cx="160" cy="152" r="5" fill="#8e1c18"/>' +
     '</svg>' +
     '<span class="fish-gauge-hint">Click when the line is in the green!</span>' +
   '</button>';
@@ -6197,7 +6214,7 @@ document.addEventListener('click', e => {
 const profileStats = {}; // userId -> stats | 'loading' | 'error'
 const MINIGAME_LABELS = [
   ['fishing', '&#127907;', 'Fishing'], ['murloc', '&#127993;', 'Murlocs'], ['blacksmith', '&#9874;', 'Forge'],
-  ['trivia', '&#128214;', 'Trivia'], ['lumberjack', '&#129683;', 'Lumberjack'], ['rarespawn', '&#128128;', 'Rare elites']
+  ['trivia', '&#128214;', 'Trivia'], ['lumberjack', '&#129683;', 'Lumberjack'], ['rarespawn', '&#128128;', 'Hogger']
 ];
 function loadProfileStats(userId){
   if(profileStats[userId] && profileStats[userId] !== 'error') return;
@@ -6222,7 +6239,7 @@ function renderProfileStats(p){
         <div><b>${Number(st.total_games).toLocaleString()}</b><span>games</span></div>
         <div><b>${pct(st.total_wins, st.total_games)}</b><span>win rate</span></div>
         <div><b>${Number(st.sparkles).toLocaleString()}</b><span>sparkles</span></div>
-        <div class="${(g.rarespawn && g.rarespawn.wins) ? 'mg-rare' : ''}"><b>${(g.rarespawn && g.rarespawn.wins) || 0}</b><span>rares slain</span></div>
+        <div class="${(g.rarespawn && g.rarespawn.wins) ? 'mg-rare' : ''}"><b>${(g.rarespawn && g.rarespawn.wins) || 0}</b><span>Hoggers slain</span></div>
       </div>
       <div class="mg-grid">${MINIGAME_LABELS.map(([k, icon, label]) => {
         const r = g[k] || { games: 0, wins: 0 };
@@ -6442,24 +6459,34 @@ function startLumberjackEvent(rect, pendingId, params){
 /* ---------------- Rare spawn (5%): an elite blinks around the arena ----------------
    It jumps to a new server-chosen spot every jump_ms. Land 3 hits on its glowing weak spot,
    one per jump and not the instant it lands. Big payout. */
+// Hogger, the infamous Elwynn gnoll, in a gold elite (dragon) frame
 const ELITE_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <defs><radialGradient id="elFace" cx="0.45" cy="0.4" r="0.6"><stop offset="0" stop-color="#7a2a20"/><stop offset="1" stop-color="#2a0806"/></radialGradient>
-  <linearGradient id="elGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2c0"/><stop offset="0.5" stop-color="#f0c95a"/><stop offset="1" stop-color="#8a5f22"/></linearGradient></defs>
-  <path d="M8 40 C2 22 12 8 26 14 C24 26 26 34 32 40 Z" fill="url(#elGold)" stroke="#3a250a"/>
-  <path d="M92 40 C98 22 88 8 74 14 C76 26 74 34 68 40 Z" fill="url(#elGold)" stroke="#3a250a"/>
-  <circle cx="50" cy="54" r="34" fill="url(#elGold)" stroke="#3a250a" stroke-width="2"/>
-  <circle cx="50" cy="54" r="27" fill="url(#elFace)"/>
-  <path d="M33 48 l9 4 l-9 3 z M67 48 l-9 4 l9 3 z" fill="#ffcf4a"/>
-  <path d="M38 68 q12 8 24 0" stroke="#ffcf4a" stroke-width="2.5" fill="none"/>
-  <path d="M40 30 l4 -10 l6 8 l6 -8 l4 10" fill="url(#elGold)" stroke="#3a250a"/></svg>`;
+  <defs><linearGradient id="elGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2c0"/><stop offset="0.5" stop-color="#f0c95a"/><stop offset="1" stop-color="#8a5f22"/></linearGradient>
+  <radialGradient id="hgFur" cx="0.45" cy="0.4" r="0.7"><stop offset="0" stop-color="#c0783e"/><stop offset="0.7" stop-color="#8a4a22"/><stop offset="1" stop-color="#5a2c12"/></radialGradient>
+  <radialGradient id="hgBg" cx="0.5" cy="0.5" r="0.6"><stop offset="0" stop-color="#3a1a10"/><stop offset="1" stop-color="#120604"/></radialGradient></defs>
+  <path d="M6 44 C0 24 12 8 27 14 C24 26 26 36 32 42 Z" fill="url(#elGold)" stroke="#3a250a"/>
+  <path d="M94 44 C100 24 88 8 73 14 C76 26 74 36 68 42 Z" fill="url(#elGold)" stroke="#3a250a"/>
+  <circle cx="50" cy="55" r="35" fill="url(#elGold)" stroke="#3a250a" stroke-width="2"/>
+  <circle cx="50" cy="55" r="28.5" fill="url(#hgBg)"/>
+  <path d="M28 40 L33 22 L42 36 Z" fill="#7a3c1a" stroke="#2a1006"/><path d="M72 40 L67 22 L58 36 Z" fill="#7a3c1a" stroke="#2a1006"/>
+  <path d="M31 33 L34 26 L39 34 Z M69 33 L66 26 L61 34 Z" fill="#d89a7a"/>
+  <path d="M30 50 C30 36 70 36 70 50 C70 58 64 62 60 64 L56 78 C52 82 48 82 44 78 L40 64 C36 62 30 58 30 50 Z" fill="url(#hgFur)" stroke="#2a1006" stroke-width="1.2"/>
+  <path d="M33 44 C38 40 44 42 46 46 M67 44 C62 40 56 42 54 46" stroke="#3a1806" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <ellipse cx="41" cy="50" rx="3.2" ry="2.6" fill="#ffd23a"/><ellipse cx="59" cy="50" rx="3.2" ry="2.6" fill="#ffd23a"/>
+  <circle cx="41" cy="50" r="1.2" fill="#200"/><circle cx="59" cy="50" r="1.2" fill="#200"/>
+  <path d="M43 60 C46 56 54 56 57 60 L55 72 C53 76 47 76 45 72 Z" fill="#d8a072" stroke="#2a1006"/>
+  <ellipse cx="50" cy="60" rx="4.5" ry="3" fill="#1a0a04"/>
+  <path d="M45 72 L46 76 M55 72 L54 76" stroke="#fff6e0" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M30 70 C24 74 22 82 26 88 M70 70 C76 74 78 82 74 88" stroke="#5a2c12" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M38 22 l4 -10 l8 7 l8 -7 l4 10" fill="url(#elGold)" stroke="#3a250a"/></svg>`;
 
 function startRareSpawnEvent(rect, pendingId, params){
   params = params || {};
   const jump = params.jump_ms || 650, dur = params.duration_ms || 3250, need = params.hits_needed || 3;
   const radius = params.radius || 95, positions = params.positions || [[500, 500]];
   const enc = openEncounterCard(rect, {
-    cls: 'enc-rare', icon: '&#128128;', title: 'Rare Elite Spotted!', sound: 'horn',
-    instruction: `Strike its glowing weak spot ${need} times before it escapes!`,
+    cls: 'enc-rare', icon: '&#128128;', title: 'Hogger Spotted!', sound: 'horn',
+    instruction: `The terror of Elwynn is loose! Strike his glowing weak spot ${need} times before he escapes!`,
     reward: '<b style="color:#f6dc8a">90&ndash;130 gold</b> &middot; 5 food &middot; 10 wood', durationMs: dur
   });
   enc.body.innerHTML = `
@@ -6524,8 +6551,8 @@ function startRareSpawnEvent(rect, pendingId, params){
     resolveSparkleEvent(pendingId, hits >= need, vr.left + vr.width / 2, vr.top + 20, timings, { silent: true })
       .then(d => {
         const won = !!(d && d.won);
-        enc.finish(won, won ? 'Rare slain!' : 'It escaped!', 1800);
-        if(won) showToast('You slew a rare elite! Legendary loot!');
+        enc.finish(won, won ? 'Hogger slain!' : 'Hogger escaped!', 1800);
+        if(won) showToast('You took down Hogger! Elwynn thanks you.');
       });
   }
 }
@@ -9031,9 +9058,9 @@ function renderProfilePage(){
         </div>
       </div>
 
+      ${renderProfileStats(p)}
       ${renderHomeSection(p, isMe)}
       ${renderPetRoster(p, isMe)}
-      ${renderProfileStats(p)}
     </div>`;
 }
 
