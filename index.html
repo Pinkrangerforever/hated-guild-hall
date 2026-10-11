@@ -3671,6 +3671,44 @@
   .rank-raidleader{ color:#2a1a08; border-color:#f0d27a; background:linear-gradient(180deg, #f6dc8a, #c9963f);
     box-shadow:inset 0 1px 0 rgba(255,250,220,0.8), 0 0 10px rgba(240,201,90,0.6); }
   .rank-raidleader svg{ filter:drop-shadow(0 1px 1px rgba(60,30,0,0.6)); }
+
+  /* ---- Nav: wallet bar + identity menu (Admin / Sign Out live in the menu on desktop) ---- */
+  .nav-user-section #admin-btn, .nav-user-section #logout-btn, .nav-user-section #layout-lock-btn{ display:none !important; }
+  .nav-user-info{ display:flex; align-items:center; gap:14px; }
+  .nav-wallet{ display:flex; align-items:center; padding:3px 4px; border-radius:999px;
+    background:linear-gradient(180deg, rgba(43,29,18,0.95), rgba(20,13,8,0.95)); border:1px solid rgba(201,150,63,0.55);
+    box-shadow:inset 0 1px 0 rgba(240,210,122,0.12), 0 2px 6px rgba(0,0,0,0.5); }
+  .wallet-seg{ display:flex; align-items:center; gap:5px; padding:2px 10px; font-family:'Cinzel', Georgia, serif; font-size:13px;
+    color:var(--hh-parchment, #e9dcc0); white-space:nowrap; }
+  .wallet-seg + .wallet-seg{ border-left:1px solid rgba(201,150,63,0.3); }
+  .wallet-seg img{ width:22px; height:22px; object-fit:contain; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.6)); }
+  .wallet-seg b{ font-weight:700; display:inline-block; }
+  .wallet-seg.bump-up b{ animation:walletBump 0.9s ease-out; }
+  .wallet-seg.bump-down b{ animation:walletDip 0.6s ease-out; }
+  @keyframes walletBump{ 0%{ transform:translateY(0); color:inherit; } 25%{ transform:translateY(-3px) scale(1.15); color:#fff3c8; text-shadow:0 0 8px rgba(240,201,90,0.9); } 100%{ transform:none; } }
+  @keyframes walletDip{ 0%{ transform:none; } 30%{ transform:translateY(2px); color:#e07a6a; } 100%{ transform:none; } }
+
+  .nav-identity-wrap{ position:relative; }
+  .nav-identity{ display:flex; align-items:center; gap:8px; padding:4px 10px 4px 6px; cursor:pointer; border-radius:8px;
+    background:transparent; border:1px solid transparent; color:inherit; font:inherit; text-align:left; transition:background .15s, border-color .15s; }
+  .nav-identity:hover, .nav-identity[aria-expanded="true"]{ background:rgba(201,150,63,0.1); border-color:rgba(201,150,63,0.45); }
+  .nav-identity-emblem svg{ width:30px; height:30px; display:block; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7)); }
+  .nav-identity-text{ display:flex; flex-direction:column; line-height:1.15; }
+  .nav-identity-name{ font-family:'Cinzel', Georgia, serif; font-weight:700; font-size:14px; color:var(--hh-parchment, #e9dcc0); max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .nav-identity-rank{ font-family:'Cinzel', Georgia, serif; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; }
+  .rank-text-member{ color:#c9ced6; } .rank-text-raider{ color:#9fdcff; } .rank-text-officer{ color:#f0d27a; }
+  .rank-text-raidleader{ color:#f6dc8a; text-shadow:0 0 6px rgba(240,201,90,0.6); }
+  .nav-identity-caret{ color:var(--hh-gold, #c9963f); font-size:11px; transition:transform .15s; }
+  .nav-identity[aria-expanded="true"] .nav-identity-caret{ transform:rotate(180deg); }
+  .nav-user-menu{ position:absolute; right:0; top:calc(100% + 8px); min-width:190px; z-index:100000; padding:6px;
+    background:linear-gradient(180deg, #2b1d12, #170f09); border:1px solid rgba(201,150,63,0.75); border-radius:6px;
+    box-shadow:0 14px 34px rgba(0,0,0,0.85), inset 0 1px 0 rgba(240,210,122,0.14); }
+  .nav-user-menu[hidden]{ display:none; }
+  .nav-user-menu button{ display:block; width:100%; text-align:left; padding:9px 12px; border:none; border-radius:4px; cursor:pointer;
+    background:transparent; color:var(--hh-parchment, #e9dcc0); font-family:'Cinzel', Georgia, serif; font-size:13px; letter-spacing:0.04em; }
+  .nav-user-menu button:hover{ background:rgba(201,150,63,0.15); color:#fff3c8; }
+  .nav-user-menu button.danger:hover{ background:rgba(142,28,24,0.35); color:#ffd8d0; }
+  .nav-user-menu-sep{ height:1px; margin:5px 4px; background:linear-gradient(90deg, transparent, rgba(201,150,63,0.5), transparent); }
 </style>
 </head>
 <body>
@@ -3707,10 +3745,25 @@
     </div>
     <div class="nav-user-section">
       <div id="nav-user-info" class="nav-user-info" style="display:none;">
-        <span id="nav-username" class="nav-username">Loading...</span>
-        <span id="nav-gold-badge" class="nav-gold-badge"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:4px;"> 0</span>
-        <span id="nav-food-badge" class="nav-gold-badge nav-food-badge" title="Food"></span>
-        <span id="nav-wood-badge" class="nav-gold-badge nav-food-badge" title="Wood"></span>
+        <div class="nav-wallet" title="Your gold, food and wood">
+          <span id="nav-gold-badge" class="wallet-seg" title="Gold"></span>
+          <span id="nav-food-badge" class="wallet-seg" title="Food"></span>
+          <span id="nav-wood-badge" class="wallet-seg" title="Wood"></span>
+        </div>
+        <div class="nav-identity-wrap">
+          <button id="nav-identity" class="nav-identity" type="button" aria-haspopup="true" aria-expanded="false">
+            <span id="nav-identity-emblem" class="nav-identity-emblem"></span>
+            <span class="nav-identity-text"><span id="nav-username" class="nav-identity-name">Loading...</span><span id="nav-identity-rank" class="nav-identity-rank"></span></span>
+            <span class="nav-identity-caret">&#9662;</span>
+          </button>
+          <div id="nav-user-menu" class="nav-user-menu" role="menu" hidden>
+            <button type="button" role="menuitem" data-user-menu="profile">My Profile</button>
+            <button type="button" role="menuitem" data-user-menu="settings">Settings</button>
+            <button type="button" role="menuitem" data-user-menu="admin" id="nav-menu-admin" hidden>Admin</button>
+            <div class="nav-user-menu-sep"></div>
+            <button type="button" role="menuitem" data-user-menu="signout" class="danger">Sign Out</button>
+          </div>
+        </div>
       </div>
       <button id="layout-lock-btn" class="nav-action-btn" title="Toggle Layout Lock" style="display:none;">Layout</button>
       <button id="reset-member-btn" class="nav-action-btn" style="display:none;" title="Reset Member">Reset</button>
@@ -3892,8 +3945,15 @@ function updateNavbarUserInfo(){
   // Update desktop navbar
   const navUsername = document.getElementById('nav-username');
   const navGold = document.getElementById('nav-gold-badge');
-  if(navUsername) navUsername.innerHTML = `${esc(username)} ${rankBadge}`;
-  if(navGold) navGold.innerHTML = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/GoldIcon.png" alt="Gold" style="width:32px; height:32px; vertical-align:middle; margin-right:4px;"> ${gold}`;
+  // Desktop: identity block (emblem, name, rank) + one wallet bar
+  if(navUsername) navUsername.textContent = username;
+  const navEmblem = document.getElementById('nav-identity-emblem');
+  if(navEmblem) navEmblem.innerHTML = RANK_EMBLEM[rankKey(state.profile)];
+  const navRank = document.getElementById('nav-identity-rank');
+  if(navRank){ navRank.textContent = rankLabelFor(state.profile); navRank.className = 'nav-identity-rank rank-text-' + rankKey(state.profile); }
+  const navMenuAdmin = document.getElementById('nav-menu-admin');
+  if(navMenuAdmin) navMenuAdmin.hidden = !state.profile.protected;
+  setWalletSeg(navGold, 'GoldIcon.png', 'Gold', gold);
 
   // Update mobile menu
   const mobileUsername = document.getElementById('mobile-username');
@@ -3904,15 +3964,51 @@ function updateNavbarUserInfo(){
   const foodHtml = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/FoodIcon.png" alt="Food" style="width:28px; height:28px; vertical-align:middle; margin-right:4px;"> ${state.profile.food || 0}`;
   const navFood = document.getElementById('nav-food-badge');
   const mobileFood = document.getElementById('mobile-food-badge');
-  if(navFood) navFood.innerHTML = foodHtml;
+  setWalletSeg(navFood, 'FoodIcon.png', 'Food', state.profile.food || 0);
   if(mobileFood) mobileFood.innerHTML = foodHtml;
 
   const woodHtml = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/WoodIcon.png" alt="Wood" style="width:28px; height:28px; vertical-align:middle; margin-right:4px;"> ${state.profile.wood || 0}`;
   const navWood = document.getElementById('nav-wood-badge');
   const mobileWood = document.getElementById('mobile-wood-badge');
-  if(navWood) navWood.innerHTML = woodHtml;
+  setWalletSeg(navWood, 'WoodIcon.png', 'Wood', state.profile.wood || 0);
   if(mobileWood) mobileWood.innerHTML = woodHtml;
 }
+
+// Wallet segment: icon + number with thousands separators; ticks up when the amount grows
+function setWalletSeg(el, icon, label, value){
+  if(!el) return;
+  const prev = el.dataset.v != null ? Number(el.dataset.v) : null;
+  el.dataset.v = value;
+  el.innerHTML = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/${icon}" alt="${label}"><b>${Number(value).toLocaleString()}</b>`;
+  if(prev != null && value !== prev){
+    el.classList.remove('bump-up', 'bump-down'); void el.offsetWidth;
+    el.classList.add(value > prev ? 'bump-up' : 'bump-down');
+  }
+}
+
+// Identity menu: My Profile / Settings / Admin / Sign Out
+document.addEventListener('click', e => {
+  const menu = document.getElementById('nav-user-menu');
+  const btn = document.getElementById('nav-identity');
+  if(!menu || !btn) return;
+  const item = e.target.closest && e.target.closest('[data-user-menu]');
+  const close = () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+  if(item){
+    close();
+    const what = item.getAttribute('data-user-menu');
+    if(what === 'profile' && state.profile) openProfile(state.profile.id);
+    else if(what === 'settings' || what === 'admin'){ state.tab = what; state.modal = null; render(); window.scrollTo({ top: 0 }); }
+    else if(what === 'signout'){ const lo = document.getElementById('logout-btn'); if(lo) lo.click(); }
+    return;
+  }
+  if(btn.contains(e.target)){ menu.hidden = !menu.hidden; btn.setAttribute('aria-expanded', String(!menu.hidden)); return; }
+  if(!menu.hidden && !menu.contains(e.target)) close();
+});
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  const menu = document.getElementById('nav-user-menu');
+  if(menu && !menu.hidden){ menu.hidden = true; document.getElementById('nav-identity')?.setAttribute('aria-expanded', 'false'); }
+});
 
 // Gold icon for prices/balances (replaces the money-bag emoji so it matches the navbar)
 function goldIconHtml(size = 18){
