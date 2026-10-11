@@ -3638,6 +3638,31 @@
   .tr-tag b{ font-size:13px; }
   .tr-crystal .tr-tag{ background:linear-gradient(180deg, #e2d4ff, #a07ee0 60%, #6f4cb0); border-color:#3a1f6b; }
   @media (max-width:640px){ .tr-pile{ height:60px; } .shelf-item{ width:18px; height:18px; } .tr-tag{ font-size:9px; padding:1px 5px; } .tr-tag b{ font-size:10px; } }
+  /* Home decorating: inventory column beside the frame, tool bar below */
+  .home-edit-wrap.editing{ display:grid; grid-template-columns:minmax(0, 1fr) 230px; gap:14px; align-items:start; }
+  .decor-inv{ background:linear-gradient(180deg, #2a1a0c, #170e06); border:2px solid #5a3818; border-radius:6px; padding:10px;
+    box-shadow:inset 0 0 18px rgba(0,0,0,0.6); max-height:100%; overflow:auto; }
+  .decor-inv h4{ font-family:'Cinzel', Georgia, serif; color:var(--hh-gold-bright, #f0d27a); font-size:13px; margin:10px 0 6px; letter-spacing:0.06em; }
+  .decor-shop-btn{ width:100%; }
+  .decor-row{ display:flex; align-items:center; gap:8px; width:100%; padding:7px 8px; margin-bottom:6px; border-radius:4px; cursor:pointer;
+    background:rgba(255,230,160,0.06); border:1px solid rgba(201,150,63,0.35); color:#e9dcc0; text-align:left; font:inherit; font-size:13px; }
+  .decor-row:hover:not([disabled]){ background:rgba(255,230,160,0.14); border-color:#c9963f; }
+  .decor-row[disabled]{ opacity:0.45; cursor:default; }
+  .decor-row .decor-count{ margin-left:auto; font-size:11px; color:#c9b48a; white-space:nowrap; }
+  .decor-zone-tag{ font-size:10px; color:#b48cff; }
+  .decor-empty{ font-size:12px; color:rgba(233,220,192,0.55); font-style:italic; }
+  .home-edit-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px; }
+  .home-edit-bar .home-edit-hint{ flex:1 1 220px; font-size:12px; color:#c9b48a; }
+  .home-edit-wrap.editing .home-frame-inner{ cursor:crosshair; }
+  .decor-shop-modal{ position:fixed; inset:0; z-index:9000; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.7); }
+  .decor-shop-box{ width:min(640px, calc(100vw - 32px)); max-height:80vh; overflow:auto; padding:18px; border-radius:8px;
+    background:linear-gradient(180deg, #2a1a0c, #140c05); border:2px solid #c9963f; box-shadow:0 10px 40px rgba(0,0,0,0.8); }
+  .decor-shop-box h3{ font-family:'Cinzel', Georgia, serif; color:var(--hh-gold-bright, #f0d27a); margin:0 0 4px; }
+  .decor-shop-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:10px; margin-top:12px; }
+  .decor-shop-card{ padding:10px; border-radius:5px; background:rgba(255,230,160,0.06); border:1px solid rgba(201,150,63,0.4); display:flex; flex-direction:column; gap:6px; }
+  .decor-shop-card b{ color:#f0dfb4; }
+  .decor-shop-card p{ margin:0; font-size:12px; color:#c9b48a; flex:1; }
+  @media (max-width:800px){ .home-edit-wrap.editing{ grid-template-columns:1fr; } }
   .home-frame-inner{ cursor:grab; touch-action:pan-y; user-select:none; }
   .home-frame-inner.dragging{ cursor:grabbing; }
   .home-frame-inner::after{ z-index:3; }
@@ -8746,11 +8771,30 @@ const HOME_ZONES = {
   }
 };
 const HOUSE_TIER_COSTS = { 1: 100, 2: 500, 3: 1000 }; // wood; enforced server-side in build_house_tier
-function homeSceneProps(zone, tier){
+// Decor pieces players buy in the Decor Shop (shop_items category 'home_decor', metadata.key -> here).
+// metadata.zone locks a piece to one home zone; no zone = fits any home.
+const HOME_DECOR = {
+  mulgore_lamppost: { gltf: 'models/housing/taurenlamppost.gltf', height: 1.5 },
+  elwynn_lamppost:  { gltf: 'models/housing/elwynn-lamppost.gltf', height: 2.4, light: { y: 2.0, color: 0xffb05a, intensity: 1.6, distance: 6 } },
+  elwynn_oak:       { gltf: 'models/housing/elwynn-tree.gltf', height: 6 },
+  copper_vein:      { gltf: 'models/minigames/copper-node.gltf', height: 1.1 }
+};
+// Everything standing in a home: the zone's fixed props, the built houses (moved wherever the owner
+// put them) and the owner's placed decor. Houses and decor carry `edit` so the editor can move them.
+function homeSceneProps(zone, tier, layout){
   const props = ((HOME_ZONES[zone] && HOME_ZONES[zone].props) || []).slice();
   // Houses stack: each tier adds its building, so a Tier 3 home is a little village
   const houses = (HOME_ZONES[zone] && HOME_ZONES[zone].houses) || {};
-  for(let t = 1; t <= tier; t++) if(houses[t]) props.push(houses[t]);
+  const placed = (layout && layout.houses) || {};
+  for(let t = 1; t <= tier; t++){
+    if(!houses[t]) continue;
+    const at = placed[t];
+    props.push(Object.assign({}, houses[t], at ? { x: +at.x, z: +at.z, rotY: +at.r } : {}, { edit: { type: 'house', tier: t } }));
+  }
+  ((layout && layout.decor) || []).forEach(d => {
+    const def = HOME_DECOR[d.k];
+    if(def) props.push(Object.assign({}, def, { x: +d.x, z: +d.z, rotY: +d.r, edit: { type: 'decor', k: d.k } }));
+  });
   return props;
 }
 function homeZoneInfo(zone){
@@ -8813,6 +8857,8 @@ function renderHomeSection(p, isMe){
     : (visible.find(h => h.is_active) || visible[0]).id;
   const home = visible.find(h => h.id === selId);
   const zone = homeZoneInfo(home.zone);
+  const editing = isMe && homeEdit && homeEdit.homeId === home.id;
+  if(isMe && state.myDecor === undefined) loadMyDecor();
 
   const tabs = isMe && homes.length > 1 ? `
     <div class="home-tabs">
@@ -8828,15 +8874,23 @@ function renderHomeSection(p, isMe){
       ${tabs}
       <div class="home-frame">
         <div class="home-frame-inner">
-          <div class="home-scene" data-home-scene="${esc(home.zone)}" data-home-tier="${home.house_tier || 0}" data-home-user="${esc(p.id)}"></div>
+      <div class="home-edit-wrap ${editing ? 'editing' : ''}">
+      <div class="home-frame">
+        <div class="home-frame-inner">
+          <div class="home-scene" data-home-scene="${esc(home.zone)}" data-home-tier="${home.house_tier || 0}" data-home-user="${esc(p.id)}" data-home-id="${esc(home.id)}"></div>
           <div class="home-plaque">${esc(zone.label)}</div>
         </div>
         <span class="home-frame-corner tl"></span><span class="home-frame-corner tr"></span>
         <span class="home-frame-corner bl"></span><span class="home-frame-corner br"></span>
       </div>
-      ${ isMe ? renderHouseBuildBar(home) : (home.house_tier ? `<div class="home-tier-note">Tier ${home.house_tier} house</div>` : '') }
-      ${ isMe ? `
+      ${ editing ? renderDecorInventory(home) : '' }
+      </div>
+      ${ editing ? renderHomeEditBar() : '' }
+      ${ isMe && !editing ? renderHouseBuildBar(home) : '' }
+      ${ !isMe && home.house_tier ? `<div class="home-tier-note">Tier ${home.house_tier} house</div>` : '' }
+      ${ isMe && !editing ? `
         <div class="home-actions">
+          <button class="btn" type="button" data-home-edit="${esc(home.id)}">&#9874; Decorate</button>
           ${ home.is_active ? `<span class="home-active-note">&#9733; Shown on your profile</span>`
                             : `<button class="btn secondary" type="button" data-set-active-home="${esc(home.id)}">Show this home on my profile</button>` }
           <button class="btn secondary" type="button" data-open-shop-homes>Buy more homes</button>
@@ -9445,6 +9499,276 @@ function homeScenePetsSig(pets){
   return pets.map(p => p.id + ':' + p.status).join(',');
 }
 
+/* ---------------- Decorating a home ----------------
+   The owner presses Decorate: an inventory column opens beside the frame (with the Decor Shop at the
+   top). Clicking a piece drops it on the stage; click a piece (or a house) to select it, drag it across
+   the floor, scroll or use the buttons to turn it, Store sends decor back to the inventory. Save sends
+   the layout to save_home_layout, which checks ownership / zone / bounds on the server.
+   Edits happen on the live scene; Cancel throws them away by rebuilding it from the saved layout. */
+var homeEdit = null;        // { homeId, zone } while the owner is decorating
+let homePieceDrag = null;   // { v, entry, dx, dz } while dragging a piece
+const HOME_STAGE_LIMIT = { x: 6.2, z: 3.2 };
+
+async function loadMyDecor(){
+  if(!state.profile) return;
+  state.myDecor = 'loading';
+  const { data, error } = await sb.from('player_decor').select('item_key, qty').eq('user_id', state.profile.id);
+  state.myDecor = {};
+  if(error) console.error('loadMyDecor failed:', error);
+  (data || []).forEach(r => { state.myDecor[r.item_key] = r.qty; });
+  if(state.tab === 'profile') render();
+}
+function decorItemsFor(zone){
+  return (state.shopItems || []).filter(i => i.category === 'home_decor' && i.metadata && HOME_DECOR[i.metadata.key]
+    && (!i.metadata.zone || i.metadata.zone === zone)).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+}
+function homeEditViewer(){
+  if(!homeEdit) return null;
+  return Object.values(homeSceneViewers).find(v => v.slot && v.slot.isConnected && v.slot.getAttribute('data-home-id') === homeEdit.homeId) || null;
+}
+// How many of a piece are already standing somewhere (other homes as saved + this home as edited)
+function decorPlacedCount(k){
+  let n = 0;
+  (Array.isArray(profileHomes[state.profile.id]) ? profileHomes[state.profile.id] : []).forEach(hm => {
+    if(hm.id !== homeEdit.homeId) n += ((hm.layout && hm.layout.decor) || []).filter(d => d.k === k).length;
+  });
+  const v = homeEditViewer();
+  if(v) n += v.holders.filter(en => en.prop.edit && en.prop.edit.type === 'decor' && en.prop.edit.k === k).length;
+  return n;
+}
+
+function renderDecorInventory(home){
+  const mine = state.myDecor && typeof state.myDecor === 'object' ? state.myDecor : {};
+  const items = decorItemsFor(home.zone).filter(i => mine[i.metadata.key] > 0);
+  const rows = items.map(i => {
+    const k = i.metadata.key, left = mine[k] - decorPlacedCount(k);
+    return `<button type="button" class="decor-row" data-decor-place="${esc(k)}" ${left > 0 ? '' : 'disabled'}>
+      <span>${esc(i.name)}${i.metadata.zone ? '' : '<br><span class="decor-zone-tag">Any home</span>'}</span>
+      <span class="decor-count">${left} / ${mine[k]}</span></button>`;
+  }).join('');
+  return `
+    <aside class="decor-inv">
+      <button class="btn decor-shop-btn" type="button" data-decor-shop="${esc(home.zone)}">&#128722; Decor Shop</button>
+      <h4>Your Decor</h4>
+      ${ state.myDecor === 'loading' || state.myDecor === undefined ? '<p class="decor-empty">Unpacking&hellip;</p>'
+         : rows || '<p class="decor-empty">Nothing for this home yet. Visit the Decor Shop!</p>' }
+      <h4>Tips</h4>
+      <p class="decor-empty">Click a piece to place it. Click anything on the stage to select it, drag to move, scroll to turn. Drag empty ground to look around.</p>
+    </aside>`;
+}
+function renderHomeEditBar(){
+  const v = homeEditViewer(), sel = v && v.sel;
+  const what = sel ? (sel.prop.edit.type === 'house' ? `Tier ${sel.prop.edit.tier} house` : ((decorItemsFor(homeEdit.zone).find(i => i.metadata.key === sel.prop.edit.k) || {}).name || 'Piece')) : null;
+  return `
+    <div class="home-edit-bar">
+      <span class="home-edit-hint">${ what ? `Selected: <b>${esc(what)}</b>` : 'Select a house or piece on the stage.' }</span>
+      <button class="btn secondary" type="button" data-decor-rot="1" ${sel ? '' : 'disabled'} title="Turn left">&#10226;</button>
+      <button class="btn secondary" type="button" data-decor-rot="-1" ${sel ? '' : 'disabled'} title="Turn right">&#10227;</button>
+      <button class="btn secondary" type="button" data-decor-store ${sel && sel.prop.edit.type === 'decor' ? '' : 'disabled'}>Store</button>
+      <button class="btn secondary" type="button" data-home-cancel>Cancel</button>
+      <button class="btn" type="button" data-home-save>Save layout</button>
+    </div>`;
+}
+function refreshHomeEditUi(){
+  const bar = document.querySelector('.home-edit-bar');
+  if(bar) bar.outerHTML = renderHomeEditBar();
+  const inv = document.querySelector('.decor-inv');
+  const hm = homeEdit && (profileHomes[state.profile.id] || []).find(x => x.id === homeEdit.homeId);
+  if(inv && hm){ const st = inv.scrollTop; inv.outerHTML = renderDecorInventory(hm); const n = document.querySelector('.decor-inv'); if(n) n.scrollTop = st; }
+}
+
+function homeSelect(v, entry){
+  if(v.selHelper){ v.scene.remove(v.selHelper); v.selHelper = null; }
+  v.sel = entry || null;
+  if(entry){
+    v.selHelper = new THREE.BoxHelper(entry.holder, 0xf0c95a);
+    v.scene.add(v.selHelper);
+  }
+  refreshHomeEditUi();
+}
+function homeMovePiece(v, entry, x, z, rotY){
+  const p = entry.prop;
+  if(x != null) p.x = Math.max(-HOME_STAGE_LIMIT.x, Math.min(HOME_STAGE_LIMIT.x, x));
+  if(z != null) p.z = Math.max(-HOME_STAGE_LIMIT.z, Math.min(HOME_STAGE_LIMIT.z, z));
+  if(rotY != null) p.rotY = Math.atan2(Math.sin(rotY), Math.cos(rotY));
+  placeHomeProp(entry.holder, p);
+  if(entry.light) entry.light.position.set(p.x, p.light.y, p.z);
+}
+function homeGroundPoint(v, e){
+  const r = v.slot.getBoundingClientRect();
+  const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, v.camera);
+  const hit = new THREE.Vector3();
+  return { ray, ground: ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit) ? hit : null };
+}
+// Returns true when the press landed on an editable piece (so the camera doesn't orbit)
+function homeEditPointerDown(v, e){
+  if(!homeEdit || homeEditViewer() !== v) return false;
+  const { ray, ground } = homeGroundPoint(v, e);
+  const editable = v.holders.filter(en => en.prop.edit);
+  const hits = ray.intersectObjects(editable.map(en => en.holder), true);
+  if(!hits.length){ homeSelect(v, null); return false; }
+  let o = hits[0].object;
+  const entry = editable.find(en => { let p = o; while(p){ if(p === en.holder) return true; p = p.parent; } return false; });
+  if(!entry) return false;
+  homeSelect(v, entry);
+  homePieceDrag = { v, entry, dx: ground ? entry.prop.x - ground.x : 0, dz: ground ? entry.prop.z - ground.z : 0 };
+  return true;
+}
+document.addEventListener('pointermove', e => {
+  if(!homePieceDrag) return;
+  const { v, entry, dx, dz } = homePieceDrag;
+  const { ground } = homeGroundPoint(v, e);
+  if(ground) homeMovePiece(v, entry, ground.x + dx, ground.z + dz, null);
+});
+document.addEventListener('pointerup', () => {
+  if(!homePieceDrag) return;
+  updateHomeObstacles(homePieceDrag.v);
+  homePieceDrag = null;
+});
+// Scroll over the stage turns the selected piece
+document.addEventListener('wheel', e => {
+  if(!homeEdit) return;
+  const v = homeEditViewer();
+  if(!v || !v.sel || !(e.target.closest && e.target.closest('.home-frame-inner'))) return;
+  e.preventDefault();
+  homeMovePiece(v, v.sel, null, null, v.sel.prop.rotY + (e.deltaY > 0 ? -1 : 1) * Math.PI / 12);
+  updateHomeObstacles(v);
+}, { passive: false });
+
+async function homePlaceDecor(k){
+  const v = homeEditViewer(), def = HOME_DECOR[k];
+  if(!v || !def) return;
+  if(((state.myDecor || {})[k] || 0) - decorPlacedCount(k) <= 0) return;
+  try {
+    const prop = Object.assign({}, def, { x: 0, z: 1.2, rotY: 0, edit: { type: 'decor', k } });
+    const holder = await loadHomeProp(prop);
+    const entry = addHomePropHolder(v, holder, prop);
+    updateHomeObstacles(v);
+    homeSelect(v, entry);
+  } catch(err){
+    console.error('Decor failed to load:', k, err);
+    showToast("Couldn't load that piece", true);
+  }
+}
+function homeStoreSelected(){
+  const v = homeEditViewer(), entry = v && v.sel;
+  if(!entry || entry.prop.edit.type !== 'decor') return;
+  v.scene.remove(entry.holder);
+  if(entry.light) v.scene.remove(entry.light);
+  if(entry.mixer) v.mixers.splice(v.mixers.indexOf(entry.mixer), 1);
+  v.holders.splice(v.holders.indexOf(entry), 1);
+  updateHomeObstacles(v);
+  homeSelect(v, null);
+}
+async function homeSaveLayout(){
+  const v = homeEditViewer();
+  if(!v || state.homeSaveInFlight) return;
+  const layout = { houses: {}, decor: [] };
+  v.holders.forEach(({ prop }) => {
+    if(!prop.edit) return;
+    const at = { x: +prop.x.toFixed(2), z: +(prop.z || 0).toFixed(2), r: +(prop.rotY || 0).toFixed(3) };
+    if(prop.edit.type === 'house') layout.houses[prop.edit.tier] = at;
+    else layout.decor.push(Object.assign({ k: prop.edit.k }, at));
+  });
+  state.homeSaveInFlight = true;
+  try {
+    const { data, error } = await sb.rpc('save_home_layout', { p_home_id: homeEdit.homeId, p_layout: layout });
+    if(error || !data){ showToast("Couldn't save - try again", true); return; }
+    if(!data.success){ showToast(data.error || 'Save failed', true); return; }
+    const hm = (profileHomes[state.profile.id] || []).find(x => x.id === homeEdit.homeId);
+    if(hm) hm.layout = data.layout;
+    homeEdit = null;
+    homePieceDrag = null;
+    showToast('Home layout saved!');
+    render();
+  } finally { state.homeSaveInFlight = false; }
+}
+function homeCancelEdit(){
+  const v = homeEditViewer();
+  homeEdit = null; homePieceDrag = null;
+  if(v){ const key = Object.keys(homeSceneViewers).find(k => homeSceneViewers[k] === v); if(key) disposeHomeViewer(key); }
+  render();
+}
+
+// Decor Shop: pieces for this home's zone plus the ones that fit anywhere
+function openDecorShop(zone){
+  let modal = document.querySelector('.decor-shop-modal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.className = 'decor-shop-modal';
+    modal.addEventListener('click', e => { if(e.target === modal || e.target.closest('[data-decor-shop-close]')) modal.remove(); });
+    document.body.appendChild(modal);
+  }
+  modal.setAttribute('data-zone', zone);
+  const gold = (state.profile && state.profile.gold) || 0;
+  const mine = state.myDecor && typeof state.myDecor === 'object' ? state.myDecor : {};
+  const items = decorItemsFor(zone);
+  modal.innerHTML = `
+    <div class="decor-shop-box">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <h3 style="flex:1;">Decor Shop &middot; ${esc(homeZoneInfo(zone).label)}</h3>
+        <span class="nav-gold-badge">${goldIconHtml()} ${gold.toLocaleString()}</span>
+        <button class="btn secondary" type="button" data-decor-shop-close>Close</button>
+      </div>
+      <p class="muted sans" style="font-size:12px; margin:0;">Pieces made for this home, plus a few that fit anywhere.</p>
+      <div class="decor-shop-grid">
+        ${ items.map(i => `
+          <div class="decor-shop-card">
+            <b>${esc(i.name)}</b>
+            ${ i.metadata.zone ? '' : '<span class="decor-zone-tag">Any home</span>' }
+            <p>${esc(i.description || '')}</p>
+            <span class="muted sans" style="font-size:11px;">Owned: ${mine[i.metadata.key] || 0}</span>
+            <button class="btn" type="button" data-decor-buy="${esc(i.id)}" ${gold >= i.cost ? '' : 'disabled'}>${goldIconHtml()} ${i.cost}</button>
+          </div>`).join('') || '<p class="decor-empty">No decor for this home yet.</p>' }
+      </div>
+    </div>`;
+}
+async function buyDecor(itemId){
+  if(state.decorBuyInFlight) return;
+  state.decorBuyInFlight = true;
+  try {
+    const { data, error } = await sb.rpc('purchase_decor', { p_item_id: itemId });
+    if(error || !data){ showToast("Couldn't complete purchase - try again", true); return; }
+    if(!data.success){ showToast(data.error || 'Purchase failed', true); return; }
+    state.profile.gold = data.new_gold;
+    if(!state.myDecor || typeof state.myDecor !== 'object') state.myDecor = {};
+    state.myDecor[data.key] = data.qty;
+    updateNavbarUserInfo();
+    showToast(`${data.item_name} added to your decor!`);
+  } finally {
+    state.decorBuyInFlight = false;
+    const modal = document.querySelector('.decor-shop-modal');
+    if(modal) openDecorShop(modal.getAttribute('data-zone'));
+    refreshHomeEditUi();
+  }
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-home-edit],[data-decor-place],[data-decor-rot],[data-decor-store],[data-home-save],[data-home-cancel],[data-decor-shop],[data-decor-buy]');
+  if(!t || !state.session) return;
+  if(t.hasAttribute('data-home-edit')){
+    const hm = (profileHomes[state.profile.id] || []).find(x => x.id === t.getAttribute('data-home-edit'));
+    if(!hm) return;
+    homeEdit = { homeId: hm.id, zone: hm.zone };
+    if(state.myDecor === undefined) loadMyDecor();
+    render();
+  } else if(t.hasAttribute('data-decor-place')) homePlaceDecor(t.getAttribute('data-decor-place'));
+  else if(t.hasAttribute('data-decor-rot')){
+    const v = homeEditViewer();
+    if(v && v.sel){ homeMovePiece(v, v.sel, null, null, v.sel.prop.rotY + Number(t.getAttribute('data-decor-rot')) * Math.PI / 12); updateHomeObstacles(v); }
+  }
+  else if(t.hasAttribute('data-decor-store')) homeStoreSelected();
+  else if(t.hasAttribute('data-home-save')) homeSaveLayout();
+  else if(t.hasAttribute('data-home-cancel')) homeCancelEdit();
+  else if(t.hasAttribute('data-decor-shop')) openDecorShop(t.getAttribute('data-decor-shop'));
+  else if(t.hasAttribute('data-decor-buy')) buyDecor(t.getAttribute('data-decor-buy'));
+});
+document.addEventListener('keydown', e => {
+  if(!homeEdit || (e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) return;
+  if(e.key === 'Delete' || e.key === 'Backspace'){ const v = homeEditViewer(); if(v && v.sel){ e.preventDefault(); homeStoreSelected(); } }
+});
+
 // Drag the scene to swing the camera around the diorama (the backdrop is one-sided, so the swing is limited)
 const HOME_VIEW_LIMITS = { yaw: 0.85, minH: 2.2, maxH: 9 };
 function homeCameraUpdate(v, k){
@@ -9459,6 +9783,7 @@ document.addEventListener('pointerdown', e => {
   if(!inner || e.button !== 0) return;
   const v = Object.values(homeSceneViewers).find(x => x.slot && inner.contains(x.slot) && x.view);
   if(!v) return;
+  if(homeEditPointerDown(v, e)){ e.preventDefault(); return; }
   homeDrag = { v, x: e.clientX, y: e.clientY, yaw: v.view.tYaw, height: v.view.tHeight };
   inner.classList.add('dragging');
   e.preventDefault();
@@ -9481,6 +9806,28 @@ document.addEventListener('dblclick', e => {
   if(v){ v.view.tYaw = DIORAMA.viewYaw; v.view.tHeight = 5.2; }
 });
 
+// Put a loaded prop into the scene: shadows, its looping clip, and a lamp's light
+function addHomePropHolder(v, h, prop){
+  const entry = { holder: h, prop };
+  v.holders.push(entry);
+  setCastShadows(h);
+  if(prop.light){ // warm glow cast by lamps
+    const l = prop.light;
+    entry.light = new THREE.PointLight(l.color, l.intensity, l.distance, 2);
+    entry.light.position.set(prop.x, l.y, prop.z || 0);
+    v.scene.add(entry.light);
+  }
+  v.scene.add(h);
+  const clip = (h.userData.animations || [])[0];
+  if(clip){
+    entry.mixer = new THREE.AnimationMixer(h.userData.pivot.children[0]);
+    entry.mixer.clipAction(clip).play();
+    v.mixers.push(entry.mixer);
+  }
+  placeHomeProp(h, prop);
+  return entry;
+}
+
 function disposeHomeViewer(key){
   const v = homeSceneViewers[key];
   if(!v) return;
@@ -9497,12 +9844,15 @@ function mountHomeScenes(){
     const zoneKey = slot.getAttribute('data-home-scene');
     const tier = parseInt(slot.getAttribute('data-home-tier') || '0', 10);
     const userId = slot.getAttribute('data-home-user') || '';
-    const props = homeSceneProps(zoneKey, tier);
+    const homeId = slot.getAttribute('data-home-id') || '';
+    const homeRow = Array.isArray(profileHomes[userId]) ? profileHomes[userId].find(x => x.id === homeId) : null;
+    const layout = homeRow && homeRow.layout;
+    const props = homeSceneProps(zoneKey, tier, layout);
     const allPets = profilePets[userId];
     const pets = (Array.isArray(allPets) ? allPets : []).filter(p => p.status !== 'egg' && petModelFor(p) && petModelFor(p).gltf);
     if(!props.length && !pets.length) return;
 
-    const viewerKey = [userId, zoneKey, tier, homeScenePetsSig(pets)].join('|');
+    const viewerKey = [userId, zoneKey, tier, homeScenePetsSig(pets), JSON.stringify(layout || null)].join('|');
     // Pets or house changed since the last visit: drop the old scene for this home
     Object.keys(homeSceneViewers).forEach(k => { if(k !== viewerKey && k.startsWith(userId + '|' + zoneKey + '|')) disposeHomeViewer(k); });
     let v = homeSceneViewers[viewerKey];
@@ -9527,24 +9877,7 @@ function mountHomeScenes(){
         Promise.all(props.map(p => safe(loadHomeProp(p), p.gltf))),
         Promise.all(pets.map(pet => safe(loadHomeProp({ model: petModelFor(pet) }), pet.pet_type)))
       ]).then(([propHolders, petHolders]) => {
-        propHolders.forEach((h, i) => {
-          if(!h) return;
-          v.holders.push({ holder: h, prop: props[i] });
-          setCastShadows(h);
-          if(props[i].light){ // warm glow cast by lamps
-            const l = props[i].light;
-            const pl = new THREE.PointLight(l.color, l.intensity, l.distance, 2);
-            pl.position.set(props[i].x, l.y, props[i].z || 0);
-            v.scene.add(pl);
-          }
-          v.scene.add(h);
-          const clip = (h.userData.animations || [])[0];
-          if(clip){
-            const mixer = new THREE.AnimationMixer(h.userData.pivot.children[0]);
-            mixer.clipAction(clip).play();
-            v.mixers.push(mixer);
-          }
-        });
+        propHolders.forEach((h, i) => { if(h) addHomePropHolder(v, h, props[i]); });
         petHolders.forEach((h, i) => {
           if(!h) return;
           setCastShadows(h);
@@ -9576,6 +9909,7 @@ function mountHomeScenes(){
         const dt = Math.min(v.clock.getDelta(), 0.1); // no big jumps after a background tab
         const now = performance.now();
         homeCameraUpdate(v, Math.min(1, dt * 8));
+        if(v.selHelper) v.selHelper.update();
         v.mixers.forEach(m => m.update(dt));
         v.actors.forEach(a => updateHomePetActor(v, a, dt, now));
         updateHomePetOverlays(v, v.slot, now);
