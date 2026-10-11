@@ -3858,6 +3858,74 @@
   .nav-weary.tier-tired{ color:#e6c35c; border-color:rgba(230,195,92,0.5); background:rgba(80,60,10,0.4); }
   .nav-weary.tier-weary{ color:#e0662a; border-color:rgba(224,102,42,0.55); background:rgba(90,30,10,0.4); }
   .nav-weary.tier-exhausted{ color:#e07a6a; border-color:rgba(224,122,106,0.55); background:rgba(90,15,12,0.45); }
+
+  /* ======================================================================
+     ENCOUNTER CARD (shared mini-game frame) + TRIVIA rune book
+     ====================================================================== */
+  .encounter-dim{ position:fixed; inset:0; background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.25), rgba(0,0,0,0.55));
+    pointer-events:none; animation:encDimIn .3s ease-out both; }
+  .encounter-dim.closing{ animation:encDimOut .4s ease-in forwards; }
+  @keyframes encDimIn{ from{ opacity:0; } } @keyframes encDimOut{ to{ opacity:0; } }
+  .encounter-card{ position:fixed; width:min(440px, calc(100vw - 24px)); pointer-events:auto; z-index:2;
+    padding:14px 16px 12px; border-radius:6px; color:var(--hh-parchment, #e9dcc0);
+    background:
+      linear-gradient(90deg, transparent, var(--hh-blood, #8e1c18) 18%, var(--hh-ember, #e0662a) 50%, var(--hh-blood, #8e1c18) 82%, transparent) top / 100% 4px no-repeat,
+      radial-gradient(ellipse at 50% 120%, rgba(142,28,24,0.35), transparent 60%),
+      linear-gradient(180deg, #2b1d12, #170f09);
+    border:1px solid rgba(201,150,63,0.8);
+    box-shadow:0 0 0 1px #000, 0 0 0 4px rgba(201,150,63,0.15), 0 18px 44px rgba(0,0,0,0.9), inset 0 1px 0 rgba(240,210,122,0.15);
+    animation:encIn .35s cubic-bezier(.2,1.4,.4,1) both; }
+  .encounter-card.closing{ animation:encOut .4s ease-in forwards; }
+  @keyframes encIn{ from{ transform:scale(0.7) translateY(16px); opacity:0; } }
+  @keyframes encOut{ to{ transform:scale(0.85) translateY(10px); opacity:0; } }
+  .enc-head{ display:flex; align-items:center; gap:8px; }
+  .enc-icon{ font-size:20px; filter:drop-shadow(0 0 6px rgba(240,201,90,0.6)); }
+  .enc-title{ font-family:'Cinzel', Georgia, serif; font-weight:700; font-size:16px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--hh-gold-bright, #f0d27a); text-shadow:0 1px 2px #000, 0 0 10px rgba(224,102,42,0.35); flex:1; }
+  .enc-timer{ width:110px; height:7px; border-radius:4px; background:rgba(0,0,0,0.5); border:1px solid rgba(201,150,63,0.4); overflow:hidden; }
+  .enc-timer-fill{ display:block; height:100%; width:100%; transform-origin:left;
+    background:linear-gradient(90deg, #3a8fd6, var(--hh-arcane, #7fd4ff)); box-shadow:0 0 6px rgba(127,212,255,0.7); }
+  .enc-timer-fill.run{ animation:encTimer linear forwards; }
+  @keyframes encTimer{ 0%{ transform:scaleX(1); } 85%{ background:linear-gradient(90deg, #3a8fd6, #7fd4ff); } 86%{ background:linear-gradient(90deg, #8e1c18, #e0662a); } 100%{ transform:scaleX(0); background:linear-gradient(90deg, #8e1c18, #e0662a); } }
+  .enc-instruction{ font-size:12px; color:var(--hh-muted, #a8977a); margin:6px 0 10px; }
+  .enc-body{ position:relative; }
+  .enc-foot{ margin-top:10px; padding-top:8px; font-size:12px; color:var(--hh-muted, #a8977a);
+    background:linear-gradient(90deg, rgba(201,150,63,0.5), transparent) top / 100% 1px no-repeat; }
+  .enc-weary{ margin-left:6px; font-family:'Cinzel', Georgia, serif; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; padding:1px 7px; border-radius:999px; border:1px solid; }
+  .enc-weary.tier-tired{ color:#e6c35c; } .enc-weary.tier-weary{ color:#e0662a; } .enc-weary.tier-exhausted{ color:#e07a6a; }
+  .enc-stamp{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate(-8deg) scale(1);
+    font-family:'Cinzel', Georgia, serif; font-weight:900; font-size:34px; letter-spacing:0.08em; text-transform:uppercase;
+    padding:6px 20px; border:3px solid; border-radius:6px; pointer-events:none; white-space:nowrap;
+    animation:encStamp .45s cubic-bezier(.2,1.6,.4,1) both; background:rgba(10,6,3,0.75); }
+  .enc-stamp.win{ color:#f6dc8a; border-color:#f0c95a; text-shadow:0 0 14px rgba(240,201,90,0.9); box-shadow:0 0 24px rgba(240,201,90,0.5); }
+  .enc-stamp.lose{ color:#e07a6a; border-color:#b0524f; text-shadow:0 0 12px rgba(224,122,106,0.7); }
+  @keyframes encStamp{ from{ transform:translate(-50%,-50%) rotate(-8deg) scale(2.2); opacity:0; } }
+
+  /* Trivia rune book */
+  .enc-trivia .enc-body{ text-align:center; }
+  .trv-smoke{ position:absolute; left:50%; top:30px; width:140px; height:90px; margin-left:-70px; border-radius:50%; pointer-events:none;
+    background:radial-gradient(ellipse, rgba(200,190,220,0.75), rgba(120,110,150,0.35) 45%, transparent 70%);
+    animation:trvSmoke 1.1s ease-out forwards; }
+  @keyframes trvSmoke{ 0%{ transform:scale(0.3); opacity:0.95; } 100%{ transform:scale(2.4); opacity:0; } }
+  .trv-book{ width:120px; height:90px; margin:0 auto 6px; animation:trvBook .7s cubic-bezier(.2,1.5,.4,1) .15s both, trvFloat 3s ease-in-out 1s infinite; }
+  .trv-book svg{ width:100%; height:100%; filter:drop-shadow(0 6px 10px rgba(0,0,0,0.7)) drop-shadow(0 0 10px rgba(127,212,255,0.35)); }
+  .trv-book .bk-runes{ animation:trvRunes 2s ease-in-out infinite; }
+  @keyframes trvBook{ 0%{ transform:scale(0) rotate(-25deg); opacity:0; } 100%{ transform:scale(1) rotate(0); opacity:1; } }
+  @keyframes trvFloat{ 50%{ transform:translateY(-4px); } }
+  @keyframes trvRunes{ 50%{ opacity:0.4; filter:drop-shadow(0 0 4px #7fd4ff); } }
+  .trv-q{ font-family:'Cinzel', Georgia, serif; font-size:15px; line-height:1.4; color:#fff3c8; margin:4px 4px 12px; animation:encDimIn .4s ease-out .5s both; }
+  .trv-answers{ display:grid; grid-template-columns:1fr 1fr; gap:8px; animation:encDimIn .4s ease-out .7s both; }
+  .trv-a{ display:flex; align-items:center; gap:8px; text-align:left; padding:9px 10px; border-radius:5px; cursor:pointer; font-size:13px; line-height:1.3;
+    color:var(--hh-parchment, #e9dcc0); background:linear-gradient(180deg, rgba(43,29,18,0.95), rgba(20,13,8,0.95));
+    border:1px solid rgba(201,150,63,0.4); transition:border-color .15s, box-shadow .15s, transform .1s; }
+  .trv-a:hover:not(:disabled){ border-color:var(--hh-arcane, #7fd4ff); box-shadow:0 0 10px rgba(127,212,255,0.35); transform:translateY(-1px); }
+  .trv-a:disabled{ cursor:default; }
+  .trv-letter{ flex-shrink:0; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:'Cinzel', Georgia, serif; font-weight:700; font-size:12px; color:#2a1a08; background:radial-gradient(circle at 35% 30%, #fff2c0, #c9963f 65%, #6b4718); }
+  .trv-a.picked{ border-color:var(--hh-gold-bright, #f0d27a); }
+  .trv-a.right{ border-color:#7fd06b; background:linear-gradient(180deg, rgba(40,90,40,0.85), rgba(20,50,20,0.9)); box-shadow:0 0 12px rgba(127,208,107,0.5); }
+  .trv-a.wrong{ border-color:#e07a6a; background:linear-gradient(180deg, rgba(110,30,22,0.85), rgba(60,14,10,0.9)); }
+  @media (max-width:480px){ .trv-answers{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -5601,6 +5669,8 @@ async function claimSparkle(el){
       return startMurlocEvent(rect, data.pending_id, params);
     } else if(data.event === 'fishing') {
       return startFishingEvent(rect, data.pending_id, params);
+    } else if(data.event === 'trivia') {
+      return startTriviaEvent(rect, data.pending_id, params);
     }
 
     // normal claim: update gold directly without full render to preserve video
@@ -5620,7 +5690,8 @@ async function claimSparkle(el){
     showToast("The sparkle fizzled - try the next one", true);
   }
 }
-async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
+async function resolveSparkleEvent(pendingId, won, x, y, clientTimings, opts){
+  opts = opts || {};
   try{
     const challenge = localStorage.getItem(`challenge_${pendingId}`);
     if (!challenge) {
@@ -5681,8 +5752,8 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
     }
     // The server replays the clicks and has the final say
     if(!data.won){
-      if(won) showToast("That one didn't count - the timing couldn't be verified", true);
-      return;
+      if(won && !opts.silent) showToast("That one didn't count - the timing couldn't be verified", true);
+      return data;
     }
     if(data.weary) setWeary(data.weary);
 
@@ -5700,6 +5771,7 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
       }
     }
 
+    return data;
   }catch(e){
     console.error('resolveSparkleEvent error:', e);
     showToast("Couldn't record that game - sorry!", true);
@@ -5935,6 +6007,106 @@ function startFishingEvent(rect, pendingId, params){
       finishGame(angle >= zoneStart && angle <= zoneEnd);
     });
   }, { once:true });
+}
+
+/* ---------------- Encounter card: the shared frame every mini-game opens in ----------------
+   Title + one timer bar + one-line instruction + the game + reward line, placed near where the
+   sparkle was but always fully on screen, with the page dimmed behind it. */
+function openEncounterCard(rect, opts){
+  const layer = document.getElementById('sparkle-layer');
+  const dim = document.createElement('div');
+  dim.className = 'encounter-dim';
+  const card = document.createElement('div');
+  card.className = 'encounter-card ' + (opts.cls || '');
+  const w = state.weary;
+  const wearyNote = w && w.tier && w.tier !== 'rested' ? ` <span class="enc-weary tier-${w.tier}">${(WEARY_INFO[w.tier] || [''])[0]}</span>` : '';
+  card.innerHTML = `
+    <div class="enc-head">
+      <span class="enc-icon">${opts.icon || ''}</span>
+      <span class="enc-title">${opts.title}</span>
+      <span class="enc-timer"><span class="enc-timer-fill"></span></span>
+    </div>
+    <div class="enc-instruction">${opts.instruction || ''}</div>
+    <div class="enc-body"></div>
+    <div class="enc-foot">Reward: ${opts.reward || ''}${wearyNote}</div>`;
+  layer.appendChild(dim);
+  layer.appendChild(card);
+  // Near the sparkle, but always fully on screen
+  const cw = card.offsetWidth, ch = card.offsetHeight;
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  const left = Math.max(12, Math.min(window.innerWidth - cw - 12, cx - cw / 2));
+  const top = Math.max(70, Math.min(window.innerHeight - ch - 12, cy - ch / 2));
+  card.style.left = left + 'px';
+  card.style.top = top + 'px';
+  const fill = card.querySelector('.enc-timer-fill');
+  if(opts.durationMs){
+    fill.style.animationDuration = opts.durationMs + 'ms';
+    fill.classList.add('run');
+  }
+  return {
+    card, body: card.querySelector('.enc-body'),
+    stopTimer(){ fill.style.animationPlayState = 'paused'; },
+    // VICTORY / DEFEAT stamp, then fold away
+    finish(won, label, holdMs){
+      card.classList.add('done');
+      const stamp = document.createElement('div');
+      stamp.className = 'enc-stamp ' + (won ? 'win' : 'lose');
+      stamp.textContent = label || (won ? 'Victory!' : 'Defeat');
+      card.appendChild(stamp);
+      setTimeout(() => { card.classList.add('closing'); dim.classList.add('closing'); }, holdMs || 1400);
+      setTimeout(() => { card.remove(); dim.remove(); }, (holdMs || 1400) + 450);
+    }
+  };
+}
+
+/* ---------------- Trivia: a rune-covered book bursts out of smoke with a WoW question ----------------
+   The server sends the question and shuffled options only; it checks the pick and reveals the answer after. */
+const RUNE_BOOK_SVG = `<svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="bkC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b2a1a"/><stop offset="1" stop-color="#3a120a"/></linearGradient>
+  <linearGradient id="bkP" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e9dcc0"/><stop offset="0.5" stop-color="#f6ecd2"/><stop offset="1" stop-color="#d9c79f"/></linearGradient></defs>
+  <path d="M8 12 L60 18 L112 12 L112 80 L60 86 L8 80 Z" fill="url(#bkC)" stroke="#c9963f" stroke-width="2"/>
+  <path d="M14 16 L58 21 L58 80 L14 75 Z" fill="url(#bkP)"/><path d="M62 21 L106 16 L106 75 L62 80 Z" fill="url(#bkP)"/>
+  <line x1="60" y1="20" x2="60" y2="84" stroke="#8a5f22" stroke-width="2"/>
+  <g fill="none" stroke="#7fd4ff" stroke-width="1.2" opacity="0.85" class="bk-runes">
+    <path d="M22 30 l6 -6 l6 6 l-6 6 z"/><path d="M38 44 v-10 l6 5 l-6 5"/><path d="M24 58 h12 m-6 -6 v12"/>
+    <path d="M72 30 c6 -6 12 0 6 6 c-6 6 0 12 6 6"/><path d="M86 46 l8 0 l-4 -8 z"/><path d="M74 60 h14 m-10 -5 l6 10"/>
+  </g></svg>`;
+
+function startTriviaEvent(rect, pendingId, params){
+  params = params || {};
+  const answers = params.answers || [];
+  const timeMs = params.time_ms || 15000;
+  const enc = openEncounterCard(rect, {
+    cls: 'enc-trivia', icon: '&#128214;', title: 'Tome of Lore',
+    instruction: `${esc(params.category || 'Warcraft')} &middot; choose the right answer before the runes fade`,
+    reward: '20&ndash;35 gold', durationMs: timeMs
+  });
+  enc.body.innerHTML = `
+    <div class="trv-smoke"></div>
+    <div class="trv-book">${RUNE_BOOK_SVG}</div>
+    <div class="trv-q">${esc(params.question || '')}</div>
+    <div class="trv-answers">${answers.map((a, i) => `<button type="button" class="trv-a" data-trv="${i}"><span class="trv-letter">${'ABCD'[i]}</span>${esc(a)}</button>`).join('')}</div>`;
+  const shown = performance.now();
+  let done = false;
+  const timeout = setTimeout(() => pick(null), timeMs);
+
+  async function pick(idx){
+    if(done) return;
+    done = true;
+    clearTimeout(timeout);
+    enc.stopTimer();
+    const ms = Math.round(performance.now() - shown);
+    const btns = [...enc.body.querySelectorAll('.trv-a')];
+    btns.forEach(b => b.disabled = true);
+    if(idx != null) btns[idx].classList.add('picked');
+    const data = await resolveSparkleEvent(pendingId, idx != null, rect.left + rect.width / 2, rect.top, idx == null ? [] : [ms, idx], { silent: true });
+    const answer = data && data.answer;
+    if(answer != null && btns[answer]) btns[answer].classList.add('right');
+    if(idx != null && answer != null && idx !== answer) btns[idx].classList.add('wrong');
+    const won = !!(data && data.won);
+    enc.finish(won, won ? 'Correct!' : (idx == null ? "Time's up" : 'Wrong!'), 1800);
+  }
+  enc.body.querySelectorAll('[data-trv]').forEach(b => b.addEventListener('click', () => pick(Number(b.getAttribute('data-trv')))));
 }
 
 function showGoldFloat(x, y, amount, food, wood){
