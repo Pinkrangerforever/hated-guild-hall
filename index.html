@@ -7585,7 +7585,9 @@ function placeHomeProp(holder, prop, aspect){
    the clips its model has: fliers (Fly/Glide) take off, glide in arcs, hover and land; walkers
    (Walk/Run) stroll along the ground; anything else idles in place with the odd flourish.
    Positions are world units on the scene's z = 0 plane (see placeHomeProp); farther back = z < 0. */
-const HOME_PET_HEIGHT = { juvenile: 0.12, adult: 0.17, boss: 0.22 }; // share of the frame height
+const HOME_PET_HEIGHT = { juvenile: 0.12, adult: 0.17, boss: 0.3 }; // share of the frame height
+// Extra size for particular species at a stage (the boss dragon is long and low, so it reads small by height)
+const HOME_PET_SCALE = { 'dragon:boss': 1.35 };
 const HOME_PET_FORWARD = 0;            // model-space yaw that faces +X (wow.export models face +X)
 const HOME_PET_FLY_SPEED = 2.2;        // world units / s
 const HOME_PET_WALK_SPEED = 0.8;
@@ -7768,7 +7770,7 @@ function updateHomePetActor(v, a, dt, now){
 
 function placeHomePetActor(v, a){
   const { visH } = homeSceneDims(v);
-  const h = (HOME_PET_HEIGHT[a.pet.status] || 0.15) * visH;
+  const h = (HOME_PET_HEIGHT[a.pet.status] || 0.15) * (HOME_PET_SCALE[a.pet.pet_type + ':' + a.pet.status] || 1) * visH;
   a.holder.scale.setScalar(h / a.holder.userData.unitHeight);
   a.height = h;
   if(!a.placed){
