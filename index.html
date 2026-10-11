@@ -3535,8 +3535,8 @@
   .home-active-note{ color:var(--hh-gold-bright); font-family:'Cinzel', Georgia, serif; font-size:13px; }
   .home-shop-preview{ width:100%; aspect-ratio:16 / 9; object-fit:cover; border-radius:3px; margin-bottom:8px;
     border:2px solid #c9963f; box-shadow:0 0 0 1px #000; background:#000; }
-  /* Larger than the frame (12% each side, 15% above, 8% below) so props can stand in front of it */
-  .home-scene{ position:absolute; top:-15%; bottom:-8%; left:-12%; right:-12%; z-index:4; pointer-events:none; }
+  /* Larger than the frame (6% each side, 15% above, 8% below) so props can stand in front of it */
+  .home-scene{ position:absolute; top:-15%; bottom:-8%; left:-6%; right:-6%; z-index:4; pointer-events:none; }
   .home-scene canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
   /* The home panel breaks out of the 900px profile column so the scene can be large */
   .profile-home-panel{ width:min(1400px, calc(100vw - 32px)); align-self:center; }
@@ -7265,13 +7265,13 @@ const HOME_ZONES = {
     label: 'Mulgore Bluffs',
     video: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/Mulgore%20Bluffs.mp4',
     // Comes with the home location (not the house). Coordinates are in the scene layer, which
-    // extends past the frame: x -0.8 is about the frame's left edge, bottom 0.065 its bottom edge.
+    // extends past the frame: x -0.89 is about the frame's left edge, bottom 0.065 its bottom edge.
     props: [
-      { gltf: 'models/housing/taurenlamppost.gltf', x: -0.8, bottom: 0.02, height: 0.48, rotY: 0.5 + Math.PI }
+      { gltf: 'models/housing/taurenlamppost.gltf', x: -0.87, bottom: 0.03, height: 0.32, rotY: 0.5 + Math.PI }
     ],
     // House model per tier (a missing tier uses the closest lower one)
     houses: {
-      1: { gltf: 'models/housing/mulgore-house-t1.gltf', x: 0.25, bottom: 0.14, height: 0.5, rotY: 0 }
+      1: { gltf: 'models/housing/mulgore-house-t1.gltf', x: 0.22, bottom: 0.14, height: 0.5, rotY: 0 }
     }
   }
 };
