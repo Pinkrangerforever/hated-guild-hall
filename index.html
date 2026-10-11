@@ -3538,6 +3538,8 @@
   /* Larger than the frame (12% each side, 15% above, 8% below) so props can stand in front of it */
   .home-scene{ position:absolute; top:-15%; bottom:-8%; left:-12%; right:-12%; z-index:4; pointer-events:none; }
   .home-scene canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
+  /* The home panel breaks out of the 900px profile column so the scene can be large */
+  .profile-home-panel{ width:min(1400px, calc(100vw - 32px)); align-self:center; }
 </style>
 </head>
 <body>
@@ -7292,11 +7294,11 @@ function myOwnedZones(){
 function renderHomeSection(p, isMe){
   const homes = profileHomes[p.id];
   const title = `<h3 class="profile-section-title">${isMe ? 'Your Homes' : 'Home'}</h3>`;
-  if(homes === undefined || homes === 'loading') return `<div class="profile-panel">${title}<p class="muted sans">Walking over&hellip;</p></div>`;
-  if(homes === 'error') return `<div class="profile-panel">${title}<p class="muted sans">Couldn't load homes right now.</p></div>`;
+  if(homes === undefined || homes === 'loading') return `<div class="profile-panel profile-home-panel">${title}<p class="muted sans">Walking over&hellip;</p></div>`;
+  if(homes === 'error') return `<div class="profile-panel profile-home-panel">${title}<p class="muted sans">Couldn't load homes right now.</p></div>`;
   if(!homes.length){
     return `
-      <div class="profile-panel">${title}
+      <div class="profile-panel profile-home-panel">${title}
         <div class="profile-house-placeholder">
           <div class="profile-house-icon">&#127984;</div>
           <p class="sans">${isMe ? 'You haven\'t claimed a home yet.' : 'No home claimed yet.'}</p>
@@ -7321,7 +7323,7 @@ function renderHomeSection(p, isMe){
     </div>` : '';
 
   return `
-    <div class="profile-panel">
+    <div class="profile-panel profile-home-panel">
       ${title}
       ${tabs}
       <div class="home-frame">
