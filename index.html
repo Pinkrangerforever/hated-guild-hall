@@ -3581,7 +3581,7 @@
     background:linear-gradient(180deg, transparent, rgba(30,18,8,0.55) 55%, rgba(16,9,4,0.9));
   }
   .home-plaque{
-    position:absolute; left:50%; bottom:10px; transform:translateX(-50%); z-index:2;
+    position:absolute; left:50%; bottom:10px; transform:translateX(-50%); z-index:4;
     font-family:'Cinzel', Georgia, serif; font-size:13px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
     color:#2a1a08; padding:4px 16px; border-radius:3px; white-space:nowrap;
     background:linear-gradient(180deg, #f0d27a, #c9963f 60%, #a77a2e);
@@ -3596,8 +3596,9 @@
   .home-active-note{ color:var(--hh-gold-bright); font-family:'Cinzel', Georgia, serif; font-size:13px; }
   .home-shop-preview{ width:100%; aspect-ratio:16 / 9; object-fit:cover; border-radius:3px; margin-bottom:8px;
     border:2px solid #c9963f; box-shadow:0 0 0 1px #000; background:#000; }
-  /* Larger than the frame (6% each side, 15% above, 8% below) so props can stand in front of it */
-  .home-scene{ position:absolute; top:-15%; bottom:-8%; left:-6%; right:-6%; z-index:4; pointer-events:none; }
+  /* The 3D diorama (backdrop + stage) fills the frame; the flat video shows until it is ready */
+  .home-scene{ position:absolute; inset:0; z-index:1; pointer-events:none; }
+  .home-frame-inner::after{ z-index:3; }
   .home-scene canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
   /* The home panel breaks out of the 900px profile column so the scene can be large */
   .profile-home-panel{ width:min(1400px, calc(100vw - 32px)); align-self:center; }
@@ -8667,16 +8668,16 @@ const HOME_ZONES = {
   mulgore_bluffs: {
     label: 'Mulgore Bluffs',
     video: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/Mulgore%20Bluffs.mp4',
-    // Comes with the home location (not the house). Coordinates are in the scene layer, which
-    // extends past the frame: x -0.89 is about the frame's left edge, bottom 0.065 its bottom edge.
+    // Comes with the home location (not the house). World units on the diorama stage (see DIORAMA):
+    // x left/right, z toward the viewer (+) or the backdrop (-), height in world units.
     props: [
-      { gltf: 'models/housing/taurenlamppost.gltf', x: -0.78, bottom: 0.03, height: 0.27, rotY: 0.5 + Math.PI + 25 * Math.PI / 180 }
+      { gltf: 'models/housing/taurenlamppost.gltf', x: -3.6, z: 1.2, height: 1.6, rotY: 0.5 + Math.PI + 25 * Math.PI / 180 }
     ],
-    // One building per tier; they add up (z < 0 sits further back and appears smaller)
+    // One building per tier; they add up into a little village around the clearing
     houses: {
-      1: { gltf: 'models/housing/mulgore-house-t1.gltf', x: 0.6, bottom: 0.14, height: 0.425, rotY: Math.PI / 2 },
-      2: { gltf: 'models/housing/mulgore-house-t2.gltf', x: -0.65, bottom: 0.14, height: 0.55, rotY: Math.PI, z: -4 },
-      3: { gltf: 'models/housing/mulgore-house-t3.gltf', x: 0.05, bottom: 0.14, height: 0.94, rotY: -Math.PI / 4, z: -5 }
+      1: { gltf: 'models/housing/mulgore-house-t1.gltf', x: 2.9, z: -0.6, height: 2.3, rotY: Math.PI / 2 },
+      2: { gltf: 'models/housing/mulgore-house-t2.gltf', x: -3.0, z: -2.6, height: 3.0, rotY: Math.PI },
+      3: { gltf: 'models/housing/mulgore-house-t3.gltf', x: 0.4, z: -4.3, height: 4.4, rotY: -Math.PI / 4 }
     }
   }
 };
@@ -8764,10 +8765,9 @@ function renderHomeSection(p, isMe){
       <div class="home-frame">
         <div class="home-frame-inner">
           ${ zone.video ? `<video class="home-video" src="${esc(zone.video)}" autoplay muted loop playsinline preload="auto"></video>` : '' }
-          <div class="home-ground"></div>
+          <div class="home-scene" data-home-scene="${esc(home.zone)}" data-home-tier="${home.house_tier || 0}" data-home-user="${esc(p.id)}"></div>
           <div class="home-plaque">${esc(zone.label)}</div>
         </div>
-        <div class="home-scene" data-home-scene="${esc(home.zone)}" data-home-tier="${home.house_tier || 0}" data-home-user="${esc(p.id)}"></div>
         <span class="home-frame-corner tl"></span><span class="home-frame-corner tr"></span>
         <span class="home-frame-corner bl"></span><span class="home-frame-corner br"></span>
       </div>
@@ -8904,9 +8904,117 @@ document.addEventListener('mouseout', e => {
    bottom from 0 (bottom edge) up, height as a fraction of the frame height. Props that come with
    the home location are always shown; house tiers and add-ons will add to this list later.
    One transparent canvas per zone, re-attached after every render (no new WebGL contexts). */
+/* ---------------- Home diorama ----------------
+   One real 3D scene per home: the zone video plays on a backdrop panel standing at the back of the stage,
+   tilted away like a theatre backdrop; in front of it a ground stage (grass, worn dirt, a pebble path and a
+   cracked-earth clearing) catches real shadows from the buildings, props and pets.
+   World units: the stage floor is y = 0, x from -11 to 11, z from +5 (front) to -7 (backdrop). */
+const DIORAMA = { floorFront: 5, floorBack: -7, halfWidth: 11, backdropTilt: -0.2, backdropW: 22 };
+const HOME_GROUND_TEX = {
+  mulgore_bluffs: {
+    base: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgorebasegrass.png',
+    dirt: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgorebasedirt.png',
+    path: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgoreroad01.png',
+    clearing: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgorecrackeddirt.png',
+    fog: 0xcdb48a
+  }
+};
+const homeGroundCache = {};
+function loadTexImage(url){
+  return new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = url; });
+}
+// Paint the stage: tiled grass, organic dirt patches, a pebble path from the front to the clearing at the back
+function buildHomeGround(zone){
+  const cfg = HOME_GROUND_TEX[zone];
+  if(!cfg) return Promise.resolve(null);
+  if(homeGroundCache[zone]) return homeGroundCache[zone];
+  homeGroundCache[zone] = Promise.all([cfg.base, cfg.dirt, cfg.path, cfg.clearing].map(loadTexImage)).then(([grass, dirt, road, crack]) => {
+    const W = 2048, H = 1120, S = W, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    const pat = img => g.createPattern(img, 'repeat');
+    g.fillStyle = pat(grass); g.fillRect(0, 0, W, H);
+    // soft-edged blob of a texture
+    const blob = (img, x, y, rx, ry, alpha) => {
+      const m = document.createElement('canvas'); m.width = W; m.height = H; const mg = m.getContext('2d');
+      mg.fillStyle = mg.createPattern(img, 'repeat'); mg.fillRect(0, 0, W, H);
+      mg.globalCompositeOperation = 'destination-in';
+      const gr = mg.createRadialGradient(0, 0, 0, 0, 0, 1);
+      gr.addColorStop(0, `rgba(0,0,0,${alpha})`); gr.addColorStop(0.6, `rgba(0,0,0,${alpha * 0.85})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      mg.setTransform(rx, 0, 0, ry, x, y); mg.fillStyle = gr; mg.beginPath(); mg.arc(0, 0, 1, 0, Math.PI * 2); mg.fill();
+      g.drawImage(m, 0, 0);
+    };
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for(let i = 0; i < 14; i++) blob(dirt, rnd() * W, rnd() * H, 120 + rnd() * 260, 80 + rnd() * 170, 0.75);
+    blob(crack, W * 0.52, H * 0.3, 560, 200, 0.95);   // clearing where the buildings stand
+    blob(dirt, W * 0.52, H * 0.32, 700, 250, 0.55);
+    // pebble path: front centre -> clearing, gently curving
+    g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+    g.strokeStyle = pat(road); g.lineWidth = 120;
+    g.beginPath(); g.moveTo(W * 0.48, H + 40); g.bezierCurveTo(W * 0.6, H * 0.8, W * 0.38, H * 0.6, W * 0.52, H * 0.36); g.stroke();
+    g.globalAlpha = 0.5; g.lineWidth = 170; g.strokeStyle = pat(dirt); g.globalCompositeOperation = 'destination-over'; g.stroke();
+    g.restore();
+    // darker toward the front lip, as if the stage edge is in shadow
+    const lip = g.createLinearGradient(0, H * 0.85, 0, H); lip.addColorStop(0, 'rgba(0,0,0,0)'); lip.addColorStop(1, 'rgba(10,6,2,0.55)');
+    g.fillStyle = lip; g.fillRect(0, 0, W, H);
+    const tex = new THREE.CanvasTexture(c);
+    tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8;
+    return tex;
+  }).catch(err => { console.error('Home ground textures failed:', err); delete homeGroundCache[zone]; return null; });
+  return homeGroundCache[zone];
+}
+function buildHomeStage(v, zoneKey){
+  const zone = homeZoneInfo(zoneKey);
+  const cfg = HOME_GROUND_TEX[zoneKey] || {};
+  // floor
+  const depth = DIORAMA.floorFront - DIORAMA.floorBack;
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0x6a5434, roughness: 1, metalness: 0 });
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(DIORAMA.halfWidth * 2, depth), floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(0, 0, (DIORAMA.floorFront + DIORAMA.floorBack) / 2);
+  floor.receiveShadow = true;
+  v.scene.add(floor);
+  buildHomeGround(zoneKey).then(tex => { if(tex){ floorMat.map = tex; floorMat.color.set(0xffffff); floorMat.needsUpdate = true; } });
+  // backdrop: the zone video on a panel tilted back from the rear edge of the stage
+  const bw = DIORAMA.backdropW, bh = bw * 9 / 16;
+  let backMat;
+  if(zone.video){
+    const video = document.createElement('video');
+    video.src = zone.video; video.crossOrigin = 'anonymous';
+    video.muted = true; video.loop = true; video.playsInline = true; video.autoplay = true;
+    video.play().catch(() => {});
+    v.video = video;
+    const vt = new THREE.VideoTexture(video); vt.encoding = THREE.sRGBEncoding;
+    backMat = new THREE.MeshBasicMaterial({ map: vt, color: 0xe6ddcc, fog: false });
+  } else {
+    const c = document.createElement('canvas'); c.width = 4; c.height = 256; const g = c.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, '#1c2430'); gr.addColorStop(1, '#3a2a1a');
+    g.fillStyle = gr; g.fillRect(0, 0, 4, 256);
+    backMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), fog: false });
+  }
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(bw, bh), backMat);
+  back.position.y = bh / 2 - 0.3;
+  const hinge = new THREE.Group();
+  hinge.position.set(0, 0, DIORAMA.floorBack);
+  hinge.rotation.x = DIORAMA.backdropTilt; // top leans away
+  hinge.add(back);
+  v.scene.add(hinge);
+  // haze where the stage meets the backdrop
+  v.scene.fog = new THREE.Fog(cfg.fog || 0x2a2018, 13, 26);
+  // light: warm sun casting soft shadows, sky / ground fill
+  const sun = new THREE.DirectionalLight(0xfff0d0, 1.05);
+  sun.position.set(-7, 11, 7);
+  sun.target.position.set(0, 0, -2);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 13, bottom: -13, near: 1, far: 40 });
+  sun.shadow.bias = -0.0004;
+  sun.shadow.radius = 4;
+  v.scene.add(sun, sun.target, new THREE.HemisphereLight(0xdfeeff, 0x9a7a4a, 0.6), new THREE.AmbientLight(0xffffff, 0.18));
+}
+function setCastShadows(obj){ obj.traverse(m => { if(m.isMesh){ m.castShadow = true; m.receiveShadow = false; } }); }
+
 const homeSceneViewers = {}; // zone -> { renderer, scene, camera, mixers, clock, raf, ready, failed }
-const HOME_SCENE_FOV = 30;
-const HOME_SCENE_DIST = 10;
+const HOME_SCENE_FOV = 35;
 
 // three r128 fails a whole glTF when any texture 404s. Fallback: load it again without textures
 // (plain shaded geometry) so a missing upload never hides the model.
@@ -8953,11 +9061,9 @@ function loadHomeProp(prop){
   });
 }
 
-function placeHomeProp(holder, prop, aspect){
-  const visH = 2 * HOME_SCENE_DIST * Math.tan(THREE.MathUtils.degToRad(HOME_SCENE_FOV / 2));
-  const visW = visH * aspect;
-  holder.scale.setScalar((prop.height * visH) / holder.userData.unitHeight);
-  holder.position.set(prop.x * visW / 2, -visH / 2 + (prop.bottom || 0) * visH, prop.z || 0);
+function placeHomeProp(holder, prop){
+  holder.scale.setScalar(prop.height / holder.userData.unitHeight);
+  holder.position.set(prop.x, 0, prop.z || 0);
   holder.rotation.y = prop.rotY || 0;
 }
 
@@ -8966,7 +9072,7 @@ function placeHomeProp(holder, prop, aspect){
    the clips its model has: fliers (Fly/Glide) take off, glide in arcs, hover and land; walkers
    (Walk/Run) stroll along the ground; anything else idles in place with the odd flourish.
    Positions are world units on the scene's z = 0 plane (see placeHomeProp); farther back = z < 0. */
-const HOME_PET_HEIGHT = { juvenile: 0.12, adult: 0.17, boss: 0.3 }; // share of the frame height
+const HOME_PET_HEIGHT = { juvenile: 0.6, adult: 0.9, boss: 1.5 }; // world units on the stage
 // Extra size for particular species at a stage (the boss dragon is long and low, so it reads small by height)
 const HOME_PET_SCALE = { 'dragon:boss': 1.35 };
 const HOME_PET_FORWARD = 0;            // model-space yaw that faces +X (wow.export models face +X)
@@ -8975,10 +9081,6 @@ const HOME_PET_WALK_SPEED = 0.8;
 const HOME_PET_FUN_CLIPS = ['StandAlt', 'StandAlt2', 'Roar', 'Dance', 'Pounce', 'Eat', 'WingFlare', 'FlyBattleRoar', 'EmoteEat'];
 let homePetHighlight = null;           // pet id hovered in the roster strip
 
-function homeSceneDims(v){
-  const visH = 2 * HOME_SCENE_DIST * Math.tan(THREE.MathUtils.degToRad(HOME_SCENE_FOV / 2));
-  return { visH, visW: visH * v.camera.aspect };
-}
 function rand(a, b){ return a + Math.random() * (b - a); }
 
 // Keep-out boxes around the buildings/props (world space, refreshed whenever the scene is placed)
@@ -8998,13 +9100,13 @@ function homePetFreePoint(v, h, make){
   for(let i = 0; i < 25; i++){ const p = make(); if(!homePetBlocked(v, p, h)) return p; }
   return null;
 }
+// The view widens toward the back of the stage, so the usable half-width grows with depth
+function homeStageHalfWidth(z){ return 3.4 + (2 - z) * 0.45; }
 function homePetGroundPoint(v, h){
-  const { visH, visW } = homeSceneDims(v);
-  return homePetFreePoint(v, h || 0, () => new THREE.Vector3(rand(-0.62, 0.62) * visW / 2, -visH / 2 + rand(0.09, 0.14) * visH, rand(-3, 1.5)));
+  return homePetFreePoint(v, h || 0, () => { const z = rand(-4.5, 2); return new THREE.Vector3(rand(-1, 1) * homeStageHalfWidth(z), 0, z); });
 }
 function homePetAirPoint(v, h){
-  const { visH, visW } = homeSceneDims(v);
-  return homePetFreePoint(v, h || 0, () => new THREE.Vector3(rand(-0.7, 0.7) * visW / 2, -visH / 2 + rand(0.42, 0.75) * visH, rand(-4, 1)));
+  return homePetFreePoint(v, h || 0, () => { const z = rand(-4.5, 1); return new THREE.Vector3(rand(-0.9, 0.9) * homeStageHalfWidth(z), rand(2, 3.6), z); });
 }
 function homePetBezier(p, t){
   const it = 1 - t;
@@ -9150,14 +9252,13 @@ function updateHomePetActor(v, a, dt, now){
 }
 
 function placeHomePetActor(v, a){
-  const { visH } = homeSceneDims(v);
-  const h = (HOME_PET_HEIGHT[a.pet.status] || 0.15) * (HOME_PET_SCALE[a.pet.pet_type + ':' + a.pet.status] || 1) * visH;
+  const h = (HOME_PET_HEIGHT[a.pet.status] || 0.8) * (HOME_PET_SCALE[a.pet.pet_type + ':' + a.pet.status] || 1);
   a.holder.scale.setScalar(h / a.holder.userData.unitHeight);
   a.height = h;
   if(!a.placed){
     const spot = (a.kind === 'flier' && Math.random() < 0.5 ? homePetAirPoint(v, h) : homePetGroundPoint(v, h)) || homePetAirPoint(v, h);
     a.holder.position.copy(spot || new THREE.Vector3(0, 0, 2));
-    if(a.kind === 'flier' && a.holder.position.y > -visH / 4){ homePetPlay(a, a.hover || a.fly); a.state = 'hover'; a.until = performance.now() + rand(500, 2000); }
+    if(a.kind === 'flier' && a.holder.position.y > 0.5){ homePetPlay(a, a.hover || a.fly); a.state = 'hover'; a.until = performance.now() + rand(500, 2000); }
     else { homePetPlay(a, a.idle); a.state = 'idle'; a.until = performance.now() + rand(1500, 5000); }
     a.placed = true;
   }
@@ -9229,6 +9330,7 @@ function disposeHomeViewer(key){
   if(!v) return;
   if(v.raf) cancelAnimationFrame(v.raf);
   (v.actors || []).forEach(a => { if(a.tag && a.tag.parentNode) a.tag.remove(); });
+  if(v.video){ v.video.pause(); v.video.removeAttribute('src'); v.video.load(); }
   v.renderer.dispose();
   delete homeSceneViewers[key];
 }
@@ -9252,17 +9354,15 @@ function mountHomeScenes(){
       v = homeSceneViewers[viewerKey] = { ready: false, failed: false, raf: null, mixers: [], holders: [], actors: [] };
       v.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       v.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      v.scene = new THREE.Scene();
-      v.camera = new THREE.PerspectiveCamera(HOME_SCENE_FOV, 16 / 9, 0.1, 100);
-      v.camera.position.set(0, 0, HOME_SCENE_DIST);
-      v.camera.lookAt(0, 0, 0);
-      // Daylight to match the zone videos: correct color output, warm sun from the upper left,
-      // pale sky above / dusty ground bounce below
       v.renderer.outputEncoding = THREE.sRGBEncoding;
-      const sun = new THREE.DirectionalLight(0xfff0d0, 0.95);
-      sun.position.set(-5, 6, 5);
-      const sky = new THREE.HemisphereLight(0xdfeeff, 0x9a7a4a, 0.65);
-      v.scene.add(sun, sky, new THREE.AmbientLight(0xffffff, 0.25));
+      v.renderer.shadowMap.enabled = true;
+      v.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      v.scene = new THREE.Scene();
+      // Slightly raised camera looking down onto the stage, backdrop behind
+      v.camera = new THREE.PerspectiveCamera(HOME_SCENE_FOV, 16 / 9, 0.1, 100);
+      v.camera.position.set(0, 3.2, 9);
+      v.camera.lookAt(0, 0.8, -1);
+      buildHomeStage(v, zoneKey);
       v.clock = new THREE.Clock();
       // Each model loads on its own: one failing model never hides the others
       const safe = (p, label) => p.catch(err => { console.error('Home scene model failed:', label, err); return null; });
@@ -9273,6 +9373,7 @@ function mountHomeScenes(){
         propHolders.forEach((h, i) => {
           if(!h) return;
           v.holders.push({ holder: h, prop: props[i] });
+          setCastShadows(h);
           v.scene.add(h);
           const clip = (h.userData.animations || [])[0];
           if(clip){
@@ -9283,6 +9384,7 @@ function mountHomeScenes(){
         });
         petHolders.forEach((h, i) => {
           if(!h) return;
+          setCastShadows(h);
           v.scene.add(h);
           v.actors.push(createHomePetActor(v, pets[i], h));
         });
@@ -9300,7 +9402,8 @@ function mountHomeScenes(){
     v.renderer.setSize(w, h, false);
     v.camera.aspect = w / h;
     v.camera.updateProjectionMatrix();
-    v.holders.forEach(({ holder, prop }) => placeHomeProp(holder, prop, w / h));
+    v.holders.forEach(({ holder, prop }) => placeHomeProp(holder, prop));
+    if(v.video && v.video.paused) v.video.play().catch(() => {});
     updateHomeObstacles(v);
     v.actors.forEach(a => placeHomePetActor(v, a));
 
