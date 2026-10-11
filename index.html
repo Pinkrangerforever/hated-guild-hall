@@ -11296,7 +11296,8 @@ async function payDealer() {
   }
 }
 
-const EXP_REQUIREMENTS = [0, 100, 250, 450, 725, 1075, 1525, 2100, 2800, 3675, 4775];
+// Same shape as the original curve, doubled (2026-10-11). Keep in sync with pet_level_for_exp() on the server.
+const EXP_REQUIREMENTS = [0, 200, 500, 900, 1450, 2150, 3050, 4200, 5600, 7350, 9550];
 
 /* ---------------- Pet widget (bottom-right, collapsible) ----------------
    Lives outside #app so render() never touches it. Buttons are bound once.
