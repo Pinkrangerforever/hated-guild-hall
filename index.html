@@ -3243,7 +3243,6 @@
     text-shadow: 0 0 8px rgba(127,212,255,0.65) !important;
   }
   .nav-link:hover::before, .nav-link:hover::after{ color: var(--hh-arcane) !important; }
-  .nav-link:not(.mobile):hover, .nav-dropdown-btn:hover,
   .nav-link.active:not(.mobile){
     background-image: linear-gradient(90deg, transparent, var(--hh-arcane-white) 30%, var(--hh-arcane) 50%, var(--hh-arcane-white) 70%, transparent) !important;
     background-repeat: no-repeat !important;
@@ -3251,6 +3250,7 @@
     background-size: 80% 1px !important;
   }
   .nav-link:not(.mobile):hover, .nav-dropdown-btn:hover{ animation: hhCrackle 1.4s steps(1) infinite; }
+  .nav-link, .nav-dropdown-btn{ transition-property: color, text-shadow, box-shadow, opacity; }
   .nav-link.active:not(.mobile){ text-shadow: 0 0 10px rgba(127,212,255,0.4) !important; }
 
   /* ---- Buttons: thin blue rim glow on hover ---- */
