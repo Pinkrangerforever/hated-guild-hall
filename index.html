@@ -6465,15 +6465,23 @@ function openEncounterCard(rect, opts){
   layer.appendChild(dim);
   layer.appendChild(card);
   hhSfx.play(opts.sound || 'open');
-  // Near the sparkle, but always fully on screen
-  const cw = card.offsetWidth, ch = card.offsetHeight;
+  // Near the sparkle, but always fully on screen. Games fill their body (and grow, e.g. fishing once
+  // the hook is set) after this, so re-fit whenever the card changes size or the window resizes.
   const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
-  const left = Math.max(12, Math.min(window.innerWidth - cw - 12, cx - cw / 2));
-  // Below the nav bar when there's room; on short screens it may use the full height
-  const minTop = window.innerHeight - ch - 12 >= 70 ? 70 : 8;
-  const top = Math.max(minTop, Math.min(window.innerHeight - ch - 12, cy - ch / 2));
-  card.style.left = left + 'px';
-  card.style.top = top + 'px';
+  const fit = () => {
+    if(!card.isConnected){ window.removeEventListener('resize', fit); if(ro) ro.disconnect(); return; }
+    const cw = card.offsetWidth, ch = card.offsetHeight;
+    const left = Math.max(12, Math.min(window.innerWidth - cw - 12, cx - cw / 2));
+    // Below the nav bar when there's room; on short screens it may use the full height
+    const minTop = window.innerHeight - ch - 12 >= 70 ? 70 : 8;
+    const top = Math.max(minTop, Math.min(window.innerHeight - ch - 12, cy - ch / 2));
+    card.style.left = Math.max(0, left) + 'px';
+    card.style.top = Math.max(0, top) + 'px';
+  };
+  const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(fit) : null;
+  if(ro) ro.observe(card);
+  window.addEventListener('resize', fit);
+  fit();
   const fill = card.querySelector('.enc-timer-fill');
   if(opts.durationMs){
     fill.style.animationDuration = opts.durationMs + 'ms';
