@@ -8741,7 +8741,7 @@ const HOME_ZONES = {
       { gltf: 'models/housing/elwynn-tree.gltf', x: 4.3, z: -1.8, height: 6, rotY: 0.4 }        // swaying in the breeze
     ],
     houses: {
-      1: { gltf: 'models/housing/elwynn-house-t1.gltf', x: 0.7, z: -2.2, height: 3.2, rotY: -25 * Math.PI / 180 }
+      1: { gltf: 'models/housing/elwynn-house-t1.gltf', x: 0.7, z: -2.2, y: -0.35, height: 3.2, rotY: -25 * Math.PI / 180 }
     }
   }
 };
@@ -9165,7 +9165,7 @@ function loadHomeProp(prop){
 
 function placeHomeProp(holder, prop){
   holder.scale.setScalar(prop.height / holder.userData.unitHeight);
-  holder.position.set(prop.x, 0, prop.z || 0);
+  holder.position.set(prop.x, prop.y || 0, prop.z || 0); // y < 0 sinks it into the ground
   holder.rotation.y = prop.rotY || 0;
 }
 
