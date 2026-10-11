@@ -1688,7 +1688,8 @@
     70%{ transform:translateY(-50px); opacity:1; }
     100%{ transform:translateY(-75px); opacity:0; }
   }
-  .food-float-line{ color:#9fe08a; font-size:16px; margin-top:2px; }
+  .food-float-line{ color:#ffa646; font-size:16px; margin-top:2px; }
+  .wood-float-line{ color:#8fdc6e; font-size:16px; margin-top:2px; }
   .gold-float{
     position:absolute; pointer-events:none; font-weight:800; font-size:18px; color:#f0dfb4;
     text-shadow:0 2px 6px rgba(0,0,0,0.7);
@@ -5347,8 +5348,8 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings){
     if(won && state.profile){
       state.profile.gold = data.total;
       updateNavbarUserInfo();
-      if((data.awarded || 0) > 0 || (data.food_awarded || 0) > 0){
-        showGoldFloat(x, y, data.awarded || 0, data.food_awarded || 0);
+      if((data.awarded || 0) > 0 || (data.food_awarded || 0) > 0 || (data.wood_awarded || 0) > 0){
+        showGoldFloat(x, y, data.awarded || 0, data.food_awarded || 0, data.wood_awarded || 0);
       }
       // Murloc and fishing wins also award food (server-side)
       if(data.food_awarded > 0){
@@ -5590,14 +5591,14 @@ function startFishingEvent(rect, pendingId){
   }, { once:true });
 }
 
-function showGoldFloat(x, y, amount, food){
+function showGoldFloat(x, y, amount, food, wood){
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
   const el = document.createElement('div');
   el.className = 'gold-float';
   el.style.left = x + 'px';
   el.style.top = y + 'px';
-  el.innerHTML = (amount > 0 ? `<div>+${amount} Gold</div>` : '') + (food > 0 ? `<div class="food-float-line">+${food} Food</div>` : '');
+  el.innerHTML = (amount > 0 ? `<div>+${amount} Gold</div>` : '') + (food > 0 ? `<div class="food-float-line">+${food} Food</div>` : '') + (wood > 0 ? `<div class="wood-float-line">+${wood} Wood</div>` : '');
   layer.appendChild(el);
   setTimeout(()=>{ if(el.parentNode) el.remove(); }, 2700);
 }
