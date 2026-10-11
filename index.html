@@ -4061,6 +4061,23 @@
   @keyframes rareCount{ from{ transform:scale(1.8); opacity:0.3; } }
   .rare-arena.intro{ cursor:default; }
   .rare-arena.intro .rare-weak{ display:none; }
+
+  /* ---- Mining ---- */
+  .mine-arena{ position:relative; height:200px; border-radius:5px; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 85%, rgba(120,70,30,0.45), transparent 65%), linear-gradient(180deg, #1a120c, #0c0806);
+    border:1px solid rgba(180,140,255,0.3); }
+  .mine-stage{ position:absolute; inset:0; }
+  .mine-stage canvas{ width:100% !important; height:100% !important; display:block; }
+  .mine-slots{ position:absolute; inset:0; display:grid; grid-template-columns:repeat(3, 1fr); }
+  .mine-slot{ background:none; border:none; cursor:default; border-radius:6px; }
+  .mine-picking .mine-slot{ cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M4 10 C10 2 22 2 28 10 C22 7 10 7 4 10Z' fill='%23cfd6df' stroke='%23333'/%3E%3Crect x='14.5' y='7' width='3' height='23' rx='1' fill='%237a4f24' stroke='%233a250a'/%3E%3C/svg%3E") 16 6, pointer; }
+  .mine-picking .mine-slot:hover{ background:radial-gradient(ellipse at 50% 70%, rgba(180,140,255,0.22), transparent 70%); }
+  .mine-slot.struck{ animation:mineStrike .3s ease-out; }
+  @keyframes mineStrike{ 30%{ background:radial-gradient(ellipse at 50% 70%, rgba(255,240,200,0.5), transparent 70%); } }
+  .mine-msg{ position:absolute; left:0; right:0; top:8px; text-align:center; pointer-events:none; font-family:'Cinzel', Georgia, serif; font-size:14px;
+    font-weight:700; color:#e2d4ff; text-shadow:0 1px 2px #000, 0 0 10px rgba(160,110,255,0.8); }
+  .wallet-crystal b{ color:#d9c6ff; }
+  .crystal-float-line{ color:#c9a8ff; font-size:16px; margin-top:2px; text-shadow:0 0 8px rgba(160,110,255,0.8), 0 2px 4px #000; }
 </style>
 </head>
 <body>
@@ -4102,6 +4119,7 @@
           <span id="nav-gold-badge" class="wallet-seg" title="Gold"></span>
           <span id="nav-food-badge" class="wallet-seg" title="Food"></span>
           <span id="nav-wood-badge" class="wallet-seg" title="Wood"></span>
+          <span id="nav-crystal-badge" class="wallet-seg wallet-crystal" title="Crystals"></span>
         </div>
         <div class="nav-identity-wrap">
           <button id="nav-identity" class="nav-identity" type="button" aria-haspopup="true" aria-expanded="false">
@@ -4324,6 +4342,7 @@ function updateNavbarUserInfo(){
   const navWood = document.getElementById('nav-wood-badge');
   const mobileWood = document.getElementById('mobile-wood-badge');
   setWalletSeg(navWood, 'WoodIcon.png', 'Wood', state.profile.wood || 0);
+  setWalletSeg(document.getElementById('nav-crystal-badge'), CRYSTAL_ICON, 'Crystals', state.profile.crystals || 0);
   if(mobileWood) mobileWood.innerHTML = woodHtml;
 }
 
@@ -4332,7 +4351,8 @@ function setWalletSeg(el, icon, label, value){
   if(!el) return;
   const prev = el.dataset.v != null ? Number(el.dataset.v) : null;
   el.dataset.v = value;
-  el.innerHTML = `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/${icon}" alt="${label}"><b>${Number(value).toLocaleString()}</b>`;
+  const src = icon.startsWith('data:') ? icon : `https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/${icon}`;
+  el.innerHTML = `<img src="${src}" alt="${label}"><b>${Number(value).toLocaleString()}</b>`;
   if(prev != null && value !== prev){
     el.classList.remove('bump-up', 'bump-down'); void el.offsetWidth;
     el.classList.add(value > prev ? 'bump-up' : 'bump-down');
@@ -5811,6 +5831,8 @@ async function claimSparkle(el){
       return startLumberjackEvent(rect, data.pending_id, params);
     } else if(data.event === 'rarespawn') {
       return startRareSpawnEvent(rect, data.pending_id, params);
+    } else if(data.event === 'mining') {
+      return startMiningEvent(rect, data.pending_id, params);
     }
 
     // normal claim: update gold directly without full render to preserve video
@@ -5900,8 +5922,8 @@ async function resolveSparkleEvent(pendingId, won, x, y, clientTimings, opts){
     if(state.profile){
       state.profile.gold = data.total;
       updateNavbarUserInfo();
-      if((data.awarded || 0) > 0 || (data.food_awarded || 0) > 0 || (data.wood_awarded || 0) > 0){
-        showGoldFloat(x, y, data.awarded || 0, data.food_awarded || 0, data.wood_awarded || 0);
+      if((data.awarded || 0) > 0 || (data.food_awarded || 0) > 0 || (data.wood_awarded || 0) > 0 || (data.crystals_awarded || 0) > 0){
+        showGoldFloat(x, y, data.awarded || 0, data.food_awarded || 0, data.wood_awarded || 0, data.crystals_awarded || 0);
       }
       // Murloc and fishing wins also award food (server-side)
       if(data.wood_awarded > 0 && data.wood_total != null){ state.profile.wood = data.wood_total; updateNavbarUserInfo(); }
@@ -6236,7 +6258,7 @@ document.addEventListener('click', e => {
 const profileStats = {}; // userId -> stats | 'loading' | 'error'
 const MINIGAME_LABELS = [
   ['fishing', '&#127907;', 'Fishing'], ['murloc', '&#127993;', 'Murlocs'], ['blacksmith', '&#9874;', 'Forge'],
-  ['trivia', '&#128214;', 'Trivia'], ['lumberjack', '&#129683;', 'Lumberjack'], ['rarespawn', '&#128128;', 'Hogger']
+  ['trivia', '&#128214;', 'Trivia'], ['lumberjack', '&#129683;', 'Lumberjack'], ['mining', '&#9935;', 'Mining'], ['rarespawn', '&#128128;', 'Hogger']
 ];
 function loadProfileStats(userId){
   if(profileStats[userId] && profileStats[userId] !== 'error') return;
@@ -6658,14 +6680,185 @@ function startRareSpawnEvent(rect, pendingId, params){
   }
 }
 
-function showGoldFloat(x, y, amount, food, wood){
+/* ---------------- Mining: follow the gem through the copper nodes ----------------
+   A gem shows in one of 3 nodes, then 7 swaps at a fixed speed (same for everyone, chosen by the server).
+   Pick the node with the gem; the server replays the swaps and checks the pick. Pays gold + a crystal. */
+const COPPER_NODE_MODEL = { gltf: 'models/minigames/copper-node.gltf' };
+const CRYSTAL_ICON = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 1 L19 8 L12 23 L5 8 Z" fill="#b48cff" stroke="#3a1f6b" stroke-width="1"/><path d="M12 1 L15 8 L12 23 L9 8 Z" fill="#e2d4ff"/><path d="M5 8 H19" stroke="#3a1f6b" stroke-width="0.8"/></svg>');
+let miningViewer = null;
+
+function startMiningEvent(rect, pendingId, params){
+  params = params || {};
+  const reveal = params.reveal_ms || 1600, swapMs = params.swap_ms || 360, pickMs = params.pick_ms || 6000;
+  const swaps = params.swaps || [[0, 1], [1, 2], [0, 2]];
+  const gemStart = params.gem_start != null ? params.gem_start : 1;
+  const enc = openEncounterCard(rect, {
+    cls: 'enc-mining', icon: '&#9935;', title: 'Copper Vein',
+    instruction: 'Watch the <b style="color:#c9a8ff">crystal</b>&hellip; follow its node through the shuffle!',
+    reward: '20&ndash;30 gold &middot; <b style="color:#c9a8ff">1 crystal</b>', durationMs: 0
+  });
+  enc.body.innerHTML = `
+    <div class="mine-arena">
+      <div class="mine-stage"></div>
+      <div class="mine-slots">${[0, 1, 2].map(i => `<button type="button" class="mine-slot" data-slot="${i}" disabled></button>`).join('')}</div>
+      <div class="mine-msg"></div>
+    </div>`;
+  const stage = enc.body.querySelector('.mine-stage'), msg = enc.body.querySelector('.mine-msg');
+  const slotBtns = [...enc.body.querySelectorAll('.mine-slot')];
+  const SLOT_X = [-1.25, 0, 1.25];
+  let done = false, pickStart = 0, pickTimeout = null;
+
+  // ---- 3D scene (one renderer reused across games) ----
+  if(!miningViewer){
+    const v = miningViewer = {};
+    v.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    v.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    v.renderer.outputEncoding = THREE.sRGBEncoding;
+    v.camera = new THREE.PerspectiveCamera(30, 2, 0.1, 100);
+    v.camera.position.set(0, 1.5, 5.2); v.camera.lookAt(0, 0.25, 0);
+  }
+  const v = miningViewer;
+  v.scene = new THREE.Scene();
+  const key = new THREE.DirectionalLight(0xfff0d0, 1.3); key.position.set(-2, 4, 4);
+  v.scene.add(key, new THREE.HemisphereLight(0xffe8c8, 0x2a1a0a, 0.8));
+  const glowLight = new THREE.PointLight(0xb48cff, 0, 3); v.scene.add(glowLight);
+  // the gem: a faceted crystal with a soft glow sprite
+  const gem = new THREE.Group();
+  const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.17, 0),
+    new THREE.MeshStandardMaterial({ color: 0xc9a8ff, emissive: 0x7a3cff, emissiveIntensity: 0.9, metalness: 0.2, roughness: 0.15, flatShading: true }));
+  crystal.scale.set(1, 1.5, 1);
+  const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(230,210,255,1)'); gr.addColorStop(0.4, 'rgba(160,110,255,0.6)'); gr.addColorStop(1, 'rgba(160,110,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+  glow.scale.setScalar(0.9);
+  gem.add(glow, crystal); gem.visible = false; v.scene.add(gem);
+
+  const nodes = []; // index = node id; nodeSlot[id] = which slot it's in
+  const nodeSlot = [0, 1, 2];
+  const canvas = v.renderer.domElement;
+  stage.appendChild(canvas);
+  const fit = () => { const w = stage.clientWidth || 400, h = stage.clientHeight || 200; v.renderer.setSize(w, h, false); v.camera.aspect = w / h; v.camera.updateProjectionMatrix(); };
+  fit();
+  const clock = new THREE.Clock();
+  const tweens = [];
+  let raf;
+  const loop = () => {
+    if(!document.body.contains(canvas)) return;
+    const dt = Math.min(clock.getDelta(), 0.1), now = performance.now();
+    nodes.forEach(n => n.mixer && n.mixer.update(dt));
+    for(let i = tweens.length - 1; i >= 0; i--){ const t = tweens[i]; const k = Math.min(1, (now - t.t0) / t.dur); t.step(k); if(k >= 1){ tweens.splice(i, 1); t.done && t.done(); } }
+    crystal.rotation.y += dt * 2;
+    v.renderer.render(v.scene, v.camera);
+    raf = requestAnimationFrame(loop);
+  };
+  const tween = (dur, step) => new Promise(res => tweens.push({ t0: performance.now(), dur, step, done: res }));
+  const ease = k => k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+  const nodeAt = slot => nodes[nodeSlot.indexOf(slot)];
+
+  function makeFallbackNode(){
+    const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.42, 0), new THREE.MeshStandardMaterial({ color: 0x8a5a3a, roughness: 0.9, flatShading: true }));
+    m.position.y = 0.35; const g = new THREE.Group(); g.add(m); return g;
+  }
+  function placeNode(obj, i){
+    const holder = new THREE.Group();
+    const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3());
+    obj.position.y -= box.min.y; obj.position.x -= (box.min.x + box.max.x) / 2; obj.position.z -= (box.min.z + box.max.z) / 2;
+    holder.add(obj);
+    holder.scale.setScalar(0.85 / (size.y || 1));
+    holder.position.set(SLOT_X[i], 0, 0);
+    holder.rotation.y = -Math.PI / 2 + (i - 1) * 0.35;
+    v.scene.add(holder);
+    const clips = obj.userData && obj.userData.animations;
+    if(clips && clips.length){ holder.mixer = new THREE.AnimationMixer(obj.children[0] || obj); holder.clips = {}; clips.forEach(c => holder.clips[c.name] = c); }
+    nodes[i] = holder;
+  }
+  function openNode(holder){
+    if(!holder || !holder.mixer || !holder.clips.Open) return;
+    const a = holder.mixer.clipAction(holder.clips.Open); a.reset(); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.play();
+  }
+
+  Promise.all([0, 1, 2].map(() => getAnimatedPetModel(COPPER_NODE_MODEL).catch(() => null))).then(objs => {
+    objs.forEach((o, i) => placeNode(o || makeFallbackNode(), i));
+    // nodes rise out of the ground
+    nodes.forEach(n => { n.userData.y0 = 0; n.position.y = -0.9; });
+    raf = requestAnimationFrame(loop);
+    return tween(500, k => nodes.forEach(n => n.position.y = -0.9 + 0.9 * ease(k)));
+  }).then(async () => {
+    // ---- reveal: the crystal rises out of its node, sparkles, sinks back ----
+    msg.textContent = 'Watch the crystal!';
+    const home = nodeAt(gemStart);
+    gem.visible = true; gem.position.set(home.position.x, 0.25, 0.25);
+    glowLight.position.set(home.position.x, 0.8, 0.6);
+    hhSfx.play('catch');
+    await tween(450, k => { gem.position.y = 0.25 + 0.65 * ease(k); glowLight.intensity = 2.5 * k; });
+    await tween(reveal - 900, () => {});
+    await tween(450, k => { gem.position.y = 0.9 - 0.65 * ease(k); glowLight.intensity = 2.5 * (1 - k); });
+    gem.visible = false;
+    // ---- shuffle: 7 swaps, one arcs in front, the other behind ----
+    msg.textContent = 'Follow it!';
+    for(const [a, b] of swaps){
+      const na = nodeAt(a), nb = nodeAt(b);
+      const xa = SLOT_X[a], xb = SLOT_X[b];
+      hhSfx.play('whiff');
+      await tween(swapMs, k => {
+        const e = ease(k), arc = Math.sin(Math.PI * k);
+        na.position.x = xa + (xb - xa) * e; na.position.z = 0.55 * arc;
+        nb.position.x = xb + (xa - xb) * e; nb.position.z = -0.55 * arc;
+      });
+      const ia = nodeSlot.indexOf(a), ib = nodeSlot.indexOf(b);
+      nodeSlot[ia] = b; nodeSlot[ib] = a;
+    }
+    // ---- pick ----
+    msg.textContent = 'Pick the node with the crystal!';
+    enc.setInstruction('Click the node you think hides the <b style="color:#c9a8ff">crystal</b>!');
+    enc.restartTimer(pickMs);
+    enc.card.classList.add('mine-picking');
+    slotBtns.forEach(b => b.disabled = false);
+    pickStart = performance.now();
+    pickTimeout = setTimeout(() => pick(null), pickMs);
+  });
+
+  async function pick(slot){
+    if(done) return;
+    done = true;
+    clearTimeout(pickTimeout);
+    enc.stopTimer();
+    enc.card.classList.remove('mine-picking');
+    slotBtns.forEach(b => b.disabled = true);
+    const ms = Math.round(performance.now() - pickStart);
+    if(slot != null){
+      slotBtns[slot].classList.add('struck');
+      hhSfx.play('clang');
+      openNode(nodeAt(slot));
+    }
+    const vr = enc.card.getBoundingClientRect();
+    const d = await resolveSparkleEvent(pendingId, slot != null, vr.left + vr.width / 2, vr.top + 20, slot == null ? [] : [ms, slot], { silent: true });
+    const won = !!(d && d.won);
+    const gemSlot = d && d.gem_slot != null ? d.gem_slot : null;
+    if(gemSlot != null){
+      const n = nodeAt(gemSlot);
+      if(gemSlot !== slot) openNode(n);
+      gem.visible = true; gem.position.set(n.position.x, 0.3, 0.3);
+      glowLight.position.set(n.position.x, 0.8, 0.6);
+      tween(500, k => { gem.position.y = 0.3 + 0.7 * ease(k); glowLight.intensity = 2.5 * k; });
+    }
+    if(won && d.crystals_awarded > 0 && state.profile){ state.profile.crystals = d.crystals_total; updateNavbarUserInfo(); }
+    msg.textContent = '';
+    enc.finish(won, won ? (d.crystals_awarded > 1 ? 'Double crystal!' : 'Struck crystal!') : (slot == null ? "Time's up" : 'Only rocks...'), 1900);
+    setTimeout(() => cancelAnimationFrame(raf), 2600);
+  }
+  slotBtns.forEach(b => b.addEventListener('click', () => pick(Number(b.getAttribute('data-slot')))));
+}
+
+function showGoldFloat(x, y, amount, food, wood, crystals){
   const layer = document.getElementById('sparkle-layer');
   if(!layer) return;
   const el = document.createElement('div');
   el.className = 'gold-float';
   el.style.left = x + 'px';
   el.style.top = y + 'px';
-  el.innerHTML = (amount > 0 ? `<div>+${amount} Gold</div>` : '') + (food > 0 ? `<div class="food-float-line">+${food} Food</div>` : '') + (wood > 0 ? `<div class="wood-float-line">+${wood} Wood</div>` : '');
+  el.innerHTML = (amount > 0 ? `<div>+${amount} Gold</div>` : '') + (food > 0 ? `<div class="food-float-line">+${food} Food</div>` : '') + (wood > 0 ? `<div class="wood-float-line">+${wood} Wood</div>` : '') + (crystals > 0 ? `<div class="crystal-float-line">+${crystals} Crystal${crystals > 1 ? 's' : ''}</div>` : '');
   layer.appendChild(el);
   setTimeout(()=>{ if(el.parentNode) el.remove(); }, 2700);
 }
@@ -6943,6 +7136,7 @@ if(typeof isStaging !== 'undefined' && isStaging){
       blacksmith: () => startBlacksmithGame(rect, 'preview', { cycle_ms: 1400, hit_window: 0.15, hits_needed: 3, max_attempts: 5, game_ms: 10000 }),
       lumberjack: () => startLumberjackEvent(rect, 'preview', { sweep_ms: 1300, width: 0.12, hits_needed: 3, max_attempts: 5, game_ms: 9000, notches: [0.25, 0.7, 0.45] }),
       rarespawn: () => startRareSpawnEvent(rect, 'preview', { jump_ms: 650, duration_ms: 3250, radius: 95, hits_needed: 3, positions: [[200, 300], [750, 650], [400, 800], [850, 250], [500, 450]] }),
+      mining: () => startMiningEvent(rect, 'preview', { gem_start: 0, reveal_ms: 1600, swap_ms: 360, pick_ms: 6000, swaps: [[0, 1], [1, 2], [0, 2], [0, 1], [1, 2], [0, 1], [0, 2]] }),
       trivia: () => startTriviaEvent(rect, 'preview', { question: 'Who is the final boss of Molten Core?', category: 'World', time_ms: 15000, answers: ['Ragnaros', 'Golemagg', 'Majordomo Executus', 'Baron Geddon'] })
     };
     (demo[type] || demo.fishing)();
