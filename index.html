@@ -3597,6 +3597,12 @@
   .ledger-cur{ color:var(--hh-muted, #a8977a); font-size:11px; }
   .ledger-tag{ display:inline-block; margin-left:4px; padding:0 6px; border-radius:999px; font-size:10px; border:1px solid #7fd4ff; color:#7fd4ff; }
   .ledger-tag.warn{ border-color:#e0662a; color:#e0662a; }
+
+  .db-bar{ height:10px; background:rgba(0,0,0,0.45); border:1px solid rgba(201,150,63,0.35); border-radius:5px; overflow:hidden; }
+  .db-bar-fill{ height:100%; }
+  .db-line{ font-size:13px; margin-top:8px; }
+  .db-tables{ display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:8px; font-size:11px; color:var(--hh-muted, #a8977a); }
+  .db-tables b{ color:var(--hh-parchment, #e9dcc0); font-weight:600; }
 </style>
 </head>
 <body>
@@ -9624,6 +9630,27 @@ function renderSettings(){
   `;
 }
 
+/* ---------------- Admin: database size ---------------- */
+state.dbStats = state.dbStats || undefined;
+async function loadDbStats(){
+  const { data, error } = await sb.rpc('admin_db_stats');
+  state.dbStats = (error || !data || data.error) ? { error: true } : data;
+  render();
+}
+function renderDbStats(){
+  const d = state.dbStats;
+  if(d === undefined){ loadDbStats(); return `<p class="muted sans">Measuring&hellip;</p>`; }
+  if(d.error) return `<p class="muted sans">Couldn't read the database size.</p>`;
+  const mb = b => (Number(b || 0) / 1048576).toFixed(1) + ' MB';
+  const pct = Math.min(100, 100 * d.database_bytes / d.limit_bytes);
+  const color = pct > 80 ? '#b05253' : pct > 60 ? '#e0662a' : '#7fa363';
+  return `
+    <div class="db-bar"><div class="db-bar-fill" style="width:${pct.toFixed(1)}%; background:${color};"></div></div>
+    <div class="db-line"><strong>${mb(d.database_bytes)}</strong> of ${mb(d.limit_bytes)} free-plan limit (${pct.toFixed(1)}%)</div>
+    <div class="db-line muted">${Number(d.game_rows).toLocaleString()} detailed game records${d.oldest_game ? ` since ${new Date(d.oldest_game + 'Z').toLocaleDateString()}` : ''} &middot; ${Number(d.daily_rows).toLocaleString()} daily summaries. Games older than 90 days are rolled into daily summaries every night.</div>
+    <div class="db-tables">${(d.tables || []).map(t => `<span>${esc(t.name)} <b>${mb(t.bytes)}</b></span>`).join('')}</div>`;
+}
+
 /* ---------------- Admin: gold ledger ----------------
    One history of every gold/food/wood movement (server: admin_gold_ledger, Raid Leader only),
    per-player totals, and a balance check that highlights gold the history can't explain. */
@@ -9798,6 +9825,11 @@ function renderAdmin(){
   html += renderCheatDashboard(state.cheatData || {});
   html += `</div>`;
 
+  html += `
+    <div class="panel style-glass">
+      <h2 style="margin:0 0 10px;">Database</h2>
+      ${renderDbStats()}
+    </div>`;
   html += `
     <div class="panel style-glass">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
