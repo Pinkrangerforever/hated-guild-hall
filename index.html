@@ -3716,6 +3716,106 @@
     .nav-user-section{ margin-left:auto; }
     .nav-user-info{ border-right:none; padding-right:0; }
   }
+
+  /* ======================================================================
+     RAID CALENDAR (theme pass): next-raid hero, themed grid, RSVP dots,
+     attendee emblems, mobile agenda. Revert this block to remove.
+     ====================================================================== */
+  .cal-hero{ display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap; cursor:pointer;
+    margin:0 0 22px; padding:22px 26px; position:relative; overflow:hidden; border-radius:var(--hh-radius, 6px);
+    background:
+      linear-gradient(90deg, transparent, var(--hh-blood, #8e1c18) 18%, var(--hh-ember, #e0662a) 50%, var(--hh-blood, #8e1c18) 82%, transparent) top / 100% 4px no-repeat,
+      radial-gradient(ellipse at 15% 120%, rgba(142,28,24,0.45), transparent 60%),
+      radial-gradient(ellipse at 90% -20%, rgba(127,212,255,0.12), transparent 55%),
+      var(--hh-panel-bg, #20160d);
+    border:1px solid rgba(201,150,63,0.75); box-shadow:var(--hh-panel-shadow, 0 14px 34px rgba(0,0,0,0.85)); transition:border-color .2s; }
+  .cal-hero:hover{ border-color:var(--hh-gold-bright, #f0d27a); }
+  .cal-hero.empty{ cursor:default; }
+  .cal-hero-kicker{ font-family:'Cinzel', Georgia, serif; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:var(--hh-ember, #e0662a); }
+  .cal-hero-title{ font-family:'Cinzel', Georgia, serif; font-size:30px; font-weight:700; color:var(--hh-gold-bright, #f0d27a); line-height:1.15;
+    text-shadow:0 2px 4px #000, 0 0 18px rgba(224,102,42,0.35); margin:2px 0 4px; }
+  .cal-hero-meta{ color:var(--hh-muted, #a8977a); font-size:13px; }
+  .cal-hero-count{ margin-top:10px; font-family:'Cinzel', Georgia, serif; font-size:15px; color:var(--hh-parchment, #e9dcc0); }
+  .cal-hero-count span{ color:var(--hh-gold-bright, #f0d27a); font-weight:700; font-variant-numeric:tabular-nums; }
+  .cal-hero-count span.soon{ color:var(--hh-arcane, #7fd4ff); text-shadow:0 0 10px rgba(127,212,255,0.6); }
+  .cal-hero-side{ display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
+  .cal-hero-tally{ font-size:13px; color:var(--hh-muted, #a8977a); }
+  .cal-hero-tally b{ font-size:16px; } .t-going{ color:#7fd06b; } .t-maybe{ color:#e6c35c; } .t-out{ color:#e07a6a; }
+  .cal-hero-emblems{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px; max-width:320px; }
+  .cal-emblem svg{ width:20px; height:20px; display:block; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.7)); }
+  .cal-more{ font-size:11px; color:var(--hh-muted, #a8977a); align-self:center; margin-left:4px; }
+  .cal-hero-rsvp{ display:flex; gap:6px; }
+  .rsvp-chip{ padding:7px 14px; border-radius:999px; cursor:pointer; font-family:'Cinzel', Georgia, serif; font-size:12px; font-weight:700;
+    letter-spacing:0.04em; background:rgba(0,0,0,0.4); color:var(--hh-parchment, #e9dcc0); border:1px solid rgba(201,150,63,0.4); transition:all .15s; }
+  .rsvp-chip:hover{ border-color:var(--hh-gold-bright, #f0d27a); }
+  .rsvp-chip.going.on{ background:rgba(60,140,60,0.35); border-color:#7fd06b; color:#d8ffd0; box-shadow:0 0 10px rgba(127,208,107,0.35); }
+  .rsvp-chip.maybe.on{ background:rgba(160,130,30,0.35); border-color:#e6c35c; color:#fff3c8; box-shadow:0 0 10px rgba(230,195,92,0.35); }
+  .rsvp-chip.out.on{ background:rgba(142,28,24,0.4); border-color:#e07a6a; color:#ffd8d0; box-shadow:0 0 10px rgba(224,122,106,0.35); }
+
+  .cal-ornate-frame{ background:var(--hh-panel-bg, #20160d) !important; border:1px solid rgba(201,150,63,0.75) !important;
+    border-radius:var(--hh-radius, 6px) !important; box-shadow:var(--hh-panel-shadow) !important; }
+  .cal-month-label{ font-family:'Cinzel', Georgia, serif !important; color:var(--hh-gold-bright, #f0d27a) !important; letter-spacing:0.06em;
+    text-shadow:0 2px 3px #000, 0 0 12px rgba(224,102,42,0.3) !important; }
+  .cal-month-label.slide-left{ animation:calSlideLeft .28s ease-out; }
+  .cal-month-label.slide-right{ animation:calSlideRight .28s ease-out; }
+  @keyframes calSlideLeft{ from{ transform:translateX(24px); opacity:0; } }
+  @keyframes calSlideRight{ from{ transform:translateX(-24px); opacity:0; } }
+  .cal-nav-btn{ background:rgba(0,0,0,0.4) !important; border-color:rgba(201,150,63,0.45) !important; color:var(--hh-gold-bright, #f0d27a) !important; }
+  .cal-nav-btn:hover{ border-color:var(--hh-arcane, #7fd4ff) !important; box-shadow:0 0 10px rgba(127,212,255,0.35); }
+  .cal-weekday{ font-family:'Cinzel', Georgia, serif; color:var(--hh-gold, #c9963f) !important; letter-spacing:0.12em !important; border-bottom-color:rgba(201,150,63,0.3) !important; }
+  .cal-cell{ background:linear-gradient(180deg, rgba(36,24,15,0.95), rgba(20,13,8,0.95)) !important; border:1px solid rgba(201,150,63,0.2) !important;
+    border-radius:5px !important; box-shadow:inset 0 1px 0 rgba(240,210,122,0.06), 0 2px 6px rgba(0,0,0,0.4) !important; }
+  .cal-cell:hover{ border-color:rgba(201,150,63,0.55) !important; }
+  .cal-cell.has-event{ background:radial-gradient(ellipse at 50% 130%, rgba(224,102,42,0.22), transparent 65%), linear-gradient(180deg, rgba(40,26,15,0.95), rgba(22,14,8,0.95)) !important; }
+  .cal-cell.past{ opacity:0.55; }
+  .cal-cell.other-month{ opacity:0.3; }
+  .cal-cell.today{ border-color:var(--hh-arcane, #7fd4ff) !important; box-shadow:0 0 0 1px rgba(127,212,255,0.4), 0 0 16px rgba(127,212,255,0.25), inset 0 0 18px rgba(127,212,255,0.08) !important; opacity:1; }
+  .cal-daynum{ font-family:'Cinzel', Georgia, serif; color:var(--hh-gold, #c9963f) !important; }
+  .cal-cell.today .cal-daynum{ color:var(--hh-arcane, #7fd4ff) !important; text-shadow:0 0 8px rgba(127,212,255,0.6); }
+  .cal-event-pill{ display:flex !important; align-items:center; gap:5px; border-radius:4px !important; }
+  .cal-event-pill.kind-raid{ background:linear-gradient(135deg, rgba(142,28,24,0.55), rgba(90,18,14,0.45)) !important; border-color:rgba(224,102,42,0.6) !important; color:#ffe2d0 !important; }
+  .cal-event-pill.kind-event{ background:linear-gradient(135deg, rgba(201,150,63,0.3), rgba(120,86,30,0.25)) !important; border-color:rgba(240,210,122,0.5) !important; color:#fff3c8 !important; }
+  .cal-event-pill.kind-holiday{ background:linear-gradient(135deg, rgba(58,143,214,0.35), rgba(30,70,110,0.3)) !important; border-color:rgba(127,212,255,0.55) !important; color:#e6f7ff !important; }
+  .cal-event-pill.past-event{ opacity:0.6; }
+  .cal-event-time{ font-size:10px; opacity:0.8; flex-shrink:0; }
+  .cal-event-title{ overflow:hidden; text-overflow:ellipsis; }
+  .rsvp-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; border:1px solid rgba(255,255,255,0.35); }
+  .rsvp-dot.going{ background:#7fd06b; box-shadow:0 0 5px #7fd06b; border-color:#7fd06b; }
+  .rsvp-dot.maybe{ background:#e6c35c; box-shadow:0 0 5px #e6c35c; border-color:#e6c35c; }
+  .rsvp-dot.out{ background:#e07a6a; border-color:#e07a6a; }
+  .rsvp-dot.none{ background:transparent; }
+
+  /* Event details: attendees with rank emblems */
+  .cal-attend{ display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px; margin-top:14px; }
+  .cal-attend-group{ padding:10px; border-radius:5px; background:rgba(0,0,0,0.3); border:1px solid rgba(201,150,63,0.2); border-top:3px solid; }
+  .cal-attend-group.going{ border-top-color:#7fd06b; } .cal-attend-group.maybe{ border-top-color:#e6c35c; } .cal-attend-group.out{ border-top-color:#e07a6a; }
+  .cal-attend-h{ font-family:'Cinzel', Georgia, serif; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--hh-gold, #c9963f); margin-bottom:8px; }
+  .cal-attend-h b{ color:var(--hh-parchment, #e9dcc0); margin-left:4px; }
+  .cal-attend-list{ display:flex; flex-direction:column; gap:4px; font-size:13px; }
+  .cal-person{ display:flex; align-items:center; gap:6px; }
+
+  /* Absence summary in the theme */
+  .cal-absence-summary{ background:rgba(0,0,0,0.3) !important; border:1px solid rgba(201,150,63,0.3) !important; border-radius:5px !important; }
+  .cal-absence-title{ font-family:'Cinzel', Georgia, serif; letter-spacing:0.08em; text-transform:uppercase; color:var(--hh-gold-bright, #f0d27a) !important; font-size:14px !important; }
+  .cal-absence-item{ background:linear-gradient(180deg, rgba(36,24,15,0.95), rgba(20,13,8,0.95)) !important; border-color:rgba(201,150,63,0.2) !important; border-left:3px solid var(--hh-blood, #8e1c18) !important; }
+  .cal-absence-icon{ background:rgba(142,28,24,0.35) !important; color:#e07a6a !important; }
+
+  /* Officers: add-event "+" only while hovering a day */
+  .cal-cell .cal-add-btn{ opacity:0 !important; }
+  .cal-cell:hover .cal-add-btn{ opacity:1 !important; }
+
+  /* Mobile: agenda list instead of the 7-column grid */
+  .cal-agenda{ display:none; flex-direction:column; gap:8px; margin-bottom:18px; }
+  .cal-agenda-item{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer; padding:10px 12px; border-radius:5px;
+    background:linear-gradient(180deg, rgba(36,24,15,0.95), rgba(20,13,8,0.95)); border:1px solid rgba(201,150,63,0.3); border-left:3px solid #c9963f; color:var(--hh-parchment, #e9dcc0); }
+  .cal-agenda-item.kind-raid{ border-left-color:var(--hh-ember, #e0662a); } .cal-agenda-item.kind-holiday{ border-left-color:var(--hh-arcane, #7fd4ff); }
+  .cal-agenda-date{ font-family:'Cinzel', Georgia, serif; font-size:12px; color:var(--hh-gold, #c9963f); min-width:92px; }
+  .cal-agenda-title{ flex:1; font-weight:600; } .cal-agenda-title em{ font-style:normal; color:var(--hh-muted, #a8977a); font-size:12px; margin-left:4px; }
+  @media (max-width:700px){
+    .cal-agenda{ display:flex; }
+    .cal-grid{ display:none !important; }
+    .cal-hero{ padding:16px; } .cal-hero-title{ font-size:22px; } .cal-hero-side{ align-items:flex-start; }
+  }
 </style>
 </head>
 <body>
@@ -8303,6 +8403,90 @@ function myRsvpFor(eventId){
   return row ? row.status : null;
 }
 
+/* ---------------- calendar: hero, pills, agenda helpers ---------------- */
+// Event start as a local Date: the event's date plus its free-text time ("8:00 PM", "20:30", "8pm server")
+function eventStartDate(ev){
+  const [y, m, d] = ev.date.split('-').map(Number);
+  const dt = new Date(y, m - 1, d, 0, 0, 0);
+  const t = (ev.time || '').match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if(t){
+    let h = parseInt(t[1], 10); const min = parseInt(t[2] || '0', 10); const ap = (t[3] || '').toLowerCase();
+    if(ap === 'pm' && h < 12) h += 12;
+    if(ap === 'am' && h === 12) h = 0;
+    if(h <= 23 && min <= 59){ dt.setHours(h, min); dt.hasTime = true; }
+  }
+  return dt;
+}
+function eventKind(ev){
+  const t = (ev.title || '') + ' ' + (ev.instance || '');
+  if(/halloween|christmas|winter veil|hallow|holiday|brewfest|launch|anniversary|party|meetup/i.test(t)) return 'holiday';
+  return ev.instance ? 'raid' : 'event';
+}
+function fmtCountdown(ms){
+  if(ms <= 0) return 'Happening now';
+  const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+  return d > 0 ? `${d}d ${h}h ${String(m).padStart(2, '0')}m` : `${h}h ${String(m).padStart(2, '0')}m ${String(sec).padStart(2, '0')}s`;
+}
+// Live countdowns anywhere on the page
+setInterval(() => {
+  document.querySelectorAll('[data-countdown-to]').forEach(el => {
+    const ms = Number(el.getAttribute('data-countdown-to')) - Date.now();
+    el.textContent = fmtCountdown(ms);
+    el.classList.toggle('soon', ms > 0 && ms < 86400000);
+  });
+}, 1000);
+function rankEmblemFor(userId){
+  const p = state.profilesById && state.profilesById[userId];
+  return p ? `<span class="cal-emblem" title="${esc(p.character_name || '')}">${RANK_EMBLEM[rankKey(p)]}</span>` : '';
+}
+function renderCalendarHero(today){
+  const upcoming = state.events.filter(ev => ev.date >= today)
+    .map(ev => ({ ev, start: eventStartDate(ev) }))
+    .filter(x => x.start.getTime() > Date.now() - 4 * 3600000) // still show it for a few hours after it starts
+    .sort((a, b) => a.start - b.start);
+  if(!upcoming.length) return `<div class="cal-hero empty"><div class="cal-hero-kicker">Next up</div><div class="cal-hero-title">Nothing scheduled yet</div></div>`;
+  const { ev, start } = upcoming.find(x => eventKind(x.ev) === 'raid') || upcoming[0];
+  const mine = myRsvpFor(ev.id);
+  const g = rsvpGroupsFor(ev.id);
+  const goingIds = state.rsvps.filter(rv => rv.event_id === ev.id && rv.status === 'going').map(rv => rv.user_id);
+  const kind = eventKind(ev);
+  return `
+    <div class="cal-hero kind-${kind}" data-open-event="${ev.id}">
+      <div class="cal-hero-main">
+        <div class="cal-hero-kicker">${kind === 'raid' ? 'Next raid' : 'Next up'}</div>
+        <div class="cal-hero-title">${esc(ev.title)}</div>
+        <div class="cal-hero-meta">${fmtDate(ev.date)}${ev.time ? ' &middot; ' + esc(ev.time) : ''}${ev.instance ? ' &middot; ' + esc(ev.instance) : ''}</div>
+        <div class="cal-hero-count">Starts in <span data-countdown-to="${start.getTime()}">${fmtCountdown(start - Date.now())}</span></div>
+      </div>
+      <div class="cal-hero-side">
+        <div class="cal-hero-tally"><b class="t-going">${g.going.length}</b> going &middot; <b class="t-maybe">${g.maybe.length}</b> maybe &middot; <b class="t-out">${g.out.length}</b> out</div>
+        <div class="cal-hero-emblems">${goingIds.slice(0, 14).map(rankEmblemFor).join('')}${goingIds.length > 14 ? `<span class="cal-more">+${goingIds.length - 14}</span>` : ''}</div>
+        <div class="cal-hero-rsvp">
+          <button type="button" class="rsvp-chip going ${mine === 'going' ? 'on' : ''}" data-cal-rsvp="going" data-event="${ev.id}">Going</button>
+          <button type="button" class="rsvp-chip maybe ${mine === 'maybe' ? 'on' : ''}" data-cal-rsvp="maybe" data-event="${ev.id}">Maybe</button>
+          <button type="button" class="rsvp-chip out ${mine === 'out' ? 'on' : ''}" data-cal-rsvp="out" data-event="${ev.id}">Out</button>
+        </div>
+      </div>
+    </div>`;
+}
+function renderCalendarAgenda(today){
+  const list = state.events.filter(ev => ev.date >= today).sort((a, b) => eventStartDate(a) - eventStartDate(b)).slice(0, 20);
+  if(!list.length) return `<div class="cal-agenda"><p class="muted sans">No upcoming events.</p></div>`;
+  return `<div class="cal-agenda">${list.map(ev => {
+    const mine = myRsvpFor(ev.id);
+    return `<button type="button" class="cal-agenda-item kind-${eventKind(ev)}" data-open-event="${ev.id}">
+      <span class="cal-agenda-date">${fmtDate(ev.date)}</span>
+      <span class="cal-agenda-title">${esc(ev.title)}${ev.time ? ` <em>${esc(ev.time)}</em>` : ''}</span>
+      <span class="rsvp-dot ${mine || 'none'}" title="Your RSVP: ${mine || 'not answered'}"></span></button>`;
+  }).join('')}</div>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-cal-rsvp]');
+  if(!b) return;
+  e.stopPropagation(); e.preventDefault();
+  setRsvp(b.getAttribute('data-event'), b.getAttribute('data-cal-rsvp'));
+}, true);
+
 function renderCalendar(){
   const officer = testCanManage();
   const y = state.calendarYear, m = state.calendarMonth;
@@ -8324,6 +8508,7 @@ function renderCalendar(){
 
   return `
     <div style="max-width:1200px; margin:0 auto; padding:0 20px;">
+    ${renderCalendarHero(today)}
     <div class="cal-ornate-frame">
       <div class="ornate-corner tl"></div>
       <div class="ornate-corner tr"></div>
@@ -8333,13 +8518,14 @@ function renderCalendar(){
       <div class="cal-header">
         <div class="cal-nav">
           <button class="cal-nav-btn" id="cal-prev">&lsaquo;</button>
-          <div class="cal-month-label">${MONTH_NAMES[m]}<span class="cal-month-year"> ${y}</span></div>
+          <div class="cal-month-label ${state.calSlide ? 'slide-' + state.calSlide : ''}">${MONTH_NAMES[m]}<span class="cal-month-year"> ${y}</span></div>
           <button class="cal-nav-btn" id="cal-next">&rsaquo;</button>
           <button class="btn secondary" id="cal-today" style="margin-left:6px;">Today</button>
         </div>
         ${ officer ? `<button class="btn" id="cal-add-event">+ Add event</button>` : '' }
       </div>
 
+      ${renderCalendarAgenda(today)}
       <div class="cal-grid">
         ${ WEEKDAY_LABELS.map(w=>`<div class="cal-weekday">${w}</div>`).join('') }
         ${ cells.map(c=>{
@@ -8347,11 +8533,13 @@ function renderCalendar(){
           const isPast = c.iso < today;
           const isUpcoming = c.iso >= today && evs.length > 0;
           return `
-          <div class="cal-cell ${c.inMonth?'':'other-month'} ${c.iso===today?'today':''} ${isPast?'past':''} ${isUpcoming?'upcoming':''}">
+          <div class="cal-cell ${c.inMonth?'':'other-month'} ${c.iso===today?'today':''} ${isPast?'past':''} ${isUpcoming?'upcoming':''} ${evs.length?'has-event':''}">
             <div class="cal-daynum">${c.day}</div>
             <div class="cal-events">
               ${ evs.map(ev=>`
-                <button class="cal-event-pill ${isPast?'past-event':''}" data-open-event="${ev.id}">
+                <button class="cal-event-pill kind-${eventKind(ev)} ${isPast?'past-event':''}" data-open-event="${ev.id}" title="${esc(ev.title)}${ev.time ? ' - ' + esc(ev.time) : ''}">
+                  <span class="rsvp-dot ${myRsvpFor(ev.id) || 'none'}"></span>
+                  ${ ev.time ? `<span class="cal-event-time">${esc(ev.time.replace(/\s*server\s*/i, ''))}</span>` : '' }
                   <span class="cal-event-title">${esc(ev.title)}</span>
                 </button>
               `).join('') }
@@ -8736,6 +8924,10 @@ function renderEventDetailModal(eventId){
   const mine = myRsvpFor(ev.id);
   const groups = rsvpGroupsFor(ev.id);
   function nameList(arr){ return arr.length ? esc(arr.join(', ')) : '<span class="muted">nobody yet</span>'; }
+  const people = status => {
+    const ids = state.rsvps.filter(rv => rv.event_id === ev.id && rv.status === status).map(rv => rv.user_id);
+    return ids.length ? ids.map(id => `<span class="cal-person">${rankEmblemFor(id)}${esc(nameFor(id))}</span>`).join('') : '<span class="muted sans">nobody yet</span>';
+  };
   return `
   <div class="modal-backdrop" id="modal-backdrop">
     <div class="modal-panel" id="modal-panel">
@@ -8755,10 +8947,10 @@ function renderEventDetailModal(eventId){
       </div>
 
       <div class="rule"></div>
-      <div style="margin-top:14px;">
-        <div style="margin-bottom:8px;"><span class="badge going"><span class="mono">${groups.going.length}</span> going</span> ${nameList(groups.going)}</div>
-        <div style="margin-bottom:8px;"><span class="badge maybe"><span class="mono">${groups.maybe.length}</span> maybe</span> ${nameList(groups.maybe)}</div>
-        <div style="margin-bottom:8px;"><span class="badge out"><span class="mono">${groups.out.length}</span> out</span> ${nameList(groups.out)}</div>
+      <div class="cal-attend">
+        <div class="cal-attend-group going"><div class="cal-attend-h">Going <b>${groups.going.length}</b></div><div class="cal-attend-list">${people('going')}</div></div>
+        <div class="cal-attend-group maybe"><div class="cal-attend-h">Maybe <b>${groups.maybe.length}</b></div><div class="cal-attend-list">${people('maybe')}</div></div>
+        <div class="cal-attend-group out"><div class="cal-attend-h">Can't make it <b>${groups.out.length}</b></div><div class="cal-attend-list">${people('out')}</div></div>
       </div>
 
       ${ officer ? `
@@ -10195,13 +10387,13 @@ function bindApp(){
   if(calPrev) calPrev.addEventListener('click', ()=>{
     let m = state.calendarMonth - 1, y = state.calendarYear;
     if(m<0){ m=11; y--; }
-    state.calendarMonth = m; state.calendarYear = y; render();
+    state.calendarMonth = m; state.calendarYear = y; state.calSlide = 'right'; render(); state.calSlide = null;
   });
   const calNext = document.getElementById('cal-next');
   if(calNext) calNext.addEventListener('click', ()=>{
     let m = state.calendarMonth + 1, y = state.calendarYear;
     if(m>11){ m=0; y++; }
-    state.calendarMonth = m; state.calendarYear = y; render();
+    state.calendarMonth = m; state.calendarYear = y; state.calSlide = 'left'; render(); state.calSlide = null;
   });
   const calToday = document.getElementById('cal-today');
   if(calToday) calToday.addEventListener('click', ()=>{
