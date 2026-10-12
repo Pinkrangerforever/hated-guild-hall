@@ -3601,7 +3601,7 @@
   .profile-split{ width:min(1400px, calc(100vw - 32px)); align-self:center; display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:stretch; }
   .profile-split > .profile-panel{ width:auto; margin:0; min-width:0; }
   @media (max-width:900px){ .profile-split{ grid-template-columns:1fr; } }
-  .treasure-room{ position:relative; aspect-ratio:4 / 3; border-radius:6px; overflow:hidden; background:#140e0a;
+  .treasure-room{ cursor:pointer; position:relative; aspect-ratio:4 / 3; border-radius:6px; overflow:hidden; background:#140e0a;
     border:3px solid #5a3818; box-shadow:0 0 0 1px #000, inset 0 0 0 1px rgba(255,220,160,0.15), 0 4px 14px rgba(0,0,0,0.6); }
   .tr3d{ position:absolute; inset:0; z-index:3; pointer-events:none; }
   .tr3d canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
@@ -8871,6 +8871,7 @@ const HOME_DECOR = {
   ogre_lantern:     { gltf: 'models/housing/decor-ogre-lantern.gltf', height: 1.0, torches: [[0, 0.8, 0]], flameSize: 0.35, fireLight: 1.4 },
   witch_hat:        { gltf: 'models/housing/decor-witch-hat.gltf', height: 0.6 },
   scarecrow:        { gltf: 'models/housing/decor-scarecrow.gltf', height: 2.4 },
+  treasure_chest:   { gltf: 'models/housing/decor-treasure-chest.gltf', height: 1.0, anim: 'Opened' },
   campfire:         { gltf: 'models/housing/decor-campfire.gltf', height: 0.9, torches: [[0, 0.6, 0]], flameSize: 0.9, fireLight: 2.2 }
 };
 // Everything standing in a home: the zone's fixed props, the built houses (moved wherever the owner
@@ -10494,7 +10495,7 @@ function renderResourceShelf(p, isMe){
   const amt = Object.fromEntries(SHELF_RESOURCES.map(r => [r.key, Math.max(0, Math.floor(src[r.key] || 0))]));
   return `
     <div class="profile-panel profile-home-panel profile-roster-panel resource-shelf-panel">
-      <h3 class="profile-section-title">${isMe ? 'Your Treasure Corner' : 'Treasure Corner'}</h3>
+      <h3 class="profile-section-title">${isMe ? 'Your Coffers' : 'Coffers'}</h3>
       <div class="treasure-room">
         <div class="tr3d" data-treasure-user="${esc(p.id)}" data-treasure3d='${JSON.stringify(amt)}'></div>
         ${SHELF_RESOURCES.map(r => {
@@ -10558,30 +10559,59 @@ function tr3dChest(M, open, W, D, Hb){
   lid.rotation.x = open ? -1.95 : 0; chest.add(lid);
   return chest;
 }
+// Gold lives in the WoW treasure chest: it swings open when the room loads (if there's any gold) and a
+// click toggles it. Inside: a mound of coins, gems and pearls that grows; loose coins spill onto the floor.
 function tr3dGold(v, M, lvl){
   const n = TR3D_COUNTS.gold[lvl];
-  const X = -2.05, Z = -0.75, W = 1.2, D = 0.72, Hb = 0.58, rnd = tr3dRand(11), o = new THREE.Object3D();
-  const chest = tr3dChest(M, lvl >= 3, W, D, Hb); chest.position.set(X, 0, Z); chest.rotation.y = 0.32; v.scene.add(chest);
-  tr3dShadow(v.scene, X, Z, 0.85, 0.6);
-  if(lvl >= 3){
-    // overflowing: a mound of coins, colored gems and strings of pearls
-    const k = 40 + (lvl - 3) * 50, coins = new THREE.InstancedMesh(TR3D_COIN(), M.gold, k);
+  const X = -2.05, Z = -0.75, CH = 1.0, rnd = tr3dRand(11), o = new THREE.Object3D();
+  const BW = 1.05, BD = 0.8, BT = 0.62;   // inner footprint (along the chest) and rim height at CH = 1
+  const hoard = new THREE.Group(); hoard.position.set(X, 0, Z); hoard.rotation.y = 0.32; v.scene.add(hoard);
+  tr3dShadow(v.scene, X, Z, 0.85, 0.65);
+  loadHomeProp(HOME_DECOR.treasure_chest).then(ch => {
+    ch.scale.setScalar(CH / ch.userData.unitHeight); ch.rotation.y = -Math.PI / 2; hoard.add(ch);
+    const clips = {}; (ch.userData.animations || []).forEach(c => { clips[c.name] = c; });
+    const mixer = new THREE.AnimationMixer(ch.userData.pivot.children[0]);
+    const play = (name, once) => {
+      const c = clips[name]; if(!c) return;
+      const act = mixer.clipAction(c); act.reset();
+      if(once){ act.setLoop(THREE.LoopOnce, 1); act.clampWhenFinished = true; }
+      if(v.chestAct && v.chestAct !== act) v.chestAct.fadeOut(0.15);
+      act.fadeIn(0.15).play(); v.chestAct = act;
+    };
+    v.chestMixer = mixer;
+    v.chestOpen = false;
+    v.toggleChest = () => {
+      v.chestOpen = !v.chestOpen; play(v.chestOpen ? 'Open' : 'Close', true);
+      clearTimeout(v.chestHide);
+      if(v.chestHoard){ if(v.chestOpen) v.chestHoard.visible = true; else v.chestHide = setTimeout(() => { v.chestHoard.visible = false; }, 450); }
+    };
+    play('Closed');
+    if(lvl > 0) setTimeout(() => { if(!v.chestOpen) v.toggleChest(); }, 700);
+  }).catch(err => console.warn('Coffer chest failed to load:', err));
+  if(lvl >= 1){
+    // the hoard inside the chest
+    const inner = new THREE.Group(); inner.visible = false; hoard.add(inner); v.chestHoard = inner; // shown while the lid is open
+    const k = 20 + lvl * 45, coins = new THREE.InstancedMesh(TR3D_COIN(), M.gold, k), peak = 0.06 + lvl * 0.04;
     for(let i = 0; i < k; i++){
-      const x = (rnd() - 0.5) * (W - 0.12), z = (rnd() - 0.5) * (D - 0.1), mound = (1 - Math.abs(x) / W * 1.6) * (1 - Math.abs(z) / D * 1.6);
-      o.position.set(x, Hb - 0.02 + Math.max(0, mound) * (0.14 + lvl * 0.03) * rnd(), z); o.rotation.set((rnd() - 0.5) * 0.9, rnd() * 6, (rnd() - 0.5) * 0.9); o.updateMatrix(); coins.setMatrixAt(i, o.matrix);
+      const x = (rnd() - 0.5) * BW * 0.85, z = (rnd() - 0.5) * BD * 0.8;
+      const mound = Math.max(0, (1 - Math.abs(x) / BW * 1.7) * (1 - Math.abs(z) / BD * 1.7));
+      o.position.set(x, BT - 0.04 + mound * peak * (0.4 + 0.6 * rnd()), z);
+      o.rotation.set((rnd() - 0.5) * 0.9, rnd() * 6, (rnd() - 0.5) * 0.9); o.updateMatrix(); coins.setMatrixAt(i, o.matrix);
     }
-    chest.add(coins);
-    const gemCols = [0xe0203a, 0x20c070, 0x3070ff, 0xb040e0];
-    for(let i = 0; i < 4 + lvl; i++){
-      const g = new THREE.Mesh(new THREE.OctahedronGeometry(0.05 + rnd() * 0.03, 0), new THREE.MeshStandardMaterial({ color: gemCols[i % 4], emissive: gemCols[i % 4], emissiveIntensity: 0.35, metalness: 0.2, roughness: 0.15 }));
-      g.position.set((rnd() - 0.5) * (W - 0.3), Hb + 0.1 + rnd() * 0.1, (rnd() - 0.5) * (D - 0.3)); g.rotation.set(rnd() * 3, rnd() * 3, 0); chest.add(g);
-    }
-    const pearl = new THREE.MeshStandardMaterial({ color: 0xf6f0e6, roughness: 0.2, metalness: 0.1 });
-    for(let s = 0; s < 2; s++){ // pearl strings draped over the front
-      const sx = s ? 0.25 : -0.3;
-      for(let p = 0; p < 12; p++){
-        const t = p / 11, b = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), pearl);
-        b.position.set(sx + (t - 0.5) * 0.25, Hb + 0.06 - Math.sin(t * Math.PI) * 0.38, D / 2 + 0.03 + Math.sin(t * Math.PI) * 0.03); chest.add(b);
+    inner.add(coins);
+    if(lvl >= 3){
+      const gemCols = [0xe0203a, 0x20c070, 0x3070ff, 0xb040e0];
+      for(let i = 0; i < 3 + lvl; i++){
+        const g = new THREE.Mesh(new THREE.OctahedronGeometry(0.045 + rnd() * 0.03, 0), new THREE.MeshStandardMaterial({ color: gemCols[i % 4], emissive: gemCols[i % 4], emissiveIntensity: 0.35, metalness: 0.2, roughness: 0.15 }));
+        g.position.set((rnd() - 0.5) * BW * 0.6, BT + peak * 0.6 + rnd() * 0.05, (rnd() - 0.5) * BD * 0.5); g.rotation.set(rnd() * 3, rnd() * 3, 0); inner.add(g);
+      }
+      const pearl = new THREE.MeshStandardMaterial({ color: 0xf6f0e6, roughness: 0.2, metalness: 0.1 });
+      for(let s = 0; s < 2; s++){ // pearl strings draped over the front rim
+        const sx = s ? 0.22 : -0.28;
+        for(let p = 0; p < 12; p++){
+          const t = p / 11, bead = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 6), pearl);
+          bead.position.set(sx + (t - 0.5) * 0.24, BT + 0.02 - Math.sin(t * Math.PI) * 0.32, BD / 2 + 0.06 + Math.sin(t * Math.PI) * 0.03); inner.add(bead);
+        }
       }
     }
   }
@@ -10596,7 +10626,7 @@ function tr3dGold(v, M, lvl){
     }
     v.scene.add(lc);
   }
-  v.anchors.gold = new THREE.Vector3(X + 0.1, Hb + 0.42, Z + 0.3);
+  v.anchors.gold = new THREE.Vector3(X + 0.1, BT + 0.42, Z + 0.3);
 }
 function tr3dDrumstick(meat, bone){
   const g = new THREE.Group();
@@ -10830,6 +10860,10 @@ function mountTreasureCorners(){
     v.renderer.setSize(w, h, false); v.camera.aspect = w / h; v.camera.updateProjectionMatrix();
     if(!slot.__tr3dMouse){
       slot.__tr3dMouse = true;
+      slot.closest('.treasure-room').addEventListener('click', () => {
+        const vv = Object.values(tr3dViewers).find(x => x.slot === slot);
+        if(vv && vv.toggleChest) vv.toggleChest();
+      });
       slot.closest('.treasure-room').addEventListener('mousemove', e => {
         const r = slot.getBoundingClientRect(); const vv = Object.values(tr3dViewers).find(x => x.slot === slot);
         if(vv){ vv.mouse.x = (e.clientX - r.left) / r.width - 0.5; vv.mouse.y = (e.clientY - r.top) / r.height - 0.5; }
@@ -10860,6 +10894,7 @@ function mountTreasureCorners(){
         });
         if(v.dust){ v.dust.rotation.y = Math.sin(now / 9000) * 0.05; v.dust.position.y = Math.sin(now / 4000) * 0.1; }
         if(v.bannerMixer) v.bannerMixer.update(dt);
+        if(v.chestMixer) v.chestMixer.update(dt);
         v.renderer.render(v.scene, v.camera);
         const r = v.slot.getBoundingClientRect();
         v.slot.parentNode.querySelectorAll('[data-tr3d-tag]').forEach(el => {
