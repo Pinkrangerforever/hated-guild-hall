@@ -3707,6 +3707,13 @@
     background:linear-gradient(180deg, #f0d27a, #c9963f 60%, #a77a2e); border:1px solid #5a3c12; box-shadow:0 2px 5px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,245,200,0.6); }
   .ds-buy:hover:not([disabled]){ filter:brightness(1.1); }
   .ds-buy.crystal{ color:#fff; background:linear-gradient(180deg, #b86bff, #8a3be0 60%, #5e1fa8); border-color:#2e0d55; box-shadow:0 2px 5px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,230,255,0.4); }
+  .ds-card.earned{ border-color:rgba(64,160,220,0.55); background:linear-gradient(180deg, rgba(64,160,220,0.1), rgba(0,0,0,0.3)); }
+  .ds-card.earned:not(.unlocked) .ds-thumb{ filter:grayscale(0.7) brightness(0.7); }
+  .ds-rarity.achv{ background:linear-gradient(180deg, #5cc0ff, #1f74b8); box-shadow:0 0 8px rgba(64,160,220,0.6); }
+  .ds-progress{ position:relative; height:22px; border-radius:4px; overflow:hidden; background:rgba(0,0,0,0.55); border:1px solid rgba(64,160,220,0.5); }
+  .ds-progress div{ height:100%; background:linear-gradient(90deg, #1f74b8, #5cc0ff); box-shadow:0 0 10px rgba(92,192,255,0.6); }
+  .ds-progress span{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; text-shadow:0 1px 2px #000; }
+  .ds-earned-note{ text-align:center; font-family:'Cinzel', Georgia, serif; font-weight:700; color:#9fe07a; padding:5px; }
   .ds-buy[disabled]{ cursor:not-allowed; opacity:0.55; filter:grayscale(0.4); }
   /* Limited-time holiday section */
   .ds-section.holiday{ padding:14px; border-radius:8px; border:1px solid rgba(255,140,30,0.55);
@@ -8866,6 +8873,7 @@ const HOME_DECOR = {
   // the model's fire is WoW particle cards; our flickering flame + firelight replace them
   // Rare NPCs (bought with crystals): they roam the stage and play their special emote
   headless_horseman: { gltf: 'models/housing/decor-headless-horseman.gltf', height: 2.8, npc: true },
+  baby_murloc:      { gltf: 'models/housing/decor-baby-murloc.gltf', height: 0.6, npc: true, fun: ['Dance', 'StandAlt'] },
   flying_broom:     { gltf: 'models/housing/decor-flying-broom.gltf', height: 1.0, npc: true, fun: ['MountSpecial'] },
   sinister_squashling: { gltf: 'models/housing/decor-sinister-squashling.gltf', height: 0.9, npc: true, fun: ['SpellCast', 'Emerge'] },
   // its flames are WoW particles too: our flickering flame on top + a warm glow
@@ -9906,7 +9914,24 @@ function homeCancelEdit(){
 
 // Decor Shop: pieces for this home's zone plus the ones that fit anywhere
 const DECOR_HOLIDAYS = { hallows_end: { title: "Hallow's End", tag: 'Limited Time Holiday', icon: '&#127875;' } };
+function decorRewardCardHtml(i, mine){
+  const k = i.metadata.key, own = mine[k] || 0, goal = i.metadata.reward_goal || 1;
+  const prog = state.rewardProgress && typeof state.rewardProgress === 'object' ? (state.rewardProgress[i.metadata.reward] || 0) : null;
+  const pct = prog == null ? 0 : Math.min(100, Math.round(prog / goal * 100));
+  return `
+    <div class="ds-card earned ${own ? 'unlocked' : ''}">
+      ${ own ? '<span class="ds-owned">Earned!</span>' : '' }
+      <span class="ds-rarity achv">Achievement</span>
+      <div class="ds-thumb">${decorThumbHtml(k)}</div>
+      <div class="ds-name">${esc(i.name)}</div>
+      <div class="ds-tags"><span class="any">Any home</span>${ HOME_DECOR[k] && HOME_DECOR[k].npc ? '<span class="npc">Roams</span>' : '' }</div>
+      <p class="ds-desc">${esc(i.metadata.reward_text || '')}</p>
+      ${ own ? '<div class="ds-earned-note">&#10003; In your decor</div>'
+             : `<div class="ds-progress"><div style="width:${pct}%"></div><span>${prog == null ? '&hellip;' : `${Math.min(prog, goal)} / ${goal}`}</span></div>` }
+    </div>`;
+}
 function decorCardHtml(i, mine, gold, crystals){
+  if(i.metadata.reward) return decorRewardCardHtml(i, mine);
   const k = i.metadata.key, own = mine[k] || 0, byCrystal = i.metadata.currency === 'crystals';
   const can = byCrystal ? crystals >= i.cost : gold >= i.cost;
   const price = byCrystal
@@ -9945,7 +9970,15 @@ function openDecorShop(zone){
   const section = (cls, head, list) => list.length ? `<section class="ds-section ${cls}">${head}<div class="ds-grid">${list.map(card).join('')}</div></section>` : '';
   const holidays = {};
   items.filter(i => i.metadata.holiday).forEach(i => { (holidays[i.metadata.holiday] = holidays[i.metadata.holiday] || []).push(i); });
-  const rest = items.filter(i => !i.metadata.holiday);
+  const rest = items.filter(i => !i.metadata.holiday && !i.metadata.reward);
+  const earned = items.filter(i => i.metadata.reward);
+  if(earned.length && state.rewardProgress === undefined){
+    state.rewardProgress = 'loading';
+    sb.rpc('my_reward_progress').then(({ data }) => {
+      state.rewardProgress = data || {};
+      const m = document.querySelector('.decor-shop-modal'); if(m) openDecorShop(m.getAttribute('data-zone'));
+    });
+  }
   const holidayHtml = Object.keys(holidays).map(hk => {
     const hd = DECOR_HOLIDAYS[hk] || { title: hk, tag: 'Limited Time Holiday', icon: '&#10024;' };
     return section('holiday', `
@@ -9973,6 +10006,7 @@ function openDecorShop(zone){
         ${section('rare', '<h4 class="ds-h">Rare Finds <small>bought with crystals</small></h4>', rest.filter(i => i.metadata.currency === 'crystals'))}
         ${section('', `<h4 class="ds-h">${esc(zoneLabel)} <small>only for this home</small></h4>`, rest.filter(i => i.metadata.currency !== 'crystals' && i.metadata.zone))}
         ${section('', '<h4 class="ds-h">For Any Home</h4>', rest.filter(i => i.metadata.currency !== 'crystals' && !i.metadata.zone))}
+        ${section('earned', '<h4 class="ds-h">Achievements <small>earned, never sold</small></h4>', earned)}
         ${ items.length ? '' : '<p class="decor-empty">No decor for this home yet.</p>' }
       </div>
     </div>`;
