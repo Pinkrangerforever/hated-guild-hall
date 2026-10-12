@@ -8816,6 +8816,8 @@ const HOME_DECOR = {
   // Rare NPCs (bought with crystals): they roam the stage and play their special emote
   headless_horseman: { gltf: 'models/housing/decor-headless-horseman.gltf', height: 2.8, npc: true },
   sinister_squashling: { gltf: 'models/housing/decor-sinister-squashling.gltf', height: 0.9, npc: true, fun: ['SpellCast', 'Emerge'] },
+  // its flames are WoW particles too: our flickering flame on top + a warm glow
+  jack_o_lantern:   { gltf: 'models/housing/decor-jack-o-lantern.gltf', height: 0.8, torches: [[0, 1.3, 0]], flameSize: 0.5, fireLight: 1.4 },
   campfire:         { gltf: 'models/housing/decor-campfire.gltf', height: 0.9, torches: [[0, 0.6, 0]], flameSize: 0.9, fireLight: 2.2 }
 };
 // Everything standing in a home: the zone's fixed props, the built houses (moved wherever the owner
