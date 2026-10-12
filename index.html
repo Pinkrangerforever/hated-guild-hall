@@ -8812,7 +8812,8 @@ const HOME_ZONES = {
     // Comes with the home location (not the house). World units on the diorama stage (see DIORAMA):
     // x left/right, z toward the viewer (+) or the backdrop (-), height in world units.
     props: [
-      { gltf: 'models/housing/taurenlamppost.gltf', x: -4.6, z: 1.6, height: 1.5, rotY: 0.5 + Math.PI + 25 * Math.PI / 180 },
+      { gltf: 'models/housing/taurenlamppost.gltf', x: -4.6, z: 1.6, height: 1.5, rotY: 0.5 + Math.PI + 25 * Math.PI / 180,
+        light: { at: [0.09, 1.95, 1.08], color: 0xffa040, intensity: 1.6, distance: 5 }, lamps: [] },
       // added later: keep new starting pieces at the END (saved layouts refer to them by position)
       { gltf: 'models/housing/mulgore-shaman-mesa.gltf', x: 5.0, z: -2.4, height: 4.5, rotY: -0.6 }   // shaman's mesa
     ],
@@ -8868,7 +8869,7 @@ const HOUSE_TIER_COSTS = { 1: 100, 2: 500, 3: 1000 }; // wood; enforced server-s
 // Decor pieces players buy in the Decor Shop (shop_items category 'home_decor', metadata.key -> here).
 // metadata.zone locks a piece to one home zone; no zone = fits any home.
 const HOME_DECOR = {
-  mulgore_lamppost: { gltf: 'models/housing/taurenlamppost.gltf', height: 1.5 },
+  mulgore_lamppost: { gltf: 'models/housing/taurenlamppost.gltf', height: 1.5, light: { at: [0.09, 1.95, 1.08], color: 0xffa040, intensity: 1.6, distance: 5 }, lamps: [] },
   elwynn_lamppost:  { gltf: 'models/housing/elwynn-lamppost.gltf', height: 2.4, light: { y: 2.0, color: 0xffb05a, intensity: 1.6, distance: 6 } },
   elwynn_oak:       { gltf: 'models/housing/elwynn-tree.gltf', height: 6 },
   copper_vein:      { gltf: 'models/minigames/copper-node.gltf', height: 1.1 },
