@@ -8781,8 +8781,8 @@ const HOME_ZONES = {
     // Duskwood night: pale blue moonlight, deep blue sky fill, the lamp does the warm work
     light: { sun: 0x9fb4ff, sunI: 0.38, sunPos: [8, 9, 3], sky: 0x2a3560, ground: 0x0e1014, hemiI: 0.32, amb: 0x5060a0, ambI: 0.07 },
     props: [
-      { gltf: 'models/housing/darkshire-archway.gltf', x: -0.3, z: 2.5, height: 3.6, rotY: 0 },     // sign archway over the path
-      { gltf: 'models/housing/darkshire-lamppost.gltf', x: 2.6, z: 1.2, height: 2.8, rotY: 0,
+      { gltf: 'models/housing/darkshire-archway.gltf', x: -0.09, z: 3.16, height: 3.6, rotY: -1.571 },     // sign archway over the path
+      { gltf: 'models/housing/darkshire-lamppost.gltf', x: -5.55, z: 2.29, height: 2.8, rotY: 0.262,
         light: { y: 2.4, color: 0xffc070, intensity: 1.8, distance: 7 } }
     ],
     houses: {}
@@ -9145,7 +9145,8 @@ function buildHomeStage(v, zoneKey){
     const video = document.createElement('video');
     video.src = zone.video; video.crossOrigin = 'anonymous';
     video.muted = true; video.loop = true; video.playsInline = true; video.autoplay = true;
-    video.play().catch(() => {});
+    video.addEventListener('error', () => console.error('Home backdrop video failed to load:', zone.video, video.error && video.error.code));
+    video.play().catch(err => console.warn('Home backdrop video did not autoplay:', err && err.message));
     v.video = video;
     const vt = new THREE.VideoTexture(video); vt.encoding = THREE.sRGBEncoding;
     backMat = new THREE.MeshBasicMaterial({ map: vt, color: 0xe6ddcc, fog: false });
