@@ -8935,7 +8935,7 @@ function renderHomeShopSection(gold){
         const have = owned.has(zone);
         return `
           <div class="shop-card home-shop-card">
-            ${ video ? `<video class="home-shop-preview" src="${esc(video)}#t=1" muted loop playsinline preload="metadata" data-hover-play></video>` : '' }
+            ${ video ? `<video class="home-shop-preview" src="${esc(video)}#t=1" crossorigin="anonymous" muted loop playsinline preload="metadata" data-hover-play></video>` : '' }
             <div class="shop-card-name">${esc(item.name)}</div>
             <div class="shop-card-desc muted sans">${esc(item.description || '')}</div>
             <div class="shop-card-footer"><span class="nav-gold-badge">${goldIconHtml()} ${item.cost}</span></div>
@@ -9145,7 +9145,8 @@ function buildHomeStage(v, zoneKey){
   let backMat;
   if(zone.video){
     const video = document.createElement('video');
-    video.src = zone.video; video.crossOrigin = 'anonymous';
+    // Own cache entry: if the browser cached this file from a plain <video> (no CORS), WebGL can't use it
+    video.crossOrigin = 'anonymous'; video.src = zone.video + (zone.video.includes('?') ? '&' : '?') + 'cors=1';
     video.muted = true; video.loop = true; video.playsInline = true; video.autoplay = true;
     video.addEventListener('error', () => console.error('Home backdrop video failed to load:', zone.video, video.error && video.error.code));
     video.play().catch(err => console.warn('Home backdrop video did not autoplay:', err && err.message));
