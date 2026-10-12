@@ -3648,6 +3648,10 @@
     background:rgba(255,230,160,0.06); border:1px solid rgba(201,150,63,0.35); color:#e9dcc0; text-align:left; font:inherit; font-size:13px; }
   .decor-row:hover:not([disabled]){ background:rgba(255,230,160,0.14); border-color:#c9963f; }
   .decor-row[disabled]{ opacity:0.45; cursor:default; }
+  .decor-thumb{ width:42px; height:42px; flex:0 0 42px; object-fit:contain; border-radius:4px;
+    background:radial-gradient(ellipse at 50% 60%, rgba(255,220,150,0.18), rgba(0,0,0,0.35)); border:1px solid rgba(201,150,63,0.35); }
+  .decor-thumb:not([src]){ animation:trGlow 1.2s ease-in-out infinite alternate; }
+  .decor-shop-card .decor-thumb{ width:100%; height:120px; flex:none; }
   .decor-row .decor-count{ margin-left:auto; font-size:11px; color:#c9b48a; white-space:nowrap; }
   .decor-zone-tag{ font-size:10px; color:#b48cff; }
   .decor-empty{ font-size:12px; color:rgba(233,220,192,0.55); font-style:italic; }
@@ -8786,7 +8790,8 @@ const HOME_ZONES = {
         light: { y: 2.4, color: 0xffc070, intensity: 1.8, distance: 7 } }
     ],
     houses: {
-      1: { gltf: 'models/housing/darkshire-house-t1.gltf', x: 0.5, z: -1.5, height: 3.2, rotY: 0 }
+      1: { gltf: 'models/housing/darkshire-house-t1.gltf', x: 0.5, z: -1.5, height: 3.2, rotY: 0 },
+      2: { gltf: 'models/housing/darkshire-house-t2.gltf', x: -3.4, z: -1.2, height: 3.8, rotY: 20 * Math.PI / 180 }
     }
   }
 };
@@ -9539,6 +9544,40 @@ var homeEdit = null;        // { homeId, zone } while the owner is decorating
 let homePieceDrag = null;   // { v, entry, dx, dz } while dragging a piece
 const HOME_STAGE_LIMIT = { x: 6.2, z: 3.2 };
 
+// Thumbnails: each decor model is rendered once (one shared offscreen renderer, one at a time) into a
+// small transparent PNG, then every <img data-decor-thumb="key"> on the page picks it up.
+const decorThumbs = {};          // key -> data URL | 'pending'
+let decorThumbQueue = Promise.resolve(), decorThumbRenderer = null;
+function decorThumbHtml(k){
+  const src = typeof decorThumbs[k] === 'string' && decorThumbs[k] !== 'pending' ? decorThumbs[k] : '';
+  if(!decorThumbs[k]) queueDecorThumb(k);
+  return `<img class="decor-thumb" data-decor-thumb="${esc(k)}" alt="" ${src ? `src="${src}"` : ''}>`;
+}
+function queueDecorThumb(k){
+  const def = HOME_DECOR[k];
+  if(!def || typeof THREE === 'undefined') return;
+  decorThumbs[k] = 'pending';
+  decorThumbQueue = decorThumbQueue.then(() => loadHomeProp(def)).then(holder => {
+    if(!decorThumbRenderer){
+      decorThumbRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+      decorThumbRenderer.setSize(160, 160, false);
+      decorThumbRenderer.outputEncoding = THREE.sRGBEncoding;
+    }
+    const scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight(0xfff4e0, 0x3a2c1c, 1.0));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.9); sun.position.set(-3, 5, 4); scene.add(sun);
+    holder.rotation.y = -0.5;
+    scene.add(holder);
+    const box = new THREE.Box3().setFromObject(holder), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+    const r = Math.max(size.x, size.y, size.z) * 0.62 || 1;
+    const cam = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
+    cam.position.set(c.x + r * 1.2, c.y + r * 0.9, c.z + r * 2.6); cam.lookAt(c);
+    decorThumbRenderer.render(scene, cam);
+    decorThumbs[k] = decorThumbRenderer.domElement.toDataURL('image/png');
+    document.querySelectorAll(`img[data-decor-thumb="${k}"]`).forEach(img => { img.src = decorThumbs[k]; });
+  }).catch(err => { console.warn('Decor thumbnail failed:', k, err); decorThumbs[k] = ''; });
+}
+
 async function loadMyDecor(){
   if(!state.profile) return;
   state.myDecor = 'loading';
@@ -9578,7 +9617,7 @@ function renderDecorInventory(home, editing){
   const rows = items.map(i => {
     const k = i.metadata.key, left = mine[k] - decorPlacedCount(k);
     return `<button type="button" class="decor-row" data-decor-place="${esc(k)}" ${left > 0 ? '' : 'disabled'}>
-      <span>${esc(i.name)}${i.metadata.zone ? '' : '<br><span class="decor-zone-tag">Any home</span>'}</span>
+      ${decorThumbHtml(k)}<span>${esc(i.name)}${i.metadata.zone ? '' : '<br><span class="decor-zone-tag">Any home</span>'}</span>
       <span class="decor-count">${left} / ${mine[k]}</span></button>`;
   }).join('');
   return `
@@ -9796,6 +9835,7 @@ function openDecorShop(zone){
       <div class="decor-shop-grid">
         ${ items.map(i => `
           <div class="decor-shop-card">
+            ${decorThumbHtml(i.metadata.key)}
             <b>${esc(i.name)}</b>
             ${ i.metadata.zone ? '' : '<span class="decor-zone-tag">Any home</span>' }
             <p>${esc(i.description || '')}</p>
