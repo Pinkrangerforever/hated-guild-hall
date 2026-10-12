@@ -9945,10 +9945,12 @@ function decorRewardCardHtml(i, mine){
 function decorCardHtml(i, mine, gold, crystals){
   if(i.metadata.reward) return decorRewardCardHtml(i, mine);
   const k = i.metadata.key, own = mine[k] || 0, byCrystal = i.metadata.currency === 'crystals';
-  const can = byCrystal ? crystals >= i.cost : gold >= i.cost;
-  const price = byCrystal
+  const woodCost = Number(i.metadata.wood_cost) || 0, wood = (state.profile && state.profile.wood) || 0;
+  const can = (byCrystal ? crystals >= i.cost : gold >= i.cost) && wood >= woodCost;
+  const price = (byCrystal
     ? `<img src="${CRYSTAL_ICON}" alt="" class="ds-cur"> ${i.cost}`
-    : `${goldIconHtml()} ${i.cost.toLocaleString()}`;
+    : `${goldIconHtml()} ${i.cost.toLocaleString()}`)
+    + (woodCost ? ` + <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/WoodIcon.png" alt="" class="ds-cur"> ${woodCost}` : '');
   return `
     <div class="ds-card ${byCrystal ? 'rare' : ''} ${i.metadata.holiday ? 'holiday' : ''}">
       ${ own ? `<span class="ds-owned">Owned &times;${own}</span>` : '' }
@@ -10010,6 +10012,7 @@ function openDecorShop(zone){
         <div class="ds-wallet">
           <span title="Gold">${goldIconHtml()} ${gold.toLocaleString()}</span>
           <span title="Crystals"><img src="${CRYSTAL_ICON}" alt="" class="ds-cur"> ${crystals.toLocaleString()}</span>
+          <span title="Wood"><img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/WoodIcon.png" alt="" class="ds-cur"> ${((state.profile && state.profile.wood) || 0).toLocaleString()}</span>
         </div>
         <button class="ds-close" type="button" data-decor-shop-close aria-label="Close">&times;</button>
       </header>
@@ -10034,6 +10037,7 @@ async function buyDecor(itemId){
     if(!data.success){ showToast(data.error || 'Purchase failed', true); return; }
     if(data.new_gold != null) state.profile.gold = data.new_gold;
     if(data.new_crystals != null) state.profile.crystals = data.new_crystals;
+    if(data.new_wood != null) state.profile.wood = data.new_wood;
     if(!state.myDecor || typeof state.myDecor !== 'object') state.myDecor = {};
     state.myDecor[data.key] = data.qty;
     updateNavbarUserInfo();
