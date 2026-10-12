@@ -8879,6 +8879,8 @@ const HOME_DECOR = {
   goldjack:         { gltf: 'models/housing/decor-goldjack.gltf', height: 1.5, npc: true, fun: ['StandAlt'] },
   speedy:           { gltf: 'models/housing/decor-speedy.gltf', height: 0.7, npc: true, walkSpeed: 0.3, fun: ['MountSpecial', 'Whirlwind', 'StandAlt'] },
   hogger_npc:       { gltf: 'models/housing/decor-hogger.gltf', height: 2.2, npc: true, fun: ['BattleRoar', 'EmoteLaugh', 'StandAlt'] },
+  // weapons lie along +X from the grip: orient stands it upright, tip down (sink it with the arrows to plant it)
+  thunderfury:      { gltf: 'models/housing/decor-thunderfury.gltf', height: 2.2, orient: [0, 0, -Math.PI / 2], lamps: [[1.2, 0, 0]], lampColor: 0x6fb8ff },
   flying_broom:     { gltf: 'models/housing/decor-flying-broom.gltf', height: 1.0, npc: true, fun: ['MountSpecial'] },
   sinister_squashling: { gltf: 'models/housing/decor-sinister-squashling.gltf', height: 0.9, npc: true, fun: ['SpellCast', 'Emerge'] },
   // its flames are WoW particles too: our flickering flame on top + a warm glow
@@ -9323,6 +9325,8 @@ function loadHomeProp(prop){
     console.warn('Home model textures missing, showing it untextured:', model.gltf, err && err.message);
     return loadGltfWithoutTextures(model.gltf);
   }).then(pivot => {
+    if(prop.orient) pivot.rotation.set(prop.orient[0], prop.orient[1], prop.orient[2]); // e.g. stand a weapon upright
+    pivot.updateMatrixWorld(true);
     // getAnimatedPetModel centers the model and scales it to unit size; re-seat it so its
     // bottom-center is the origin, then size it to the requested share of the frame height.
     const box = new THREE.Box3().setFromObject(pivot);
@@ -10148,7 +10152,7 @@ function addHomePropHolder(v, h, prop){
   }
   // Lamps: a warm light at each lamp (gentle flicker)
   (prop.lamps || []).forEach(([lx, ly, lz]) => {
-    const glow = new THREE.PointLight(0xffc070, 1.1, 4, 2);
+    const glow = new THREE.PointLight(prop.lampColor || 0xffc070, 1.1, 4, 2);
     glow.position.set(lx, ly, lz);
     h.userData.pivot.children[0].add(glow);
     (v.flames = v.flames || []).push({ glow, base: 1.1, seed: Math.random() * 10, lamp: true });
