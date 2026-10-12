@@ -8874,6 +8874,7 @@ const HOME_DECOR = {
   // Rare NPCs (bought with crystals): they roam the stage and play their special emote
   headless_horseman: { gltf: 'models/housing/decor-headless-horseman.gltf', height: 2.8, npc: true },
   baby_murloc:      { gltf: 'models/housing/decor-baby-murloc.gltf', height: 0.6, npc: true, fun: ['Dance', 'StandAlt'] },
+  lumberjack_npc:   { gltf: 'models/housing/decor-lumberjack.gltf', height: 1.5, npc: true, fun: ['StandAlt'] },
   flying_broom:     { gltf: 'models/housing/decor-flying-broom.gltf', height: 1.0, npc: true, fun: ['MountSpecial'] },
   sinister_squashling: { gltf: 'models/housing/decor-sinister-squashling.gltf', height: 0.9, npc: true, fun: ['SpellCast', 'Emerge'] },
   // its flames are WoW particles too: our flickering flame on top + a warm glow
@@ -9916,7 +9917,7 @@ function homeCancelEdit(){
 const DECOR_HOLIDAYS = { hallows_end: { title: "Hallow's End", tag: 'Limited Time Holiday', icon: '&#127875;' } };
 function decorRewardCardHtml(i, mine){
   const k = i.metadata.key, own = mine[k] || 0, goal = i.metadata.reward_goal || 1;
-  const prog = state.rewardProgress && typeof state.rewardProgress === 'object' ? (state.rewardProgress[i.metadata.reward] || 0) : null;
+  const prog = state.rewardProgress && typeof state.rewardProgress === 'object' ? (state.rewardProgress[i.metadata.reward_game] || 0) : null;
   const pct = prog == null ? 0 : Math.min(100, Math.round(prog / goal * 100));
   return `
     <div class="ds-card earned ${own ? 'unlocked' : ''}">
