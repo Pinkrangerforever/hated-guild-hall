@@ -9237,7 +9237,9 @@ function buildHomeStage(v, zoneKey){
     g.fillStyle = gr; g.fillRect(0, 0, 4, 256);
     backMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), fog: false });
   }
+  backMat.depthWrite = false; // drawn first and never hides anything: fliers can head "into" the scenery
   const back = new THREE.Mesh(new THREE.PlaneGeometry(bw, bh), backMat);
+  back.renderOrder = -1;
   back.position.y = bh / 2 - 0.05;
   const hinge = new THREE.Group();
   hinge.position.set(0, 0, DIORAMA.floorBack);
@@ -9373,8 +9375,13 @@ function homeStageHalfWidth(z){ return 4.8; }
 function homePetGroundPoint(v, h){
   return homePetFreePoint(v, h || 0, () => { const z = rand(-2.8, 2.4); return new THREE.Vector3(rand(-1, 1) * homeStageHalfWidth(z), 0, z); });
 }
+// Fliers roam a big volume: wide, high, and far back past the backdrop (the video doesn't hide what's behind
+// it, so a pet flying back there shrinks into the scenery as if it's flying off into the distance)
 function homePetAirPoint(v, h){
-  return homePetFreePoint(v, h || 0, () => { const z = rand(-2.6, 1.5); return new THREE.Vector3(rand(-0.9, 0.9) * homeStageHalfWidth(z), rand(2, 3.4), z); });
+  return homePetFreePoint(v, h || 0, () => {
+    const z = Math.random() < 0.35 ? rand(-11, -3.6) : rand(-3.4, 1.5), far = Math.max(0, -z - 3);
+    return new THREE.Vector3(rand(-1, 1) * (4.6 + far * 0.75), rand(2, 3.8 + far * 0.3), z);
+  });
 }
 function homePetBezier(p, t){
   const it = 1 - t;
@@ -9461,16 +9468,12 @@ function homePetNext(v, a, now){
       return;
     }
     if(a.state === 'takeoff' || a.state === 'hover' || (a.state === 'fly' && a.airTarget)){
-      // In the air: wander, hover a moment, or head down to land
+      // Fliers stay in the air (they never land, so nothing on the ground can snag them): wander or hover
       const r = Math.random();
       if(a.state !== 'hover' && a.hover && r < 0.3){
         homePetPlay(a, a.hover); a.state = 'hover'; a.until = now + rand(1800, 3500); a.path = null;
-      } else if(r < 0.65){
-        if(homePetStartPath(v, a, homePetAirPoint(v, a.height), HOME_PET_FLY_SPEED, 0.3)){
-          homePetPlay(a, a.fly); a.state = 'fly'; a.airTarget = true; a.until = Infinity; return;
-        }
-      } else if(homePetStartPath(v, a, homePetGroundPoint(v, a.height), HOME_PET_FLY_SPEED, 0.5)){
-        homePetPlay(a, a.fly); a.state = 'fly'; a.airTarget = false; a.until = Infinity; return;
+      } else if(homePetStartPath(v, a, homePetAirPoint(v, a.height), HOME_PET_FLY_SPEED, 0.3)){
+        homePetPlay(a, a.fly); a.state = 'fly'; a.airTarget = true; a.until = Infinity; return;
       }
       // No clear route right now: hang in the air a moment and try again
       homePetPlay(a, a.hover || a.fly); a.state = 'hover'; a.until = now + rand(800, 1600); a.path = null;
@@ -9524,7 +9527,7 @@ function placeHomePetActor(v, a){
   a.holder.scale.setScalar(h / a.holder.userData.unitHeight);
   a.height = h;
   if(!a.placed){
-    const spot = (a.kind === 'flier' && Math.random() < 0.5 ? homePetAirPoint(v, h) : homePetGroundPoint(v, h)) || homePetAirPoint(v, h);
+    const spot = (a.kind === 'flier' ? homePetAirPoint(v, h) : homePetGroundPoint(v, h)) || homePetAirPoint(v, h);
     a.holder.position.copy(spot || new THREE.Vector3(0, 0, 2));
     if(a.kind === 'flier' && a.holder.position.y > 0.5){ homePetPlay(a, a.hover || a.fly); a.state = 'hover'; a.until = performance.now() + rand(500, 2000); }
     else { homePetPlay(a, a.idle); a.state = 'idle'; a.until = performance.now() + rand(1500, 5000); }
