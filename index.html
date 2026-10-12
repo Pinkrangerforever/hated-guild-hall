@@ -8795,7 +8795,9 @@ const HOME_ZONES = {
       // model-space spots (beside the doors)
       2: { gltf: 'models/housing/darkshire-house-t2.gltf', x: 6.2, z: -0.9, height: 3.8, rotY: -2.793,
            anim: 'Opened', animOnce: true, torches: [[6.7, 7, 3.2], [6.7, 7, -3.2]] },
-      3: { gltf: 'models/housing/darkshire-house-t3.gltf', x: 3.8, z: -1.6, height: 6.5, rotY: -30 * Math.PI / 180 }
+      // lamp glass is self-lit in the model; these add the light they throw (model-space lamp spots)
+      3: { gltf: 'models/housing/darkshire-house-t3.gltf', x: 3.8, z: -1.6, height: 6.5, rotY: -30 * Math.PI / 180,
+           lamps: [[-1.9, 17.5, -15.7], [6.5, 10.2, -10.1], [-9.8, 10.5, -10.9], [8.6, 20, -0.4]] }
     }
   }
 };
@@ -9962,6 +9964,13 @@ function addHomePropHolder(v, h, prop){
     act.play();
     v.mixers.push(entry.mixer);
   }
+  // Lamps: a warm light at each lamp (gentle flicker)
+  (prop.lamps || []).forEach(([lx, ly, lz]) => {
+    const glow = new THREE.PointLight(0xffc070, 1.1, 4, 2);
+    glow.position.set(lx, ly, lz);
+    h.userData.pivot.children[0].add(glow);
+    (v.flames = v.flames || []).push({ glow, base: 1.1, seed: Math.random() * 10 });
+  });
   // Torch flames: flickering additive sprites + a warm light, placed in the model's own space
   (prop.torches || []).forEach(([tx, ty, tz]) => {
     const root = h.userData.pivot.children[0];
@@ -10061,7 +10070,8 @@ function mountHomeScenes(){
         if(v.selHelper) v.selHelper.update();
         (v.flames || []).forEach(f => { // torch flicker
           const k = 0.8 + 0.2 * Math.sin(now / 90 + f.seed) + 0.1 * Math.sin(now / 37 + f.seed * 3);
-          f.flame.scale.set(2.2 * (0.9 + 0.1 * k), 3 * k, 1); f.glow.intensity = 1.2 * k;
+          if(f.flame) f.flame.scale.set(2.2 * (0.9 + 0.1 * k), 3 * k, 1);
+          f.glow.intensity = (f.base || 1.2) * (f.flame ? k : 0.92 + 0.08 * k);
         });
         if(v.selArrows && v.sel) homePlaceSelArrows(v);
         v.mixers.forEach(m => m.update(dt));
