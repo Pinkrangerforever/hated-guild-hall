@@ -3598,7 +3598,10 @@
     border:2px solid #c9963f; box-shadow:0 0 0 1px #000; background:#000; }
   /* The 3D diorama (backdrop + stage) fills the frame; the flat video shows until it is ready */
   .home-scene{ position:absolute; inset:0; z-index:1; pointer-events:none; }
-  .treasure-room{ position:relative; aspect-ratio:1000 / 500; border-radius:6px; overflow:hidden; background:#140e0a;
+  .profile-split{ width:min(1400px, calc(100vw - 32px)); align-self:center; display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:stretch; }
+  .profile-split > .profile-panel{ width:auto; margin:0; min-width:0; }
+  @media (max-width:900px){ .profile-split{ grid-template-columns:1fr; } }
+  .treasure-room{ position:relative; aspect-ratio:4 / 3; border-radius:6px; overflow:hidden; background:#140e0a;
     border:3px solid #5a3818; box-shadow:0 0 0 1px #000, inset 0 0 0 1px rgba(255,220,160,0.15), 0 4px 14px rgba(0,0,0,0.6); }
   .tr3d{ position:absolute; inset:0; z-index:3; pointer-events:none; }
   .tr3d canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
@@ -10464,8 +10467,10 @@ function renderProfilePage(){
         </div>
       </div>
 
-      ${renderProfileStats(p)}
-      ${renderResourceShelf(p, isMe)}
+      <div class="profile-split">
+        ${renderProfileStats(p)}
+        ${renderResourceShelf(p, isMe)}
+      </div>
       ${renderHomeSection(p, isMe)}
       ${renderPetRoster(p, isMe)}
     </div>`;
@@ -10501,17 +10506,17 @@ function renderResourceShelf(p, isMe){
 }
 
 /* ---------------- Treasure corner (3D) ----------------
-   A torch-lit stone vault corner. Stone walls / cobble floor / plank beams reuse textures already in R2,
-   the Horde banner is the decor model, and the piles are built here so they grow with the amounts:
-   gold = a coin heap (plus a chest once you're rich), wood = stacked logs, food = barrel + produce,
-   crystals = a glowing cluster. The 2D room stays underneath until the 3D scene is ready.
+   A compact torch-lit vault corner. Stone walls / cobble floor / planks reuse textures already in R2; the
+   Horde banner is the decor model; everything else is built here so the piles grow with the amounts:
+   gold = coin heap + coin stacks (an open chest once you're rich), wood = log stack along the wall,
+   food = roast chicken legs on a wooden platter, crystals = a glowing cluster on a small table.
    One viewer per player + amounts; it re-attaches its canvas after every render. */
 const TR3D_TEX = {
   wall: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/Tier%203%20Home/128000.png',
   floor: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/duskwoodcobblestone2.png',
-  beam: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Elwynn%20Cabin/Tier%201%20Home/130316.png'
+  plank: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Elwynn%20Cabin/Tier%201%20Home/130316.png'
 };
-const TR3D_COUNTS = { gold: [0, 8, 40, 110, 220, 380], wood: [0, 1, 3, 6, 10, 15], food: [0, 2, 5, 9, 14, 20], crystals: [0, 1, 3, 6, 10, 15] };
+const TR3D_COUNTS = { gold: [0, 8, 40, 110, 220, 380], wood: [0, 1, 3, 6, 10, 15], food: [0, 1, 3, 6, 10, 15], crystals: [0, 1, 3, 6, 10, 15] };
 const tr3dViewers = {};
 function tr3dTex(url, rx, ry){
   const t = new THREE.TextureLoader().load(url);
@@ -10519,146 +10524,190 @@ function tr3dTex(url, rx, ry){
   return t;
 }
 function tr3dRand(seed){ let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
-function tr3dShadow(scene, x, z, r){
+function tr3dShadow(scene, x, z, rx, rz){
   const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
-  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(0,0,0,0.75)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(0,0,0,0.8)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 2, r * 2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
-  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.01, z); scene.add(m);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(rx * 2, (rz || rx) * 2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.012, z); scene.add(m);
 }
-// Coins heaped in a cone; a chest behind the heap once the hoard is big
+const tr3dGoldMat = () => new THREE.MeshStandardMaterial({ color: 0xffc23a, metalness: 1, roughness: 0.25, emissive: 0x4a2c00, emissiveIntensity: 0.55 });
+
+// Coins heaped in a cone, a few neat stacks beside it, and an open chest behind once the hoard is big
 function tr3dGold(v, lvl){
   const n = TR3D_COUNTS.gold[lvl]; if(!n) return;
-  const rnd = tr3dRand(11), R = 0.35 + Math.sqrt(n) * 0.07, H = R * 0.55;
-  const mat = new THREE.MeshStandardMaterial({ color: 0xffc23a, metalness: 1, roughness: 0.28, emissive: 0x3a2400, emissiveIntensity: 0.6 });
-  const coins = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.11, 0.022, 14), mat, n);
-  const o = new THREE.Object3D();
+  const X = -0.25, Z = 0.45, rnd = tr3dRand(11), R = 0.3 + Math.sqrt(n) * 0.06, H = R * 0.6;
+  const mat = tr3dGoldMat(), coinGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.02, 16);
+  const coins = new THREE.InstancedMesh(coinGeo, mat, n), o = new THREE.Object3D();
   for(let i = 0; i < n; i++){
-    const y = Math.pow(rnd(), 1.6) * H, rr = R * (1 - y / H) * Math.sqrt(rnd()), a = rnd() * Math.PI * 2;
-    o.position.set(0.6 + Math.cos(a) * rr, y + 0.012, 0.4 + Math.sin(a) * rr * 0.8);
-    o.rotation.set((rnd() - 0.5) * 0.9, rnd() * 6, (rnd() - 0.5) * 0.9); o.updateMatrix(); coins.setMatrixAt(i, o.matrix);
+    const y = Math.pow(rnd(), 1.7) * H, rr = R * (1 - y / H) * Math.sqrt(rnd()), a = rnd() * Math.PI * 2;
+    o.position.set(X + Math.cos(a) * rr, y + 0.011, Z + Math.sin(a) * rr * 0.85);
+    o.rotation.set((rnd() - 0.5) * 1.0, rnd() * 6, (rnd() - 0.5) * 1.0); o.updateMatrix(); coins.setMatrixAt(i, o.matrix);
   }
-  v.scene.add(coins); tr3dShadow(v.scene, 0.6, 0.4, R * 1.4);
-  if(lvl >= 4){
-    const wood = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.beam, 1, 1), roughness: 0.8 });
-    const trim = new THREE.MeshStandardMaterial({ color: 0xd4a640, metalness: 0.9, roughness: 0.35 });
-    const chest = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.6, 0.7), wood); body.position.y = 0.3; chest.add(body);
-    [-0.42, 0.42].forEach(x => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.62, 0.72), trim); b.position.set(x, 0.3, 0); chest.add(b); });
-    const lid = new THREE.Group(); lid.position.set(0, 0.6, -0.35);
-    const lidM = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 1.1, 16, 1, false, 0, Math.PI), wood);
-    lidM.rotation.z = Math.PI / 2; lidM.position.z = 0.35; lid.add(lidM); lid.rotation.x = -1.1; chest.add(lid);
-    const inner = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 0.6), mat); inner.position.y = 0.58; chest.add(inner);
-    chest.scale.setScalar(1.35); chest.position.set(-0.9, 0, -0.9); chest.rotation.y = 0.45; v.scene.add(chest);
-    tr3dShadow(v.scene, -0.9, -0.9, 1.1);
+  v.scene.add(coins); tr3dShadow(v.scene, X, Z, R * 1.35, R * 1.15);
+  // neat stacks
+  const stacks = Math.min(5, lvl);
+  for(let s = 0; s < stacks; s++){
+    const sx = X + R + 0.18 + (s % 2) * 0.22, sz = Z - 0.25 + Math.floor(s / 2) * 0.22, hgt = 4 + Math.floor(rnd() * (4 + lvl * 2));
+    const st = new THREE.InstancedMesh(coinGeo, mat, hgt);
+    for(let k = 0; k < hgt; k++){ o.position.set(sx + (rnd() - 0.5) * 0.015, 0.011 + k * 0.021, sz + (rnd() - 0.5) * 0.015); o.rotation.set(0, rnd() * 6, 0); o.updateMatrix(); st.setMatrixAt(k, o.matrix); }
+    v.scene.add(st);
   }
-  v.anchors.gold = new THREE.Vector3(0.6, H + 0.25, 0.4);
+  if(lvl >= 4) tr3dChest(v, mat);
+  v.anchors.gold = new THREE.Vector3(X, H + 0.3, Z);
 }
+function tr3dChest(v, goldMat){
+  const wood = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 1, 1), color: 0x9a6a40, roughness: 0.8 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x3a3430, metalness: 0.8, roughness: 0.45 });
+  const brass = new THREE.MeshStandardMaterial({ color: 0xd4a640, metalness: 0.95, roughness: 0.3 });
+  const chest = new THREE.Group();
+  const W = 1.0, D = 0.62, Hb = 0.5;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(W, Hb, D), wood); body.position.y = Hb / 2; chest.add(body);
+  [-0.38, 0.38].forEach(x => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.06, Hb + 0.02, D + 0.02), iron); b.position.set(x, Hb / 2, 0); chest.add(b); });
+  const rim = new THREE.Mesh(new THREE.BoxGeometry(W + 0.02, 0.05, D + 0.02), iron); rim.position.y = Hb; chest.add(rim);
+  const lock = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.04), brass); lock.position.set(0, Hb - 0.1, D / 2 + 0.02); chest.add(lock);
+  // open domed lid, hinged at the back
+  const lid = new THREE.Group(); lid.position.set(0, Hb, -D / 2);
+  const dome = new THREE.Mesh(new THREE.CylinderGeometry(D / 2, D / 2, W, 18, 1, false, 0, Math.PI), wood);
+  dome.rotation.z = Math.PI / 2; dome.position.z = D / 2; lid.add(dome);
+  [-0.38, 0.38].forEach(x => { const b = new THREE.Mesh(new THREE.CylinderGeometry(D / 2 + 0.015, D / 2 + 0.015, 0.06, 18, 1, false, 0, Math.PI), iron); b.rotation.z = Math.PI / 2; b.position.set(x, 0, D / 2); lid.add(b); });
+  lid.rotation.x = -1.9; chest.add(lid);
+  // overflowing coins inside
+  const rnd = tr3dRand(91), coinGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.02, 14), n = 70;
+  const inner = new THREE.InstancedMesh(coinGeo, goldMat, n), o = new THREE.Object3D();
+  for(let i = 0; i < n; i++){
+    const x = (rnd() - 0.5) * (W - 0.15), z = (rnd() - 0.5) * (D - 0.12), y = Hb - 0.02 + (1 - Math.abs(x) / W - Math.abs(z) / D) * 0.16 * rnd();
+    o.position.set(x, y, z); o.rotation.set((rnd() - 0.5) * 0.8, rnd() * 6, (rnd() - 0.5) * 0.8); o.updateMatrix(); inner.setMatrixAt(i, o.matrix);
+  }
+  chest.add(inner);
+  chest.position.set(-1.55, 0, -1.35); chest.rotation.y = 0.45; v.scene.add(chest);
+  tr3dShadow(v.scene, -1.55, -1.35, 0.8, 0.55);
+}
+// Logs stacked along the left wall, bark sides and ringed ends
 function tr3dWood(v, lvl){
   const n = TR3D_COUNTS.wood[lvl]; if(!n) return;
   const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
-  g.fillStyle = '#c99a5b'; g.fillRect(0, 0, 64, 64);
-  for(let r = 30; r > 2; r -= 5){ g.strokeStyle = r % 10 ? '#a5753d' : '#8a5e2c'; g.lineWidth = 2; g.beginPath(); g.arc(32, 32, r, 0, Math.PI * 2); g.stroke(); }
-  const cap = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c), roughness: 0.9 });
-  const bark = new THREE.MeshStandardMaterial({ color: 0x4a2f19, roughness: 1 });
-  const geo = new THREE.CylinderGeometry(0.15, 0.15, 1.5, 12);
+  g.fillStyle = '#d0a266'; g.fillRect(0, 0, 64, 64);
+  for(let r = 30; r > 2; r -= 4){ g.strokeStyle = r % 8 ? '#b07f45' : '#8f6230'; g.lineWidth = 1.6; g.beginPath(); g.arc(32 + (r % 3), 32, r, 0, Math.PI * 2); g.stroke(); }
+  g.strokeStyle = '#4a2f19'; g.lineWidth = 5; g.beginPath(); g.arc(32, 32, 30, 0, Math.PI * 2); g.stroke();
+  const capT = new THREE.CanvasTexture(c); capT.encoding = THREE.sRGBEncoding;
+  const cap = new THREE.MeshStandardMaterial({ map: capT, roughness: 0.9 });
+  const bark = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 1, 2), color: 0x5a3a20, roughness: 1 });
+  const rnd = tr3dRand(3);
   let placed = 0;
   for(let row = 0; row < 5 && placed < n; row++){
     const inRow = Math.min(5 - row, n - placed);
     for(let i = 0; i < inRow; i++, placed++){
-      const log = new THREE.Mesh(geo, [bark, cap, cap]);
-      log.rotation.x = Math.PI / 2; log.rotation.z = (i % 2 ? 0.04 : -0.04);
-      log.position.set(-4.4 + (i - (inRow - 1) / 2) * 0.31, 0.15 + row * 0.27, -1.2);
+      const r = 0.13 + rnd() * 0.03;
+      const log = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.03, 1.3 + rnd() * 0.2, 12), [bark, cap, cap]);
+      log.rotation.x = Math.PI / 2; log.rotation.z = (rnd() - 0.5) * 0.08;
+      log.position.set(-3.2 + (i - (inRow - 1) / 2) * 0.29 + row * 0.0, 0.15 + row * 0.25, -1.0 + (rnd() - 0.5) * 0.1);
       v.scene.add(log);
     }
   }
-  tr3dShadow(v.scene, -4.4, -1.2, 1.1);
-  v.anchors.wood = new THREE.Vector3(-4.4, 0.4 + Math.min(5, Math.ceil(n / 5)) * 0.27, -1.2);
+  tr3dShadow(v.scene, -3.2, -1.0, 0.9, 0.85);
+  v.anchors.wood = new THREE.Vector3(-3.2, 0.45 + Math.ceil(Math.min(n, 15) / 5) * 0.25, -1.0);
+}
+// Roast chicken legs (like the food icon) piled on a wooden platter
+function tr3dDrumstick(meat, bone){
+  const g = new THREE.Group();
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 10), meat); m.scale.set(1.0, 1.0, 1.35); m.position.z = 0.06; g.add(m);
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.26, 8), bone); b.rotation.x = Math.PI / 2; b.position.z = -0.17; g.add(b);
+  [-0.035, 0.035].forEach(x => { const k = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), bone); k.position.set(x, 0, -0.3); g.add(k); });
+  return g;
 }
 function tr3dFood(v, lvl){
   const n = TR3D_COUNTS.food[lvl]; if(!n) return;
-  const staves = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.85 });
-  const hoop = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, metalness: 0.7, roughness: 0.5 });
-  const pts = []; for(let i = 0; i <= 10; i++){ const t = i / 10; pts.push(new THREE.Vector2(0.42 + Math.sin(t * Math.PI) * 0.08, t * 1.1)); }
-  const barrel = new THREE.Mesh(new THREE.LatheGeometry(pts, 18), staves); barrel.position.set(3.7, 0, -1.4); v.scene.add(barrel);
-  const top = new THREE.Mesh(new THREE.CircleGeometry(0.43, 18), staves); top.rotation.x = -Math.PI / 2; top.position.set(3.7, 1.1, -1.4); v.scene.add(top);
-  [0.18, 0.92].forEach(y => { const h = new THREE.Mesh(new THREE.TorusGeometry(0.47, 0.025, 6, 24), hoop); h.rotation.x = Math.PI / 2; h.position.set(3.7, y, -1.4); v.scene.add(h); });
-  const rnd = tr3dRand(23);
-  const apple = new THREE.MeshStandardMaterial({ color: 0xb8241c, roughness: 0.45 });
-  const bread = new THREE.MeshStandardMaterial({ color: 0xc58a3e, roughness: 0.8 });
-  const meat = new THREE.MeshStandardMaterial({ color: 0x8c2f22, roughness: 0.6 });
-  for(let i = 0; i < n; i++){
-    const kind = i % 3, onTop = i < 6;
-    const m = kind === 0 ? new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), apple)
-            : kind === 1 ? new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), bread) : new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), meat);
-    if(kind === 1) m.scale.set(1.4, 0.7, 0.9); if(kind === 2) m.scale.set(1.5, 0.8, 0.9);
-    const a = rnd() * Math.PI * 2, r = onTop ? rnd() * 0.25 : 0.6 + rnd() * 0.5;
-    m.position.set(3.7 + Math.cos(a) * r, onTop ? 1.18 : 0.1, -1.4 + Math.sin(a) * r * 0.8);
-    m.rotation.y = rnd() * 6; v.scene.add(m);
+  const X = 1.45, Z = 1.05;
+  const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.55, 0.08, 24), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 1, 1), color: 0x8a5a32, roughness: 0.85 }));
+  plate.position.set(X, 0.04, Z); v.scene.add(plate);
+  const meat = new THREE.MeshStandardMaterial({ color: 0xa8521f, roughness: 0.45, emissive: 0x2a0c00, emissiveIntensity: 0.4 });
+  const bone = new THREE.MeshStandardMaterial({ color: 0xf1e6cc, roughness: 0.6 });
+  const rnd = tr3dRand(17);
+  let placed = 0;
+  for(let row = 0; row < 4 && placed < n; row++){
+    const inRow = Math.min([6, 5, 3, 1][row], n - placed);
+    for(let i = 0; i < inRow; i++, placed++){
+      const d = tr3dDrumstick(meat, bone);
+      const a = (i / Math.max(1, inRow)) * Math.PI * 2 + row * 0.6, r = row === 3 ? 0 : 0.36 - row * 0.12;
+      d.position.set(X + Math.cos(a) * r, 0.17 + row * 0.15, Z + Math.sin(a) * r * 0.9);
+      d.rotation.set((rnd() - 0.5) * 0.4, -a + Math.PI / 2 + (rnd() - 0.5) * 0.4, (rnd() - 0.5) * 0.3);
+      v.scene.add(d);
+    }
   }
-  tr3dShadow(v.scene, 3.7, -1.4, 1.0);
-  v.anchors.food = new THREE.Vector3(3.7, 1.55, -1.4);
+  tr3dShadow(v.scene, X, Z, 0.75);
+  v.anchors.food = new THREE.Vector3(X, 0.6 + Math.ceil(n / 5) * 0.12, Z);
 }
+// Small wooden table with a purple runner; crystals grow on top and light the corner
 function tr3dCrystals(v, lvl){
   const n = TR3D_COUNTS.crystals[lvl]; if(!n) return;
+  const X = 1.75, Z = -1.55, TH = 0.8;
+  const wood = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 1, 1), color: 0x7a5232, roughness: 0.8 });
+  const table = new THREE.Group();
+  const top = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.75), wood); top.position.y = TH; table.add(top);
+  [[-0.52, -0.3], [0.52, -0.3], [-0.52, 0.3], [0.52, 0.3]].forEach(([x, z]) => { const l = new THREE.Mesh(new THREE.BoxGeometry(0.07, TH, 0.07), wood); l.position.set(x, TH / 2, z); table.add(l); });
+  const runner = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.01, 0.78), new THREE.MeshStandardMaterial({ color: 0x4a1f6b, roughness: 0.9 }));
+  runner.position.y = TH + 0.045; table.add(runner);
+  table.position.set(X, 0, Z); v.scene.add(table);
+  tr3dShadow(v.scene, X, Z, 0.8, 0.55);
   const rnd = tr3dRand(37);
-  const mat = new THREE.MeshStandardMaterial({ color: 0xb48cff, emissive: 0x6a2cff, emissiveIntensity: 0.7, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.92 });
-  const geo = new THREE.OctahedronGeometry(0.2, 0);
-  const base = new THREE.Mesh(new THREE.DodecahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({ color: 0x3b3440, roughness: 1 }));
-  base.scale.set(1.3, 0.5, 1.1); base.position.set(-2.3, 0.12, -2.2); v.scene.add(base);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xc8a4ff, emissive: 0x7a3cff, emissiveIntensity: 0.75, roughness: 0.12, metalness: 0.1, transparent: true, opacity: 0.93 });
+  const geo = new THREE.OctahedronGeometry(0.12, 0);
+  const base = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2, 0), new THREE.MeshStandardMaterial({ color: 0x3b3440, roughness: 1 }));
+  base.scale.set(1.2, 0.45, 1.0); base.position.set(X, TH + 0.1, Z); v.scene.add(base);
   for(let i = 0; i < n; i++){
     const c = new THREE.Mesh(geo, mat);
-    const s = 0.7 + rnd() * 0.9; c.scale.set(s * 0.8, s * 2.4, s * 0.8);
-    const a = rnd() * Math.PI * 2, r = i === 0 ? 0 : 0.1 + rnd() * (0.15 + n * 0.02);
-    c.position.set(-2.3 + Math.cos(a) * r, 0.25 + s * 0.3, -2.2 + Math.sin(a) * r * 0.8);
-    c.rotation.set((rnd() - 0.5) * 0.7, rnd() * 6, (rnd() - 0.5) * 0.7); v.scene.add(c);
+    const s = (i === 0 ? 1.6 : 0.7 + rnd() * 0.8) * (0.9 + lvl * 0.06); c.scale.set(s * 0.8, s * 2.4, s * 0.8);
+    const a = rnd() * Math.PI * 2, r = i === 0 ? 0 : 0.06 + rnd() * 0.16;
+    c.position.set(X + Math.cos(a) * r, TH + 0.12 + s * 0.2, Z + Math.sin(a) * r * 0.8);
+    c.rotation.set(Math.cos(a) * r * 2.2, rnd() * 6, -Math.sin(a) * r * 2.2); v.scene.add(c);
   }
-  v.crystalLight = new THREE.PointLight(0x9a5cff, 0.6 + lvl * 0.35, 4, 2); v.crystalLight.position.set(-2.3, 1.0, -1.8); v.scene.add(v.crystalLight);
-  tr3dShadow(v.scene, -2.3, -2.2, 0.9);
-  v.anchors.crystals = new THREE.Vector3(-2.3, 1.4 + n * 0.02, -2.2);
+  v.crystalLight = new THREE.PointLight(0x9a5cff, 0.7 + lvl * 0.3, 3.5, 2); v.crystalLight.position.set(X, TH + 0.7, Z + 0.3); v.scene.add(v.crystalLight);
+  v.anchors.crystals = new THREE.Vector3(X, TH + 0.95 + lvl * 0.05, Z);
 }
 function tr3dRoom(v){
   const s = v.scene;
-  const wallMat = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.wall, 5, 2.5), roughness: 0.95, color: 0x9a8c80 });
-  const back = new THREE.Mesh(new THREE.PlaneGeometry(14, 6), wallMat); back.position.set(0, 3, -3); s.add(back);
-  const side = new THREE.Mesh(new THREE.PlaneGeometry(8, 6), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.wall, 3, 2.5), roughness: 0.95, color: 0x8a7c70 }));
-  side.rotation.y = Math.PI / 2; side.position.set(-6, 3, 1); s.add(side);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 8), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.floor, 4, 2.3), roughness: 1, color: 0x8a7a6a }));
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(10, 5), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.wall, 3.5, 1.8), roughness: 0.95, color: 0x9a8c80 }));
+  back.position.set(0, 2.5, -2.5); s.add(back);
+  const side = new THREE.Mesh(new THREE.PlaneGeometry(7, 5), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.wall, 2.5, 1.8), roughness: 0.95, color: 0x857769 }));
+  side.rotation.y = Math.PI / 2; side.position.set(-4, 2.5, 1); s.add(side);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 7), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.floor, 3, 2.1), roughness: 1, color: 0x8a7a6a }));
   floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, 1); s.add(floor);
-  // timber: ceiling beam along the back wall, corner post
-  const beamMat = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.beam, 4, 1), roughness: 0.85, color: 0x8a6a4a });
-  const beam = new THREE.Mesh(new THREE.BoxGeometry(14, 0.5, 0.5), beamMat); beam.position.set(0, 5.6, -2.75); s.add(beam);
-  const post = new THREE.Mesh(new THREE.BoxGeometry(0.55, 6, 0.55), beamMat); post.position.set(-5.72, 3, -2.72); s.add(post);
+  // timber frame: beam along the back wall, corner post, skirting board
+  const beamMat = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 3, 1), roughness: 0.85, color: 0x7a5a3a });
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(10, 0.4, 0.4), beamMat); beam.position.set(0, 4.3, -2.3); s.add(beam);
+  const post = new THREE.Mesh(new THREE.BoxGeometry(0.45, 5, 0.45), beamMat); post.position.set(-3.77, 2.5, -2.27); s.add(post);
   // rug under the gold
-  const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d');
-  g.fillStyle = '#6e1a14'; g.fillRect(0, 0, 256, 128); g.strokeStyle = '#c9963f'; g.lineWidth = 6; g.strokeRect(10, 10, 236, 108);
-  g.lineWidth = 2; g.strokeRect(22, 22, 212, 84); g.fillStyle = '#8e2a1c'; g.beginPath(); g.ellipse(128, 64, 70, 30, 0, 0, Math.PI * 2); g.fill();
+  const c = document.createElement('canvas'); c.width = 256; c.height = 160; const g = c.getContext('2d');
+  g.fillStyle = '#6a1712'; g.fillRect(0, 0, 256, 160); g.strokeStyle = '#c9963f'; g.lineWidth = 7; g.strokeRect(10, 10, 236, 140);
+  g.lineWidth = 2; g.strokeRect(24, 24, 208, 112); g.fillStyle = '#8e2a1c'; g.beginPath(); g.ellipse(128, 80, 72, 40, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#c9963f'; for(let i = 0; i < 4; i++){ g.save(); g.translate(128, 80); g.rotate(i * Math.PI / 2); g.beginPath(); g.moveTo(0, -30); g.lineTo(8, -12); g.lineTo(-8, -12); g.fill(); g.restore(); }
   const rugT = new THREE.CanvasTexture(c); rugT.encoding = THREE.sRGBEncoding;
-  const rug = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 2.4), new THREE.MeshStandardMaterial({ map: rugT, roughness: 1 }));
-  rug.rotation.x = -Math.PI / 2; rug.position.set(0.5, 0.005, 0.5); s.add(rug);
+  const rug = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.9), new THREE.MeshStandardMaterial({ map: rugT, roughness: 1 }));
+  rug.rotation.x = -Math.PI / 2; rug.position.set(-0.2, 0.006, 0.45); s.add(rug);
   // wall torches: iron bracket, flickering flame, warm light
   v.torches = [];
-  [[-1.6, 2.5], [2.4, 2.5]].forEach(([x, y]) => {
+  [[-0.9, 2.2], [2.55, 2.2]].forEach(([x, y]) => {
     const iron = new THREE.MeshStandardMaterial({ color: 0x2a2622, metalness: 0.6, roughness: 0.6 });
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.7, 8), iron); arm.position.set(x, y - 0.2, -2.75); arm.rotation.x = 0.5; s.add(arm);
-    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.1, 0.28, 10), iron); cup.position.set(x, y + 0.12, -2.55); s.add(cup);
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.3, 0.04), iron); plate.position.set(x, y - 0.25, -2.47); s.add(plate);
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.55, 8), iron); arm.position.set(x, y - 0.1, -2.33); arm.rotation.x = 0.6; s.add(arm);
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.08, 0.22, 10), iron); cup.position.set(x, y + 0.12, -2.18); s.add(cup);
     const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: homeFlameTexture(), color: 0xffa040, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
-    flame.position.set(x, y + 0.5, -2.55); flame.scale.set(0.7, 1.0, 1); s.add(flame);
-    const light = new THREE.PointLight(0xff9a40, 1.6, 9, 2); light.position.set(x, y + 0.5, -2.2); s.add(light);
+    flame.position.set(x, y + 0.45, -2.18); flame.scale.set(0.55, 0.8, 1); s.add(flame);
+    const light = new THREE.PointLight(0xff9a40, 1.8, 7, 2); light.position.set(x, y + 0.5, -1.9); s.add(light);
     v.torches.push({ flame, light, seed: Math.random() * 10 });
   });
   s.add(new THREE.AmbientLight(0x7a6050, 0.45), new THREE.HemisphereLight(0xffd8a0, 0x2a1a10, 0.3));
-  const fill = new THREE.PointLight(0xffb060, 0.9, 10, 2); fill.position.set(0.8, 2.2, 2.5); s.add(fill); // warm glow over the hoard
-  const moon = new THREE.DirectionalLight(0x8fa8ff, 0.25); moon.position.set(6, 6, 4); s.add(moon);
+  const fill = new THREE.PointLight(0xffb060, 0.9, 8, 2); fill.position.set(0.2, 2.0, 2.4); s.add(fill); // warm glow over the hoard
   // dust in the torchlight
-  const n = 120, pos = new Float32Array(n * 3), rnd = tr3dRand(5);
-  for(let i = 0; i < n; i++){ pos[i * 3] = (rnd() - 0.5) * 11; pos[i * 3 + 1] = rnd() * 5; pos[i * 3 + 2] = -2.5 + rnd() * 5; }
+  const n = 90, pos = new Float32Array(n * 3), rnd = tr3dRand(5);
+  for(let i = 0; i < n; i++){ pos[i * 3] = (rnd() - 0.5) * 7; pos[i * 3 + 1] = rnd() * 4; pos[i * 3 + 2] = -2 + rnd() * 4; }
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  v.dust = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffe6b0, size: 0.03, transparent: true, opacity: 0.6, depthWrite: false }));
+  v.dust = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffe6b0, size: 0.025, transparent: true, opacity: 0.6, depthWrite: false }));
   s.add(v.dust);
   // the Horde banner on the back wall
   loadHomeProp(HOME_DECOR.horde_banner).then(hb => {
-    hb.scale.setScalar(3.2 / hb.userData.unitHeight); hb.position.set(0.9, 1.6, -2.85); v.scene.add(hb);
+    hb.scale.setScalar(2.6 / hb.userData.unitHeight); hb.position.set(0.85, 1.25, -2.4); v.scene.add(hb);
     const clip = (hb.userData.animations || [])[0];
     if(clip){ v.bannerMixer = new THREE.AnimationMixer(hb.userData.pivot.children[0]); v.bannerMixer.clipAction(clip).play(); }
   }).catch(() => {});
@@ -10675,8 +10724,8 @@ function mountTreasureCorners(){
       v.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       v.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       v.renderer.outputEncoding = THREE.sRGBEncoding;
-      v.scene = new THREE.Scene(); v.scene.fog = new THREE.Fog(0x140c08, 9, 18);
-      v.camera = new THREE.PerspectiveCamera(38, 2, 0.1, 60);
+      v.scene = new THREE.Scene(); v.scene.fog = new THREE.Fog(0x140c08, 8, 15);
+      v.camera = new THREE.PerspectiveCamera(47, 4 / 3, 0.1, 50);
       tr3dRoom(v);
       const lv = (k, steps) => steps.filter(s => amt[k] >= s).length;
       const S = Object.fromEntries(SHELF_RESOURCES.map(r => [r.key, r.steps]));
@@ -10685,10 +10734,8 @@ function mountTreasureCorners(){
     }
     v.slot = slot;
     const canvas = v.renderer.domElement;
-    canvas.classList.add('tr3d-canvas');
     if(canvas.parentNode !== slot) slot.appendChild(canvas);
-    slot.closest('.treasure-room').classList.add('tr3d-on');
-    const w = slot.clientWidth || 800, h = slot.clientHeight || 400;
+    const w = slot.clientWidth || 640, h = slot.clientHeight || 480;
     v.renderer.setSize(w, h, false); v.camera.aspect = w / h; v.camera.updateProjectionMatrix();
     if(!slot.__tr3dMouse){
       slot.__tr3dMouse = true;
@@ -10698,29 +10745,27 @@ function mountTreasureCorners(){
       });
     }
     if(!v.raf){
-      const tags = {};
-      slot.parentNode.querySelectorAll('[data-tr3d-tag]').forEach(t => { tags[t.getAttribute('data-tr3d-tag')] = t; });
       let cx = 0, cy = 0;
       const tick = () => {
         if(!document.body.contains(canvas)){ v.raf = null; return; }
         const dt = Math.min(v.clock.getDelta(), 0.1), now = performance.now();
         cx += (v.mouse.x - cx) * 0.05; cy += (v.mouse.y - cy) * 0.05;
-        v.camera.position.set(1.4 + cx * 1.6, 3.1 - cy * 0.6, 7.2); v.camera.lookAt(-0.3 + cx * 0.4, 1.3, -1);
+        v.camera.position.set(0.7 + cx * 1.1, 2.8 - cy * 0.5, 5.6); v.camera.lookAt(-0.25 + cx * 0.3, 0.9, -0.8);
         v.torches.forEach(t => {
           const k = 0.8 + 0.2 * Math.sin(now / 90 + t.seed) + 0.1 * Math.sin(now / 37 + t.seed * 3);
-          t.flame.scale.set(0.7 * (0.9 + 0.1 * k), 1.0 * k, 1); t.light.intensity = 2.0 * k;
+          t.flame.scale.set(0.55 * (0.9 + 0.1 * k), 0.8 * k, 1); t.light.intensity = 1.8 * k;
         });
-        if(v.crystalLight){ // slow crystal pulse
+        if(v.crystalLight){
           if(v.crystalLight.userData.base == null) v.crystalLight.userData.base = v.crystalLight.intensity;
           v.crystalLight.intensity = v.crystalLight.userData.base * (0.8 + 0.2 * Math.sin(now / 600));
         }
-        if(v.dust){ v.dust.rotation.y = Math.sin(now / 9000) * 0.05; v.dust.position.y = Math.sin(now / 4000) * 0.15; }
+        if(v.dust){ v.dust.rotation.y = Math.sin(now / 9000) * 0.05; v.dust.position.y = Math.sin(now / 4000) * 0.12; }
         if(v.bannerMixer) v.bannerMixer.update(dt);
         v.renderer.render(v.scene, v.camera);
         // plaques follow their piles
-        const r = slot.getBoundingClientRect();
-        Object.entries(tags).forEach(([k, el]) => {
-          const a = v.anchors[k];
+        const r = v.slot.getBoundingClientRect();
+        v.slot.parentNode.querySelectorAll('[data-tr3d-tag]').forEach(el => {
+          const a = v.anchors[el.getAttribute('data-tr3d-tag')];
           if(!a){ el.style.display = 'none'; return; }
           const p = a.clone().project(v.camera);
           el.style.display = 'block'; el.style.left = ((p.x + 1) / 2 * r.width) + 'px'; el.style.top = ((1 - p.y) / 2 * r.height) + 'px';
