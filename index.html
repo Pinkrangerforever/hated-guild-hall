@@ -8830,8 +8830,8 @@ const HOME_ZONES = {
     light: { sun: 0xff8a45, sunI: 0.42, sunPos: [-12, 4, 4], sky: 0x4a5688, ground: 0x241a18, hemiI: 0.3, amb: 0x6a70a0, ambI: 0.06 },
     video: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Elwynn%20Cabin/Elwynn%20Cabin.mp4',
     props: [
-      { gltf: 'models/housing/elwynn-lamppost.gltf', x: -1.6, z: 1.4, height: 2.4, rotY: -Math.PI / 2,   // flickering lamp by the path
-        light: { y: 2.0, color: 0xffb05a, intensity: 1.6, distance: 6 } },
+      { gltf: 'models/housing/elwynn-lamppost.gltf', x: -1.6, z: 1.4, height: 2.4, rotY: -Math.PI / 2,   // lamp by the path: its flame glows (no cast light)
+        lamps: [] },
       { gltf: 'models/housing/elwynn-tree.gltf', x: 4.3, z: -1.8, height: 6, rotY: 0.4 }        // swaying in the breeze
     ],
     houses: {
@@ -8870,7 +8870,7 @@ const HOUSE_TIER_COSTS = { 1: 100, 2: 500, 3: 1000 }; // wood; enforced server-s
 // metadata.zone locks a piece to one home zone; no zone = fits any home.
 const HOME_DECOR = {
   mulgore_lamppost: { gltf: 'models/housing/taurenlamppost.gltf', height: 1.5, light: { at: [0.09, 1.95, 1.08], color: 0xffa040, intensity: 1.6, distance: 5 }, lamps: [] },
-  elwynn_lamppost:  { gltf: 'models/housing/elwynn-lamppost.gltf', height: 2.4, light: { y: 2.0, color: 0xffb05a, intensity: 1.6, distance: 6 } },
+  elwynn_lamppost:  { gltf: 'models/housing/elwynn-lamppost.gltf', height: 2.4, lamps: [] },
   elwynn_oak:       { gltf: 'models/housing/elwynn-tree.gltf', height: 6 },
   copper_vein:      { gltf: 'models/minigames/copper-node.gltf', height: 1.1 },
   horde_banner:     { gltf: 'models/housing/decor-horde-banner.gltf', height: 3 },
@@ -10287,8 +10287,8 @@ function mountHomeScenes(){
           const k = 0.8 + 0.2 * Math.sin(now / 90 + f.seed) + 0.1 * Math.sin(now / 37 + f.seed * 3);
           if(f.flame) f.flame.scale.set(2.2 * (f.size || 1) * (0.9 + 0.1 * k), 3 * (f.size || 1) * k, 1);
           // lamps: candle-like flicker - a few mixed waves plus the odd quick dip
-          const lk = f.lamp ? 0.55 + 0.25 * Math.sin(now / 70 + f.seed) + 0.15 * Math.sin(now / 23 + f.seed * 5)
-                              + 0.1 * Math.sin(now / 131 + f.seed * 2) - (Math.sin(now / 410 + f.seed * 7) > 0.97 ? 0.3 : 0) : k;
+          const lk = f.lamp ? 0.7 + 0.18 * Math.sin(now / 420 + f.seed) + 0.08 * Math.sin(now / 190 + f.seed * 5)
+                              + 0.06 * Math.sin(now / 900 + f.seed * 2) : k; // slow, gentle candle breathing
           if(f.glow) f.glow.intensity = (f.base || 1.2) * (f.lamp ? Math.max(0.25, lk) * 1.3 : k);
           if(f.mat) f.mat.emissiveIntensity = f.base * Math.max(0.45, 0.4 + lk * 0.75);
         });
