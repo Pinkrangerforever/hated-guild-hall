@@ -8774,6 +8774,18 @@ const HOME_ZONES = {
       2: { gltf: 'models/housing/elwynn-house-t2.gltf', x: 3.6, z: 3.2, height: 3.8, rotY: -0.436 },
       3: { gltf: 'models/housing/elwynn-house-t3.gltf', x: -4.63, z: 0.62, height: 6.5, rotY: -0.785 }
     }
+  },
+  darkshire_drive: {
+    label: 'Darkshire Drive',
+    video: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/Darkshire%20Drive%201080.mp4',
+    // Duskwood night: pale blue moonlight, deep blue sky fill, the lamp does the warm work
+    light: { sun: 0x9fb4ff, sunI: 0.38, sunPos: [8, 9, 3], sky: 0x2a3560, ground: 0x0e1014, hemiI: 0.32, amb: 0x5060a0, ambI: 0.07 },
+    props: [
+      { gltf: 'models/housing/darkshire-archway.gltf', x: -0.3, z: 2.5, height: 3.6, rotY: 0 },     // sign archway over the path
+      { gltf: 'models/housing/darkshire-lamppost.gltf', x: 2.6, z: 1.2, height: 2.8, rotY: 0,
+        light: { y: 2.4, color: 0xffc070, intensity: 1.8, distance: 7 } }
+    ],
+    houses: {}
   }
 };
 const HOUSE_TIER_COSTS = { 1: 100, 2: 500, 3: 1000 }; // wood; enforced server-side in build_house_tier
@@ -9042,6 +9054,12 @@ const HOME_GROUND_TEX = {
     path: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgoreroad01.png',
     clearing: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgorecrackeddirt.png',
     fog: 0xcdb48a
+  },
+  darkshire_drive: {
+    base: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/duskwoodgrassbase02.png',
+    dirt: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/duskwoodgrassbase02.png',
+    path: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/duskwoodcobblestone2.png',
+    clearing: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/duskwoodcobblestone2.png'
   },
   elwynn_cabin: {
     base: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Elwynn%20Cabin/elwynngrassbase.png',
