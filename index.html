@@ -10506,17 +10506,19 @@ function renderResourceShelf(p, isMe){
 }
 
 /* ---------------- Treasure corner (3D) ----------------
-   A compact torch-lit vault corner. Stone walls / cobble floor / planks reuse textures already in R2; the
-   Horde banner is the decor model; everything else is built here so the piles grow with the amounts:
-   gold = coin heap + coin stacks (an open chest once you're rich), wood = log stack along the wall,
-   food = roast chicken legs on a wooden platter, crystals = a glowing cluster on a small table.
+   A cozy timber-framed storeroom: mossy stone between heavy posts and braces, a hanging lantern, plank floor
+   meeting flagstones. Textures reuse files already in R2; the Horde banner is the decor model; the rest is
+   built here so the stores grow with the amounts:
+   gold = iron-banded chest that opens and overflows (coins, gems, pearls) + coins on the floor,
+   food = a chest with roast chicken legs spilling out, wood = logs stacked high behind the chests,
+   crystals = a glowing cluster on a carved table with a draped cloth, candle and potion.
    One viewer per player + amounts; it re-attaches its canvas after every render. */
 const TR3D_TEX = {
   wall: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/Tier%203%20Home/128000.png',
   floor: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/duskwoodcobblestone2.png',
   plank: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Elwynn%20Cabin/Tier%201%20Home/130316.png'
 };
-const TR3D_COUNTS = { gold: [0, 8, 40, 110, 220, 380], wood: [0, 1, 3, 6, 10, 15], food: [0, 1, 3, 6, 10, 15], crystals: [0, 1, 3, 6, 10, 15] };
+const TR3D_COUNTS = { gold: [0, 10, 40, 90, 160, 240], wood: [0, 2, 5, 9, 14, 20], food: [0, 1, 3, 6, 9, 12], crystals: [0, 1, 3, 6, 10, 15] };
 const tr3dViewers = {};
 function tr3dTex(url, rx, ry){
   const t = new THREE.TextureLoader().load(url);
@@ -10531,183 +10533,270 @@ function tr3dShadow(scene, x, z, rx, rz){
   const m = new THREE.Mesh(new THREE.PlaneGeometry(rx * 2, (rz || rx) * 2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
   m.rotation.x = -Math.PI / 2; m.position.set(x, 0.012, z); scene.add(m);
 }
-const tr3dGoldMat = () => new THREE.MeshStandardMaterial({ color: 0xffc23a, metalness: 1, roughness: 0.25, emissive: 0x4a2c00, emissiveIntensity: 0.55 });
-
-// Coins heaped in a cone, a few neat stacks beside it, and an open chest behind once the hoard is big
-function tr3dGold(v, lvl){
-  const n = TR3D_COUNTS.gold[lvl]; if(!n) return;
-  const X = -0.25, Z = 0.45, rnd = tr3dRand(11), R = 0.3 + Math.sqrt(n) * 0.06, H = R * 0.6;
-  const mat = tr3dGoldMat(), coinGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.02, 16);
-  const coins = new THREE.InstancedMesh(coinGeo, mat, n), o = new THREE.Object3D();
-  for(let i = 0; i < n; i++){
-    const y = Math.pow(rnd(), 1.7) * H, rr = R * (1 - y / H) * Math.sqrt(rnd()), a = rnd() * Math.PI * 2;
-    o.position.set(X + Math.cos(a) * rr, y + 0.011, Z + Math.sin(a) * rr * 0.85);
-    o.rotation.set((rnd() - 0.5) * 1.0, rnd() * 6, (rnd() - 0.5) * 1.0); o.updateMatrix(); coins.setMatrixAt(i, o.matrix);
-  }
-  v.scene.add(coins); tr3dShadow(v.scene, X, Z, R * 1.35, R * 1.15);
-  // neat stacks
-  const stacks = Math.min(5, lvl);
-  for(let s = 0; s < stacks; s++){
-    const sx = X + R + 0.18 + (s % 2) * 0.22, sz = Z - 0.25 + Math.floor(s / 2) * 0.22, hgt = 4 + Math.floor(rnd() * (4 + lvl * 2));
-    const st = new THREE.InstancedMesh(coinGeo, mat, hgt);
-    for(let k = 0; k < hgt; k++){ o.position.set(sx + (rnd() - 0.5) * 0.015, 0.011 + k * 0.021, sz + (rnd() - 0.5) * 0.015); o.rotation.set(0, rnd() * 6, 0); o.updateMatrix(); st.setMatrixAt(k, o.matrix); }
-    v.scene.add(st);
-  }
-  if(lvl >= 4) tr3dChest(v, mat);
-  v.anchors.gold = new THREE.Vector3(X, H + 0.3, Z);
+function tr3dMats(){
+  return {
+    gold: new THREE.MeshStandardMaterial({ color: 0xffc23a, metalness: 1, roughness: 0.25, emissive: 0x4a2c00, emissiveIntensity: 0.6 }),
+    wood: new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 1, 1), color: 0x8a5a36, roughness: 0.85 }),
+    darkWood: new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 1, 3), color: 0x4e3320, roughness: 0.9 }),
+    iron: new THREE.MeshStandardMaterial({ color: 0x45403a, metalness: 0.8, roughness: 0.45 }),
+    brass: new THREE.MeshStandardMaterial({ color: 0xd4a640, metalness: 0.95, roughness: 0.3 })
+  };
 }
-function tr3dChest(v, goldMat){
-  const wood = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 1, 1), color: 0x9a6a40, roughness: 0.8 });
-  const iron = new THREE.MeshStandardMaterial({ color: 0x3a3430, metalness: 0.8, roughness: 0.45 });
-  const brass = new THREE.MeshStandardMaterial({ color: 0xd4a640, metalness: 0.95, roughness: 0.3 });
+const TR3D_COIN = () => new THREE.CylinderGeometry(0.085, 0.085, 0.018, 14);
+// An iron-banded chest; returns { group, open(fn) } - fn(group, innerY, w, d) fills it when open
+function tr3dChest(M, open, W, D, Hb){
   const chest = new THREE.Group();
-  const W = 1.0, D = 0.62, Hb = 0.5;
-  const body = new THREE.Mesh(new THREE.BoxGeometry(W, Hb, D), wood); body.position.y = Hb / 2; chest.add(body);
-  [-0.38, 0.38].forEach(x => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.06, Hb + 0.02, D + 0.02), iron); b.position.set(x, Hb / 2, 0); chest.add(b); });
-  const rim = new THREE.Mesh(new THREE.BoxGeometry(W + 0.02, 0.05, D + 0.02), iron); rim.position.y = Hb; chest.add(rim);
-  const lock = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.04), brass); lock.position.set(0, Hb - 0.1, D / 2 + 0.02); chest.add(lock);
-  // open domed lid, hinged at the back
+  const body = new THREE.Mesh(new THREE.BoxGeometry(W, Hb, D), M.wood); body.position.y = Hb / 2; chest.add(body);
+  [-W * 0.38, W * 0.38].forEach(x => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.06, Hb + 0.02, D + 0.02), M.iron); b.position.set(x, Hb / 2, 0); chest.add(b); });
+  [0.06, Hb - 0.04].forEach(y => { const b = new THREE.Mesh(new THREE.BoxGeometry(W + 0.02, 0.05, D + 0.02), M.iron); b.position.y = y; chest.add(b); });
+  [-W / 2 - 0.01, W / 2 + 0.01].forEach(x => { const r = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.012, 6, 12), M.iron); r.position.set(x, Hb * 0.6, 0); r.rotation.y = Math.PI / 2; chest.add(r); });
+  const lock = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.16, 0.04), M.brass); lock.position.set(0, Hb - 0.12, D / 2 + 0.02); chest.add(lock);
   const lid = new THREE.Group(); lid.position.set(0, Hb, -D / 2);
-  const dome = new THREE.Mesh(new THREE.CylinderGeometry(D / 2, D / 2, W, 18, 1, false, 0, Math.PI), wood);
+  const dome = new THREE.Mesh(new THREE.CylinderGeometry(D / 2, D / 2, W, 18, 1, false, 0, Math.PI), M.wood);
   dome.rotation.z = Math.PI / 2; dome.position.z = D / 2; lid.add(dome);
-  [-0.38, 0.38].forEach(x => { const b = new THREE.Mesh(new THREE.CylinderGeometry(D / 2 + 0.015, D / 2 + 0.015, 0.06, 18, 1, false, 0, Math.PI), iron); b.rotation.z = Math.PI / 2; b.position.set(x, 0, D / 2); lid.add(b); });
-  lid.rotation.x = -1.9; chest.add(lid);
-  // overflowing coins inside
-  const rnd = tr3dRand(91), coinGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.02, 14), n = 70;
-  const inner = new THREE.InstancedMesh(coinGeo, goldMat, n), o = new THREE.Object3D();
-  for(let i = 0; i < n; i++){
-    const x = (rnd() - 0.5) * (W - 0.15), z = (rnd() - 0.5) * (D - 0.12), y = Hb - 0.02 + (1 - Math.abs(x) / W - Math.abs(z) / D) * 0.16 * rnd();
-    o.position.set(x, y, z); o.rotation.set((rnd() - 0.5) * 0.8, rnd() * 6, (rnd() - 0.5) * 0.8); o.updateMatrix(); inner.setMatrixAt(i, o.matrix);
-  }
-  chest.add(inner);
-  chest.position.set(-1.55, 0, -1.35); chest.rotation.y = 0.45; v.scene.add(chest);
-  tr3dShadow(v.scene, -1.55, -1.35, 0.8, 0.55);
+  [-W * 0.38, W * 0.38].forEach(x => { const b = new THREE.Mesh(new THREE.CylinderGeometry(D / 2 + 0.015, D / 2 + 0.015, 0.06, 18, 1, false, 0, Math.PI), M.iron); b.rotation.z = Math.PI / 2; b.position.set(x, 0, D / 2); lid.add(b); });
+  lid.rotation.x = open ? -1.95 : 0; chest.add(lid);
+  return chest;
 }
-// Logs stacked along the left wall, bark sides and ringed ends
-function tr3dWood(v, lvl){
-  const n = TR3D_COUNTS.wood[lvl]; if(!n) return;
-  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
-  g.fillStyle = '#d0a266'; g.fillRect(0, 0, 64, 64);
-  for(let r = 30; r > 2; r -= 4){ g.strokeStyle = r % 8 ? '#b07f45' : '#8f6230'; g.lineWidth = 1.6; g.beginPath(); g.arc(32 + (r % 3), 32, r, 0, Math.PI * 2); g.stroke(); }
-  g.strokeStyle = '#4a2f19'; g.lineWidth = 5; g.beginPath(); g.arc(32, 32, 30, 0, Math.PI * 2); g.stroke();
-  const capT = new THREE.CanvasTexture(c); capT.encoding = THREE.sRGBEncoding;
-  const cap = new THREE.MeshStandardMaterial({ map: capT, roughness: 0.9 });
-  const bark = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 1, 2), color: 0x5a3a20, roughness: 1 });
-  const rnd = tr3dRand(3);
-  let placed = 0;
-  for(let row = 0; row < 5 && placed < n; row++){
-    const inRow = Math.min(5 - row, n - placed);
-    for(let i = 0; i < inRow; i++, placed++){
-      const r = 0.13 + rnd() * 0.03;
-      const log = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.03, 1.3 + rnd() * 0.2, 12), [bark, cap, cap]);
-      log.rotation.x = Math.PI / 2; log.rotation.z = (rnd() - 0.5) * 0.08;
-      log.position.set(-3.2 + (i - (inRow - 1) / 2) * 0.29 + row * 0.0, 0.15 + row * 0.25, -1.0 + (rnd() - 0.5) * 0.1);
-      v.scene.add(log);
+function tr3dGold(v, M, lvl){
+  const n = TR3D_COUNTS.gold[lvl];
+  const X = -2.05, Z = -0.75, W = 1.2, D = 0.72, Hb = 0.58, rnd = tr3dRand(11), o = new THREE.Object3D();
+  const chest = tr3dChest(M, lvl >= 3, W, D, Hb); chest.position.set(X, 0, Z); chest.rotation.y = 0.32; v.scene.add(chest);
+  tr3dShadow(v.scene, X, Z, 0.85, 0.6);
+  if(lvl >= 3){
+    // overflowing: a mound of coins, colored gems and strings of pearls
+    const k = 40 + (lvl - 3) * 50, coins = new THREE.InstancedMesh(TR3D_COIN(), M.gold, k);
+    for(let i = 0; i < k; i++){
+      const x = (rnd() - 0.5) * (W - 0.12), z = (rnd() - 0.5) * (D - 0.1), mound = (1 - Math.abs(x) / W * 1.6) * (1 - Math.abs(z) / D * 1.6);
+      o.position.set(x, Hb - 0.02 + Math.max(0, mound) * (0.14 + lvl * 0.03) * rnd(), z); o.rotation.set((rnd() - 0.5) * 0.9, rnd() * 6, (rnd() - 0.5) * 0.9); o.updateMatrix(); coins.setMatrixAt(i, o.matrix);
+    }
+    chest.add(coins);
+    const gemCols = [0xe0203a, 0x20c070, 0x3070ff, 0xb040e0];
+    for(let i = 0; i < 4 + lvl; i++){
+      const g = new THREE.Mesh(new THREE.OctahedronGeometry(0.05 + rnd() * 0.03, 0), new THREE.MeshStandardMaterial({ color: gemCols[i % 4], emissive: gemCols[i % 4], emissiveIntensity: 0.35, metalness: 0.2, roughness: 0.15 }));
+      g.position.set((rnd() - 0.5) * (W - 0.3), Hb + 0.1 + rnd() * 0.1, (rnd() - 0.5) * (D - 0.3)); g.rotation.set(rnd() * 3, rnd() * 3, 0); chest.add(g);
+    }
+    const pearl = new THREE.MeshStandardMaterial({ color: 0xf6f0e6, roughness: 0.2, metalness: 0.1 });
+    for(let s = 0; s < 2; s++){ // pearl strings draped over the front
+      const sx = s ? 0.25 : -0.3;
+      for(let p = 0; p < 12; p++){
+        const t = p / 11, b = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), pearl);
+        b.position.set(sx + (t - 0.5) * 0.25, Hb + 0.06 - Math.sin(t * Math.PI) * 0.38, D / 2 + 0.03 + Math.sin(t * Math.PI) * 0.03); chest.add(b);
+      }
     }
   }
-  tr3dShadow(v.scene, -3.2, -1.0, 0.9, 0.85);
-  v.anchors.wood = new THREE.Vector3(-3.2, 0.45 + Math.ceil(Math.min(n, 15) / 5) * 0.25, -1.0);
+  // loose coins spilling onto the floor in front
+  const loose = Math.min(n, 12 + lvl * 14);
+  if(loose){
+    const lc = new THREE.InstancedMesh(TR3D_COIN(), M.gold, loose);
+    for(let i = 0; i < loose; i++){
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * (0.4 + lvl * 0.12), heap = Math.max(0, 1 - r / (0.4 + lvl * 0.12));
+      o.position.set(X + 0.35 + Math.cos(a) * r, 0.01 + heap * heap * lvl * 0.05 * rnd(), Z + 0.85 + Math.sin(a) * r * 0.7);
+      o.rotation.set((rnd() - 0.5) * 0.5, rnd() * 6, (rnd() - 0.5) * 0.5); o.updateMatrix(); lc.setMatrixAt(i, o.matrix);
+    }
+    v.scene.add(lc);
+  }
+  v.anchors.gold = new THREE.Vector3(X + 0.1, Hb + 0.42, Z + 0.3);
 }
-// Roast chicken legs (like the food icon) piled on a wooden platter
 function tr3dDrumstick(meat, bone){
   const g = new THREE.Group();
-  const m = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 10), meat); m.scale.set(1.0, 1.0, 1.35); m.position.z = 0.06; g.add(m);
-  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.26, 8), bone); b.rotation.x = Math.PI / 2; b.position.z = -0.17; g.add(b);
-  [-0.035, 0.035].forEach(x => { const k = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), bone); k.position.set(x, 0, -0.3); g.add(k); });
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 10), meat); m.scale.set(1.0, 0.95, 1.4); m.position.z = 0.06; g.add(m);
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.032, 0.24, 8), bone); b.rotation.x = Math.PI / 2; b.position.z = -0.16; g.add(b);
+  [-0.032, 0.032].forEach(x => { const k = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), bone); k.position.set(x, 0, -0.28); g.add(k); });
   return g;
 }
-function tr3dFood(v, lvl){
-  const n = TR3D_COUNTS.food[lvl]; if(!n) return;
-  const X = 1.45, Z = 1.05;
-  const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.55, 0.08, 24), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 1, 1), color: 0x8a5a32, roughness: 0.85 }));
-  plate.position.set(X, 0.04, Z); v.scene.add(plate);
+function tr3dFood(v, M, lvl){
+  const n = TR3D_COUNTS.food[lvl];
+  const X = -0.55, Z = -1.15, W = 0.95, D = 0.62, Hb = 0.5;
+  const chest = tr3dChest(M, n > 0, W, D, Hb); chest.position.set(X, 0, Z); chest.rotation.y = -0.18; v.scene.add(chest);
+  tr3dShadow(v.scene, X, Z, 0.7, 0.5);
+  if(!n) return;
   const meat = new THREE.MeshStandardMaterial({ color: 0xa8521f, roughness: 0.45, emissive: 0x2a0c00, emissiveIntensity: 0.4 });
   const bone = new THREE.MeshStandardMaterial({ color: 0xf1e6cc, roughness: 0.6 });
   const rnd = tr3dRand(17);
-  let placed = 0;
-  for(let row = 0; row < 4 && placed < n; row++){
-    const inRow = Math.min([6, 5, 3, 1][row], n - placed);
-    for(let i = 0; i < inRow; i++, placed++){
-      const d = tr3dDrumstick(meat, bone);
-      const a = (i / Math.max(1, inRow)) * Math.PI * 2 + row * 0.6, r = row === 3 ? 0 : 0.36 - row * 0.12;
-      d.position.set(X + Math.cos(a) * r, 0.17 + row * 0.15, Z + Math.sin(a) * r * 0.9);
-      d.rotation.set((rnd() - 0.5) * 0.4, -a + Math.PI / 2 + (rnd() - 0.5) * 0.4, (rnd() - 0.5) * 0.3);
-      v.scene.add(d);
+  for(let i = 0; i < n; i++){
+    const d = tr3dDrumstick(meat, bone);
+    if(i < 7){ // heaped inside, bones poking up and out
+      d.position.set((rnd() - 0.5) * (W - 0.25), Hb + 0.02 + (i > 3 ? 0.1 : 0), (rnd() - 0.5) * (D - 0.25));
+      d.rotation.set(-0.7 - rnd() * 0.5, rnd() * 6, (rnd() - 0.5) * 0.5);
+      chest.add(d);
+    } else { // spilled over the front onto the floor
+      d.position.set(X + (rnd() - 0.5) * 0.9, 0.12, Z + D / 2 + 0.25 + rnd() * 0.3);
+      d.rotation.set(0, rnd() * 6, (rnd() - 0.5) * 0.3); v.scene.add(d);
     }
   }
-  tr3dShadow(v.scene, X, Z, 0.75);
-  v.anchors.food = new THREE.Vector3(X, 0.6 + Math.ceil(n / 5) * 0.12, Z);
+  v.anchors.food = new THREE.Vector3(X + 0.25, Hb + 0.55, Z + 0.25);
 }
-// Small wooden table with a purple runner; crystals grow on top and light the corner
-function tr3dCrystals(v, lvl){
+function tr3dWood(v, M, lvl){
+  const n = TR3D_COUNTS.wood[lvl]; if(!n) return;
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  g.fillStyle = '#d6a868'; g.fillRect(0, 0, 64, 64);
+  for(let r = 30; r > 2; r -= 4){ g.strokeStyle = r % 8 ? '#b5844a' : '#8f6230'; g.lineWidth = 1.6; g.beginPath(); g.arc(32 + (r % 3), 32, r, 0, Math.PI * 2); g.stroke(); }
+  g.strokeStyle = '#3e2614'; g.lineWidth = 5; g.beginPath(); g.arc(32, 32, 30, 0, Math.PI * 2); g.stroke();
+  const capT = new THREE.CanvasTexture(c); capT.encoding = THREE.sRGBEncoding;
+  const cap = new THREE.MeshStandardMaterial({ map: capT, roughness: 0.9 });
+  const bark = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 1, 2), color: 0x5a3a20, roughness: 1 });
+  const rnd = tr3dRand(3), X = -1.25, Z = -2.05, perRow = 6;
+  let placed = 0, row = 0;
+  while(placed < n && row < 6){
+    const inRow = Math.min(perRow - (row % 2), n - placed);
+    for(let i = 0; i < inRow; i++, placed++){
+      const r = 0.16 + rnd() * 0.03;
+      const log = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.03, 1.0 + rnd() * 0.2, 12), [bark, cap, cap]);
+      log.rotation.x = Math.PI / 2; log.rotation.z = (rnd() - 0.5) * 0.06;
+      log.position.set(X + (i - (perRow - 1) / 2 + (row % 2) * 0.5) * 0.34, 0.17 + row * 0.3, Z + (rnd() - 0.5) * 0.12);
+      v.scene.add(log);
+    }
+    row++;
+  }
+  v.anchors.wood = new THREE.Vector3(X + 0.2, 0.75 + row * 0.3, Z);
+}
+function tr3dTable(v, M){
+  const X = 1.7, Z = -1.35, TH = 0.82, g = new THREE.Group();
+  const top = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.08, 0.72), M.wood); top.position.y = TH; g.add(top);
+  const apron = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.12, 0.64), M.darkWood); apron.position.y = TH - 0.1; g.add(apron);
+  [[-0.55, -0.29], [0.55, -0.29], [-0.55, 0.29], [0.55, 0.29]].forEach(([x, z]) => {
+    const pts = []; for(let i = 0; i <= 8; i++){ const t = i / 8; pts.push(new THREE.Vector2(0.035 + Math.sin(t * Math.PI * 1.5) * 0.02 + (t < 0.1 ? 0.02 : 0), t * (TH - 0.15))); }
+    const leg = new THREE.Mesh(new THREE.LatheGeometry(pts, 8), M.darkWood); leg.position.set(x, 0, z); g.add(leg);
+  });
+  // draped cloth: top sheet + hanging flaps with a gold hem
+  const cloth = new THREE.MeshStandardMaterial({ color: 0x3e1a5c, roughness: 0.95, side: THREE.DoubleSide });
+  const hem = new THREE.MeshStandardMaterial({ color: 0xc9963f, metalness: 0.6, roughness: 0.4 });
+  const sheet = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.012, 0.76), cloth); sheet.position.y = TH + 0.047; g.add(sheet);
+  [-1, 1].forEach(sz => {
+    const flap = new THREE.Mesh(new THREE.PlaneGeometry(0.75, 0.32), cloth); flap.position.set(0, TH - 0.12, sz * 0.385); g.add(flap);
+    const h = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.025, 0.01), hem); h.position.set(0, TH - 0.28, sz * 0.39); g.add(h);
+  });
+  // candle + potion
+  const wax = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.2, 10), new THREE.MeshStandardMaterial({ color: 0xf2e6c8, roughness: 0.7 }));
+  wax.position.set(0.48, TH + 0.14, 0.18); g.add(wax);
+  const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: homeFlameTexture(), color: 0xffb050, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+  flame.position.set(0.48, TH + 0.3, 0.18); flame.scale.set(0.12, 0.18, 1); g.add(flame);
+  const candleLight = new THREE.PointLight(0xffa850, 0.7, 2.5, 2); candleLight.position.set(0.48, TH + 0.35, 0.18); g.add(candleLight);
+  v.torches.push({ flame, light: candleLight, seed: 3.3, base: 0.7, size: [0.12, 0.18] });
+  const glass = new THREE.MeshStandardMaterial({ color: 0x40d0a0, transparent: true, opacity: 0.75, roughness: 0.1, emissive: 0x0a5040, emissiveIntensity: 0.5 });
+  const bottle = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 10), glass); bottle.position.set(-0.5, TH + 0.12, 0.2); g.add(bottle);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.03, 0.1, 8), glass); neck.position.set(-0.5, TH + 0.24, 0.2); g.add(neck);
+  const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.03, 8), M.wood); cork.position.set(-0.5, TH + 0.3, 0.2); g.add(cork);
+  const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), M.brass); bowl.position.set(-0.42, TH + 0.14, -0.15); g.add(bowl);
+  g.position.set(X, 0, Z); v.scene.add(g); tr3dShadow(v.scene, X, Z, 0.85, 0.55);
+  return { X, Z, TH };
+}
+function tr3dCrystals(v, M, lvl, T){
   const n = TR3D_COUNTS.crystals[lvl]; if(!n) return;
-  const X = 1.75, Z = -1.55, TH = 0.8;
-  const wood = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 1, 1), color: 0x7a5232, roughness: 0.8 });
-  const table = new THREE.Group();
-  const top = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.75), wood); top.position.y = TH; table.add(top);
-  [[-0.52, -0.3], [0.52, -0.3], [-0.52, 0.3], [0.52, 0.3]].forEach(([x, z]) => { const l = new THREE.Mesh(new THREE.BoxGeometry(0.07, TH, 0.07), wood); l.position.set(x, TH / 2, z); table.add(l); });
-  const runner = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.01, 0.78), new THREE.MeshStandardMaterial({ color: 0x4a1f6b, roughness: 0.9 }));
-  runner.position.y = TH + 0.045; table.add(runner);
-  table.position.set(X, 0, Z); v.scene.add(table);
-  tr3dShadow(v.scene, X, Z, 0.8, 0.55);
-  const rnd = tr3dRand(37);
-  const mat = new THREE.MeshStandardMaterial({ color: 0xc8a4ff, emissive: 0x7a3cff, emissiveIntensity: 0.75, roughness: 0.12, metalness: 0.1, transparent: true, opacity: 0.93 });
-  const geo = new THREE.OctahedronGeometry(0.12, 0);
-  const base = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2, 0), new THREE.MeshStandardMaterial({ color: 0x3b3440, roughness: 1 }));
-  base.scale.set(1.2, 0.45, 1.0); base.position.set(X, TH + 0.1, Z); v.scene.add(base);
+  const rnd = tr3dRand(37), X = T.X, Z = T.Z - 0.02, TH = T.TH + 0.05;
+  const mat = new THREE.MeshStandardMaterial({ color: 0xc8a4ff, emissive: 0x7a3cff, emissiveIntensity: 0.8, roughness: 0.12, metalness: 0.1, transparent: true, opacity: 0.93 });
+  const geo = new THREE.OctahedronGeometry(0.11, 0);
+  const base = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18, 0), new THREE.MeshStandardMaterial({ color: 0x3b3440, roughness: 1 }));
+  base.scale.set(1.2, 0.45, 1.0); base.position.set(X, TH + 0.06, Z); v.scene.add(base);
   for(let i = 0; i < n; i++){
     const c = new THREE.Mesh(geo, mat);
-    const s = (i === 0 ? 1.6 : 0.7 + rnd() * 0.8) * (0.9 + lvl * 0.06); c.scale.set(s * 0.8, s * 2.4, s * 0.8);
-    const a = rnd() * Math.PI * 2, r = i === 0 ? 0 : 0.06 + rnd() * 0.16;
-    c.position.set(X + Math.cos(a) * r, TH + 0.12 + s * 0.2, Z + Math.sin(a) * r * 0.8);
-    c.rotation.set(Math.cos(a) * r * 2.2, rnd() * 6, -Math.sin(a) * r * 2.2); v.scene.add(c);
+    const s = (i === 0 ? 1.7 : 0.6 + rnd() * 0.8) * (0.9 + lvl * 0.07); c.scale.set(s * 0.8, s * 2.5, s * 0.8);
+    const a = rnd() * Math.PI * 2, r = i === 0 ? 0 : 0.05 + rnd() * 0.15;
+    c.position.set(X + Math.cos(a) * r, TH + 0.08 + s * 0.2, Z + Math.sin(a) * r * 0.8);
+    c.rotation.set(Math.sin(a) * r * 2.4, rnd() * 6, -Math.cos(a) * r * 2.4); v.scene.add(c);
   }
-  v.crystalLight = new THREE.PointLight(0x9a5cff, 0.7 + lvl * 0.3, 3.5, 2); v.crystalLight.position.set(X, TH + 0.7, Z + 0.3); v.scene.add(v.crystalLight);
-  v.anchors.crystals = new THREE.Vector3(X, TH + 0.95 + lvl * 0.05, Z);
+  if(lvl >= 3){ // a stray shard on the floor
+    const sh = new THREE.Mesh(geo, mat); sh.scale.set(0.6, 1.4, 0.6); sh.position.set(X + 0.75, 0.08, Z + 0.55); sh.rotation.z = 0.5; v.scene.add(sh);
+  }
+  v.crystalLight = new THREE.PointLight(0x9a5cff, 0.8 + lvl * 0.3, 3.5, 2); v.crystalLight.position.set(X, TH + 0.7, Z + 0.35); v.scene.add(v.crystalLight);
+  v.sparkles = [];
+  for(let i = 0; i < 3 + lvl; i++){
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: homePetGlowTexture(), color: 0xe0d0ff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
+    sp.scale.setScalar(0.12); v.scene.add(sp); v.sparkles.push({ sp, X, Y: TH + 0.4, Z, seed: rnd() * 10 });
+  }
+  v.anchors.crystals = new THREE.Vector3(X, TH + 1.0 + lvl * 0.05, Z);
 }
-function tr3dRoom(v){
+function tr3dBarrel(v, M, x, z, s){
+  const pts = []; for(let i = 0; i <= 10; i++){ const t = i / 10; pts.push(new THREE.Vector2((0.4 + Math.sin(t * Math.PI) * 0.07) * s, t * 1.0 * s)); }
+  const b = new THREE.Mesh(new THREE.LatheGeometry(pts, 18), M.wood); b.position.set(x, 0, z); v.scene.add(b);
+  const top = new THREE.Mesh(new THREE.CircleGeometry(0.41 * s, 18), M.darkWood); top.rotation.x = -Math.PI / 2; top.position.set(x, s, z); v.scene.add(top);
+  [0.15, 0.85].forEach(y => { const h = new THREE.Mesh(new THREE.TorusGeometry(0.44 * s, 0.02, 6, 24), M.iron); h.rotation.x = Math.PI / 2; h.position.set(x, y * s, z); v.scene.add(h); });
+  tr3dShadow(v.scene, x, z, 0.55 * s);
+}
+function tr3dSack(v, x, z, s){
+  const cloth = new THREE.MeshStandardMaterial({ color: 0x7a5a38, roughness: 1 });
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 10), cloth); body.scale.set(1, 1.1, 0.95); body.position.y = 0.27; g.add(body);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.12, 0.16, 10), cloth); neck.position.y = 0.6; g.add(neck);
+  const tie = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.015, 6, 12), new THREE.MeshStandardMaterial({ color: 0x3a2414 })); tie.rotation.x = Math.PI / 2; tie.position.y = 0.6; g.add(tie);
+  g.scale.setScalar(s); g.position.set(x, 0, z); v.scene.add(g); tr3dShadow(v.scene, x, z, 0.35 * s);
+}
+function tr3dRoom(v, M){
   const s = v.scene;
-  const back = new THREE.Mesh(new THREE.PlaneGeometry(10, 5), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.wall, 3.5, 1.8), roughness: 0.95, color: 0x9a8c80 }));
-  back.position.set(0, 2.5, -2.5); s.add(back);
-  const side = new THREE.Mesh(new THREE.PlaneGeometry(7, 5), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.wall, 2.5, 1.8), roughness: 0.95, color: 0x857769 }));
+  // mossy stone (texture tinted green-grey), split into bays by timber posts
+  const stone = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.wall, 3.5, 1.8), roughness: 0.95, color: 0x8f9a7c });
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(10, 5), stone); back.position.set(0, 2.5, -2.5); s.add(back);
+  const side = new THREE.Mesh(new THREE.PlaneGeometry(7, 5), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.wall, 2.5, 1.8), roughness: 0.95, color: 0x7d8a6c }));
   side.rotation.y = Math.PI / 2; side.position.set(-4, 2.5, 1); s.add(side);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 7), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.floor, 3, 2.1), roughness: 1, color: 0x8a7a6a }));
-  floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, 1); s.add(floor);
-  // timber frame: beam along the back wall, corner post, skirting board
-  const beamMat = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 3, 1), roughness: 0.85, color: 0x7a5a3a });
-  const beam = new THREE.Mesh(new THREE.BoxGeometry(10, 0.4, 0.4), beamMat); beam.position.set(0, 4.3, -2.3); s.add(beam);
-  const post = new THREE.Mesh(new THREE.BoxGeometry(0.45, 5, 0.45), beamMat); post.position.set(-3.77, 2.5, -2.27); s.add(post);
-  // rug under the gold
-  const c = document.createElement('canvas'); c.width = 256; c.height = 160; const g = c.getContext('2d');
-  g.fillStyle = '#6a1712'; g.fillRect(0, 0, 256, 160); g.strokeStyle = '#c9963f'; g.lineWidth = 7; g.strokeRect(10, 10, 236, 140);
-  g.lineWidth = 2; g.strokeRect(24, 24, 208, 112); g.fillStyle = '#8e2a1c'; g.beginPath(); g.ellipse(128, 80, 72, 40, 0, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#c9963f'; for(let i = 0; i < 4; i++){ g.save(); g.translate(128, 80); g.rotate(i * Math.PI / 2); g.beginPath(); g.moveTo(0, -30); g.lineTo(8, -12); g.lineTo(-8, -12); g.fill(); g.restore(); }
-  const rugT = new THREE.CanvasTexture(c); rugT.encoding = THREE.sRGBEncoding;
-  const rug = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.9), new THREE.MeshStandardMaterial({ map: rugT, roughness: 1 }));
-  rug.rotation.x = -Math.PI / 2; rug.position.set(-0.2, 0.006, 0.45); s.add(rug);
-  // wall torches: iron bracket, flickering flame, warm light
-  v.torches = [];
-  [[-0.9, 2.2], [2.55, 2.2]].forEach(([x, y]) => {
-    const iron = new THREE.MeshStandardMaterial({ color: 0x2a2622, metalness: 0.6, roughness: 0.6 });
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.3, 0.04), iron); plate.position.set(x, y - 0.25, -2.47); s.add(plate);
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.55, 8), iron); arm.position.set(x, y - 0.1, -2.33); arm.rotation.x = 0.6; s.add(arm);
-    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.08, 0.22, 10), iron); cup.position.set(x, y + 0.12, -2.18); s.add(cup);
-    const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: homeFlameTexture(), color: 0xffa040, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
-    flame.position.set(x, y + 0.45, -2.18); flame.scale.set(0.55, 0.8, 1); s.add(flame);
-    const light = new THREE.PointLight(0xff9a40, 1.8, 7, 2); light.position.set(x, y + 0.5, -1.9); s.add(light);
-    v.torches.push({ flame, light, seed: Math.random() * 10 });
+  // floor: planks on the left, flagstones on the right
+  const planks = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 7), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 3, 4), color: 0x7a5434, roughness: 0.9 }));
+  planks.rotation.x = -Math.PI / 2; planks.position.set(-1.7, 0.002, 1); s.add(planks);
+  const flags = new THREE.Mesh(new THREE.PlaneGeometry(10, 7), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.floor, 3, 2.1), roughness: 1, color: 0x8a8070 }));
+  flags.rotation.x = -Math.PI / 2; flags.position.set(0, 0, 1); s.add(flags);
+  // timber frame: posts, top beam, diagonal braces
+  [-3.75, -0.05, 3.4].forEach(x => { const p = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5, 0.4), M.darkWood); p.position.set(x, 2.5, -2.3); s.add(p); });
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(10, 0.42, 0.45), M.darkWood); beam.position.set(0, 3.9, -2.28); s.add(beam);
+  [[-3.75, 1], [-0.05, -1], [-0.05, 1], [3.4, -1]].forEach(([x, dir]) => {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.24, 0.3), M.darkWood);
+    b.position.set(x + dir * 0.5, 3.4, -2.3); b.rotation.z = dir * 0.75; s.add(b);
   });
-  s.add(new THREE.AmbientLight(0x7a6050, 0.45), new THREE.HemisphereLight(0xffd8a0, 0x2a1a10, 0.3));
-  const fill = new THREE.PointLight(0xffb060, 0.9, 8, 2); fill.position.set(0.2, 2.0, 2.4); s.add(fill); // warm glow over the hoard
-  // dust in the torchlight
-  const n = 90, pos = new Float32Array(n * 3), rnd = tr3dRand(5);
-  for(let i = 0; i < n; i++){ pos[i * 3] = (rnd() - 0.5) * 7; pos[i * 3 + 1] = rnd() * 4; pos[i * 3 + 2] = -2 + rnd() * 4; }
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(10, 7), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 4, 3), color: 0x3a2818, roughness: 1 }));
+  ceil.rotation.x = Math.PI / 2; ceil.position.set(0, 4.1, 1); s.add(ceil);
+  // tapestry in the right bay
+  const c = document.createElement('canvas'); c.width = 64; c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = '#5a1712'; g.fillRect(0, 0, 64, 128); g.strokeStyle = '#c9963f'; g.lineWidth = 3; g.strokeRect(5, 5, 54, 118);
+  g.fillStyle = '#c9963f'; g.beginPath(); g.moveTo(32, 30); g.lineTo(46, 60); g.lineTo(32, 92); g.lineTo(18, 60); g.closePath(); g.fill();
+  g.fillStyle = '#3a0e0a'; g.beginPath(); g.moveTo(32, 44); g.lineTo(40, 60); g.lineTo(32, 78); g.lineTo(24, 60); g.closePath(); g.fill();
+  const tt = new THREE.CanvasTexture(c); tt.encoding = THREE.sRGBEncoding;
+  const tap = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.6), new THREE.MeshStandardMaterial({ map: tt, roughness: 1 })); tap.position.set(2.75, 2.35, -2.47); s.add(tap);
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.0, 8), M.iron); rod.rotation.z = Math.PI / 2; rod.position.set(2.75, 3.17, -2.45); s.add(rod);
+  // rug on the flagstones
+  const rc = document.createElement('canvas'); rc.width = 256; rc.height = 160; const rg = rc.getContext('2d');
+  rg.fillStyle = '#6a1712'; rg.fillRect(0, 0, 256, 160); rg.strokeStyle = '#c9963f'; rg.lineWidth = 7; rg.strokeRect(10, 10, 236, 140);
+  rg.lineWidth = 2; rg.strokeRect(24, 24, 208, 112); rg.fillStyle = '#8e2a1c'; rg.beginPath(); rg.ellipse(128, 80, 72, 40, 0, 0, Math.PI * 2); rg.fill();
+  const rugT = new THREE.CanvasTexture(rc); rugT.encoding = THREE.sRGBEncoding;
+  const rug = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.4), new THREE.MeshStandardMaterial({ map: rugT, roughness: 1 }));
+  rug.rotation.x = -Math.PI / 2; rug.rotation.z = 0.08; rug.position.set(1.6, 0.006, 0.9); s.add(rug);
+  // hanging iron lantern: the main warm light
+  v.torches = [];
+  const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.6, 6), M.iron); chain.position.set(-1.2, 3.55, -1.6); s.add(chain);
+  const cage = new THREE.Group(); cage.position.set(-1.2, 3.05, -1.6);
+  const frameTop = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.18, 4), M.iron); frameTop.position.y = 0.32; frameTop.rotation.y = Math.PI / 4; cage.add(frameTop);
+  const frameBot = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.04, 0.26), M.iron); frameBot.position.y = -0.2; cage.add(frameBot);
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => { const r = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.5, 0.025), M.iron); r.position.set(a * 0.12, 0.04, b * 0.12); cage.add(r); });
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.42, 0.22), new THREE.MeshStandardMaterial({ color: 0xffd080, emissive: 0xffa040, emissiveIntensity: 1.2, transparent: true, opacity: 0.75 }));
+  glass.position.y = 0.03; cage.add(glass); s.add(cage);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: homePetGlowTexture(), color: 0xffb060, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 }));
+  halo.position.set(-1.2, 3.08, -1.6); halo.scale.setScalar(1.3); s.add(halo);
+  const lamp = new THREE.PointLight(0xffa850, 2.4, 9, 2); lamp.position.set(-1.2, 2.9, -1.4); s.add(lamp);
+  v.torches.push({ light: lamp, halo, seed: 1.7, base: 2.4, slow: true });
+  // a wall torch in the right bay
+  const iron = M.iron;
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.5, 8), iron); arm.position.set(1.15, 2.15, -2.33); arm.rotation.x = 0.6; s.add(arm);
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.08, 0.2, 10), iron); cup.position.set(1.15, 2.35, -2.2); s.add(cup);
+  const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: homeFlameTexture(), color: 0xffa040, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+  flame.position.set(1.15, 2.67, -2.2); flame.scale.set(0.5, 0.75, 1); s.add(flame);
+  const tl = new THREE.PointLight(0xff9a40, 1.5, 6, 2); tl.position.set(1.15, 2.7, -1.9); s.add(tl);
+  v.torches.push({ flame, light: tl, seed: 5.1, base: 1.5, size: [0.5, 0.75] });
+  s.add(new THREE.AmbientLight(0x6a5444, 0.4), new THREE.HemisphereLight(0xffd8a0, 0x1a120c, 0.28));
+  const fill = new THREE.PointLight(0xffb060, 0.7, 8, 2); fill.position.set(0.4, 1.8, 2.6); s.add(fill);
+  // props: barrels, coin sacks, an axe leaning on the left wall
+  tr3dBarrel(v, M, -3.45, 0.9, 0.95); tr3dBarrel(v, M, 3.0, 1.6, 1.0); tr3dBarrel(v, M, 3.15, -1.75, 0.8);
+  tr3dSack(v, 2.4, 0.15, 0.9); tr3dSack(v, 0.55, 1.75, 0.75);
+  const axe = new THREE.Group();
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 1.5, 8), M.wood); handle.position.y = 0.75; axe.add(handle);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.22, 0.04), new THREE.MeshStandardMaterial({ color: 0x8a8d90, metalness: 0.9, roughness: 0.35 })); head.position.set(0.14, 0.12, 0); axe.add(head);
+  axe.position.set(-3.75, 0, 0.35); axe.rotation.z = -0.28; axe.rotation.y = 0.4; s.add(axe);
+  // dust in the lamplight
+  const n = 80, pos = new Float32Array(n * 3), rnd = tr3dRand(5);
+  for(let i = 0; i < n; i++){ pos[i * 3] = (rnd() - 0.5) * 7; pos[i * 3 + 1] = rnd() * 3.8; pos[i * 3 + 2] = -2 + rnd() * 4; }
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  v.dust = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffe6b0, size: 0.025, transparent: true, opacity: 0.6, depthWrite: false }));
+  v.dust = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffe6b0, size: 0.022, transparent: true, opacity: 0.55, depthWrite: false }));
   s.add(v.dust);
-  // the Horde banner on the back wall
+  // the Horde banner in the left bay
   loadHomeProp(HOME_DECOR.horde_banner).then(hb => {
-    hb.scale.setScalar(2.6 / hb.userData.unitHeight); hb.position.set(0.85, 1.25, -2.4); v.scene.add(hb);
+    hb.scale.setScalar(2.2 / hb.userData.unitHeight); hb.position.set(-3.1, 1.3, -2.42); v.scene.add(hb);
     const clip = (hb.userData.animations || [])[0];
     if(clip){ v.bannerMixer = new THREE.AnimationMixer(hb.userData.pivot.children[0]); v.bannerMixer.clipAction(clip).play(); }
   }).catch(() => {});
@@ -10724,12 +10813,14 @@ function mountTreasureCorners(){
       v.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       v.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       v.renderer.outputEncoding = THREE.sRGBEncoding;
-      v.scene = new THREE.Scene(); v.scene.fog = new THREE.Fog(0x140c08, 8, 15);
-      v.camera = new THREE.PerspectiveCamera(47, 4 / 3, 0.1, 50);
-      tr3dRoom(v);
+      v.scene = new THREE.Scene(); v.scene.fog = new THREE.Fog(0x1a110a, 7, 14);
+      v.camera = new THREE.PerspectiveCamera(48, 4 / 3, 0.1, 50);
+      const M = tr3dMats();
+      tr3dRoom(v, M);
       const lv = (k, steps) => steps.filter(s => amt[k] >= s).length;
       const S = Object.fromEntries(SHELF_RESOURCES.map(r => [r.key, r.steps]));
-      tr3dGold(v, lv('gold', S.gold)); tr3dWood(v, lv('wood', S.wood)); tr3dFood(v, lv('food', S.food)); tr3dCrystals(v, lv('crystals', S.crystals));
+      tr3dWood(v, M, lv('wood', S.wood)); tr3dGold(v, M, lv('gold', S.gold)); tr3dFood(v, M, lv('food', S.food));
+      tr3dCrystals(v, M, lv('crystals', S.crystals), tr3dTable(v, M));
       v.clock = new THREE.Clock();
     }
     v.slot = slot;
@@ -10750,19 +10841,26 @@ function mountTreasureCorners(){
         if(!document.body.contains(canvas)){ v.raf = null; return; }
         const dt = Math.min(v.clock.getDelta(), 0.1), now = performance.now();
         cx += (v.mouse.x - cx) * 0.05; cy += (v.mouse.y - cy) * 0.05;
-        v.camera.position.set(0.7 + cx * 1.1, 2.8 - cy * 0.5, 5.6); v.camera.lookAt(-0.25 + cx * 0.3, 0.9, -0.8);
+        v.camera.position.set(0.35 + cx * 0.9, 2.25 - cy * 0.4, 4.1); v.camera.lookAt(-0.4 + cx * 0.3, 0.95, -1.0);
         v.torches.forEach(t => {
-          const k = 0.8 + 0.2 * Math.sin(now / 90 + t.seed) + 0.1 * Math.sin(now / 37 + t.seed * 3);
-          t.flame.scale.set(0.55 * (0.9 + 0.1 * k), 0.8 * k, 1); t.light.intensity = 1.8 * k;
+          const k = t.slow ? 0.85 + 0.1 * Math.sin(now / 520 + t.seed) + 0.05 * Math.sin(now / 230 + t.seed)
+                           : 0.8 + 0.2 * Math.sin(now / 90 + t.seed) + 0.1 * Math.sin(now / 37 + t.seed * 3);
+          if(t.flame) t.flame.scale.set(t.size[0] * (0.9 + 0.1 * k), t.size[1] * k, 1);
+          if(t.halo) t.halo.material.opacity = 0.55 + 0.35 * k;
+          t.light.intensity = t.base * k;
         });
         if(v.crystalLight){
           if(v.crystalLight.userData.base == null) v.crystalLight.userData.base = v.crystalLight.intensity;
           v.crystalLight.intensity = v.crystalLight.userData.base * (0.8 + 0.2 * Math.sin(now / 600));
         }
-        if(v.dust){ v.dust.rotation.y = Math.sin(now / 9000) * 0.05; v.dust.position.y = Math.sin(now / 4000) * 0.12; }
+        (v.sparkles || []).forEach((p, i) => { // twinkles drifting up from the crystals
+          const t = ((now / 2600) + p.seed) % 1;
+          p.sp.position.set(p.X + Math.sin(p.seed * 7 + t * 4) * 0.35, p.Y + t * 0.9, p.Z + Math.cos(p.seed * 5) * 0.2);
+          p.sp.material.opacity = Math.sin(t * Math.PI) * 0.9;
+        });
+        if(v.dust){ v.dust.rotation.y = Math.sin(now / 9000) * 0.05; v.dust.position.y = Math.sin(now / 4000) * 0.1; }
         if(v.bannerMixer) v.bannerMixer.update(dt);
         v.renderer.render(v.scene, v.camera);
-        // plaques follow their piles
         const r = v.slot.getBoundingClientRect();
         v.slot.parentNode.querySelectorAll('[data-tr3d-tag]').forEach(el => {
           const a = v.anchors[el.getAttribute('data-tr3d-tag')];
