@@ -8871,6 +8871,7 @@ const HOME_DECOR = {
   ogre_lantern:     { gltf: 'models/housing/decor-ogre-lantern.gltf', height: 1.0, torches: [[0, 0.8, 0]], flameSize: 0.35, fireLight: 1.4 },
   witch_hat:        { gltf: 'models/housing/decor-witch-hat.gltf', height: 0.6 },
   scarecrow:        { gltf: 'models/housing/decor-scarecrow.gltf', height: 2.4 },
+  ornate_table:     { gltf: 'models/housing/decor-ornate-table.gltf', height: 0.85 },
   log_pile:         { gltf: 'models/housing/decor-log-pile.gltf', height: 1.5 },
   treasure_chest:   { gltf: 'models/housing/decor-treasure-chest.gltf', height: 1.0, anim: 'Opened' },
   campfire:         { gltf: 'models/housing/decor-campfire.gltf', height: 0.9, torches: [[0, 0.6, 0]], flameSize: 0.9, fireLight: 2.2 }
@@ -10513,7 +10514,7 @@ function renderResourceShelf(p, isMe){
    built here so the stores grow with the amounts:
    gold = iron-banded chest that opens and overflows (coins, gems, pearls) + coins on the floor,
    food = a chest with roast chicken legs spilling out, wood = logs stacked high behind the chests,
-   crystals = a glowing cluster on a carved table with a draped cloth, candle and potion.
+   crystals = a glowing cluster on the ornate round table with a candle, potion and bowl.
    One viewer per player + amounts; it re-attaches its canvas after every render. */
 const TR3D_TEX = {
   wall: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/Tier%203%20Home/128000.png',
@@ -10668,40 +10669,29 @@ function tr3dWood(v, M, lvl){
   tr3dShadow(v.scene, X, Z, 0.35 + H * 0.5, 0.6 + H);
   v.anchors.wood = new THREE.Vector3(X, H + 0.3, Z + 0.4);
 }
+// Crystals sit on the WoW ornate round table, with a candle, a potion and a brass bowl around them
 function tr3dTable(v, M){
-  const X = 1.7, Z = -1.35, TH = 0.82, g = new THREE.Group();
-  const top = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.08, 0.72), M.wood); top.position.y = TH; g.add(top);
-  const apron = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.12, 0.64), M.darkWood); apron.position.y = TH - 0.1; g.add(apron);
-  [[-0.55, -0.29], [0.55, -0.29], [-0.55, 0.29], [0.55, 0.29]].forEach(([x, z]) => {
-    const pts = []; for(let i = 0; i <= 8; i++){ const t = i / 8; pts.push(new THREE.Vector2(0.035 + Math.sin(t * Math.PI * 1.5) * 0.02 + (t < 0.1 ? 0.02 : 0), t * (TH - 0.15))); }
-    const leg = new THREE.Mesh(new THREE.LatheGeometry(pts, 8), M.darkWood); leg.position.set(x, 0, z); g.add(leg);
-  });
-  // draped cloth: top sheet + hanging flaps with a gold hem
-  const cloth = new THREE.MeshStandardMaterial({ color: 0x3e1a5c, roughness: 0.95, side: THREE.DoubleSide });
-  const hem = new THREE.MeshStandardMaterial({ color: 0xc9963f, metalness: 0.6, roughness: 0.4 });
-  const sheet = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.012, 0.76), cloth); sheet.position.y = TH + 0.047; g.add(sheet);
-  [-1, 1].forEach(sz => {
-    const flap = new THREE.Mesh(new THREE.PlaneGeometry(0.75, 0.32), cloth); flap.position.set(0, TH - 0.12, sz * 0.385); g.add(flap);
-    const h = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.025, 0.01), hem); h.position.set(0, TH - 0.28, sz * 0.39); g.add(h);
-  });
+  const X = 1.7, Z = -1.35, TH = 0.85, g = new THREE.Group();
+  loadHomeProp(HOME_DECOR.ornate_table).then(t => { t.scale.setScalar(TH / t.userData.unitHeight); g.add(t); })
+    .catch(err => console.warn('Ornate table failed to load:', err));
   // candle + potion
   const wax = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.2, 10), new THREE.MeshStandardMaterial({ color: 0xf2e6c8, roughness: 0.7 }));
-  wax.position.set(0.48, TH + 0.14, 0.18); g.add(wax);
+  wax.position.set(0.3, TH + 0.1, 0.18); g.add(wax);
   const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: homeFlameTexture(), color: 0xffb050, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
-  flame.position.set(0.48, TH + 0.3, 0.18); flame.scale.set(0.12, 0.18, 1); g.add(flame);
-  const candleLight = new THREE.PointLight(0xffa850, 0.7, 2.5, 2); candleLight.position.set(0.48, TH + 0.35, 0.18); g.add(candleLight);
+  flame.position.set(0.3, TH + 0.26, 0.18); flame.scale.set(0.12, 0.18, 1); g.add(flame);
+  const candleLight = new THREE.PointLight(0xffa850, 0.7, 2.5, 2); candleLight.position.set(0.3, TH + 0.31, 0.18); g.add(candleLight);
   v.torches.push({ flame, light: candleLight, seed: 3.3, base: 0.7, size: [0.12, 0.18] });
   const glass = new THREE.MeshStandardMaterial({ color: 0x40d0a0, transparent: true, opacity: 0.75, roughness: 0.1, emissive: 0x0a5040, emissiveIntensity: 0.5 });
-  const bottle = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 10), glass); bottle.position.set(-0.5, TH + 0.12, 0.2); g.add(bottle);
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.03, 0.1, 8), glass); neck.position.set(-0.5, TH + 0.24, 0.2); g.add(neck);
-  const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.03, 8), M.wood); cork.position.set(-0.5, TH + 0.3, 0.2); g.add(cork);
-  const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), M.brass); bowl.position.set(-0.42, TH + 0.14, -0.15); g.add(bowl);
-  g.position.set(X, 0, Z); v.scene.add(g); tr3dShadow(v.scene, X, Z, 0.85, 0.55);
+  const bottle = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 10), glass); bottle.position.set(-0.3, TH + 0.08, 0.2); g.add(bottle);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.03, 0.1, 8), glass); neck.position.set(-0.3, TH + 0.2, 0.2); g.add(neck);
+  const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.03, 8), M.wood); cork.position.set(-0.3, TH + 0.26, 0.2); g.add(cork);
+  const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), M.brass); bowl.position.set(-0.22, TH + 0.1, -0.22); g.add(bowl);
+  g.position.set(X, 0, Z); v.scene.add(g); tr3dShadow(v.scene, X, Z, 0.7, 0.6);
   return { X, Z, TH };
 }
 function tr3dCrystals(v, M, lvl, T){
   const n = TR3D_COUNTS.crystals[lvl]; if(!n) return;
-  const rnd = tr3dRand(37), X = T.X, Z = T.Z - 0.02, TH = T.TH + 0.05;
+  const rnd = tr3dRand(37), X = T.X, Z = T.Z - 0.02, TH = T.TH;
   const mat = new THREE.MeshStandardMaterial({ color: 0xc8a4ff, emissive: 0x7a3cff, emissiveIntensity: 0.8, roughness: 0.12, metalness: 0.1, transparent: true, opacity: 0.93 });
   const geo = new THREE.OctahedronGeometry(0.11, 0);
   const base = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18, 0), new THREE.MeshStandardMaterial({ color: 0x3b3440, roughness: 1 }));
