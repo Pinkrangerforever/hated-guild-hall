@@ -8877,6 +8877,7 @@ const HOME_DECOR = {
   lumberjack_npc:   { gltf: 'models/housing/decor-lumberjack.gltf', height: 1.5, npc: true, fun: ['StandAlt'] },
   miningjack:       { gltf: 'models/housing/decor-miningjack.gltf', height: 1.5, npc: true, fun: ['StandAlt'] },
   goldjack:         { gltf: 'models/housing/decor-goldjack.gltf', height: 1.5, npc: true, fun: ['StandAlt'] },
+  speedy:           { gltf: 'models/housing/decor-speedy.gltf', height: 0.7, npc: true, walkSpeed: 0.3, fun: ['MountSpecial', 'Whirlwind', 'StandAlt'] },
   flying_broom:     { gltf: 'models/housing/decor-flying-broom.gltf', height: 1.0, npc: true, fun: ['MountSpecial'] },
   sinister_squashling: { gltf: 'models/housing/decor-sinister-squashling.gltf', height: 0.9, npc: true, fun: ['SpellCast', 'Emerge'] },
   // its flames are WoW particles too: our flickering flame on top + a warm glow
@@ -9492,7 +9493,7 @@ function homePetNext(v, a, now){
     }
   }
   if(a.kind === 'walker' && a.state === 'idle' && Math.random() < 0.6
-     && homePetStartPath(v, a, homePetGroundPoint(v, a.height), HOME_PET_WALK_SPEED, 0)){
+     && homePetStartPath(v, a, homePetGroundPoint(v, a.height), a.walkSpeed || HOME_PET_WALK_SPEED, 0)){
     homePetPlay(a, a.walk); a.state = 'walk'; a.until = Infinity;
     return;
   }
@@ -10134,7 +10135,7 @@ function addHomePropHolder(v, h, prop){
       idle: pick(['Stand']), walk: pick(['Walk', 'Run']), fly: pick(['Fly', 'Glide']), hover: pick(['Hover']), takeoff: pick(['ToFly']), land: pick(['Land']),
       fun: (prop.fun || ['CreatureSpecial', 'StandAlt', 'Roar', 'Dance']).filter(n => byName[n]),
       current: null, state: 'idle', until: performance.now() + rand(1500, 4000), path: null, tagUntil: 0,
-      yaw: prop.rotY || 0, targetYaw: null, kind: byName.Fly ? 'flier' : 'walker', height: prop.height
+      yaw: prop.rotY || 0, targetYaw: null, kind: byName.Fly ? 'flier' : 'walker', height: prop.height, walkSpeed: prop.walkSpeed
     };
     homePetPlay(entry.npcActor, entry.npcActor.idle);
   } else if(clip){
