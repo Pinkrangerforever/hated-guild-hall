@@ -12301,7 +12301,7 @@ function renderDailyBonusModal(){
     const cls = day < today ? 'done' : day === today ? 'today' : 'later';
     return `<div class="db-medal ${cls} ${day === 7 ? 'big' : ''}">
       <div class="db-medal-coin">${day < today ? '&#10003;' : day === 7 ? '&#9733;' : day}</div>
-      <div class="db-medal-amt">${g}g${day === 7 ? '<br><span>+food +wood<br>+5 crystals</span>' : ''}</div>
+      <div class="db-medal-amt">${g}g${day === 7 ? '<br><span>+food +wood<br>+5 crystals</span>' : day === 3 ? '<br><span>+10 food</span>' : day === 5 ? '<br><span>+10 wood</span>' : ''}</div>
     </div>`;
   }).join('');
   const claimed = state.dailyBonusClaimed;
