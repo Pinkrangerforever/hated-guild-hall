@@ -8871,6 +8871,7 @@ const HOME_DECOR = {
   ogre_lantern:     { gltf: 'models/housing/decor-ogre-lantern.gltf', height: 1.0, torches: [[0, 0.8, 0]], flameSize: 0.35, fireLight: 1.4 },
   witch_hat:        { gltf: 'models/housing/decor-witch-hat.gltf', height: 0.6 },
   scarecrow:        { gltf: 'models/housing/decor-scarecrow.gltf', height: 2.4 },
+  log_pile:         { gltf: 'models/housing/decor-log-pile.gltf', height: 1.5 },
   treasure_chest:   { gltf: 'models/housing/decor-treasure-chest.gltf', height: 1.0, anim: 'Opened' },
   campfire:         { gltf: 'models/housing/decor-campfire.gltf', height: 0.9, torches: [[0, 0.6, 0]], flameSize: 0.9, fireLight: 2.2 }
 };
@@ -9929,10 +9930,10 @@ function decorCardHtml(i, mine, gold, crystals){
   const k = i.metadata.key, own = mine[k] || 0, byCrystal = i.metadata.currency === 'crystals';
   const woodCost = Number(i.metadata.wood_cost) || 0, wood = (state.profile && state.profile.wood) || 0;
   const can = (byCrystal ? crystals >= i.cost : gold >= i.cost) && wood >= woodCost;
-  const price = (byCrystal
-    ? `<img src="${CRYSTAL_ICON}" alt="" class="ds-cur"> ${i.cost}`
-    : `${goldIconHtml()} ${i.cost.toLocaleString()}`)
-    + (woodCost ? ` + <img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/WoodIcon.png" alt="" class="ds-cur"> ${woodCost}` : '');
+  const woodHtml = woodCost ? `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/WoodIcon.png" alt="" class="ds-cur"> ${woodCost}` : '';
+  const price = !i.cost && woodCost ? woodHtml
+    : (byCrystal ? `<img src="${CRYSTAL_ICON}" alt="" class="ds-cur"> ${i.cost}` : `${goldIconHtml()} ${i.cost.toLocaleString()}`)
+      + (woodHtml ? ` + ${woodHtml}` : '');
   return `
     <div class="ds-card ${byCrystal ? 'rare' : ''} ${i.metadata.holiday ? 'holiday' : ''}">
       ${ own ? `<span class="ds-owned">Owned &times;${own}</span>` : '' }
@@ -10563,7 +10564,7 @@ function tr3dChest(M, open, W, D, Hb){
 // click toggles it. Inside: a mound of coins, gems and pearls that grows; loose coins spill onto the floor.
 function tr3dGold(v, M, lvl){
   const n = TR3D_COUNTS.gold[lvl];
-  const X = -2.05, Z = -0.75, CH = 1.0, rnd = tr3dRand(11), o = new THREE.Object3D();
+  const X = -0.7, Z = -0.6, CH = 1.0, rnd = tr3dRand(11), o = new THREE.Object3D();
   const BW = 1.05, BD = 0.8, BT = 0.62;   // inner footprint (along the chest) and rim height at CH = 1
   const hoard = new THREE.Group(); hoard.position.set(X, 0, Z); hoard.rotation.y = 0.32; v.scene.add(hoard);
   tr3dShadow(v.scene, X, Z, 0.85, 0.65);
@@ -10637,7 +10638,7 @@ function tr3dDrumstick(meat, bone){
 }
 function tr3dFood(v, M, lvl){
   const n = TR3D_COUNTS.food[lvl];
-  const X = -0.55, Z = -1.15, W = 0.95, D = 0.62, Hb = 0.5;
+  const X = 0.45, Z = -1.3, W = 0.95, D = 0.62, Hb = 0.5;
   const chest = tr3dChest(M, n > 0, W, D, Hb); chest.position.set(X, 0, Z); chest.rotation.y = -0.18; v.scene.add(chest);
   tr3dShadow(v.scene, X, Z, 0.7, 0.5);
   if(!n) return;
@@ -10657,29 +10658,15 @@ function tr3dFood(v, M, lvl){
   }
   v.anchors.food = new THREE.Vector3(X + 0.25, Hb + 0.55, Z + 0.25);
 }
+// Wood: the WoW lumber-mill log pile against the back wall, bigger as the stock grows
 function tr3dWood(v, M, lvl){
-  const n = TR3D_COUNTS.wood[lvl]; if(!n) return;
-  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
-  g.fillStyle = '#d6a868'; g.fillRect(0, 0, 64, 64);
-  for(let r = 30; r > 2; r -= 4){ g.strokeStyle = r % 8 ? '#b5844a' : '#8f6230'; g.lineWidth = 1.6; g.beginPath(); g.arc(32 + (r % 3), 32, r, 0, Math.PI * 2); g.stroke(); }
-  g.strokeStyle = '#3e2614'; g.lineWidth = 5; g.beginPath(); g.arc(32, 32, 30, 0, Math.PI * 2); g.stroke();
-  const capT = new THREE.CanvasTexture(c); capT.encoding = THREE.sRGBEncoding;
-  const cap = new THREE.MeshStandardMaterial({ map: capT, roughness: 0.9 });
-  const bark = new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 1, 2), color: 0x5a3a20, roughness: 1 });
-  const rnd = tr3dRand(3), X = -1.25, Z = -2.05, perRow = 6;
-  let placed = 0, row = 0;
-  while(placed < n && row < 6){
-    const inRow = Math.min(perRow - (row % 2), n - placed);
-    for(let i = 0; i < inRow; i++, placed++){
-      const r = 0.16 + rnd() * 0.03;
-      const log = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.03, 1.0 + rnd() * 0.2, 12), [bark, cap, cap]);
-      log.rotation.x = Math.PI / 2; log.rotation.z = (rnd() - 0.5) * 0.06;
-      log.position.set(X + (i - (perRow - 1) / 2 + (row % 2) * 0.5) * 0.34, 0.17 + row * 0.3, Z + (rnd() - 0.5) * 0.12);
-      v.scene.add(log);
-    }
-    row++;
-  }
-  v.anchors.wood = new THREE.Vector3(X + 0.2, 0.75 + row * 0.3, Z);
+  if(!lvl) return;
+  const X = -2.35, Z = -1.15, H = 1.5 * [0, 0.5, 0.65, 0.78, 0.9, 1.0][lvl];
+  loadHomeProp(HOME_DECOR.log_pile).then(lp => {
+    lp.scale.setScalar(H / lp.userData.unitHeight); lp.rotation.y = 0.12; lp.position.set(X, 0, Z); v.scene.add(lp); // log ends toward the viewer
+  }).catch(err => console.warn('Log pile failed to load:', err));
+  tr3dShadow(v.scene, X, Z, 0.35 + H * 0.5, 0.6 + H);
+  v.anchors.wood = new THREE.Vector3(X, H + 0.3, Z + 0.4);
 }
 function tr3dTable(v, M){
   const X = 1.7, Z = -1.35, TH = 0.82, g = new THREE.Group();
