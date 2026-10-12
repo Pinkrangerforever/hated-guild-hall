@@ -3639,7 +3639,7 @@
   .tr-crystal .tr-tag{ background:linear-gradient(180deg, #e2d4ff, #a07ee0 60%, #6f4cb0); border-color:#3a1f6b; }
   @media (max-width:640px){ .tr-pile{ height:60px; } .shelf-item{ width:18px; height:18px; } .tr-tag{ font-size:9px; padding:1px 5px; } .tr-tag b{ font-size:10px; } }
   /* Home decorating: inventory column beside the frame, tool bar below */
-  .home-edit-wrap.editing{ display:grid; grid-template-columns:minmax(0, 1fr) 230px; gap:14px; align-items:start; }
+  .home-edit-wrap.has-panel{ display:grid; grid-template-columns:minmax(0, 1fr) 230px; gap:14px; align-items:start; }
   .decor-inv{ background:linear-gradient(180deg, #2a1a0c, #170e06); border:2px solid #5a3818; border-radius:6px; padding:10px;
     box-shadow:inset 0 0 18px rgba(0,0,0,0.6); max-height:100%; overflow:auto; }
   .decor-inv h4{ font-family:'Cinzel', Georgia, serif; color:var(--hh-gold-bright, #f0d27a); font-size:13px; margin:10px 0 6px; letter-spacing:0.06em; }
@@ -3666,7 +3666,7 @@
   .decor-shop-card{ padding:10px; border-radius:5px; background:rgba(255,230,160,0.06); border:1px solid rgba(201,150,63,0.4); display:flex; flex-direction:column; gap:6px; }
   .decor-shop-card b{ color:#f0dfb4; }
   .decor-shop-card p{ margin:0; font-size:12px; color:#c9b48a; flex:1; }
-  @media (max-width:800px){ .home-edit-wrap.editing{ grid-template-columns:1fr; } }
+  @media (max-width:800px){ .home-edit-wrap.has-panel{ grid-template-columns:1fr; } }
   .home-frame-inner{ cursor:grab; touch-action:pan-y; user-select:none; }
   .home-frame-inner.dragging{ cursor:grabbing; }
   .home-frame-inner::after{ z-index:3; }
@@ -8881,7 +8881,7 @@ function renderHomeSection(p, isMe){
     <div class="profile-panel profile-home-panel">
       ${title}
       ${tabs}
-      <div class="home-edit-wrap ${editing ? 'editing' : ''}">
+      <div class="home-edit-wrap ${isMe ? 'has-panel' : ''} ${editing ? 'editing' : ''}">
       <div class="home-frame">
         <div class="home-frame-inner">
           <div class="home-scene" data-home-scene="${esc(home.zone)}" data-home-tier="${home.house_tier || 0}" data-home-user="${esc(p.id)}" data-home-id="${esc(home.id)}"></div>
@@ -8890,14 +8890,13 @@ function renderHomeSection(p, isMe){
         <span class="home-frame-corner tl"></span><span class="home-frame-corner tr"></span>
         <span class="home-frame-corner bl"></span><span class="home-frame-corner br"></span>
       </div>
-      ${ editing ? renderDecorInventory(home) : '' }
+      ${ isMe ? renderDecorInventory(home, editing) : '' }
       </div>
       ${ editing ? renderHomeEditBar() : '' }
       ${ isMe && !editing ? renderHouseBuildBar(home) : '' }
       ${ !isMe && home.house_tier ? `<div class="home-tier-note">Tier ${home.house_tier} house</div>` : '' }
       ${ isMe && !editing ? `
         <div class="home-actions">
-          <button class="btn" type="button" data-home-edit="${esc(home.id)}">&#9874; Decorate</button>
           ${ home.is_active ? `<span class="home-active-note">&#9733; Shown on your profile</span>`
                             : `<button class="btn secondary" type="button" data-set-active-home="${esc(home.id)}">Show this home on my profile</button>` }
           <button class="btn secondary" type="button" data-open-shop-homes>Buy more homes</button>
@@ -9544,7 +9543,12 @@ function decorPlacedCount(k){
   return n;
 }
 
-function renderDecorInventory(home){
+function renderDecorInventory(home, editing){
+  const top = `
+      <button class="btn decor-shop-btn" type="button" data-decor-shop="${esc(home.zone)}">&#128722; Decor Shop</button>
+      ${ editing ? `<button class="btn secondary decor-shop-btn" type="button" data-home-save style="margin-top:8px;">&#10003; Save &amp; finish</button>`
+                 : `<button class="btn decor-shop-btn" type="button" data-home-edit="${esc(home.id)}" style="margin-top:8px;">&#9874; Decorate</button>` }`;
+  if(!editing) return `<aside class="decor-inv">${top}<p class="decor-empty" style="margin-top:10px;">Press Decorate to move your house, the starting pieces and your decor around the stage.</p></aside>`;
   const mine = state.myDecor && typeof state.myDecor === 'object' ? state.myDecor : {};
   const items = decorItemsFor(home.zone).filter(i => mine[i.metadata.key] > 0);
   const rows = items.map(i => {
@@ -9555,12 +9559,12 @@ function renderDecorInventory(home){
   }).join('');
   return `
     <aside class="decor-inv">
-      <button class="btn decor-shop-btn" type="button" data-decor-shop="${esc(home.zone)}">&#128722; Decor Shop</button>
+      ${top}
       <h4>Your Decor</h4>
       ${ state.myDecor === 'loading' || state.myDecor === undefined ? '<p class="decor-empty">Unpacking&hellip;</p>'
          : rows || '<p class="decor-empty">Nothing for this home yet. Visit the Decor Shop!</p>' }
       <h4>Tips</h4>
-      <p class="decor-empty">Click a piece to place it. Click anything on the stage to select it, drag to move, scroll to turn. Drag empty ground to look around.</p>
+      <p class="decor-empty">Click a piece to place it. Click anything on the stage to select it, drag to move, use the arrows beside it to turn, raise or lower it (or scroll to turn). Drag empty ground to look around.</p>
     </aside>`;
 }
 function renderHomeEditBar(){
@@ -9581,7 +9585,7 @@ function refreshHomeEditUi(){
   if(bar) bar.outerHTML = renderHomeEditBar();
   const inv = document.querySelector('.decor-inv');
   const hm = homeEdit && (profileHomes[state.profile.id] || []).find(x => x.id === homeEdit.homeId);
-  if(inv && hm){ const st = inv.scrollTop; inv.outerHTML = renderDecorInventory(hm); const n = document.querySelector('.decor-inv'); if(n) n.scrollTop = st; }
+  if(inv && hm){ const st = inv.scrollTop; inv.outerHTML = renderDecorInventory(hm, true); const n = document.querySelector('.decor-inv'); if(n) n.scrollTop = st; }
 }
 
 function homeSelect(v, entry){
@@ -9592,7 +9596,8 @@ function homeSelect(v, entry){
     v.selHelper = new THREE.BoxHelper(entry.holder, 0xf0c95a);
     v.selArrows = document.createElement('div');
     v.selArrows.className = 'home-sel-arrows';
-    v.selArrows.innerHTML = '<button type="button" data-piece-y="1" title="Raise">&#9650;</button><button type="button" data-piece-y="-1" title="Lower">&#9660;</button>';
+    v.selArrows.innerHTML = '<button type="button" data-piece-y="1" title="Raise">&#9650;</button><button type="button" data-piece-y="-1" title="Lower">&#9660;</button>'
+      + '<button type="button" data-decor-rot="1" title="Turn left">&#10226;</button><button type="button" data-decor-rot="-1" title="Turn right">&#10227;</button>';
     v.slot.appendChild(v.selArrows);
     v.scene.add(v.selHelper);
   }
@@ -9624,7 +9629,7 @@ function homePlaceSelArrows(v){
     maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
   })));
   const left = Math.min(r.width - 40, (maxX + 1) / 2 * r.width + 8);
-  const top = Math.max(4, Math.min(r.height - 70, (1 - (maxY + minY) / 2) / 2 * r.height - 30));
+  const top = Math.max(4, Math.min(r.height - 126, (1 - (maxY + minY) / 2) / 2 * r.height - 30));
   v.selArrows.style.left = left + 'px';
   v.selArrows.style.top = top + 'px';
 }
