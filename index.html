@@ -8791,7 +8791,10 @@ const HOME_ZONES = {
     ],
     houses: {
       1: { gltf: 'models/housing/darkshire-house-t1.gltf', x: 0.5, z: -1.5, height: 3.2, rotY: 0 },
-      2: { gltf: 'models/housing/darkshire-house-t2.gltf', x: -3.4, z: -1.2, height: 3.8, rotY: 20 * Math.PI / 180 },
+      // doors held open; torch flames are WoW particles (not in the export), so we add our own at these
+      // model-space spots (beside the doors)
+      2: { gltf: 'models/housing/darkshire-house-t2.gltf', x: -3.4, z: -1.2, height: 3.8, rotY: 20 * Math.PI / 180,
+           anim: 'Opened', animOnce: true, torches: [[6.7, 7, 3.2], [6.7, 7, -3.2]] },
       3: { gltf: 'models/housing/darkshire-house-t3.gltf', x: 3.8, z: -1.6, height: 6.5, rotY: -30 * Math.PI / 180 }
     }
   }
@@ -9930,6 +9933,14 @@ document.addEventListener('dblclick', e => {
   if(v){ v.view.tYaw = DIORAMA.viewYaw; v.view.tHeight = 5.2; }
 });
 
+let __homeFlameTex = null;
+function homeFlameTexture(){
+  if(!__homeFlameTex){
+    __homeFlameTex = new THREE.TextureLoader().load('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/Tier%202%20Home/124636.png');
+    __homeFlameTex.encoding = THREE.sRGBEncoding;
+  }
+  return __homeFlameTex;
+}
 // Put a loaded prop into the scene: shadows, its looping clip, and a lamp's light
 function addHomePropHolder(v, h, prop){
   const entry = { holder: h, prop };
@@ -9942,12 +9953,26 @@ function addHomePropHolder(v, h, prop){
     v.scene.add(entry.light);
   }
   v.scene.add(h);
-  const clip = (h.userData.animations || [])[0];
+  const clips = h.userData.animations || [];
+  const clip = (prop.anim && clips.find(c => c.name.startsWith(prop.anim))) || clips[0];
   if(clip){
     entry.mixer = new THREE.AnimationMixer(h.userData.pivot.children[0]);
-    entry.mixer.clipAction(clip).play();
+    const act = entry.mixer.clipAction(clip);
+    if(prop.animOnce){ act.setLoop(THREE.LoopOnce, 1); act.clampWhenFinished = true; } // play once, hold the pose
+    act.play();
     v.mixers.push(entry.mixer);
   }
+  // Torch flames: flickering additive sprites + a warm light, placed in the model's own space
+  (prop.torches || []).forEach(([tx, ty, tz]) => {
+    const root = h.userData.pivot.children[0];
+    const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: homeFlameTexture(), color: 0xffa040,
+      blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+    flame.position.set(tx, ty, tz); flame.scale.set(2.2, 3, 1);
+    const glow = new THREE.PointLight(0xff9a40, 1.2, 4.5, 2);
+    glow.position.set(tx, ty, tz);
+    root.add(flame, glow);
+    (v.flames = v.flames || []).push({ flame, glow, seed: Math.random() * 10 });
+  });
   placeHomeProp(h, prop);
   return entry;
 }
@@ -10034,6 +10059,10 @@ function mountHomeScenes(){
         const now = performance.now();
         homeCameraUpdate(v, Math.min(1, dt * 8));
         if(v.selHelper) v.selHelper.update();
+        (v.flames || []).forEach(f => { // torch flicker
+          const k = 0.8 + 0.2 * Math.sin(now / 90 + f.seed) + 0.1 * Math.sin(now / 37 + f.seed * 3);
+          f.flame.scale.set(2.2 * (0.9 + 0.1 * k), 3 * k, 1); f.glow.intensity = 1.2 * k;
+        });
         if(v.selArrows && v.sel) homePlaceSelArrows(v);
         v.mixers.forEach(m => m.update(dt));
         v.actors.forEach(a => updateHomePetActor(v, a, dt, now));
