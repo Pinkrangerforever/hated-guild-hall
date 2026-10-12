@@ -8812,7 +8812,9 @@ const HOME_ZONES = {
     // Comes with the home location (not the house). World units on the diorama stage (see DIORAMA):
     // x left/right, z toward the viewer (+) or the backdrop (-), height in world units.
     props: [
-      { gltf: 'models/housing/taurenlamppost.gltf', x: -4.6, z: 1.6, height: 1.5, rotY: 0.5 + Math.PI + 25 * Math.PI / 180 }
+      { gltf: 'models/housing/taurenlamppost.gltf', x: -4.6, z: 1.6, height: 1.5, rotY: 0.5 + Math.PI + 25 * Math.PI / 180 },
+      // added later: keep new starting pieces at the END (saved layouts refer to them by position)
+      { gltf: 'models/housing/mulgore-shaman-mesa.gltf', x: 5.0, z: -2.4, height: 4.5, rotY: -0.6 }   // shaman's mesa
     ],
     // One building per tier; they add up into a little village around the clearing
     houses: {
