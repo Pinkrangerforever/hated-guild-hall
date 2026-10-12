@@ -8881,6 +8881,8 @@ const HOME_DECOR = {
   hogger_npc:       { gltf: 'models/housing/decor-hogger.gltf', height: 2.2, npc: true, fun: ['BattleRoar', 'EmoteLaugh', 'StandAlt'] },
   // weapons lie along +X from the grip: orient stands it upright, tip down (sink it with the arrows to plant it)
   thunderfury:      { gltf: 'models/housing/decor-thunderfury.gltf', height: 2.2, orient: [0, 0, -Math.PI / 2], lamps: [[1.2, 0, 0]], lampColor: 0x6fb8ff },
+  // hovers above the ground with a soft arcane aura (its own glow cards were dropped)
+  floating_book:    { gltf: 'models/housing/decor-floating-book.gltf', height: 0.9, y: 0.9, torches: [[0.07, 1.2, 0]], aura: 0x7fd4ff, flameSize: 0.9, fireLight: 0.9 },
   flying_broom:     { gltf: 'models/housing/decor-flying-broom.gltf', height: 1.0, npc: true, fun: ['MountSpecial'] },
   sinister_squashling: { gltf: 'models/housing/decor-sinister-squashling.gltf', height: 0.9, npc: true, fun: ['SpellCast', 'Emerge'] },
   // its flames are WoW particles too: our flickering flame on top + a warm glow
@@ -10166,11 +10168,11 @@ function addHomePropHolder(v, h, prop){
   // Torch flames: flickering additive sprites + a warm light, placed in the model's own space
   (prop.torches || []).forEach(([tx, ty, tz]) => {
     const root = h.userData.pivot.children[0];
-    const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: homeFlameTexture(), color: 0xffa040,
+    const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: prop.aura ? homePetGlowTexture() : homeFlameTexture(), color: prop.aura || 0xffa040,
       blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
     const fs = prop.flameSize || 1;
     flame.position.set(tx, ty, tz); flame.scale.set(2.2 * fs, 3 * fs, 1);
-    const glow = new THREE.PointLight(0xff9a40, prop.fireLight || 1.2, prop.fireLight ? 6 : 4.5, 2);
+    const glow = new THREE.PointLight(prop.aura || 0xff9a40, prop.fireLight || 1.2, prop.fireLight ? 6 : 4.5, 2);
     glow.position.set(tx, ty, tz);
     root.add(flame, glow);
     (v.flames = v.flames || []).push({ flame, glow, seed: Math.random() * 10, size: fs, base: prop.fireLight || 1.2 });
