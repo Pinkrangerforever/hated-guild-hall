@@ -8847,7 +8847,7 @@ const HOME_ZONES = {
     props: [
       { gltf: 'models/housing/darkshire-archway.gltf', x: -0.09, z: 3.16, height: 3.6, rotY: -1.571 },     // sign archway over the path
       { gltf: 'models/housing/darkshire-lamppost.gltf', x: -5.55, z: 2.29, height: 2.8, rotY: 0.262,
-        light: { y: 2.4, color: 0xffc070, intensity: 1.8, distance: 7 } }
+        light: { at: [0.93, 1.55, 0], color: 0xffb050, intensity: 2.2, distance: 7 } }
     ],
     houses: {
       1: { gltf: 'models/housing/darkshire-house-t1.gltf', x: 0.5, z: -1.5, height: 3.2, rotY: 0 },
@@ -10132,9 +10132,18 @@ function addHomePropHolder(v, h, prop){
   setCastShadows(h);
   if(prop.light){ // warm glow cast by lamps
     const l = prop.light;
-    entry.light = new THREE.PointLight(l.color, l.intensity, l.distance, 2);
-    entry.light.position.set(prop.x, l.y, prop.z || 0);
-    v.scene.add(entry.light);
+    if(l.at){
+      // light sits on the lantern itself (model space), so it moves and turns with the piece
+      const glow = new THREE.PointLight(l.color, l.intensity, l.distance, 2);
+      glow.position.set(l.at[0], l.at[1], l.at[2]);
+      h.userData.pivot.children[0].add(glow);
+      (v.flames = v.flames || []).push({ glow, base: l.intensity, seed: Math.random() * 10, lamp: true });
+    } else {
+      entry.light = new THREE.PointLight(l.color, l.intensity, l.distance, 2);
+      entry.light.position.set(prop.x, l.y, prop.z || 0);
+      v.scene.add(entry.light);
+      (v.flames = v.flames || []).push({ glow: entry.light, base: l.intensity, seed: Math.random() * 10, lamp: true });
+    }
   }
   v.scene.add(h);
   const clips = h.userData.animations || [];
