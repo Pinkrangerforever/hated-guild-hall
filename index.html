@@ -3662,14 +3662,65 @@
   .home-edit-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px; }
   .home-edit-bar .home-edit-hint{ flex:1 1 220px; font-size:12px; color:#c9b48a; }
   .home-edit-wrap.editing .home-frame-inner{ cursor:crosshair; }
-  .decor-shop-modal{ position:fixed; inset:0; z-index:9000; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.7); }
-  .decor-shop-box{ width:min(640px, calc(100vw - 32px)); max-height:80vh; overflow:auto; padding:18px; border-radius:8px;
-    background:linear-gradient(180deg, #2a1a0c, #140c05); border:2px solid #c9963f; box-shadow:0 10px 40px rgba(0,0,0,0.8); }
-  .decor-shop-box h3{ font-family:'Cinzel', Georgia, serif; color:var(--hh-gold-bright, #f0d27a); margin:0 0 4px; }
-  .decor-shop-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:10px; margin-top:12px; }
-  .decor-shop-card{ padding:10px; border-radius:5px; background:rgba(255,230,160,0.06); border:1px solid rgba(201,150,63,0.4); display:flex; flex-direction:column; gap:6px; }
-  .decor-shop-card b{ color:#f0dfb4; }
-  .decor-shop-card p{ margin:0; font-size:12px; color:#c9b48a; flex:1; }
+  .decor-shop-modal{ position:fixed; inset:0; z-index:9000; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at 50% 40%, rgba(20,10,6,0.75), rgba(0,0,0,0.9)); backdrop-filter:blur(2px); }
+  .decor-shop-box{ width:min(920px, calc(100vw - 32px)); max-height:86vh; display:flex; flex-direction:column; overflow:hidden; border-radius:8px;
+    background:radial-gradient(ellipse at 50% 0%, rgba(201,150,63,0.16), transparent 60%), linear-gradient(180deg, #24170c, #120b05);
+    border:2px solid #c9963f; box-shadow:0 0 0 1px #000, inset 0 0 0 1px rgba(255,230,160,0.25), 0 20px 60px rgba(0,0,0,0.85); }
+  .ds-header{ display:flex; align-items:center; gap:16px; padding:16px 20px; border-bottom:1px solid rgba(201,150,63,0.4);
+    background:linear-gradient(180deg, rgba(255,220,150,0.08), transparent); }
+  .ds-title{ flex:1; min-width:0; }
+  .ds-kicker{ display:block; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#c9a35a; }
+  .ds-title h3{ margin:0; font-family:'Cinzel', Georgia, serif; font-size:22px; color:var(--hh-gold-bright, #f0d27a); text-shadow:0 2px 6px rgba(0,0,0,0.8); }
+  .ds-wallet{ display:flex; gap:8px; }
+  .ds-wallet span{ display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-weight:700; color:#f0dfb4;
+    background:rgba(0,0,0,0.45); border:1px solid rgba(201,150,63,0.45); }
+  .ds-cur{ width:16px; height:16px; vertical-align:-3px; }
+  .ds-close{ width:34px; height:34px; border-radius:50%; border:1px solid rgba(201,150,63,0.6); background:rgba(0,0,0,0.4); color:#f0d27a; font-size:22px; line-height:1; cursor:pointer; }
+  .ds-close:hover{ background:rgba(201,150,63,0.2); }
+  .ds-body{ overflow:auto; padding:6px 20px 20px; }
+  .ds-section{ margin-top:16px; }
+  .ds-h{ font-family:'Cinzel', Georgia, serif; color:#f0d27a; font-size:15px; letter-spacing:0.05em; margin:0 0 10px; display:flex; align-items:center; gap:10px; }
+  .ds-h::after{ content:''; flex:1; height:1px; background:linear-gradient(90deg, rgba(201,150,63,0.6), transparent); }
+  .ds-h small{ font-family:Georgia, serif; font-size:11px; color:#a8925f; letter-spacing:0; font-style:italic; }
+  .ds-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:12px; }
+  .ds-card{ position:relative; display:flex; flex-direction:column; gap:6px; padding:10px; border-radius:6px;
+    background:linear-gradient(180deg, rgba(255,230,160,0.07), rgba(0,0,0,0.25)); border:1px solid rgba(201,150,63,0.4);
+    transition:transform .15s, border-color .15s, box-shadow .15s; }
+  .ds-card:hover{ transform:translateY(-2px); border-color:#c9963f; box-shadow:0 6px 18px rgba(0,0,0,0.6), 0 0 12px rgba(240,201,90,0.15); }
+  .ds-card.rare{ border-color:rgba(163,53,238,0.6); background:linear-gradient(180deg, rgba(163,53,238,0.12), rgba(0,0,0,0.3)); }
+  .ds-card.rare:hover{ box-shadow:0 6px 18px rgba(0,0,0,0.6), 0 0 16px rgba(163,53,238,0.45); border-color:#a335ee; }
+  .ds-thumb .decor-thumb{ width:100%; height:130px; border-radius:4px; border:none;
+    background:radial-gradient(ellipse at 50% 70%, rgba(255,210,140,0.22), rgba(0,0,0,0.5) 75%); }
+  .ds-card.rare .ds-thumb .decor-thumb{ background:radial-gradient(ellipse at 50% 70%, rgba(190,120,255,0.3), rgba(0,0,0,0.55) 75%); }
+  .ds-name{ font-family:'Cinzel', Georgia, serif; font-weight:700; font-size:14px; color:#f0dfb4; }
+  .ds-card.rare .ds-name{ color:#c58bff; }
+  .ds-tags{ display:flex; flex-wrap:wrap; gap:4px; }
+  .ds-tags span{ font-size:10px; padding:1px 6px; border-radius:3px; color:#e9dcc0; background:rgba(201,150,63,0.18); border:1px solid rgba(201,150,63,0.35); }
+  .ds-tags span.any{ color:#bfe6a8; background:rgba(90,160,60,0.15); border-color:rgba(120,190,80,0.4); }
+  .ds-tags span.npc{ color:#d7b6ff; background:rgba(163,53,238,0.15); border-color:rgba(163,53,238,0.45); }
+  .ds-desc{ margin:0; flex:1; font-size:12px; line-height:1.4; color:#c9b48a; }
+  .ds-owned{ position:absolute; top:8px; left:8px; z-index:1; font-size:10px; font-weight:700; padding:2px 7px; border-radius:3px; color:#1d2a10; background:linear-gradient(180deg, #b9e88a, #6fb03f); box-shadow:0 1px 3px rgba(0,0,0,0.6); }
+  .ds-rarity{ position:absolute; top:8px; right:8px; z-index:1; font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:2px 7px; border-radius:3px; color:#fff; background:linear-gradient(180deg, #b86bff, #7a1fc2); box-shadow:0 0 8px rgba(163,53,238,0.6); }
+  .ds-buy{ display:flex; align-items:center; justify-content:center; gap:6px; width:100%; padding:7px 10px; border-radius:4px; cursor:pointer;
+    font-family:'Cinzel', Georgia, serif; font-weight:700; font-size:13px; color:#2a1a08;
+    background:linear-gradient(180deg, #f0d27a, #c9963f 60%, #a77a2e); border:1px solid #5a3c12; box-shadow:0 2px 5px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,245,200,0.6); }
+  .ds-buy:hover:not([disabled]){ filter:brightness(1.1); }
+  .ds-buy.crystal{ color:#fff; background:linear-gradient(180deg, #b86bff, #8a3be0 60%, #5e1fa8); border-color:#2e0d55; box-shadow:0 2px 5px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,230,255,0.4); }
+  .ds-buy[disabled]{ cursor:not-allowed; opacity:0.55; filter:grayscale(0.4); }
+  /* Limited-time holiday section */
+  .ds-section.holiday{ padding:14px; border-radius:8px; border:1px solid rgba(255,140,30,0.55);
+    background:radial-gradient(ellipse at 15% 0%, rgba(255,120,20,0.22), transparent 55%), radial-gradient(ellipse at 90% 100%, rgba(120,40,160,0.25), transparent 55%), rgba(10,5,2,0.6);
+    box-shadow:inset 0 0 30px rgba(255,110,20,0.12); }
+  .ds-holiday-head{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .ds-holiday-icon{ font-size:34px; filter:drop-shadow(0 0 10px rgba(255,140,30,0.7)); animation:dsBob 2.4s ease-in-out infinite; }
+  @keyframes dsBob{ 50%{ transform:translateY(-3px) rotate(-4deg); } }
+  .ds-ribbon{ display:inline-block; font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; padding:2px 8px; border-radius:3px; color:#1a0d02; background:linear-gradient(180deg, #ffb347, #e06a10); }
+  .ds-holiday-head h4{ margin:2px 0 0; font-family:'Cinzel', Georgia, serif; font-size:20px; color:#ffb347; text-shadow:0 0 12px rgba(255,120,20,0.5); }
+  .ds-holiday-note{ margin-left:auto; font-size:12px; font-style:italic; color:#e0a060; }
+  .ds-card.holiday{ border-color:rgba(255,140,30,0.5); }
+  .ds-card.holiday.rare{ border-color:rgba(163,53,238,0.65); }
+  @media (max-width:640px){ .ds-header{ flex-wrap:wrap; } .ds-wallet{ order:3; width:100%; } .ds-holiday-note{ display:none; } }
   @media (max-width:800px){ .home-edit-wrap.has-panel{ grid-template-columns:1fr; } }
   .home-frame-inner{ cursor:grab; touch-action:pan-y; user-select:none; }
   .home-frame-inner.dragging{ cursor:grabbing; }
@@ -9854,6 +9905,27 @@ function homeCancelEdit(){
 }
 
 // Decor Shop: pieces for this home's zone plus the ones that fit anywhere
+const DECOR_HOLIDAYS = { hallows_end: { title: "Hallow's End", tag: 'Limited Time Holiday', icon: '&#127875;' } };
+function decorCardHtml(i, mine, gold, crystals){
+  const k = i.metadata.key, own = mine[k] || 0, byCrystal = i.metadata.currency === 'crystals';
+  const can = byCrystal ? crystals >= i.cost : gold >= i.cost;
+  const price = byCrystal
+    ? `<img src="${CRYSTAL_ICON}" alt="" class="ds-cur"> ${i.cost}`
+    : `${goldIconHtml()} ${i.cost.toLocaleString()}`;
+  return `
+    <div class="ds-card ${byCrystal ? 'rare' : ''} ${i.metadata.holiday ? 'holiday' : ''}">
+      ${ own ? `<span class="ds-owned">Owned &times;${own}</span>` : '' }
+      ${ byCrystal ? '<span class="ds-rarity">Rare</span>' : '' }
+      <div class="ds-thumb">${decorThumbHtml(k)}</div>
+      <div class="ds-name">${esc(i.name)}</div>
+      <div class="ds-tags">${ i.metadata.zone ? `<span>${esc(homeZoneInfo(i.metadata.zone).label)}</span>` : '<span class="any">Any home</span>' }${ HOME_DECOR[k] && HOME_DECOR[k].npc ? '<span class="npc">Roams</span>' : '' }</div>
+      <p class="ds-desc">${esc((i.description || '').replace(/^Rare!\s*/, ''))}</p>
+      <button class="ds-buy ${byCrystal ? 'crystal' : ''}" type="button" data-decor-buy="${esc(i.id)}" ${can ? '' : 'disabled'}>
+        ${ can ? `Buy &middot; ${price}` : `Need ${price}` }
+      </button>
+    </div>`;
+}
+// Decor Shop: limited-time holiday pieces first, then rare (crystal) pieces, this home's pieces, and pieces for any home
 function openDecorShop(zone){
   let modal = document.querySelector('.decor-shop-modal');
   if(!modal){
@@ -9862,34 +9934,51 @@ function openDecorShop(zone){
     modal.addEventListener('click', e => { if(e.target === modal || e.target.closest('[data-decor-shop-close]')) modal.remove(); });
     document.body.appendChild(modal);
   }
+  const prevScroll = modal.querySelector('.ds-body') ? modal.querySelector('.ds-body').scrollTop : 0;
   modal.setAttribute('data-zone', zone);
   const gold = (state.profile && state.profile.gold) || 0;
   const crystals = (state.profile && state.profile.crystals) || 0;
   const mine = state.myDecor && typeof state.myDecor === 'object' ? state.myDecor : {};
   const items = decorItemsFor(zone);
+  const zoneLabel = homeZoneInfo(zone).label;
+  const card = i => decorCardHtml(i, mine, gold, crystals);
+  const section = (cls, head, list) => list.length ? `<section class="ds-section ${cls}">${head}<div class="ds-grid">${list.map(card).join('')}</div></section>` : '';
+  const holidays = {};
+  items.filter(i => i.metadata.holiday).forEach(i => { (holidays[i.metadata.holiday] = holidays[i.metadata.holiday] || []).push(i); });
+  const rest = items.filter(i => !i.metadata.holiday);
+  const holidayHtml = Object.keys(holidays).map(hk => {
+    const hd = DECOR_HOLIDAYS[hk] || { title: hk, tag: 'Limited Time Holiday', icon: '&#10024;' };
+    return section('holiday', `
+      <div class="ds-holiday-head">
+        <span class="ds-holiday-icon">${hd.icon}</span>
+        <div><div class="ds-ribbon">${esc(hd.tag)}</div><h4>${esc(hd.title)}</h4></div>
+        <span class="ds-holiday-note">Here for a limited time only</span>
+      </div>`, holidays[hk]);
+  }).join('');
   modal.innerHTML = `
-    <div class="decor-shop-box">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <h3 style="flex:1;">Decor Shop &middot; ${esc(homeZoneInfo(zone).label)}</h3>
-        <span class="nav-gold-badge">${goldIconHtml()} ${gold.toLocaleString()}</span>
-        <button class="btn secondary" type="button" data-decor-shop-close>Close</button>
-      </div>
-      <p class="muted sans" style="font-size:12px; margin:0;">Pieces made for this home, plus a few that fit anywhere.</p>
-      <div class="decor-shop-grid">
-        ${ items.map(i => `
-          <div class="decor-shop-card">
-            ${decorThumbHtml(i.metadata.key)}
-            <b>${esc(i.name)}</b>
-            ${ i.metadata.zone ? '' : '<span class="decor-zone-tag">Any home</span>' }
-            <p>${esc(i.description || '')}</p>
-            <span class="muted sans" style="font-size:11px;">Owned: ${mine[i.metadata.key] || 0}</span>
-            ${ i.metadata.currency === 'crystals'
-               ? `<button class="btn" type="button" data-decor-buy="${esc(i.id)}" ${crystals >= i.cost ? '' : 'disabled'}><img src="${CRYSTAL_ICON}" alt="" style="width:16px;height:16px;vertical-align:-3px;"> ${i.cost} crystals</button>`
-               : `<button class="btn" type="button" data-decor-buy="${esc(i.id)}" ${gold >= i.cost ? '' : 'disabled'}>${goldIconHtml()} ${i.cost}</button>` }
-          </div>`).join('') || '<p class="decor-empty">No decor for this home yet.</p>' }
+    <div class="decor-shop-box" role="dialog" aria-label="Decor Shop">
+      <header class="ds-header">
+        <div class="ds-title">
+          <span class="ds-kicker">Decor Shop</span>
+          <h3>${esc(zoneLabel)}</h3>
+        </div>
+        <div class="ds-wallet">
+          <span title="Gold">${goldIconHtml()} ${gold.toLocaleString()}</span>
+          <span title="Crystals"><img src="${CRYSTAL_ICON}" alt="" class="ds-cur"> ${crystals.toLocaleString()}</span>
+        </div>
+        <button class="ds-close" type="button" data-decor-shop-close aria-label="Close">&times;</button>
+      </header>
+      <div class="ds-body">
+        ${holidayHtml}
+        ${section('rare', '<h4 class="ds-h">Rare Finds <small>bought with crystals</small></h4>', rest.filter(i => i.metadata.currency === 'crystals'))}
+        ${section('', `<h4 class="ds-h">${esc(zoneLabel)} <small>only for this home</small></h4>`, rest.filter(i => i.metadata.currency !== 'crystals' && i.metadata.zone))}
+        ${section('', '<h4 class="ds-h">For Any Home</h4>', rest.filter(i => i.metadata.currency !== 'crystals' && !i.metadata.zone))}
+        ${ items.length ? '' : '<p class="decor-empty">No decor for this home yet.</p>' }
       </div>
     </div>`;
+  modal.querySelector('.ds-body').scrollTop = prevScroll;
 }
+document.addEventListener('keydown', e => { if(e.key === 'Escape'){ const m = document.querySelector('.decor-shop-modal'); if(m) m.remove(); } });
 async function buyDecor(itemId){
   if(state.decorBuyInFlight) return;
   state.decorBuyInFlight = true;
