@@ -8825,6 +8825,7 @@ function homeSceneProps(zone, tier, layout){
   for(let t = 1; t <= tier; t++){
     if(!houses[t]) continue;
     const at = placed[t];
+    if(at && at.s) continue; // stored in the owner's inventory
     props.push(Object.assign({}, houses[t], at ? { x: +at.x, z: +at.z, rotY: +at.r, y: at.y != null ? +at.y : (houses[t].y || 0) } : {}, { edit: { type: 'house', tier: t } }));
   }
   ((layout && layout.decor) || []).forEach(d => {
@@ -9618,6 +9619,14 @@ function renderDecorInventory(home, editing){
       ${ editing ? `<button class="btn secondary decor-shop-btn" type="button" data-home-save style="margin-top:8px;">&#10003; Save &amp; finish</button>`
                  : `<button class="btn decor-shop-btn" type="button" data-home-edit="${esc(home.id)}" style="margin-top:8px;">&#9874; Decorate</button>` }`;
   if(!editing) return `<aside class="decor-inv">${top}<p class="decor-empty" style="margin-top:10px;">Press Decorate to move your house, the starting pieces and your decor around the stage.</p></aside>`;
+  // Built houses that are stored (not on the stage) - they only exist in their own zone
+  const v = homeEditViewer();
+  const standing = new Set(v ? v.holders.filter(en => en.prop.edit && en.prop.edit.type === 'house').map(en => en.prop.edit.tier) : []);
+  const zoneHouses = (HOME_ZONES[home.zone] && HOME_ZONES[home.zone].houses) || {};
+  const storedHouses = [];
+  for(let t = 1; t <= (home.house_tier || 0); t++) if(zoneHouses[t] && v && !standing.has(t)) storedHouses.push(t);
+  const houseRows = storedHouses.map(t => `<button type="button" class="decor-row" data-house-place="${t}">
+      <span>Tier ${t} house</span><span class="decor-count">stored</span></button>`).join('');
   const mine = state.myDecor && typeof state.myDecor === 'object' ? state.myDecor : {};
   const items = decorItemsFor(home.zone).filter(i => mine[i.metadata.key] > 0);
   const rows = items.map(i => {
@@ -9629,6 +9638,7 @@ function renderDecorInventory(home, editing){
   return `
     <aside class="decor-inv">
       ${top}
+      ${ houseRows ? `<h4>Your Houses</h4>${houseRows}` : '' }
       <h4>Your Decor</h4>
       ${ state.myDecor === 'loading' || state.myDecor === undefined ? '<p class="decor-empty">Unpacking&hellip;</p>'
          : rows || '<p class="decor-empty">Nothing for this home yet. Visit the Decor Shop!</p>' }
@@ -9644,7 +9654,7 @@ function renderHomeEditBar(){
       <span class="home-edit-hint">${ what ? `Selected: <b>${esc(what)}</b>` : 'Select a house or piece on the stage.' }</span>
       <button class="btn secondary" type="button" data-decor-rot="1" ${sel ? '' : 'disabled'} title="Turn left">&#10226;</button>
       <button class="btn secondary" type="button" data-decor-rot="-1" ${sel ? '' : 'disabled'} title="Turn right">&#10227;</button>
-      <button class="btn secondary" type="button" data-decor-store ${sel && sel.prop.edit.type === 'decor' ? '' : 'disabled'}>Store</button>
+      <button class="btn secondary" type="button" data-decor-store ${sel && sel.prop.edit.type !== 'base' ? '' : 'disabled'}>Store</button>
       <button class="btn secondary" type="button" data-home-cancel>Cancel</button>
       <button class="btn" type="button" data-home-save>Save layout</button>
     </div>`;
@@ -9776,9 +9786,20 @@ async function homePlaceDecor(k){
     showToast("Couldn't load that piece", true);
   }
 }
+async function homePlaceHouse(t){
+  const v = homeEditViewer(), def = homeEdit && ((HOME_ZONES[homeEdit.zone] || {}).houses || {})[t];
+  if(!v || !def || v.holders.some(en => en.prop.edit && en.prop.edit.type === 'house' && en.prop.edit.tier === t)) return;
+  try {
+    const prop = Object.assign({}, def, { edit: { type: 'house', tier: t } });
+    const holder = await loadHomeProp(prop);
+    const entry = addHomePropHolder(v, holder, prop);
+    updateHomeObstacles(v);
+    homeSelect(v, entry);
+  } catch(err){ console.error('House failed to load:', t, err); showToast("Couldn't load that house", true); }
+}
 function homeStoreSelected(){
   const v = homeEditViewer(), entry = v && v.sel;
-  if(!entry || entry.prop.edit.type !== 'decor') return;
+  if(!entry || (entry.prop.edit.type !== 'decor' && entry.prop.edit.type !== 'house')) return;
   v.scene.remove(entry.holder);
   if(entry.light) v.scene.remove(entry.light);
   if(entry.mixer) v.mixers.splice(v.mixers.indexOf(entry.mixer), 1);
@@ -9790,6 +9811,8 @@ async function homeSaveLayout(){
   const v = homeEditViewer();
   if(!v || state.homeSaveInFlight) return;
   const layout = { houses: {}, decor: [], base: {} };
+  const hm0 = (profileHomes[state.profile.id] || []).find(x => x.id === homeEdit.homeId);
+  for(let t = 1; t <= ((hm0 && hm0.house_tier) || 0); t++) layout.houses[t] = { s: true };
   v.holders.forEach(({ prop }) => {
     if(!prop.edit) return;
     const at = { x: +prop.x.toFixed(2), z: +(prop.z || 0).toFixed(2), r: +(prop.rotY || 0).toFixed(3), y: +(prop.y || 0).toFixed(2) };
@@ -9872,7 +9895,7 @@ async function buyDecor(itemId){
 }
 
 document.addEventListener('click', e => {
-  const t = e.target.closest && e.target.closest('[data-home-edit],[data-piece-y],[data-decor-place],[data-decor-rot],[data-decor-store],[data-home-save],[data-home-cancel],[data-decor-shop],[data-decor-buy]');
+  const t = e.target.closest && e.target.closest('[data-home-edit],[data-house-place],[data-piece-y],[data-decor-place],[data-decor-rot],[data-decor-store],[data-home-save],[data-home-cancel],[data-decor-shop],[data-decor-buy]');
   if(!t || !state.session) return;
   if(t.hasAttribute('data-home-edit')){
     const hm = (profileHomes[state.profile.id] || []).find(x => x.id === t.getAttribute('data-home-edit'));
@@ -9886,6 +9909,7 @@ document.addEventListener('click', e => {
     if(v && v.sel){ homeMovePiece(v, v.sel, null, null, v.sel.prop.rotY + Number(t.getAttribute('data-decor-rot')) * Math.PI / 12); updateHomeObstacles(v); }
   }
   else if(t.hasAttribute('data-decor-store')) homeStoreSelected();
+  else if(t.hasAttribute('data-house-place')) homePlaceHouse(Number(t.getAttribute('data-house-place')));
   else if(t.hasAttribute('data-piece-y')) homeNudgeY(Number(t.getAttribute('data-piece-y')));
   else if(t.hasAttribute('data-home-save')) homeSaveLayout();
   else if(t.hasAttribute('data-home-cancel')) homeCancelEdit();
