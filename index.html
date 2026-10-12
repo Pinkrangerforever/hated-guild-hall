@@ -9380,7 +9380,7 @@ function homePetGroundPoint(v, h){
 function homePetAirPoint(v, h){
   return homePetFreePoint(v, h || 0, () => {
     const z = Math.random() < 0.35 ? rand(-11, -3.6) : rand(-3.4, 1.5), far = Math.max(0, -z - 3);
-    return new THREE.Vector3(rand(-1, 1) * (4.6 + far * 0.75), rand(2, 3.8 + far * 0.3), z);
+    return new THREE.Vector3(rand(-1, 1) * (4.6 + far * 0.4), rand(2, 3.8 + far * 0.25), z); // stays inside the backdrop's frame
   });
 }
 function homePetBezier(p, t){
