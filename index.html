@@ -8813,6 +8813,8 @@ const HOME_DECOR = {
   forsaken_banner:  { gltf: 'models/housing/decor-forsaken-banner.gltf', height: 3 },
   troll_banner:     { gltf: 'models/housing/decor-troll-banner.gltf', height: 3 },
   // the model's fire is WoW particle cards; our flickering flame + firelight replace them
+  // Rare NPCs (bought with crystals): they roam the stage and play their special emote
+  headless_horseman: { gltf: 'models/housing/decor-headless-horseman.gltf', height: 2.8, npc: true },
   campfire:         { gltf: 'models/housing/decor-campfire.gltf', height: 0.9, torches: [[0, 0.6, 0]], flameSize: 0.9, fireLight: 2.2 }
 };
 // Everything standing in a home: the zone's fixed props, the built houses (moved wherever the owner
@@ -9290,7 +9292,7 @@ function rand(a, b){ return a + Math.random() * (b - a); }
 
 // Keep-out boxes around the buildings/props (world space, refreshed whenever the scene is placed)
 function updateHomeObstacles(v){
-  v.obstacles = v.holders.map(({ holder }) => {
+  v.obstacles = v.holders.filter(en => !en.npcActor).map(({ holder }) => {
     holder.updateMatrixWorld(true);
     return new THREE.Box3().setFromObject(holder);
   });
@@ -9856,6 +9858,7 @@ function openDecorShop(zone){
   }
   modal.setAttribute('data-zone', zone);
   const gold = (state.profile && state.profile.gold) || 0;
+  const crystals = (state.profile && state.profile.crystals) || 0;
   const mine = state.myDecor && typeof state.myDecor === 'object' ? state.myDecor : {};
   const items = decorItemsFor(zone);
   modal.innerHTML = `
@@ -9874,7 +9877,9 @@ function openDecorShop(zone){
             ${ i.metadata.zone ? '' : '<span class="decor-zone-tag">Any home</span>' }
             <p>${esc(i.description || '')}</p>
             <span class="muted sans" style="font-size:11px;">Owned: ${mine[i.metadata.key] || 0}</span>
-            <button class="btn" type="button" data-decor-buy="${esc(i.id)}" ${gold >= i.cost ? '' : 'disabled'}>${goldIconHtml()} ${i.cost}</button>
+            ${ i.metadata.currency === 'crystals'
+               ? `<button class="btn" type="button" data-decor-buy="${esc(i.id)}" ${crystals >= i.cost ? '' : 'disabled'}><img src="${CRYSTAL_ICON}" alt="" style="width:16px;height:16px;vertical-align:-3px;"> ${i.cost} crystals</button>`
+               : `<button class="btn" type="button" data-decor-buy="${esc(i.id)}" ${gold >= i.cost ? '' : 'disabled'}>${goldIconHtml()} ${i.cost}</button>` }
           </div>`).join('') || '<p class="decor-empty">No decor for this home yet.</p>' }
       </div>
     </div>`;
@@ -9886,7 +9891,8 @@ async function buyDecor(itemId){
     const { data, error } = await sb.rpc('purchase_decor', { p_item_id: itemId });
     if(error || !data){ showToast("Couldn't complete purchase - try again", true); return; }
     if(!data.success){ showToast(data.error || 'Purchase failed', true); return; }
-    state.profile.gold = data.new_gold;
+    if(data.new_gold != null) state.profile.gold = data.new_gold;
+    if(data.new_crystals != null) state.profile.crystals = data.new_crystals;
     if(!state.myDecor || typeof state.myDecor !== 'object') state.myDecor = {};
     state.myDecor[data.key] = data.qty;
     updateNavbarUserInfo();
@@ -9986,7 +9992,19 @@ function addHomePropHolder(v, h, prop){
   v.scene.add(h);
   const clips = h.userData.animations || [];
   const clip = (prop.anim && clips.find(c => c.name.startsWith(prop.anim))) || clips[0];
-  if(clip){
+  if(prop.npc){
+    // Same wandering brain as the pets (walk to free ground, idle, the odd flourish)
+    const byName = {}; clips.forEach(c => { byName[c.name] = c; });
+    const pick = names => names.find(n => byName[n]) || null;
+    entry.npcActor = {
+      holder: h, byName, mixer: new THREE.AnimationMixer(h.userData.pivot.children[0]),
+      idle: pick(['Stand']), walk: pick(['Walk', 'Run']), fly: null, hover: null, takeoff: null, land: null,
+      fun: ['CreatureSpecial', 'StandAlt', 'Roar', 'Dance'].filter(n => byName[n]),
+      current: null, state: 'idle', until: performance.now() + rand(1500, 4000), path: null, tagUntil: 0,
+      yaw: prop.rotY || 0, targetYaw: null, kind: 'walker', height: prop.height
+    };
+    homePetPlay(entry.npcActor, entry.npcActor.idle);
+  } else if(clip){
     entry.mixer = new THREE.AnimationMixer(h.userData.pivot.children[0]);
     const act = entry.mixer.clipAction(clip);
     if(prop.animOnce){ act.setLoop(THREE.LoopOnce, 1); act.clampWhenFinished = true; } // play once, hold the pose
@@ -10092,7 +10110,8 @@ function mountHomeScenes(){
     v.renderer.setSize(w, h, false);
     v.camera.aspect = w / h;
     v.camera.updateProjectionMatrix();
-    v.holders.forEach(({ holder, prop }) => placeHomeProp(holder, prop));
+    const decoratingHere = homeEdit && homeEdit.homeId === slot.getAttribute('data-home-id');
+    v.holders.forEach(en => { if(!en.npcActor || decoratingHere || !en.npcActor.moved) placeHomeProp(en.holder, en.prop); });
     if(v.video && v.video.paused) v.video.play().catch(() => {});
     updateHomeObstacles(v);
     v.actors.forEach(a => placeHomePetActor(v, a));
@@ -10116,6 +10135,19 @@ function mountHomeScenes(){
         if(v.selArrows && v.sel) homePlaceSelArrows(v);
         v.mixers.forEach(m => m.update(dt));
         v.actors.forEach(a => updateHomePetActor(v, a, dt, now));
+        const editingThis = homeEdit && homeEditViewer() === v;
+        v.holders.forEach(en => {
+          const a = en.npcActor;
+          if(!a) return;
+          if(editingThis){ // stand on its spot (idle) while the owner decorates
+            a.mixer.update(dt);
+            if(a.path || a.moved){ a.path = null; a.moved = false; a.until = now + 2000; homePetPlay(a, a.idle); a.state = 'idle'; }
+            placeHomeProp(en.holder, en.prop); a.yaw = en.prop.rotY || 0;
+            return;
+          }
+          a.moved = true;
+          updateHomePetActor(v, a, dt, now);
+        });
         updateHomePetOverlays(v, v.slot, now);
         v.renderer.render(v.scene, v.camera);
         v.raf = requestAnimationFrame(tick);
