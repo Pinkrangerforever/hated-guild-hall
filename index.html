@@ -9969,8 +9969,14 @@ function addHomePropHolder(v, h, prop){
     const glow = new THREE.PointLight(0xffc070, 1.1, 4, 2);
     glow.position.set(lx, ly, lz);
     h.userData.pivot.children[0].add(glow);
-    (v.flames = v.flames || []).push({ glow, base: 1.1, seed: Math.random() * 10 });
+    (v.flames = v.flames || []).push({ glow, base: 1.1, seed: Math.random() * 10, lamp: true });
   });
+  // ...and the self-lit lamp glass flickers with them
+  if(prop.lamps){
+    h.traverse(m => { if(m.isMesh && m.material && m.material.emissiveMap){
+      (v.flames = v.flames || []).push({ mat: m.material, base: m.material.emissiveIntensity || 1, seed: Math.random() * 10, lamp: true });
+    } });
+  }
   // Torch flames: flickering additive sprites + a warm light, placed in the model's own space
   (prop.torches || []).forEach(([tx, ty, tz]) => {
     const root = h.userData.pivot.children[0];
@@ -10071,7 +10077,11 @@ function mountHomeScenes(){
         (v.flames || []).forEach(f => { // torch flicker
           const k = 0.8 + 0.2 * Math.sin(now / 90 + f.seed) + 0.1 * Math.sin(now / 37 + f.seed * 3);
           if(f.flame) f.flame.scale.set(2.2 * (0.9 + 0.1 * k), 3 * k, 1);
-          f.glow.intensity = (f.base || 1.2) * (f.flame ? k : 0.92 + 0.08 * k);
+          // lamps: candle-like flicker - a few mixed waves plus the odd quick dip
+          const lk = f.lamp ? 0.55 + 0.25 * Math.sin(now / 70 + f.seed) + 0.15 * Math.sin(now / 23 + f.seed * 5)
+                              + 0.1 * Math.sin(now / 131 + f.seed * 2) - (Math.sin(now / 410 + f.seed * 7) > 0.97 ? 0.3 : 0) : k;
+          if(f.glow) f.glow.intensity = (f.base || 1.2) * (f.lamp ? Math.max(0.25, lk) * 1.3 : k);
+          if(f.mat) f.mat.emissiveIntensity = f.base * Math.max(0.45, 0.4 + lk * 0.75);
         });
         if(v.selArrows && v.sel) homePlaceSelArrows(v);
         v.mixers.forEach(m => m.update(dt));
