@@ -8811,7 +8811,9 @@ const HOME_DECOR = {
   copper_vein:      { gltf: 'models/minigames/copper-node.gltf', height: 1.1 },
   horde_banner:     { gltf: 'models/housing/decor-horde-banner.gltf', height: 3 },
   forsaken_banner:  { gltf: 'models/housing/decor-forsaken-banner.gltf', height: 3 },
-  troll_banner:     { gltf: 'models/housing/decor-troll-banner.gltf', height: 3 }
+  troll_banner:     { gltf: 'models/housing/decor-troll-banner.gltf', height: 3 },
+  // the model's fire is WoW particle cards; our flickering flame + firelight replace them
+  campfire:         { gltf: 'models/housing/decor-campfire.gltf', height: 0.9, torches: [[0, 0.6, 0]], flameSize: 0.9, fireLight: 2.2 }
 };
 // Everything standing in a home: the zone's fixed props, the built houses (moved wherever the owner
 // put them) and the owner's placed decor. Houses and decor carry `edit` so the editor can move them.
@@ -10009,11 +10011,12 @@ function addHomePropHolder(v, h, prop){
     const root = h.userData.pivot.children[0];
     const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: homeFlameTexture(), color: 0xffa040,
       blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
-    flame.position.set(tx, ty, tz); flame.scale.set(2.2, 3, 1);
-    const glow = new THREE.PointLight(0xff9a40, 1.2, 4.5, 2);
+    const fs = prop.flameSize || 1;
+    flame.position.set(tx, ty, tz); flame.scale.set(2.2 * fs, 3 * fs, 1);
+    const glow = new THREE.PointLight(0xff9a40, prop.fireLight || 1.2, prop.fireLight ? 6 : 4.5, 2);
     glow.position.set(tx, ty, tz);
     root.add(flame, glow);
-    (v.flames = v.flames || []).push({ flame, glow, seed: Math.random() * 10 });
+    (v.flames = v.flames || []).push({ flame, glow, seed: Math.random() * 10, size: fs, base: prop.fireLight || 1.2 });
   });
   placeHomeProp(h, prop);
   return entry;
@@ -10103,7 +10106,7 @@ function mountHomeScenes(){
         if(v.selHelper) v.selHelper.update();
         (v.flames || []).forEach(f => { // torch flicker
           const k = 0.8 + 0.2 * Math.sin(now / 90 + f.seed) + 0.1 * Math.sin(now / 37 + f.seed * 3);
-          if(f.flame) f.flame.scale.set(2.2 * (0.9 + 0.1 * k), 3 * k, 1);
+          if(f.flame) f.flame.scale.set(2.2 * (f.size || 1) * (0.9 + 0.1 * k), 3 * (f.size || 1) * k, 1);
           // lamps: candle-like flicker - a few mixed waves plus the odd quick dip
           const lk = f.lamp ? 0.55 + 0.25 * Math.sin(now / 70 + f.seed) + 0.15 * Math.sin(now / 23 + f.seed * 5)
                               + 0.1 * Math.sin(now / 131 + f.seed * 2) - (Math.sin(now / 410 + f.seed * 7) > 0.97 ? 0.3 : 0) : k;
