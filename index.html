@@ -8815,6 +8815,7 @@ const HOME_DECOR = {
   // the model's fire is WoW particle cards; our flickering flame + firelight replace them
   // Rare NPCs (bought with crystals): they roam the stage and play their special emote
   headless_horseman: { gltf: 'models/housing/decor-headless-horseman.gltf', height: 2.8, npc: true },
+  sinister_squashling: { gltf: 'models/housing/decor-sinister-squashling.gltf', height: 0.9, npc: true, fun: ['SpellCast', 'Emerge'] },
   campfire:         { gltf: 'models/housing/decor-campfire.gltf', height: 0.9, torches: [[0, 0.6, 0]], flameSize: 0.9, fireLight: 2.2 }
 };
 // Everything standing in a home: the zone's fixed props, the built houses (moved wherever the owner
@@ -9999,7 +10000,7 @@ function addHomePropHolder(v, h, prop){
     entry.npcActor = {
       holder: h, byName, mixer: new THREE.AnimationMixer(h.userData.pivot.children[0]),
       idle: pick(['Stand']), walk: pick(['Walk', 'Run']), fly: null, hover: null, takeoff: null, land: null,
-      fun: ['CreatureSpecial', 'StandAlt', 'Roar', 'Dance'].filter(n => byName[n]),
+      fun: (prop.fun || ['CreatureSpecial', 'StandAlt', 'Roar', 'Dance']).filter(n => byName[n]),
       current: null, state: 'idle', until: performance.now() + rand(1500, 4000), path: null, tagUntil: 0,
       yaw: prop.rotY || 0, targetYaw: null, kind: 'walker', height: prop.height
     };
