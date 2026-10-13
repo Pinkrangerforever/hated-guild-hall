@@ -8822,6 +8822,18 @@ const HOME_ZONES = {
            lamps: [] }
     }
   },
+  ashenvale_glade: {
+    label: 'Ashenvale Glade',
+    video: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Ashenvale%20Glade/Ashenvale%20Glade%201080.mp4',
+    // Ashenvale twilight: cool silver-blue moonlight through the canopy, deep teal shadows
+    light: { sun: 0xb8ccff, sunI: 0.55, sunPos: [-8, 10, 5], sky: 0x5a6aa8, ground: 0x18241e, hemiI: 0.42, amb: 0x7080b0, ambI: 0.1 },
+    props: [
+      { gltf: 'models/housing/ashenvale-gazebo.gltf', x: -3.0, z: -1.9, height: 3.8, rotY: 0.5 },      // Kaldorei gazebo with its light shafts
+      { gltf: 'models/housing/ashenvale-fountain.gltf', x: 2.7, z: -0.9, height: 2.6, rotY: -0.4,      // priestess moonwell fountain
+        halo: { at: [0, 28, 0], size: 9, color: 0x9fd8ff } }
+    ],
+    houses: {}
+  },
   darkshire_drive: {
     label: 'Darkshire Drive',
     video: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/Darkshire%20Drive%201080.mp4',
@@ -9145,6 +9157,12 @@ const HOME_GROUND_TEX = {
     path: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgoreroad01.png',
     clearing: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgorecrackeddirt.png',
     fog: 0xcdb48a
+  },
+  ashenvale_glade: {
+    base: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Ashenvale%20Glade/ashenvalemossbase.png',
+    dirt: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Ashenvale%20Glade/ashenvalerocksmooth.png',
+    path: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Ashenvale%20Glade/ashenvaleroad.png',
+    clearing: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Ashenvale%20Glade/ashenvalerocksmooth.png'
   },
   darkshire_drive: {
     base: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/duskwoodgrassbase02.png',
