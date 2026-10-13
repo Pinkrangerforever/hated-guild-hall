@@ -8875,6 +8875,8 @@ const HOME_DECOR = {
   fish_barrel:      { gltf: 'models/housing/decor-fish-barrel.gltf', height: 1.1 },
   sitting_barrel:   { gltf: 'models/housing/decor-sitting-barrel.gltf', height: 1.0 },
   standing_barrel:  { gltf: 'models/housing/decor-standing-barrel.gltf', height: 1.0 },
+  filled_chest:     { gltf: 'models/housing/decor-filled-chest.gltf', height: 0.8 },
+  gold_pile:        { gltf: 'models/housing/decor-gold-pile.gltf', height: 0.4 },
   log_pile:         { gltf: 'models/housing/decor-log-pile.gltf', height: 1.5 },
   treasure_chest:   { gltf: 'models/housing/decor-treasure-chest.gltf', height: 1.0, anim: 'Opened' },
   campfire:         { gltf: 'models/housing/decor-campfire.gltf', height: 0.9, torches: [[0, 0.6, 0]], flameSize: 0.9, fireLight: 2.2 }
@@ -10542,7 +10544,7 @@ function tr3dShadow(scene, x, z, rx, rz){
   const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(0,0,0,0.8)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
   const m = new THREE.Mesh(new THREE.PlaneGeometry(rx * 2, (rz || rx) * 2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
-  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.012, z); scene.add(m);
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.065, z); scene.add(m);
 }
 function tr3dMats(){
   return {
@@ -10617,49 +10619,49 @@ function tr3dGold(v, M, lvl){
       }
     }
   }
-  // loose coins spilling onto the floor in front
-  const loose = Math.min(n, 12 + lvl * 14);
-  if(loose){
-    const lc = new THREE.InstancedMesh(TR3D_COIN(), M.gold, loose);
-    for(let i = 0; i < loose; i++){
-      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * (0.4 + lvl * 0.12), heap = Math.max(0, 1 - r / (0.4 + lvl * 0.12));
-      o.position.set(X + Math.cos(a) * r, 0.01 + heap * heap * lvl * 0.05 * rnd(), Z + 0.75 + Math.abs(Math.sin(a)) * r * 0.7); // only in front of the chest
-      o.rotation.set((rnd() - 0.5) * 0.5, rnd() * 6, (rnd() - 0.5) * 0.5); o.updateMatrix(); lc.setMatrixAt(i, o.matrix);
-    }
-    v.scene.add(lc);
+  // the dragon-hoard gold pile on the floor in front of the chest, bigger as the gold grows
+  if(lvl){
+    const ph = [0, 0.08, 0.12, 0.16, 0.2, 0.24][lvl];
+    loadHomeProp(HOME_DECOR.gold_pile).then(p => {
+      p.scale.setScalar(ph / p.userData.unitHeight); p.position.set(X + 0.05, 0, Z + 0.95); p.rotation.y = 0.4; v.scene.add(p);
+    }).catch(err => console.warn('Gold pile failed to load:', err));
+  }
+  // rich enough: a second, filled chest to the side
+  if(lvl >= 3){
+    loadHomeProp(HOME_DECOR.filled_chest).then(c => {
+      c.scale.setScalar(0.75 / c.userData.unitHeight); c.position.set(-1.6, 0, 0.35); c.rotation.y = 0.9; v.scene.add(c);
+    }).catch(err => console.warn('Filled chest failed to load:', err));
+    tr3dShadow(v.scene, -1.6, 0.35, 0.55);
   }
   v.anchors.gold = new THREE.Vector3(X + 0.1, BT + 0.42, Z + 0.3);
 }
-function tr3dDrumstick(meat, bone){
-  const g = new THREE.Group();
-  const m = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 10), meat); m.scale.set(1.0, 0.95, 1.4); m.position.z = 0.06; g.add(m);
-  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.032, 0.24, 8), bone); b.rotation.x = Math.PI / 2; b.position.z = -0.16; g.add(b);
-  [-0.032, 0.032].forEach(x => { const k = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), bone); k.position.set(x, 0, -0.28); g.add(k); });
-  return g;
-}
 // Food: roast chicken legs heaped in the open-topped WoW standing barrel (more legs = fuller, then spilling out)
+// Food: WoW drumsticks heaped in the open standing barrel; big roast haunches join them beside it as it grows
+const TR3D_MEAT = { leg: 'models/housing/coffer-drumstick.gltf', haunch: 'models/housing/coffer-meat-haunch.gltf' };
 function tr3dFood(v, M, lvl){
   const n = TR3D_COUNTS.food[lvl];
-  const X = 0.45, Z = -1.3, BH = 1.0, R = 0.36;
+  const X = 0.45, Z = -1.3, BH = 1.0, R = 0.3;
   const g = new THREE.Group(); g.position.set(X, 0, Z); v.scene.add(g);
   loadHomeProp(HOME_DECOR.standing_barrel).then(b => { b.scale.setScalar(BH / b.userData.unitHeight); g.add(b); })
     .catch(err => console.warn('Food barrel failed to load:', err));
   tr3dShadow(v.scene, X, Z, 0.55);
   if(!n) return;
-  const meat = new THREE.MeshStandardMaterial({ color: 0xa8521f, roughness: 0.45, emissive: 0x2a0c00, emissiveIntensity: 0.4 });
-  const bone = new THREE.MeshStandardMaterial({ color: 0xf1e6cc, roughness: 0.6 });
   const rnd = tr3dRand(17);
-  for(let i = 0; i < n; i++){
-    const d = tr3dDrumstick(meat, bone);
-    if(i < 8){ // standing up in the barrel, bones poking out of the top
-      const a = (i / 8) * Math.PI * 2 + rnd() * 0.4, r = i === 0 ? 0 : R * (0.35 + rnd() * 0.45);
-      d.position.set(Math.cos(a) * r, BH - 0.02 + (i > 4 ? 0.06 : 0), Math.sin(a) * r);
-      d.rotation.set(1.2 + rnd() * 0.3, -a + Math.PI / 2, (rnd() - 0.5) * 0.4); // meat down, bone up
-      g.add(d);
-    } else { // the overflow on the floor in front
-      d.position.set(X + (rnd() - 0.5) * 0.8, 0.12, Z + 0.55 + rnd() * 0.3);
-      d.rotation.set(0, rnd() * 6, (rnd() - 0.5) * 0.3); v.scene.add(d);
-    }
+  const legs = Math.min(n, 8);
+  for(let i = 0; i < legs; i++){ // drumsticks piled across the open top
+    const a = rnd() * Math.PI * 2, r = i === 0 ? 0 : R * Math.sqrt(rnd());
+    const px = Math.cos(a) * r, pz = Math.sin(a) * r, py = BH - 0.03 + (i / legs) * 0.12, yaw = rnd() * Math.PI * 2, tilt = (rnd() - 0.5) * 0.6;
+    loadHomeProp({ gltf: TR3D_MEAT.leg }).then(m => {
+      m.scale.setScalar(0.11 / m.userData.unitHeight); m.position.set(px, py, pz); m.rotation.set(0, yaw, tilt); g.add(m);
+    }).catch(() => {});
+  }
+  const haunches = n > 8 ? Math.min(3, Math.ceil((n - 8) / 2)) : 0;
+  for(let i = 0; i < haunches; i++){ // roast haunches on the floor beside the barrel
+    const px = X + 0.6 + i * 0.25, pz = Z + 0.45 + i * 0.3, yaw = 0.8 + i * 1.3;
+    loadHomeProp({ gltf: TR3D_MEAT.haunch }).then(m => {
+      m.scale.setScalar(0.26 / m.userData.unitHeight); m.position.set(px, 0, pz); m.rotation.y = yaw; v.scene.add(m);
+    }).catch(() => {});
+    tr3dShadow(v.scene, px, pz, 0.3);
   }
   v.anchors.food = new THREE.Vector3(X + 0.15, BH + 0.45, Z + 0.2);
 }
@@ -10733,10 +10735,35 @@ function tr3dRoom(v, M){
   const side = new THREE.Mesh(new THREE.PlaneGeometry(7, 5), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.wall, 2.5, 1.8), roughness: 0.95, color: 0x7d8a6c }));
   side.rotation.y = Math.PI / 2; side.position.set(-4, 2.5, 1); s.add(side);
   // floor: planks on the left, flagstones on the right
-  const planks = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 7), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 3, 4), color: 0x7a5434, roughness: 0.9 }));
-  planks.rotation.x = -Math.PI / 2; planks.position.set(-1.7, 0.002, 1); s.add(planks);
-  const flags = new THREE.Mesh(new THREE.PlaneGeometry(10, 7), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.floor, 3, 2.1), roughness: 1, color: 0x8a8070 }));
-  flags.rotation.x = -Math.PI / 2; flags.position.set(0, 0, 1); s.add(flags);
+  // floor: a raised wooden deck of separate boards on the left, set flagstones with grout on the right
+  const grout = new THREE.Mesh(new THREE.PlaneGeometry(10, 7), new THREE.MeshStandardMaterial({ color: 0x1e1a16, roughness: 1 }));
+  grout.rotation.x = -Math.PI / 2; grout.position.set(0, 0, 1); s.add(grout);
+  const fr = tr3dRand(71), DECK = 0.35, tmp = new THREE.Object3D(), col = new THREE.Color();
+  const stoneT = tr3dTex(TR3D_TEX.floor, 0.35, 0.35);
+  const stones = []; // rows of slightly irregular flagstones
+  for(let z = -2.5; z < 4.5;){
+    const d = 0.55 + fr() * 0.35;
+    for(let x = DECK + 0.08; x < 5;){ const w = 0.55 + fr() * 0.5; stones.push([x + w / 2, z + d / 2, w - 0.05, d - 0.05]); x += w; }
+    z += d;
+  }
+  const flags = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.05, 1), new THREE.MeshStandardMaterial({ map: stoneT, roughness: 1 }), stones.length);
+  stones.forEach(([x, z, w, d], i) => {
+    tmp.position.set(x, 0.02 + fr() * 0.012, z); tmp.rotation.set(0, (fr() - 0.5) * 0.04, 0); tmp.scale.set(w, 1, d); tmp.updateMatrix(); flags.setMatrixAt(i, tmp.matrix);
+    flags.setColorAt(i, col.setHSL(0.08, 0.06 + fr() * 0.05, 0.42 + fr() * 0.14));
+  });
+  s.add(flags);
+  const boardT = tr3dTex(TR3D_TEX.plank, 0.3, 1);
+  const boards = [];
+  for(let x = -4 + 0.16; x < DECK; x += 0.32){ // boards run front-to-back in staggered lengths
+    for(let z = -2.5 - fr() * 1.2; z < 4.5;){ const L = 1.2 + fr() * 1.2; boards.push([x, z + L / 2, L - 0.03]); z += L; }
+  }
+  const deck = new THREE.InstancedMesh(new THREE.BoxGeometry(0.3, 0.06, 1), new THREE.MeshStandardMaterial({ map: boardT, roughness: 0.85 }), boards.length);
+  boards.forEach(([x, z, L], i) => {
+    tmp.position.set(x, 0.03, z); tmp.rotation.set(0, 0, 0); tmp.scale.set(1, 1, L); tmp.updateMatrix(); deck.setMatrixAt(i, tmp.matrix);
+    deck.setColorAt(i, col.setHSL(0.07, 0.45 + fr() * 0.15, 0.24 + fr() * 0.12));
+  });
+  s.add(deck);
+  const trim = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.11, 7), M.darkWood); trim.position.set(DECK + 0.02, 0.055, 1); s.add(trim); // the deck's edge beam
   // timber frame: posts, top beam, diagonal braces
   [-3.75, -0.05, 3.4].forEach(x => { const p = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5, 0.4), M.darkWood); p.position.set(x, 2.5, -2.3); s.add(p); });
   const beam = new THREE.Mesh(new THREE.BoxGeometry(10, 0.42, 0.45), M.darkWood); beam.position.set(0, 3.9, -2.28); s.add(beam);
@@ -10760,7 +10787,7 @@ function tr3dRoom(v, M){
   rg.lineWidth = 2; rg.strokeRect(24, 24, 208, 112); rg.fillStyle = '#8e2a1c'; rg.beginPath(); rg.ellipse(128, 80, 72, 40, 0, 0, Math.PI * 2); rg.fill();
   const rugT = new THREE.CanvasTexture(rc); rugT.encoding = THREE.sRGBEncoding;
   const rug = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.4), new THREE.MeshStandardMaterial({ map: rugT, roughness: 1 }));
-  rug.rotation.x = -Math.PI / 2; rug.rotation.z = 0.08; rug.position.set(1.6, 0.006, 0.9); s.add(rug);
+  rug.rotation.x = -Math.PI / 2; rug.rotation.z = 0.08; rug.position.set(1.6, 0.05, 0.9); s.add(rug);
   // hanging iron lantern: the main warm light
   v.torches = [];
   // the WoW ship lantern swinging gently on its chain from a hook in the ceiling (lantern body at y 2.6)
@@ -10828,6 +10855,42 @@ function tr3dRoom(v, M){
     if(clip){ v.bannerMixer = new THREE.AnimationMixer(hb.userData.pivot.children[0]); v.bannerMixer.clipAction(clip).play(); }
   }).catch(() => {});
 }
+function tr3dGoblin(v){
+  loadHomeProp({ gltf: 'models/housing/coffer-treasure-goblin.gltf' }).then(gob => {
+    gob.scale.setScalar(0.85 / gob.userData.unitHeight); gob.visible = false; v.scene.add(gob);
+    const clips = {}; (gob.userData.animations || []).forEach(c => { clips[c.name] = c; });
+    const mixer = new THREE.AnimationMixer(gob.userData.pivot.children[0]);
+    let cur = null;
+    const play = (name, once) => {
+      const c = clips[name]; if(!c) return 0;
+      const act = mixer.clipAction(c); act.reset();
+      if(once){ act.setLoop(THREE.LoopOnce, 1); act.clampWhenFinished = true; }
+      if(cur && cur !== act) cur.fadeOut(0.2);
+      act.fadeIn(0.2).play(); cur = act; return c.duration;
+    };
+    v.goblin = { gob, mixer, play, state: 'away', next: performance.now() + 6000 + Math.random() * 6000, x: -4.6 };
+  }).catch(err => console.warn('Treasure goblin failed to load:', err));
+}
+function tr3dGoblinTick(v, dt, now){
+  const G = v.goblin; if(!G) return;
+  G.mixer.update(dt);
+  const Z = 1.25, STOP = -0.3, SPEED = 2.6;
+  if(G.state === 'away'){
+    if(now < G.next) return;
+    G.state = 'in'; G.x = -4.6; G.gob.visible = true; G.gob.rotation.y = 0; G.play('Run');
+  } else if(G.state === 'in'){
+    G.x = Math.min(STOP, G.x + SPEED * dt);
+    if(G.x >= STOP){ G.state = 'show'; G.until = now + G.play('Flourish', true) * 1000; }
+  } else if(G.state === 'show'){
+    G.gob.rotation.y += (-Math.PI / 2 - G.gob.rotation.y) * Math.min(1, dt * 4); // turn to face the viewer
+    if(now >= G.until){ G.state = 'out'; G.play('Run'); }
+  } else if(G.state === 'out'){
+    G.gob.rotation.y += (0 - G.gob.rotation.y) * Math.min(1, dt * 8);
+    G.x += SPEED * dt;
+    if(G.x > 4.8){ G.state = 'away'; G.gob.visible = false; G.next = now + 25000 + Math.random() * 20000; }
+  }
+  G.gob.position.set(G.x, 0, Z);
+}
 function mountTreasureCorners(){
   if(typeof THREE === 'undefined') return;
   document.querySelectorAll('[data-treasure3d]').forEach(slot => {
@@ -10848,6 +10911,7 @@ function mountTreasureCorners(){
       const S = Object.fromEntries(SHELF_RESOURCES.map(r => [r.key, r.steps]));
       tr3dWood(v, M, lv('wood', S.wood)); tr3dGold(v, M, lv('gold', S.gold)); tr3dFood(v, M, lv('food', S.food));
       tr3dCrystals(v, M, lv('crystals', S.crystals), tr3dTable(v, M));
+      tr3dGoblin(v);
       v.clock = new THREE.Clock();
     }
     v.slot = slot;
@@ -10893,6 +10957,7 @@ function mountTreasureCorners(){
         if(v.lanternHook){ v.lanternHook.rotation.z = Math.sin(now / 1500) * 0.07; v.lanternHook.rotation.x = Math.sin(now / 2300 + 1) * 0.04; }
         if(v.bannerMixer) v.bannerMixer.update(dt);
         if(v.chestMixer) v.chestMixer.update(dt);
+        tr3dGoblinTick(v, dt, now);
         v.renderer.render(v.scene, v.camera);
         const r = v.slot.getBoundingClientRect();
         v.slot.parentNode.querySelectorAll('[data-tr3d-tag]').forEach(el => {
