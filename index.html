@@ -4370,6 +4370,11 @@
 <div id="app"></div>
 <div id="sparkle-layer"></div>
 <script>
+  // A refresh always starts at the top: no browser scroll restoration fighting the page as panels load in
+  if('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
+</script>
+<script>
 (function(){
 /* ============================================================
    HATED Guild Hall  Supabase-backed build
@@ -10479,7 +10484,7 @@ function openProfile(userId, fromHash){
   loadProfileHomes(userId);
   if(profileStats[userId] && profileStats[userId] !== 'loading') delete profileStats[userId]; // fresh numbers each visit
   render();
-  window.scrollTo({ top: 0 });
+  window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 function closeProfile(){
