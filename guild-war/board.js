@@ -103,7 +103,7 @@
       this.camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
       this.cam = { target: new THREE.Vector3(0, 0, 0.2), dist: 10.5, polar: 0.62, az: 0 }; this.shakeOff = new THREE.Vector3();
       this.glow = glowTex();
-      this.buildRoom(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -124,7 +124,7 @@
       // floor and walls
       const floorTex = woodTex('#3b2717', '20,10,4'); floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(6, 6);
       const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.9 }));
-      floor.rotation.x = -Math.PI / 2; floor.position.y = -3.1; floor.receiveShadow = true; S.add(floor);
+      floor.rotation.x = -Math.PI / 2; floor.position.y = -3.1; floor.receiveShadow = true; S.add(floor); this.floor = floor;
       const st = stoneTex(); st.wrapS = st.wrapT = THREE.RepeatWrapping; st.repeat.set(5, 2);
       const wallMat = new THREE.MeshStandardMaterial({ map: st, roughness: 1 });
       [[0, -11, 0], [-13, 0, Math.PI / 2], [13, 0, -Math.PI / 2]].forEach(([x, z, r]) => {
@@ -143,15 +143,16 @@
         b.position.set(x, 4.2, -10.9); S.add(b);
       });
       // the table: thick top, raised rim, four legs
+      const pt = new THREE.Group(); S.add(pt); this.procTable = pt;   // stand-in until the real table loads
       const wt = woodTex('#5a3a1f', '30,16,6');
       const wood = new THREE.MeshStandardMaterial({ map: wt, roughness: 0.75 });
-      const top = new THREE.Mesh(new THREE.BoxGeometry(11.6, 0.35, 7.6), wood); top.position.y = -0.2; top.receiveShadow = top.castShadow = true; S.add(top);
+      const top = new THREE.Mesh(new THREE.BoxGeometry(11.6, 0.35, 7.6), wood); top.position.y = -0.2; top.receiveShadow = top.castShadow = true; pt.add(top);
       const rimMat = new THREE.MeshStandardMaterial({ map: wt, color: 0x9a7a52, roughness: 0.6 });
       [[0, -3.65, 11.6, 0.3], [0, 3.65, 11.6, 0.3], [-5.65, 0, 0.3, 7.6], [5.65, 0, 0.3, 7.6]].forEach(([x, z, w, d]) => {
-        const r = new THREE.Mesh(new THREE.BoxGeometry(w, 0.22, d), rimMat); r.position.set(x, 0.06, z); r.castShadow = r.receiveShadow = true; S.add(r);
+        const r = new THREE.Mesh(new THREE.BoxGeometry(w, 0.22, d), rimMat); r.position.set(x, 0.06, z); r.castShadow = r.receiveShadow = true; pt.add(r);
       });
       [[-5, -3.2], [5, -3.2], [-5, 3.2], [5, 3.2]].forEach(([x, z]) => {
-        const l = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 2.9, 10), wood); l.position.set(x, -1.75, z); l.castShadow = true; S.add(l);
+        const l = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 2.9, 10), wood); l.position.set(x, -1.75, z); l.castShadow = true; pt.add(l);
       });
       // candles on the corners, braziers in the room
       this.flames = [];
@@ -179,6 +180,62 @@
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
       this.dust = new THREE.Points(g, new THREE.PointsMaterial({ map: this.glow, color: 0xffd9a0, size: 0.06, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
       S.add(this.dust);
+    }
+
+    // ----- the real war table (Blackrook war table from the game) -----
+    // Scaled so its top fits the map, then dropped so the tabletop sits at y = 0 under the map.
+    loadTable(){
+      if(!THREE.GLTFLoader) return;
+      const T = window.WAR_TABLE || { url: 'models/war/wartable.gltf', width: 12.4, innerRadius: 6.05 };
+      new THREE.GLTFLoader().load(T.url, gltf => {
+        const m = gltf.scene;
+        m.traverse(o => { if(o.isMesh){ o.castShadow = o.receiveShadow = true; if(o.material && o.material.map) o.material.map.anisotropy = 8; } });
+        const box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3());
+        const s = T.width / Math.max(size.x, size.z);
+        m.scale.setScalar(s);
+        m.position.set(-(box.min.x + box.max.x) / 2 * s, 0, -(box.min.z + box.max.z) / 2 * s);
+        if(T.rotY) m.rotation.y = T.rotY;
+        this.scene.add(m);
+        const rc = new THREE.Raycaster();
+        // The table is a ring with an open centre: find the rim's top and inner edge, then grow the
+        // table until the whole map (10 x 6, corners 5.83 from the centre) fits inside the ring.
+        const measure = () => {
+          m.updateMatrixWorld(true);
+          let top = -Infinity;
+          for(let a = 0; a < 16; a++){
+            const ang = a / 16 * Math.PI * 2;
+            for(let r = 3; r < 8; r += 0.05){
+              rc.set(new THREE.Vector3(Math.cos(ang) * r, 50, Math.sin(ang) * r), new THREE.Vector3(0, -1, 0));
+              const h = rc.intersectObject(m, true)[0]; if(h){ top = Math.max(top, h.point.y); break; }
+            }
+          }
+          let inner = Infinity;
+          for(let a = 0; a < 16; a++){
+            const ang = a / 16 * Math.PI * 2;
+            for(let r = 2; r < 8; r += 0.05){
+              rc.set(new THREE.Vector3(Math.cos(ang) * r, 50, Math.sin(ang) * r), new THREE.Vector3(0, -1, 0));
+              const h = rc.intersectObject(m, true)[0]; if(h && h.point.y > top - 0.25 * m.scale.y){ inner = Math.min(inner, r); break; }
+            }
+          }
+          return { top, inner };
+        };
+        let me = measure();
+        const need = T.innerRadius || 6.05;
+        if(isFinite(me.inner) && me.inner < need){
+          const k = need / me.inner; m.scale.multiplyScalar(k); m.position.x *= k; m.position.z *= k; me = measure();
+        }
+        const top = isFinite(me.top) ? me.top : box.max.y * s;
+        m.position.y = -top + (T.lift || 0) + 0.02;
+        // fill the open centre with a dark wooden tabletop the map lies on
+        const disc = new THREE.Mesh(new THREE.CircleGeometry((isFinite(me.inner) ? me.inner : need) + 0.04, 64),
+          new THREE.MeshStandardMaterial({ map: woodTex('#3a2414', '18,8,2'), roughness: 0.85 }));
+        disc.rotation.x = -Math.PI / 2; disc.position.y = -0.03; this.tableInner = me.inner; disc.receiveShadow = true; this.scene.add(disc);
+        if(this.procTable){ this.scene.remove(this.procTable); this.procTable = null; }
+        this.table = m; this.tableTop = top;
+        // the floor goes under the real legs
+        const fb = new THREE.Box3().setFromObject(m);
+        if(this.floor) this.floor.position.y = fb.min.y;
+      }, undefined, err => console.warn('War table failed to load, keeping the stand-in:', err));
     }
 
     // ----- the map on the table -----
