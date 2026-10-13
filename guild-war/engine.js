@@ -14,7 +14,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     startTroops: 6,           // on each starting stronghold
     garrison: [2, 4],         // neutral defenders per zone
     fortifyHours: 24,
-    richPerContinent: 2,      // each game, 2 zones per resource per continent are rich deposits (16 of 43)
+    richPerContinent: 3,      // each game, 3 zones per resource per continent are rich deposits (24 of 43)
     richYield: 2,             // a rich zone makes 2 of its resource a day (+1 per outpost / +2 stronghold); other zones make none
     endClock: 6 * 24 + 20,    // the war ends Sunday 8pm (game clock starts Monday 00:00)
     costs: {
