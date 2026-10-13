@@ -10601,9 +10601,9 @@ function tr3dGold(v, M, lvl){
   if(lvl >= 1){
     // the hoard inside the chest
     const inner = new THREE.Group(); inner.visible = false; hoard.add(inner); v.chestHoard = inner; // shown while the lid is open
-    const k = 20 + lvl * 45, coins = new THREE.InstancedMesh(TR3D_COIN(), M.gold, k), peak = 0.06 + lvl * 0.04;
-    for(let i = 0; i < k; i++){
-      const x = (rnd() - 0.5) * BW * 0.85, z = (rnd() - 0.5) * BD * 0.8;
+    const k = 20 + lvl * 40, coins = new THREE.InstancedMesh(TR3D_COIN(), M.gold, k), peak = 0.04 + lvl * 0.025;
+    for(let i = 0; i < k; i++){ // kept inside the chest walls so nothing pokes through the sides
+      const x = (rnd() - 0.5) * BW * 0.62, z = (rnd() - 0.5) * BD * 0.55;
       const mound = Math.max(0, (1 - Math.abs(x) / BW * 1.7) * (1 - Math.abs(z) / BD * 1.7));
       o.position.set(x, BT - 0.04 + mound * peak * (0.4 + 0.6 * rnd()), z);
       o.rotation.set((rnd() - 0.5) * 0.9, rnd() * 6, (rnd() - 0.5) * 0.9); o.updateMatrix(); coins.setMatrixAt(i, o.matrix);
@@ -10613,15 +10613,7 @@ function tr3dGold(v, M, lvl){
       const gemCols = [0xe0203a, 0x20c070, 0x3070ff, 0xb040e0];
       for(let i = 0; i < 3 + lvl; i++){
         const g = new THREE.Mesh(new THREE.OctahedronGeometry(0.045 + rnd() * 0.03, 0), new THREE.MeshStandardMaterial({ color: gemCols[i % 4], emissive: gemCols[i % 4], emissiveIntensity: 0.35, metalness: 0.2, roughness: 0.15 }));
-        g.position.set((rnd() - 0.5) * BW * 0.6, BT + peak * 0.6 + rnd() * 0.05, (rnd() - 0.5) * BD * 0.5); g.rotation.set(rnd() * 3, rnd() * 3, 0); inner.add(g);
-      }
-      const pearl = new THREE.MeshStandardMaterial({ color: 0xf6f0e6, roughness: 0.2, metalness: 0.1 });
-      for(let s = 0; s < 2; s++){ // pearl strings draped over the front rim
-        const sx = s ? 0.22 : -0.28;
-        for(let p = 0; p < 12; p++){
-          const t = p / 11, bead = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 6), pearl);
-          bead.position.set(sx + (t - 0.5) * 0.24, BT + 0.02 - Math.sin(t * Math.PI) * 0.32, BD / 2 + 0.06 + Math.sin(t * Math.PI) * 0.03); inner.add(bead);
-        }
+        g.position.set((rnd() - 0.5) * BW * 0.45, BT + peak * 0.5 + rnd() * 0.03, (rnd() - 0.5) * BD * 0.35); g.rotation.set(rnd() * 3, rnd() * 3, 0); inner.add(g);
       }
     }
   }
@@ -10631,7 +10623,7 @@ function tr3dGold(v, M, lvl){
     const lc = new THREE.InstancedMesh(TR3D_COIN(), M.gold, loose);
     for(let i = 0; i < loose; i++){
       const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * (0.4 + lvl * 0.12), heap = Math.max(0, 1 - r / (0.4 + lvl * 0.12));
-      o.position.set(X + 0.35 + Math.cos(a) * r, 0.01 + heap * heap * lvl * 0.05 * rnd(), Z + 0.85 + Math.sin(a) * r * 0.7);
+      o.position.set(X + Math.cos(a) * r, 0.01 + heap * heap * lvl * 0.05 * rnd(), Z + 0.75 + Math.abs(Math.sin(a)) * r * 0.7); // only in front of the chest
       o.rotation.set((rnd() - 0.5) * 0.5, rnd() * 6, (rnd() - 0.5) * 0.5); o.updateMatrix(); lc.setMatrixAt(i, o.matrix);
     }
     v.scene.add(lc);
@@ -10771,13 +10763,14 @@ function tr3dRoom(v, M){
   rug.rotation.x = -Math.PI / 2; rug.rotation.z = 0.08; rug.position.set(1.6, 0.006, 0.9); s.add(rug);
   // hanging iron lantern: the main warm light
   v.torches = [];
-  // the WoW ship lantern hanging on its chain from the ceiling (lantern centre at y 3.0)
+  // the WoW ship lantern swinging gently on its chain from a hook in the ceiling (lantern body at y 2.6)
+  const LH = 2.7, hook = new THREE.Group(); hook.position.set(-1.2, 2.6 + 0.89 * LH, -1.6); s.add(hook); v.lanternHook = hook;
   loadHomeProp({ gltf: 'models/housing/coffer-hanging-lantern.gltf' }).then(l => {
-    const H = 2.7; l.scale.setScalar(H / l.userData.unitHeight); l.position.set(-1.2, 2.6 - 0.11 * H, -1.6); v.scene.add(l); // body is the bottom ~22%
+    l.scale.setScalar(LH / l.userData.unitHeight); l.position.y = -LH; hook.add(l); // body is the bottom ~22%
   }).catch(err => console.warn('Hanging lantern failed to load:', err));
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: homePetGlowTexture(), color: 0xffb060, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 }));
-  halo.position.set(-1.2, 2.6, -1.6); halo.scale.setScalar(1.5); s.add(halo);
-  const lamp = new THREE.PointLight(0xffa850, 2.4, 9, 2); lamp.position.set(-1.2, 2.5, -1.35); s.add(lamp);
+  halo.position.set(0, -0.89 * LH, 0); halo.scale.setScalar(1.5); hook.add(halo);
+  const lamp = new THREE.PointLight(0xffa850, 2.4, 9, 2); lamp.position.set(0, -0.89 * LH - 0.1, 0.25); hook.add(lamp);
   v.torches.push({ light: lamp, halo, seed: 1.7, base: 2.4, slow: true });
   // a wall torch in the right bay
   const iron = M.iron;
@@ -10800,11 +10793,33 @@ function tr3dRoom(v, M){
   const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 1.5, 8), M.wood); handle.position.y = 0.75; axe.add(handle);
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.22, 0.04), new THREE.MeshStandardMaterial({ color: 0x8a8d90, metalness: 0.9, roughness: 0.35 })); head.position.set(0.14, 0.12, 0); axe.add(head);
   axe.position.set(-3.75, 0, 0.35); axe.rotation.z = -0.28; axe.rotation.y = 0.4; s.add(axe);
-  // dust in the lamplight
-  const n = 80, pos = new Float32Array(n * 3), rnd = tr3dRand(5);
-  for(let i = 0; i < n; i++){ pos[i * 3] = (rnd() - 0.5) * 7; pos[i * 3 + 1] = rnd() * 3.8; pos[i * 3 + 2] = -2 + rnd() * 4; }
-  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  v.dust = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffe6b0, size: 0.022, transparent: true, opacity: 0.55, depthWrite: false }));
+  // glittering dust: motes drift and swirl on their own, twinkling as they catch the lantern light
+  const n = 160, pos = new Float32Array(n * 3), seed = new Float32Array(n), rnd = tr3dRand(5);
+  for(let i = 0; i < n; i++){ pos[i * 3] = (rnd() - 0.5) * 5.5; pos[i * 3 + 1] = 0.2 + rnd() * 3.4; pos[i * 3 + 2] = -2.1 + rnd() * 3.6; seed[i] = rnd() * 100; }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('seed', new THREE.BufferAttribute(seed, 1));
+  v.dust = new THREE.Points(geo, new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    uniforms: { uTime: { value: 0 }, uLamp: { value: new THREE.Vector3(-1.2, 2.6, -1.6) }, uScale: { value: 300 } },
+    vertexShader: `
+      attribute float seed; uniform float uTime; uniform vec3 uLamp; uniform float uScale; varying float vA;
+      void main(){
+        vec3 p = position;
+        float t = uTime * 0.05 + seed;
+        p.x += sin(t * 0.9 + seed) * 0.35 + sin(t * 2.3) * 0.06;
+        p.z += cos(t * 0.7 + seed * 1.3) * 0.3;
+        p.y = mod(p.y + uTime * 0.03 + sin(t * 1.7) * 0.08, 3.6) + 0.15;   // slow upward drift, wrapping
+        float lit = clamp(1.4 - distance(p, uLamp) / 2.6, 0.12, 1.0);      // brighter near the lantern
+        float tw = pow(0.5 + 0.5 * sin(uTime * (1.5 + fract(seed) * 3.0) + seed * 7.0), 6.0);  // glints
+        vA = lit * (0.25 + 0.75 * tw);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_PointSize = (0.022 + tw * 0.03) * uScale / -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      varying float vA;
+      void main(){ float d = length(gl_PointCoord - 0.5); if(d > 0.5) discard; gl_FragColor = vec4(1.0, 0.9, 0.68, vA * (1.0 - d * 2.0)); }`
+  }));
   s.add(v.dust);
   // the Horde banner in the left bay
   loadHomeProp(HOME_DECOR.horde_banner).then(hb => {
@@ -10874,7 +10889,8 @@ function mountTreasureCorners(){
           p.sp.position.set(p.X + Math.sin(p.seed * 7 + t * 4) * 0.35, p.Y + t * 0.9, p.Z + Math.cos(p.seed * 5) * 0.2);
           p.sp.material.opacity = Math.sin(t * Math.PI) * 0.9;
         });
-        if(v.dust){ v.dust.rotation.y = Math.sin(now / 9000) * 0.05; v.dust.position.y = Math.sin(now / 4000) * 0.1; }
+        if(v.dust){ v.dust.material.uniforms.uTime.value = now / 1000; v.dust.material.uniforms.uScale.value = v.renderer.domElement.height * 0.9; }
+        if(v.lanternHook){ v.lanternHook.rotation.z = Math.sin(now / 1500) * 0.07; v.lanternHook.rotation.x = Math.sin(now / 2300 + 1) * 0.04; }
         if(v.bannerMixer) v.bannerMixer.update(dt);
         if(v.chestMixer) v.chestMixer.update(dt);
         v.renderer.render(v.scene, v.camera);
