@@ -8829,9 +8829,8 @@ const HOME_ZONES = {
     light: { sun: 0x8fb4ff, sunI: 0.6, sunPos: [-8, 10, 5], sky: 0x4a78d0, ground: 0x142838, hemiI: 0.58, amb: 0x4a6ac8, ambI: 0.2 },
     props: [
       { gltf: 'models/housing/ashenvale-gazebo.gltf', x: -3.0, z: -1.9, height: 3.8, rotY: 0.5 },      // Kaldorei gazebo with its light shafts
-      { gltf: 'models/housing/ashenvale-fountain.gltf', x: 2.7, z: -0.9, height: 2.6, rotY: -0.4,      // priestess moonwell fountain
-        halo: { at: [0, 28, 0], size: 9, color: 0x9fd8ff },
-        water: { top: [29.4, 6.2], base: [1.6, 4.6] } }  // model space: [height, radius] of the bowl and base pools
+      { gltf: 'models/housing/ashenvale-moongate.gltf', x: 2.7, z: -0.9, height: 3.6, rotY: Math.PI / 2 - 0.4,   // Kaldorei moongate with a swirling portal
+        portal: { at: [0, 5.3, 0], w: 4.4, h: 10.4 } }   // model space: centre and size of the opening
     ],
     houses: {}
   },
@@ -10202,7 +10201,36 @@ function homeAddWater(v, root, w){
   mist.position.y = w.base[0] + 1; mist.scale.set(w.base[1] * 2.6, w.base[1] * 0.9, 1); root.add(mist);
   (v.water = v.water || []).push({ surface: surface.map, fall: fallMat.map, mist });
 }
+// Moongate portal (model space): two layers of swirling moonlight turning opposite ways, glow only
+function homePortalTexture(){
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gr.addColorStop(0, 'rgba(230,245,255,0.95)'); gr.addColorStop(0.35, 'rgba(120,190,255,0.55)'); gr.addColorStop(0.8, 'rgba(70,120,230,0.18)'); gr.addColorStop(1, 'rgba(60,100,220,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  g.translate(128, 128);
+  for(let arm = 0; arm < 5; arm++){ // spiral arms
+    g.beginPath();
+    for(let t = 0; t < 1; t += 0.01){ const r = t * 120, a = arm * Math.PI * 2 / 5 + t * 5.5; const x = Math.cos(a) * r, y = Math.sin(a) * r; t ? g.lineTo(x, y) : g.moveTo(x, y); }
+    g.strokeStyle = 'rgba(210,235,255,0.45)'; g.lineWidth = 7; g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c); t.center.set(0.5, 0.5); return t;
+}
+function homeAddPortal(v, root, p){
+  const layers = [1, -0.6].map((spin, i) => {
+    const tex = homePortalTexture();
+    const mat = new THREE.MeshBasicMaterial({ map: tex, color: i ? 0x9fc8ff : 0xcfe6ff, transparent: true, opacity: i ? 0.55 : 0.75,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(p.w, p.h), mat);
+    m.position.set(p.at[0] + i * 0.05, p.at[1], p.at[2]); m.rotation.y = Math.PI / 2; root.add(m);
+    return { tex, mat, spin };
+  });
+  (v.portals = v.portals || []).push(layers);
+}
 function homeWaterTick(v, now){
+  (v.portals || []).forEach(L => L.forEach((l, i) => {
+    l.tex.rotation = now / 1000 * 0.35 * l.spin;
+    l.mat.opacity = (i ? 0.45 : 0.65) + 0.15 * Math.sin(now / 1100 + i * 2);
+  }));
   (v.water || []).forEach(w => {
     w.surface.offset.set(Math.sin(now / 3000) * 0.05, now / 9000);
     w.fall.offset.y = (now / 700) % 1;
@@ -10253,6 +10281,7 @@ function addHomePropHolder(v, h, prop){
   }
   // Fountain water
   if(prop.water) homeAddWater(v, h.userData.pivot.children[0], prop.water);
+  if(prop.portal) homeAddPortal(v, h.userData.pivot.children[0], prop.portal);
   // Halo: a soft glow around a lantern (no cast light), breathing slowly
   if(prop.halo){
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: homePetGlowTexture(), color: prop.halo.color || 0xffc070,
