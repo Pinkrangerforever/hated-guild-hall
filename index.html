@@ -9160,9 +9160,10 @@ const HOME_GROUND_TEX = {
   },
   ashenvale_glade: {
     base: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Ashenvale%20Glade/ashenvalemossbase.png',
-    dirt: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Ashenvale%20Glade/ashenvalerocksmooth.png',
+    dirt: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Ashenvale%20Glade/ashenvaleroots.png',          // root patches break up the moss (and the band at the back)
     path: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Ashenvale%20Glade/ashenvaleroad.png',
-    clearing: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Ashenvale%20Glade/ashenvalerocksmooth.png'
+    clearing: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Ashenvale%20Glade/ashenvalerocksmooth.png', // smooth stone at the back right, under the big rock in the video
+    layout: { clearing: [0.7, 0.12, 620, 250], path: [0.24, 1.04, 0.16, 0.75, 0.32, 0.5, 0.22, 0.12], softPath: true, pathWidth: 140, patchAlpha: 0.42 }
   },
   darkshire_drive: {
     base: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/duskwoodgrassbase02.png',
@@ -9202,27 +9203,41 @@ function buildHomeGround(zone){
       g.drawImage(m, 0, 0);
     };
     let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    for(let i = 0; i < 14; i++) blob(dirt, rnd() * W, rnd() * H, 120 + rnd() * 260, 80 + rnd() * 170, 0.75);
-    blob(crack, W * 0.52, H * 0.3, 560, 200, 0.95);   // clearing where the buildings stand
-    blob(dirt, W * 0.52, H * 0.32, 700, 250, 0.55);
-    // pebble path: front centre -> clearing, gently curving
-    g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
-    g.strokeStyle = pat(road); g.lineWidth = 120;
-    g.beginPath(); g.moveTo(W * 0.48, H + 40); g.bezierCurveTo(W * 0.6, H * 0.8, W * 0.38, H * 0.6, W * 0.52, H * 0.36); g.stroke();
-    g.globalAlpha = 0.5; g.lineWidth = 170; g.strokeStyle = pat(dirt); g.globalCompositeOperation = 'destination-over'; g.stroke();
-    g.restore();
+    // Per-zone layout (fractions of the stage; y 0 = back, 1 = front). Defaults: centre path to a centre clearing.
+    const L = Object.assign({ clearing: [0.52, 0.3, 560, 200], path: [0.48, 1.04, 0.6, 0.8, 0.38, 0.6, 0.52, 0.36], softPath: false, pathWidth: 120, patchAlpha: 1 }, cfg.layout || {});
+    for(let i = 0; i < 14; i++) blob(dirt, rnd() * W, rnd() * H, 120 + rnd() * 260, 80 + rnd() * 170, 0.75 * L.patchAlpha);
     // dirt along the back edge so the stage blends into the rock at the foot of the backdrop
     {
       const m = document.createElement('canvas'); m.width = W; m.height = H; const mg = m.getContext('2d');
       mg.fillStyle = mg.createPattern(dirt, 'repeat'); mg.fillRect(0, 0, W, H);
       mg.globalCompositeOperation = 'destination-in';
       const gr = mg.createLinearGradient(0, 0, 0, H * 0.3);
-      gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.45, 'rgba(0,0,0,0.85)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      gr.addColorStop(0, `rgba(0,0,0,${L.patchAlpha})`); gr.addColorStop(0.45, `rgba(0,0,0,${0.85 * L.patchAlpha})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
       mg.fillStyle = gr; mg.fillRect(0, 0, W, H);
       // ragged edge: a few dirt tongues reaching into the grass
       mg.globalCompositeOperation = 'source-over';
       g.drawImage(m, 0, 0);
-      for(let i = 0; i < 9; i++) blob(dirt, rnd() * W, H * (0.22 + rnd() * 0.12), 90 + rnd() * 160, 40 + rnd() * 60, 0.8);
+      for(let i = 0; i < 9; i++) blob(dirt, rnd() * W, H * (0.22 + rnd() * 0.12), 90 + rnd() * 160, 40 + rnd() * 60, 0.8 * L.patchAlpha);
+    }
+    const [cx, cy, crx, cry] = L.clearing;
+    blob(dirt, W * cx, H * (cy + 0.02), crx * 1.25, cry * 1.25, 0.55 * L.patchAlpha); // soft border under it
+    blob(crack, W * cx, H * cy, crx, cry, 0.95);   // clearing where the buildings stand
+    const P = L.path, pathTo = ctx => { ctx.beginPath(); ctx.moveTo(W * P[0], H * P[1]); ctx.bezierCurveTo(W * P[2], H * P[3], W * P[4], H * P[5], W * P[6], H * P[7]); };
+    if(L.softPath){
+      // feathered path: the road texture fades out into the ground on both edges
+      const m = document.createElement('canvas'); m.width = W; m.height = H; const mg = m.getContext('2d');
+      mg.fillStyle = mg.createPattern(road, 'repeat'); mg.fillRect(0, 0, W, H);
+      mg.globalCompositeOperation = 'destination-in'; mg.lineCap = 'round'; mg.lineJoin = 'round';
+      const k = document.createElement('canvas'); k.width = W; k.height = H; const kg = k.getContext('2d');
+      kg.lineCap = 'round'; kg.lineJoin = 'round';
+      for(let i = 12; i >= 0; i--){ kg.lineWidth = L.pathWidth * (0.25 + i * 0.22); kg.strokeStyle = 'rgba(0,0,0,0.12)'; pathTo(kg); kg.stroke(); }
+      mg.drawImage(k, 0, 0); g.drawImage(m, 0, 0);
+    } else {
+      // pebble path: front -> clearing, gently curving
+      g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+      g.strokeStyle = pat(road); g.lineWidth = L.pathWidth; pathTo(g); g.stroke();
+      g.globalAlpha = 0.5; g.lineWidth = L.pathWidth * 1.4; g.strokeStyle = pat(dirt); g.globalCompositeOperation = 'destination-over'; g.stroke();
+      g.restore();
     }
     // fade the left, right and front edges out to nothing (the back edge meets the backdrop)
     g.globalCompositeOperation = 'destination-out';
