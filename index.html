@@ -10612,11 +10612,11 @@ function tr3dFood(v, M, lvl){
   tr3dShadow(v.scene, X, Z, 0.55);
   if(!n) return;
   const rnd = tr3dRand(17);
-  const pieces = Math.min(4 + n, 16);           // fuller barrel as the food grows
+  const pieces = Math.min(9 + n, 22);           // fuller barrel as the food grows
   for(let i = 0; i < pieces; i++){ // drumsticks and roast haunches mixed, heaped up out of the open top
     const haunch = i % 3 === 1, a = rnd() * Math.PI * 2, r = R * Math.sqrt(rnd()) * (1 - i / pieces * 0.5);
-    const px = Math.cos(a) * r, pz = Math.sin(a) * r, py = BH - 0.08 + (i / pieces) * (0.08 + n * 0.008), yaw = rnd() * Math.PI * 2;
-    const tilt = (rnd() - 0.5) * 0.9, size = haunch ? 0.17 : 0.11;
+    const px = Math.cos(a) * r, pz = Math.sin(a) * r, py = BH - 0.06 + (i / pieces) * (0.12 + n * 0.008), yaw = rnd() * Math.PI * 2;
+    const tilt = (rnd() - 0.5) * 0.9, size = haunch ? 0.2 : 0.13;
     loadHomeProp({ gltf: haunch ? TR3D_MEAT.haunch : TR3D_MEAT.leg }).then(m => {
       m.scale.setScalar(size / m.userData.unitHeight); m.position.set(px, py, pz); m.rotation.set((rnd() - 0.5) * 0.5, yaw, tilt); g.add(m);
     }).catch(() => {});
