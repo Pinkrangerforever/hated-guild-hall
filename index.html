@@ -10747,13 +10747,10 @@ function tr3dRoom(v, M){
   const tt = new THREE.CanvasTexture(c); tt.encoding = THREE.sRGBEncoding;
   const tap = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.6), new THREE.MeshStandardMaterial({ map: tt, roughness: 1 })); tap.position.set(2.75, 2.35, -2.47); s.add(tap);
   const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.0, 8), M.iron); rod.rotation.z = Math.PI / 2; rod.position.set(2.75, 3.17, -2.45); s.add(rod);
-  // rug on the flagstones
-  const rc = document.createElement('canvas'); rc.width = 256; rc.height = 160; const rg = rc.getContext('2d');
-  rg.fillStyle = '#6a1712'; rg.fillRect(0, 0, 256, 160); rg.strokeStyle = '#c9963f'; rg.lineWidth = 7; rg.strokeRect(10, 10, 236, 140);
-  rg.lineWidth = 2; rg.strokeRect(24, 24, 208, 112); rg.fillStyle = '#8e2a1c'; rg.beginPath(); rg.ellipse(128, 80, 72, 40, 0, 0, Math.PI * 2); rg.fill();
-  const rugT = new THREE.CanvasTexture(rc); rugT.encoding = THREE.sRGBEncoding;
-  const rug = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.4), new THREE.MeshStandardMaterial({ map: rugT, roughness: 1 }));
-  rug.rotation.x = -Math.PI / 2; rug.rotation.z = 0.08; rug.position.set(1.6, 0.05, 0.9); s.add(rug);
+  // the Karazhan rug on the flagstones (flat, so it's sized by width: the loader scales models to 1 unit across)
+  loadHomeProp({ gltf: 'models/housing/coffer-rug.gltf' }).then(r => {
+    r.scale.setScalar(2.2); r.position.set(1.45, 0.05, 0.05); r.rotation.y = Math.PI / 2 + 0.06; s.add(r);
+  }).catch(err => console.warn('Rug failed to load:', err));
   // hanging iron lantern: the main warm light
   v.torches = [];
   // the WoW ship lantern swinging gently on its chain from a hook in the ceiling (lantern body at y 2.6)
