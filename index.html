@@ -3601,7 +3601,7 @@
   .profile-split{ width:min(1400px, calc(100vw - 32px)); align-self:center; display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:stretch; }
   .profile-split > .profile-panel{ width:auto; margin:0; min-width:0; }
   @media (max-width:900px){ .profile-split{ grid-template-columns:1fr; } }
-  .treasure-room{ cursor:pointer; position:relative; aspect-ratio:4 / 3; border-radius:6px; overflow:hidden; background:#140e0a;
+  .treasure-room{ position:relative; aspect-ratio:4 / 3; border-radius:6px; overflow:hidden; background:#140e0a;
     border:3px solid #5a3818; box-shadow:0 0 0 1px #000, inset 0 0 0 1px rgba(255,220,160,0.15), 0 4px 14px rgba(0,0,0,0.6); }
   .tr3d{ position:absolute; inset:0; z-index:3; pointer-events:none; }
   .tr3d canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
@@ -10575,69 +10575,28 @@ function tr3dChest(M, open, W, D, Hb){
   lid.rotation.x = open ? -1.95 : 0; chest.add(lid);
   return chest;
 }
-// Gold lives in the WoW treasure chest: it swings open when the room loads (if there's any gold) and a
-// click toggles it. Inside: a mound of coins, gems and pearls that grows; loose coins spill onto the floor.
+// Gold: the filled treasure chest (gold + jewels) front and centre with the dragon-hoard pile spilling in
+// front of it, both growing with the gold; the plain iron chest sits closed off to the side as storage.
 function tr3dGold(v, M, lvl){
-  const n = TR3D_COUNTS.gold[lvl];
-  const X = -0.7, Z = -0.6, CH = 1.0, rnd = tr3dRand(11), o = new THREE.Object3D();
-  const BW = 1.05, BD = 0.8, BT = 0.62;   // inner footprint (along the chest) and rim height at CH = 1
-  const hoard = new THREE.Group(); hoard.position.set(X, 0, Z); hoard.rotation.y = 0.32; v.scene.add(hoard);
-  tr3dShadow(v.scene, X, Z, 0.85, 0.65);
-  loadHomeProp(HOME_DECOR.treasure_chest).then(ch => {
-    ch.scale.setScalar(CH / ch.userData.unitHeight); ch.rotation.y = -Math.PI / 2; hoard.add(ch);
-    const clips = {}; (ch.userData.animations || []).forEach(c => { clips[c.name] = c; });
-    const mixer = new THREE.AnimationMixer(ch.userData.pivot.children[0]);
-    const play = (name, once) => {
-      const c = clips[name]; if(!c) return;
-      const act = mixer.clipAction(c); act.reset();
-      if(once){ act.setLoop(THREE.LoopOnce, 1); act.clampWhenFinished = true; }
-      if(v.chestAct && v.chestAct !== act) v.chestAct.fadeOut(0.15);
-      act.fadeIn(0.15).play(); v.chestAct = act;
-    };
-    v.chestMixer = mixer;
-    v.chestOpen = false;
-    v.toggleChest = () => {
-      v.chestOpen = !v.chestOpen; play(v.chestOpen ? 'Open' : 'Close', true);
-      clearTimeout(v.chestHide);
-      if(v.chestHoard){ if(v.chestOpen) v.chestHoard.visible = true; else v.chestHide = setTimeout(() => { v.chestHoard.visible = false; }, 450); }
-    };
-    play('Closed');
-    if(lvl > 0) setTimeout(() => { if(!v.chestOpen) v.toggleChest(); }, 700);
-  }).catch(err => console.warn('Coffer chest failed to load:', err));
-  if(lvl >= 1){
-    // the hoard inside the chest
-    const inner = new THREE.Group(); inner.visible = false; hoard.add(inner); v.chestHoard = inner; // shown while the lid is open
-    const k = 20 + lvl * 40, coins = new THREE.InstancedMesh(TR3D_COIN(), M.gold, k), peak = 0.04 + lvl * 0.025;
-    for(let i = 0; i < k; i++){ // kept inside the chest walls so nothing pokes through the sides
-      const x = (rnd() - 0.5) * BW * 0.62, z = (rnd() - 0.5) * BD * 0.55;
-      const mound = Math.max(0, (1 - Math.abs(x) / BW * 1.7) * (1 - Math.abs(z) / BD * 1.7));
-      o.position.set(x, BT - 0.04 + mound * peak * (0.4 + 0.6 * rnd()), z);
-      o.rotation.set((rnd() - 0.5) * 0.9, rnd() * 6, (rnd() - 0.5) * 0.9); o.updateMatrix(); coins.setMatrixAt(i, o.matrix);
-    }
-    inner.add(coins);
-    if(lvl >= 3){
-      const gemCols = [0xe0203a, 0x20c070, 0x3070ff, 0xb040e0];
-      for(let i = 0; i < 3 + lvl; i++){
-        const g = new THREE.Mesh(new THREE.OctahedronGeometry(0.045 + rnd() * 0.03, 0), new THREE.MeshStandardMaterial({ color: gemCols[i % 4], emissive: gemCols[i % 4], emissiveIntensity: 0.35, metalness: 0.2, roughness: 0.15 }));
-        g.position.set((rnd() - 0.5) * BW * 0.45, BT + peak * 0.5 + rnd() * 0.03, (rnd() - 0.5) * BD * 0.35); g.rotation.set(rnd() * 3, rnd() * 3, 0); inner.add(g);
-      }
-    }
-  }
-  // the dragon-hoard gold pile on the floor in front of the chest, bigger as the gold grows
+  const X = -0.7, Z = -0.6;
   if(lvl){
+    loadHomeProp(HOME_DECOR.filled_chest).then(c => {
+      c.scale.setScalar((0.9 + lvl * 0.05) / c.userData.unitHeight); c.position.set(X, 0.04, Z); c.rotation.y = 1.25; v.scene.add(c);
+    }).catch(err => console.warn('Filled chest failed to load:', err));
+    tr3dShadow(v.scene, X, Z, 0.8, 0.6);
     const ph = [0, 0.08, 0.12, 0.16, 0.2, 0.24][lvl];
     loadHomeProp(HOME_DECOR.gold_pile).then(p => {
-      p.scale.setScalar(ph / p.userData.unitHeight); p.position.set(X + 0.05, 0, Z + 0.95); p.rotation.y = 0.4; v.scene.add(p);
+      p.scale.setScalar(ph / p.userData.unitHeight); p.position.set(X + 0.05, 0.03, Z + 0.95); p.rotation.y = 0.4; v.scene.add(p);
     }).catch(err => console.warn('Gold pile failed to load:', err));
   }
-  // rich enough: a second, filled chest to the side
-  if(lvl >= 3){
-    loadHomeProp(HOME_DECOR.filled_chest).then(c => {
-      c.scale.setScalar(0.75 / c.userData.unitHeight); c.position.set(-1.6, 0, 0.35); c.rotation.y = 0.9; v.scene.add(c);
-    }).catch(err => console.warn('Filled chest failed to load:', err));
-    tr3dShadow(v.scene, -1.6, 0.35, 0.55);
-  }
-  v.anchors.gold = new THREE.Vector3(X + 0.1, BT + 0.42, Z + 0.3);
+  // the plain chest: closed for good, off to the side
+  loadHomeProp(HOME_DECOR.treasure_chest).then(ch => {
+    ch.scale.setScalar(0.8 / ch.userData.unitHeight); ch.position.set(-1.65, 0.04, 0.45); ch.rotation.y = -Math.PI / 2 + 0.75; v.scene.add(ch);
+    const clip = (ch.userData.animations || []).find(c => c.name === 'Closed');
+    if(clip){ v.chestMixer = new THREE.AnimationMixer(ch.userData.pivot.children[0]); v.chestMixer.clipAction(clip).play(); }
+  }).catch(err => console.warn('Side chest failed to load:', err));
+  tr3dShadow(v.scene, -1.65, 0.45, 0.6, 0.5);
+  v.anchors.gold = new THREE.Vector3(X + 0.1, 1.2, Z + 0.3);
 }
 // Food: roast chicken legs heaped in the open-topped WoW standing barrel (more legs = fuller, then spilling out)
 // Food: WoW drumsticks heaped in the open standing barrel; big roast haunches join them beside it as it grows
@@ -10673,7 +10632,7 @@ function tr3dWood(v, M, lvl){
   if(!lvl) return;
   const X = -2.35, Z = -1.15, H = 1.5 * [0, 0.5, 0.65, 0.78, 0.9, 1.0][lvl];
   loadHomeProp(HOME_DECOR.log_pile).then(lp => {
-    lp.scale.setScalar(H / lp.userData.unitHeight); lp.rotation.y = 0.12; lp.position.set(X, 0, Z); v.scene.add(lp); // log ends toward the viewer
+    lp.scale.setScalar(H / lp.userData.unitHeight); lp.rotation.y = 0.12 + Math.PI; lp.position.set(X, 0, Z); v.scene.add(lp); // log ends toward the viewer, tall end on the side wall
   }).catch(err => console.warn('Log pile failed to load:', err));
   tr3dShadow(v.scene, X, Z, 0.35 + H * 0.5, 0.6 + H);
   v.anchors.wood = new THREE.Vector3(X, H + 0.3, Z + 0.4);
@@ -10741,19 +10700,19 @@ function tr3dRoom(v, M){
   side.rotation.y = Math.PI / 2; side.position.set(-4, 2.5, 1); s.add(side);
   // floor: planks on the left, flagstones on the right
   // floor: a raised wooden deck of separate boards on the left, set flagstones with grout on the right
-  const grout = new THREE.Mesh(new THREE.PlaneGeometry(10, 7), new THREE.MeshStandardMaterial({ color: 0x1e1a16, roughness: 1 }));
+  const grout = new THREE.Mesh(new THREE.PlaneGeometry(10, 7), new THREE.MeshStandardMaterial({ color: 0x2a241e, roughness: 1 }));
   grout.rotation.x = -Math.PI / 2; grout.position.set(0, 0, 1); s.add(grout);
   const fr = tr3dRand(71), DECK = 0.35, tmp = new THREE.Object3D(), col = new THREE.Color();
   const stoneT = tr3dTex(TR3D_TEX.floor, 0.35, 0.35);
   const stones = []; // rows of slightly irregular flagstones
   for(let z = -2.5; z < 4.5;){
     const d = 0.55 + fr() * 0.35;
-    for(let x = DECK + 0.08; x < 5;){ const w = 0.55 + fr() * 0.5; stones.push([x + w / 2, z + d / 2, w - 0.05, d - 0.05]); x += w; }
+    for(let x = DECK + 0.08; x < 5;){ const w = 0.55 + fr() * 0.5; stones.push([x + w / 2, z + d / 2, w - 0.012, d - 0.012]); x += w; }
     z += d;
   }
   const flags = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.05, 1), new THREE.MeshStandardMaterial({ map: stoneT, roughness: 1 }), stones.length);
   stones.forEach(([x, z, w, d], i) => {
-    tmp.position.set(x, 0.02 + fr() * 0.012, z); tmp.rotation.set(0, (fr() - 0.5) * 0.04, 0); tmp.scale.set(w, 1, d); tmp.updateMatrix(); flags.setMatrixAt(i, tmp.matrix);
+    tmp.position.set(x, 0.02 + fr() * 0.006, z); tmp.rotation.set(0, 0, 0); tmp.scale.set(w, 1, d); tmp.updateMatrix(); flags.setMatrixAt(i, tmp.matrix);
     flags.setColorAt(i, col.setHSL(0.08, 0.06 + fr() * 0.05, 0.42 + fr() * 0.14));
   });
   s.add(flags);
@@ -10926,10 +10885,6 @@ function mountTreasureCorners(){
     v.renderer.setSize(w, h, false); v.camera.aspect = w / h; v.camera.updateProjectionMatrix();
     if(!slot.__tr3dMouse){
       slot.__tr3dMouse = true;
-      slot.closest('.treasure-room').addEventListener('click', () => {
-        const vv = Object.values(tr3dViewers).find(x => x.slot === slot);
-        if(vv && vv.toggleChest) vv.toggleChest();
-      });
       slot.closest('.treasure-room').addEventListener('mousemove', e => {
         const r = slot.getBoundingClientRect(); const vv = Object.values(tr3dViewers).find(x => x.slot === slot);
         if(vv){ vv.mouse.x = (e.clientX - r.left) / r.width - 0.5; vv.mouse.y = (e.clientY - r.top) / r.height - 0.5; }
