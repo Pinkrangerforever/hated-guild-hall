@@ -6918,7 +6918,7 @@ function startRareSpawnEvent(rect, pendingId, params){
 }
 
 /* ---------------- Mining: follow the gem through the copper nodes ----------------
-   A gem shows in one of 3 nodes, then 7 swaps at a fixed speed (same for everyone, chosen by the server).
+   A gem shows in one of 3 nodes, then 11 swaps at a fixed speed (same for everyone, chosen by the server).
    Pick the node with the gem; the server replays the swaps and checks the pick. Pays gold + a crystal. */
 const COPPER_NODE_MODEL = { gltf: 'models/minigames/copper-node.gltf' };
 const CRYSTAL_ICON = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/CrystalIcon2.png'; // rendered from the Un'Goro crystal model (broad side)
@@ -7387,7 +7387,7 @@ if(typeof isStaging !== 'undefined' && isStaging){
       blacksmith: () => startBlacksmithGame(rect, 'preview', { cycle_ms: 1400, hit_window: 0.15, hits_needed: 3, max_attempts: 5, game_ms: 10000 }),
       lumberjack: () => startLumberjackEvent(rect, 'preview', { sweep_ms: 1300, width: 0.12, hits_needed: 3, max_attempts: 5, game_ms: 9000, notches: [0.25, 0.7, 0.45] }),
       rarespawn: () => startRareSpawnEvent(rect, 'preview', { jump_ms: 650, duration_ms: 3250, radius: 95, hits_needed: 3, positions: [[200, 300], [750, 650], [400, 800], [850, 250], [500, 450]] }),
-      mining: () => startMiningEvent(rect, 'preview', { gem_start: 0, reveal_ms: 1600, swap_ms: 360, pick_ms: 6000, swaps: [[0, 1], [1, 2], [0, 2], [0, 1], [1, 2], [0, 1], [0, 2]] }),
+      mining: () => startMiningEvent(rect, 'preview', { gem_start: 0, reveal_ms: 1600, swap_ms: 310, pick_ms: 6000, swaps: [[0, 1], [1, 2], [0, 2], [0, 1], [1, 2], [0, 1], [0, 2], [1, 2], [0, 1], [0, 2], [1, 2]] }),
       trivia: () => startTriviaEvent(rect, 'preview', { question: 'Who is the final boss of Molten Core?', category: 'World', time_ms: 15000, answers: ['Ragnaros', 'Golemagg', 'Majordomo Executus', 'Baron Geddon'] })
     };
     (demo[type] || demo.fishing)();
