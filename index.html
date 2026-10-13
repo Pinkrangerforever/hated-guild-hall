@@ -3606,12 +3606,12 @@
   .tr3d{ position:absolute; inset:0; z-index:3; pointer-events:none; }
   .tr3d canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
   .tr3d-tag{ position:absolute; z-index:4; transform:translate(-50%, -100%); display:none; pointer-events:auto; }
-  .tr3d-tag.crystal{ background:linear-gradient(180deg, #e2d4ff, #a07ee0 60%, #6f4cb0); border-color:#3a1f6b; }
+  .tr3d-tag.crystal{ background:linear-gradient(180deg, #d6f0ff, #6ab8e8 60%, #2f78b0); border-color:#123a5c; }
   .treasure-room::after{ content:''; position:absolute; inset:0; pointer-events:none; z-index:5; box-shadow:inset 0 0 70px rgba(0,0,0,0.8); }
   .tr-tag{ margin-top:8px; padding:2px 10px; border-radius:3px; white-space:nowrap; font-family:'Cinzel', Georgia, serif; font-size:11px; color:#2a1a08;
     background:linear-gradient(180deg, #f0d27a, #c9963f 60%, #a77a2e); border:1px solid #5a3c12; box-shadow:0 2px 5px rgba(0,0,0,0.7); }
   .tr-tag b{ font-size:13px; }
-  .tr-crystal .tr-tag{ background:linear-gradient(180deg, #e2d4ff, #a07ee0 60%, #6f4cb0); border-color:#3a1f6b; }
+  .tr-crystal .tr-tag{ background:linear-gradient(180deg, #d6f0ff, #6ab8e8 60%, #2f78b0); border-color:#123a5c; }
   @media (max-width:640px){ .tr-pile{ height:60px; } .shelf-item{ width:18px; height:18px; } .tr-tag{ font-size:9px; padding:1px 5px; } .tr-tag b{ font-size:10px; } }
   /* Home decorating: inventory column beside the frame, tool bar below */
   .home-edit-wrap.has-panel{ display:grid; grid-template-columns:minmax(0, 1fr) 230px; gap:14px; align-items:start; }
@@ -3681,7 +3681,7 @@
     font-family:'Cinzel', Georgia, serif; font-weight:700; font-size:13px; color:#2a1a08;
     background:linear-gradient(180deg, #f0d27a, #c9963f 60%, #a77a2e); border:1px solid #5a3c12; box-shadow:0 2px 5px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,245,200,0.6); }
   .ds-buy:hover:not([disabled]){ filter:brightness(1.1); }
-  .ds-buy.crystal{ color:#fff; background:linear-gradient(180deg, #b86bff, #8a3be0 60%, #5e1fa8); border-color:#2e0d55; box-shadow:0 2px 5px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,230,255,0.4); }
+  .ds-buy.crystal{ color:#fff; background:linear-gradient(180deg, #5cc0ff, #2a86d0 60%, #18548c); border-color:#0c2a48; box-shadow:0 2px 5px rgba(0,0,0,0.6), inset 0 1px 0 rgba(220,240,255,0.4); }
   .ds-card.earned{ border-color:rgba(64,160,220,0.55); background:linear-gradient(180deg, rgba(64,160,220,0.1), rgba(0,0,0,0.3)); }
   .ds-card.earned:not(.unlocked) .ds-thumb{ filter:grayscale(0.7) brightness(0.7); }
   .ds-rarity.achv{ background:linear-gradient(180deg, #5cc0ff, #1f74b8); box-shadow:0 0 8px rgba(64,160,220,0.6); }
@@ -4185,9 +4185,9 @@
   @keyframes mineStrike{ 30%{ background:radial-gradient(ellipse at 50% 70%, rgba(255,240,200,0.5), transparent 70%); } }
   .mine-msg{ position:absolute; left:0; right:0; top:8px; text-align:center; pointer-events:none; font-family:'Cinzel', Georgia, serif; font-size:14px;
     font-weight:700; color:#e2d4ff; text-shadow:0 1px 2px #000, 0 0 10px rgba(160,110,255,0.8); }
-  .wallet-crystal b{ color:#d9c6ff; }
-  .crystal-float-line{ color:#c9a8ff; font-size:16px; margin-top:2px; text-shadow:0 0 8px rgba(160,110,255,0.8), 0 2px 4px #000; }
-  .db-today .t-crystal{ color:#c9a8ff; }
+  .wallet-crystal b{ color:#bfe6ff; }
+  .crystal-float-line{ color:#8fd4ff; font-size:16px; margin-top:2px; text-shadow:0 0 8px rgba(90,180,255,0.8), 0 2px 4px #000; }
+  .db-today .t-crystal{ color:#8fd4ff; }
   .float-weary{ margin-top:4px; padding:1px 8px; border-radius:999px; border:1px solid; font-family:'Cinzel', Georgia, serif; font-size:11px;
     font-weight:700; letter-spacing:0.06em; text-transform:uppercase; background:rgba(10,6,3,0.7); white-space:nowrap; display:inline-block; }
   .float-weary.tier-tired{ color:#e6c35c; border-color:rgba(230,195,92,0.6); }
@@ -6921,7 +6921,7 @@ function startRareSpawnEvent(rect, pendingId, params){
    A gem shows in one of 3 nodes, then 7 swaps at a fixed speed (same for everyone, chosen by the server).
    Pick the node with the gem; the server replays the swaps and checks the pick. Pays gold + a crystal. */
 const COPPER_NODE_MODEL = { gltf: 'models/minigames/copper-node.gltf' };
-const CRYSTAL_ICON = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 1 L19 8 L12 23 L5 8 Z" fill="#b48cff" stroke="#3a1f6b" stroke-width="1"/><path d="M12 1 L15 8 L12 23 L9 8 Z" fill="#e2d4ff"/><path d="M5 8 H19" stroke="#3a1f6b" stroke-width="0.8"/></svg>');
+const CRYSTAL_ICON = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/CrystalIcon.png'; // rendered from the Un'Goro crystal model
 let miningViewer = null;
 
 function startMiningEvent(rect, pendingId, params){
@@ -6931,8 +6931,8 @@ function startMiningEvent(rect, pendingId, params){
   const gemStart = params.gem_start != null ? params.gem_start : 1;
   const enc = openEncounterCard(rect, {
     cls: 'enc-mining', icon: '&#9935;', title: 'Copper Vein',
-    instruction: 'Watch the <b style="color:#c9a8ff">crystal</b>&hellip; follow its node through the shuffle!',
-    reward: '20&ndash;30 gold &middot; <b style="color:#c9a8ff">1 crystal</b>', durationMs: 0
+    instruction: 'Watch the <b style="color:#8fd4ff">crystal</b>&hellip; follow its node through the shuffle!',
+    reward: '20&ndash;30 gold &middot; <b style="color:#8fd4ff">1 crystal</b>', durationMs: 0
   });
   enc.body.innerHTML = `
     <div class="mine-arena">
@@ -6958,18 +6958,22 @@ function startMiningEvent(rect, pendingId, params){
   v.scene = new THREE.Scene();
   const key = new THREE.DirectionalLight(0xfff0d0, 1.3); key.position.set(-2, 4, 4);
   v.scene.add(key, new THREE.HemisphereLight(0xffe8c8, 0x2a1a0a, 0.8));
-  const glowLight = new THREE.PointLight(0xb48cff, 0, 3); v.scene.add(glowLight);
+  const glowLight = new THREE.PointLight(0x6fc0ff, 0, 3); v.scene.add(glowLight);
   // the gem: a faceted crystal with a soft glow sprite
   const gem = new THREE.Group();
   const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.17, 0),
-    new THREE.MeshStandardMaterial({ color: 0xc9a8ff, emissive: 0x7a3cff, emissiveIntensity: 0.9, metalness: 0.2, roughness: 0.15, flatShading: true }));
+    new THREE.MeshStandardMaterial({ color: 0x9ad8ff, emissive: 0x2a7ad0, emissiveIntensity: 0.9, metalness: 0.2, roughness: 0.15, flatShading: true }));
   crystal.scale.set(1, 1.5, 1);
   const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
-    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(230,210,255,1)'); gr.addColorStop(0.4, 'rgba(160,110,255,0.6)'); gr.addColorStop(1, 'rgba(160,110,255,0)');
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(215,240,255,1)'); gr.addColorStop(0.4, 'rgba(90,180,255,0.6)'); gr.addColorStop(1, 'rgba(90,180,255,0)');
     g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
   glow.scale.setScalar(0.9);
   gem.add(glow, crystal); gem.visible = false; v.scene.add(gem);
+  // swap the placeholder for the Un'Goro crystal cluster once it loads
+  loadHomeProp({ gltf: 'models/housing/crystal-blue02.gltf' }).then(m => {
+    m.scale.setScalar(0.5 / m.userData.unitHeight); m.position.y = -0.22; gem.add(m); crystal.visible = false;
+  }).catch(() => {});
 
   const nodes = []; // index = node id; nodeSlot[id] = which slot it's in
   const nodeSlot = [0, 1, 2];
@@ -7048,7 +7052,7 @@ function startMiningEvent(rect, pendingId, params){
     }
     // ---- pick ----
     msg.textContent = 'Pick the node with the crystal!';
-    enc.setInstruction('Click the node you think hides the <b style="color:#c9a8ff">crystal</b>!');
+    enc.setInstruction('Click the node you think hides the <b style="color:#8fd4ff">crystal</b>!');
     enc.restartTimer(pickMs);
     enc.card.classList.add('mine-picking');
     slotBtns.forEach(b => b.disabled = false);
@@ -10524,7 +10528,7 @@ function renderResourceShelf(p, isMe){
    built here so the stores grow with the amounts:
    gold = iron-banded chest that opens and overflows (coins, gems, pearls) + coins on the floor,
    food = roast chicken legs heaped in an open standing barrel, wood = logs stacked high behind the chests,
-   crystals = a glowing cluster on the ornate round table with a candle, potion and bowl.
+   crystals = Un'Goro crystals on the ornate round table with a candle, potion and bowl.
    One viewer per player + amounts; it re-attaches its canvas after every render. */
 const TR3D_TEX = {
   wall: 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Darkshire%20Drive/Tier%203%20Home/128000.png',
@@ -10694,30 +10698,31 @@ function tr3dTable(v, M){
   g.position.set(X, 0, Z); v.scene.add(g); tr3dShadow(v.scene, X, Z, 0.7, 0.6);
   return { X, Z, TH };
 }
+// Crystals: the Un'Goro cluster on the round table, more spires around it as the stock grows
 function tr3dCrystals(v, M, lvl, T){
-  const n = TR3D_COUNTS.crystals[lvl]; if(!n) return;
-  const rnd = tr3dRand(37), X = T.X, Z = T.Z - 0.02, TH = T.TH;
-  const mat = new THREE.MeshStandardMaterial({ color: 0xc8a4ff, emissive: 0x7a3cff, emissiveIntensity: 0.8, roughness: 0.12, metalness: 0.1, transparent: true, opacity: 0.93 });
-  const geo = new THREE.OctahedronGeometry(0.11, 0);
-  const base = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18, 0), new THREE.MeshStandardMaterial({ color: 0x3b3440, roughness: 1 }));
-  base.scale.set(1.2, 0.45, 1.0); base.position.set(X, TH + 0.06, Z); v.scene.add(base);
-  for(let i = 0; i < n; i++){
-    const c = new THREE.Mesh(geo, mat);
-    const s = (i === 0 ? 1.7 : 0.6 + rnd() * 0.8) * (0.9 + lvl * 0.07); c.scale.set(s * 0.8, s * 2.5, s * 0.8);
-    const a = rnd() * Math.PI * 2, r = i === 0 ? 0 : 0.05 + rnd() * 0.15;
-    c.position.set(X + Math.cos(a) * r, TH + 0.08 + s * 0.2, Z + Math.sin(a) * r * 0.8);
-    c.rotation.set(Math.sin(a) * r * 2.4, rnd() * 6, -Math.cos(a) * r * 2.4); v.scene.add(c);
-  }
+  if(!lvl) return;
+  const X = T.X, Z = T.Z - 0.02, TH = T.TH;
+  const pieces = [['02', 0, 0, 0.55 + lvl * 0.05, 0.3]];               // the main cluster
+  const spires = [[0.2, 0.12, 0.62], [-0.18, 0.1, -0.5], [0.08, -0.18, 1.6], [-0.22, -0.12, 2.4]];
+  for(let i = 0; i < Math.min(lvl - 1, 4); i++) pieces.push(['01', spires[i][0], spires[i][1], 0.28 + lvl * 0.03, spires[i][2]]);
+  pieces.forEach(([k, dx, dz, hgt, ry]) => {
+    loadHomeProp({ gltf: 'models/housing/crystal-blue' + k + '.gltf' }).then(m => {
+      m.scale.setScalar(hgt / m.userData.unitHeight); m.position.set(X + dx, TH - 0.01, Z + dz); m.rotation.y = ry; v.scene.add(m);
+    }).catch(err => console.warn('Crystal failed to load:', err));
+  });
   if(lvl >= 3){ // a stray shard on the floor
-    const sh = new THREE.Mesh(geo, mat); sh.scale.set(0.6, 1.4, 0.6); sh.position.set(X + 0.75, 0.08, Z + 0.55); sh.rotation.z = 0.5; v.scene.add(sh);
+    loadHomeProp({ gltf: 'models/housing/crystal-blue01.gltf' }).then(m => {
+      m.scale.setScalar(0.22 / m.userData.unitHeight); m.position.set(X + 0.75, 0.05, Z + 0.6); m.rotation.set(0, 1, 0.5); v.scene.add(m);
+    }).catch(() => {});
   }
-  v.crystalLight = new THREE.PointLight(0x9a5cff, 0.8 + lvl * 0.3, 3.5, 2); v.crystalLight.position.set(X, TH + 0.7, Z + 0.35); v.scene.add(v.crystalLight);
+  v.crystalLight = new THREE.PointLight(0x5fb8ff, 0.8 + lvl * 0.3, 3.5, 2); v.crystalLight.position.set(X, TH + 0.7, Z + 0.35); v.scene.add(v.crystalLight);
+  const rnd = tr3dRand(37);
   v.sparkles = [];
   for(let i = 0; i < 3 + lvl; i++){
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: homePetGlowTexture(), color: 0xe0d0ff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: homePetGlowTexture(), color: 0xcfeeff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
     sp.scale.setScalar(0.12); v.scene.add(sp); v.sparkles.push({ sp, X, Y: TH + 0.4, Z, seed: rnd() * 10 });
   }
-  v.anchors.crystals = new THREE.Vector3(X, TH + 1.0 + lvl * 0.05, Z);
+  v.anchors.crystals = new THREE.Vector3(X, TH + 0.95 + lvl * 0.05, Z);
 }
 function tr3dSack(v, x, z, s){
   const cloth = new THREE.MeshStandardMaterial({ color: 0x7a5a38, roughness: 1 });
