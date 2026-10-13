@@ -249,7 +249,7 @@ function refreshUI(){
   document.getElementById('scH').textContent = sc ? sc.horde.total : 0;
   document.getElementById('scA').textContent = sc ? sc.alliance.total : 0;
   const d = E.day(G), dn = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][d % 7];
-  document.getElementById('clock').textContent = G.phase === 'signup' ? 'Sign-ups open' : G.phase === 'ended' ? 'War over' : `Day ${d + 1} · ${dn}`;
+  document.getElementById('clock').textContent = G.phase === 'signup' ? 'Sign-ups open' : G.phase === 'ended' ? 'War over' : `Day ${d + 1} · ${dn}${d >= 6 ? ' · ends 8pm' : ''}`;
   renderMe(); renderZone(); renderFeed(); renderSignup();
   if(document.getElementById('admin').style.display === 'block') renderAdmin();
 }
@@ -370,7 +370,7 @@ function renderSignup(){
   el.style.display = 'flex';
   const mine = G.signups.some(s => s.id === me.id);
   document.getElementById('signupCard').innerHTML = `<h2 style="font-family:Cinzel;color:var(--gold);margin-top:0">Guild War · Sign-ups</h2>
-    <div class="muted">Sign-ups run Sunday 6pm to midnight. At midnight the teams are drafted (snake draft by activity) and the war runs Monday to Sunday 6pm.</div>
+    <div class="muted">Sign-ups run Sunday 8pm to midnight. At midnight the teams are drafted (snake draft by activity) and the war runs Monday to Sunday 8pm.</div>
     <div id="signupList">${G.signups.map(s => `<div>• ${esc(s.name)}${s.bot ? '<span class="tag">bot</span>' : ''}</div>`).join('') || '<div class="muted">Nobody yet</div>'}</div>
     <div class="row">${mine ? '<span class="chip">✔ You are signed up</span>' : '<button class="btn" onclick="doSignup()">Sign me up</button>'}
       ${me.admin ? `<button class="btn sm" onclick="addBots(5)">+5 bots</button><button class="btn sm" onclick="startWar()">Start the war (draft) ▶</button>` : ''}</div>`;
@@ -461,11 +461,14 @@ function giveTroops(){ const p = cur(); if(!p) return; p.reinforce += 10; save()
 function advanceDay(){
   if(G.phase !== 'live'){ toast('Start the war first'); return; }
   const from = G.seq;
-  E.beginDay(G);
-  if(E.day(G) >= 6 && G.phase === 'live'){ toast('Sunday 6pm: the war ends'); E.endGame(G); }
+  // Sunday is the last day: advancing past it reaches Sunday 8pm and ends the war
+  if(E.day(G) >= 6){ G.clock = E.RULES.endClock; toast('Sunday 8pm: the war ends'); E.endGame(G); }
+  else E.beginDay(G);
   save(); refreshUI(); G.log.filter(e => e.seq > from).forEach(e => queue.push(e)); runQueue();
 }
-function advanceHours(h){ G.clock += h; if(E.day(G) > E.day({ clock: G.clock - h })){ G.clock -= h; advanceDay(); return; } save(); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
+function advanceHours(h){
+  if(G.phase === 'live' && G.clock + h >= E.RULES.endClock){ G.clock = E.RULES.endClock; const from = G.seq; E.endGame(G); toast('Sunday 8pm: the war ends'); save(); refreshUI(); G.log.filter(e => e.seq > from).forEach(e => queue.push(e)); runQueue(); return; }
+  G.clock += h; if(E.day(G) > E.day({ clock: G.clock - h })){ G.clock -= h; advanceDay(); return; } save(); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
 function jumpPhase(ph){ if(ph === 'signup' && !confirm('Go back to sign-ups? This wipes the board (sign-ups are kept).')) return; const s = G.signups; G = E.newGame({ sandbox: true }); G.signups = s; save(); markSeen(G.seq); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
 function endWar(){ after(E.endGame(G)); }
 function editZone(){

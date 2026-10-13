@@ -14,6 +14,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     startTroops: 6,           // on each starting stronghold
     garrison: [2, 4],         // neutral defenders per zone
     fortifyHours: 24,
+    endClock: 6 * 24 + 20,    // the war ends Sunday 8pm (game clock starts Monday 00:00)
     costs: {
       outpost:    { wood: 1, food: 1, ore: 1 },
       stronghold: { ore: 2, wood: 2, crystal: 1 },
@@ -394,7 +395,8 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     return { ok: true, entry: log(s, { type: 'end', result: s.result }) };
   }
 
-  const api = { RULES, ADJ, PORTS, isSeaLink, adjacent, distances, newGame, signup, startGame, joinLate, beginDay, deploy, move, attack, fortify,
+  const warOver = s => s.clock >= RULES.endClock;
+  const api = { RULES, warOver, ADJ, PORTS, isSeaLink, adjacent, distances, newGame, signup, startGame, joinLate, beginDay, deploy, move, attack, fortify,
                 build, craft, useShieldWall, trade, tradeRate, endGame, score, reinforcementsFor, deployable, friendlyReach, regionsHeld, zonesOf, day, enemyOf, threat };
   if(typeof module !== 'undefined') module.exports = api; else root.WarEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);
