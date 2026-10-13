@@ -10771,16 +10771,13 @@ function tr3dRoom(v, M){
   rug.rotation.x = -Math.PI / 2; rug.rotation.z = 0.08; rug.position.set(1.6, 0.006, 0.9); s.add(rug);
   // hanging iron lantern: the main warm light
   v.torches = [];
-  const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.6, 6), M.iron); chain.position.set(-1.2, 3.55, -1.6); s.add(chain);
-  const cage = new THREE.Group(); cage.position.set(-1.2, 3.05, -1.6);
-  const frameTop = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.18, 4), M.iron); frameTop.position.y = 0.32; frameTop.rotation.y = Math.PI / 4; cage.add(frameTop);
-  const frameBot = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.04, 0.26), M.iron); frameBot.position.y = -0.2; cage.add(frameBot);
-  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => { const r = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.5, 0.025), M.iron); r.position.set(a * 0.12, 0.04, b * 0.12); cage.add(r); });
-  const glass = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.42, 0.22), new THREE.MeshStandardMaterial({ color: 0xffd080, emissive: 0xffa040, emissiveIntensity: 1.2, transparent: true, opacity: 0.75 }));
-  glass.position.y = 0.03; cage.add(glass); s.add(cage);
+  // the WoW ship lantern hanging on its chain from the ceiling (lantern centre at y 3.0)
+  loadHomeProp({ gltf: 'models/housing/coffer-hanging-lantern.gltf' }).then(l => {
+    const H = 2.7; l.scale.setScalar(H / l.userData.unitHeight); l.position.set(-1.2, 2.6 - 0.11 * H, -1.6); v.scene.add(l); // body is the bottom ~22%
+  }).catch(err => console.warn('Hanging lantern failed to load:', err));
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: homePetGlowTexture(), color: 0xffb060, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 }));
-  halo.position.set(-1.2, 3.08, -1.6); halo.scale.setScalar(1.3); s.add(halo);
-  const lamp = new THREE.PointLight(0xffa850, 2.4, 9, 2); lamp.position.set(-1.2, 2.9, -1.4); s.add(lamp);
+  halo.position.set(-1.2, 2.6, -1.6); halo.scale.setScalar(1.5); s.add(halo);
+  const lamp = new THREE.PointLight(0xffa850, 2.4, 9, 2); lamp.position.set(-1.2, 2.5, -1.35); s.add(lamp);
   v.torches.push({ light: lamp, halo, seed: 1.7, base: 2.4, slow: true });
   // a wall torch in the right bay
   const iron = M.iron;
