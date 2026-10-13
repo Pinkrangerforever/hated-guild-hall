@@ -103,7 +103,7 @@
       this.camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
       this.cam = { target: new THREE.Vector3(0, 0, 0.2), dist: 10.5, polar: 0.62, az: 0 }; this.shakeOff = new THREE.Vector3();
       this.glow = glowTex();
-      this.buildRoom(); this.loadTable(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -225,6 +225,52 @@
         const fb = new THREE.Box3().setFromObject(m);
         if(this.floor) this.floor.position.y = fb.min.y;
       }, undefined, err => console.warn('War table failed to load, keeping the stand-in:', err));
+    }
+
+    // ----- stronghold buildings (Horde garrison town hall / Alliance barracks) -----
+    // Both are whole buildings with interiors, so: drop the interior rooms, merge what's left into one
+    // mesh per material (a few draw calls instead of hundreds), and shrink it to a table piece.
+    loadStrongholds(){
+      if(!THREE.GLTFLoader) return;
+      const S = window.WAR_STRONGHOLD_MODELS || {
+        horde:    { url: 'models/war/horde-stronghold.gltf',    drop: /interior|foyer/i, size: 0.5, rotY: Math.PI },
+        alliance: { url: 'models/war/alliance-stronghold.gltf', drop: /cellar|war_room|armordealer|weapondealer|generalarea|lefthall|righthall|stagingarea|entry/i, size: 0.5, rotY: -Math.PI / 2 }
+      };
+      this.holdModels = {};
+      Object.keys(S).forEach(f => {
+        const cfg = S[f];
+        new THREE.GLTFLoader().load(cfg.url, gltf => {
+          gltf.scene.updateMatrixWorld(true);
+          const byMat = new Map();
+          gltf.scene.traverse(o => {
+            if(!o.isMesh || (cfg.drop && cfg.drop.test(o.name))) return;
+            const mats = Array.isArray(o.material) ? o.material : [o.material];
+            const g = o.geometry.clone().applyMatrix4(o.matrixWorld);
+            ['color', 'uv2', 'skinIndex', 'skinWeight', 'tangent'].forEach(a => g.deleteAttribute(a));
+            if(!g.attributes.normal) g.computeVertexNormals();
+            if(!g.attributes.uv) return;
+            const ng = g.index ? g.toNonIndexed() : g;
+            const key = mats[0].uuid;
+            if(!byMat.has(key)) byMat.set(key, { mat: mats[0], geos: [] });
+            byMat.get(key).geos.push(ng);
+          });
+          const grp = new THREE.Group();
+          byMat.forEach(({ mat, geos }) => {
+            const merged = THREE.BufferGeometryUtils ? THREE.BufferGeometryUtils.mergeBufferGeometries(geos) : null;
+            mat.side = THREE.DoubleSide;
+            if(mat.map){ mat.map.anisotropy = 4; mat.alphaTest = 0.5; mat.transparent = false; }
+            (merged ? [merged] : geos).forEach(g => { const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; grp.add(m); });
+          });
+          // shrink to a table piece, bottom-centred
+          const box = new THREE.Box3().setFromObject(grp), size = box.getSize(new THREE.Vector3());
+          const s = cfg.size / Math.max(size.x, size.z);
+          const holder = new THREE.Group(), inner = new THREE.Group();
+          grp.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+          inner.add(grp); inner.scale.setScalar(s); inner.rotation.y = cfg.rotY || 0; holder.add(inner);
+          this.holdModels[f] = holder;
+          KEYS.forEach(k => this.syncPiece(k));
+        }, undefined, err => console.warn(f + ' stronghold model failed to load, keeping the tower:', err));
+      });
     }
 
     // ----- the map on the table -----
@@ -359,7 +405,13 @@
       p.grp.visible = true; p.lab.style.display = '';
       const hex = COL[z.owner + 'Hex'];
       p.flagMat.color.setHex(hex); p.roof.material.color.setHex(hex);
-      p.tower.visible = z.outpost >= 2; p.tent.visible = z.outpost === 1;
+      const model = z.outpost >= 2 && this.holdModels && this.holdModels[z.owner];
+      if(p.holdFor !== (model ? z.owner : null)){
+        if(p.hold){ p.grp.remove(p.hold); p.hold = null; }
+        if(model){ p.hold = model.clone(); p.hold.position.set(-0.2, 0.002, -0.06); p.grp.add(p.hold); }
+        p.holdFor = model ? z.owner : null;
+      }
+      p.tower.visible = z.outpost >= 2 && !model; p.tent.visible = z.outpost === 1;
       const now = this.state ? this.state.clock : 0;
       p.wall.visible = z.fortifyUntil > now;
       const info = WAR_ZONES[k];
@@ -571,7 +623,7 @@
     async playBuild(e){
       await this.focusZones([e.to], 700, 3.6);
       this.applyAfter(e);
-      const obj = e.kind === 'stronghold' ? this.pieces[e.to].tower : this.pieces[e.to].tent;
+      const obj = e.kind === 'stronghold' ? (this.pieces[e.to].hold || this.pieces[e.to].tower) : this.pieces[e.to].tent;
       await this.animate(800, t => { obj.scale.set(1, Math.max(0.01, easeOut(t)), 1); });
       this.pulseRing(e.to, 0xffd36a); this.floatText(e.to, e.kind === 'stronghold' ? '🏰 Stronghold' : '⛺ Outpost', e.faction);
       await this.wait(500);
