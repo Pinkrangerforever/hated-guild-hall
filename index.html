@@ -10611,11 +10611,14 @@ function tr3dFood(v, M, lvl){
     .catch(err => console.warn('Food barrel failed to load:', err));
   tr3dShadow(v.scene, X, Z, 0.55);
   if(!n) return;
+  // a packed bed of meat just under the rim, so no empty barrel shows between the pieces
+  const bed = new THREE.Mesh(new THREE.CylinderGeometry(R * 1.2, R * 1.2, 0.08, 20), new THREE.MeshStandardMaterial({ color: 0x5a2410, roughness: 0.7 }));
+  bed.position.y = BH - 0.1; g.add(bed);
   const rnd = tr3dRand(17);
   const pieces = Math.min(9 + n, 22);           // fuller barrel as the food grows
   for(let i = 0; i < pieces; i++){ // drumsticks and roast haunches mixed, heaped up out of the open top
     const haunch = i % 3 === 1, a = rnd() * Math.PI * 2, r = R * Math.sqrt(rnd()) * (1 - i / pieces * 0.5);
-    const px = Math.cos(a) * r, pz = Math.sin(a) * r, py = BH - 0.06 + (i / pieces) * (0.12 + n * 0.008), yaw = rnd() * Math.PI * 2;
+    const px = Math.cos(a) * r, pz = Math.sin(a) * r, py = BH - 0.1 + (i / pieces) * (0.16 + n * 0.008), yaw = rnd() * Math.PI * 2;
     const tilt = (rnd() - 0.5) * 0.9, size = haunch ? 0.2 : 0.13;
     loadHomeProp({ gltf: haunch ? TR3D_MEAT.haunch : TR3D_MEAT.leg }).then(m => {
       m.scale.setScalar(size / m.userData.unitHeight); m.position.set(px, py, pz); m.rotation.set((rnd() - 0.5) * 0.5, yaw, tilt); g.add(m);
@@ -10677,14 +10680,6 @@ function tr3dCrystals(v, M, lvl, T){
     sp.scale.setScalar(0.12); v.scene.add(sp); v.sparkles.push({ sp, X, Y: TH + 0.4, Z, seed: rnd() * 10 });
   }
   v.anchors.crystals = new THREE.Vector3(X, TH + 0.95 + lvl * 0.05, Z);
-}
-function tr3dSack(v, x, z, s){
-  const cloth = new THREE.MeshStandardMaterial({ color: 0x7a5a38, roughness: 1 });
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 10), cloth); body.scale.set(1, 1.1, 0.95); body.position.y = 0.27; g.add(body);
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.12, 0.16, 10), cloth); neck.position.y = 0.6; g.add(neck);
-  const tie = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.015, 6, 12), new THREE.MeshStandardMaterial({ color: 0x3a2414 })); tie.rotation.x = Math.PI / 2; tie.position.y = 0.6; g.add(tie);
-  g.scale.setScalar(s); g.position.set(x, 0, z); v.scene.add(g); tr3dShadow(v.scene, x, z, 0.35 * s);
 }
 function tr3dRoom(v, M){
   const s = v.scene;
@@ -10768,7 +10763,6 @@ function tr3dRoom(v, M){
       .catch(err => console.warn('Coffer barrel failed to load:', k, err));
     tr3dShadow(v.scene, x, z, 0.55);
   });
-  tr3dSack(v, 2.4, 0.15, 0.9); tr3dSack(v, 0.55, 1.75, 0.75);
   const axe = new THREE.Group();
   const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 1.5, 8), M.wood); handle.position.y = 0.75; axe.add(handle);
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.22, 0.04), new THREE.MeshStandardMaterial({ color: 0x8a8d90, metalness: 0.9, roughness: 0.35 })); head.position.set(0.14, 0.12, 0); axe.add(head);
