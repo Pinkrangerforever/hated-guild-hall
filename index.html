@@ -8872,6 +8872,9 @@ const HOME_DECOR = {
   witch_hat:        { gltf: 'models/housing/decor-witch-hat.gltf', height: 0.6 },
   scarecrow:        { gltf: 'models/housing/decor-scarecrow.gltf', height: 2.4 },
   ornate_table:     { gltf: 'models/housing/decor-ornate-table.gltf', height: 0.85 },
+  fish_barrel:      { gltf: 'models/housing/decor-fish-barrel.gltf', height: 1.1 },
+  sitting_barrel:   { gltf: 'models/housing/decor-sitting-barrel.gltf', height: 1.0 },
+  standing_barrel:  { gltf: 'models/housing/decor-standing-barrel.gltf', height: 1.0 },
   log_pile:         { gltf: 'models/housing/decor-log-pile.gltf', height: 1.5 },
   treasure_chest:   { gltf: 'models/housing/decor-treasure-chest.gltf', height: 1.0, anim: 'Opened' },
   campfire:         { gltf: 'models/housing/decor-campfire.gltf', height: 0.9, torches: [[0, 0.6, 0]], flameSize: 0.9, fireLight: 2.2 }
@@ -9933,11 +9936,12 @@ function decorCardHtml(i, mine, gold, crystals){
   if(i.metadata.reward) return decorRewardCardHtml(i, mine);
   const k = i.metadata.key, own = mine[k] || 0, byCrystal = i.metadata.currency === 'crystals';
   const woodCost = Number(i.metadata.wood_cost) || 0, wood = (state.profile && state.profile.wood) || 0;
-  const can = (byCrystal ? crystals >= i.cost : gold >= i.cost) && wood >= woodCost;
+  const foodCost = Number(i.metadata.food_cost) || 0, food = (state.profile && state.profile.food) || 0;
+  const can = (byCrystal ? crystals >= i.cost : gold >= i.cost) && wood >= woodCost && food >= foodCost;
   const woodHtml = woodCost ? `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/WoodIcon.png" alt="" class="ds-cur"> ${woodCost}` : '';
-  const price = !i.cost && woodCost ? woodHtml
-    : (byCrystal ? `<img src="${CRYSTAL_ICON}" alt="" class="ds-cur"> ${i.cost}` : `${goldIconHtml()} ${i.cost.toLocaleString()}`)
-      + (woodHtml ? ` + ${woodHtml}` : '');
+  const extra = [woodHtml, foodCost ? `<img src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/FoodIcon.png" alt="" class="ds-cur"> ${foodCost}` : ''].filter(Boolean);
+  const price = !i.cost && extra.length ? extra.join(' + ')
+    : [(byCrystal ? `<img src="${CRYSTAL_ICON}" alt="" class="ds-cur"> ${i.cost}` : `${goldIconHtml()} ${i.cost.toLocaleString()}`)].concat(extra).join(' + ');
   return `
     <div class="ds-card ${byCrystal ? 'rare' : ''} ${i.metadata.holiday ? 'holiday' : ''}">
       ${ own ? `<span class="ds-owned">Owned &times;${own}</span>` : '' }
@@ -10025,6 +10029,7 @@ async function buyDecor(itemId){
     if(data.new_gold != null) state.profile.gold = data.new_gold;
     if(data.new_crystals != null) state.profile.crystals = data.new_crystals;
     if(data.new_wood != null) state.profile.wood = data.new_wood;
+    if(data.new_food != null) state.profile.food = data.new_food;
     if(!state.myDecor || typeof state.myDecor !== 'object') state.myDecor = {};
     state.myDecor[data.key] = data.qty;
     updateNavbarUserInfo();
@@ -10516,7 +10521,7 @@ function renderResourceShelf(p, isMe){
    meeting flagstones. Textures reuse files already in R2; the Horde banner is the decor model; the rest is
    built here so the stores grow with the amounts:
    gold = iron-banded chest that opens and overflows (coins, gems, pearls) + coins on the floor,
-   food = a chest with roast chicken legs spilling out, wood = logs stacked high behind the chests,
+   food = roast chicken legs heaped in an open standing barrel, wood = logs stacked high behind the chests,
    crystals = a glowing cluster on the ornate round table with a candle, potion and bowl.
    One viewer per player + amounts; it re-attaches its canvas after every render. */
 const TR3D_TEX = {
@@ -10640,29 +10645,32 @@ function tr3dDrumstick(meat, bone){
   [-0.032, 0.032].forEach(x => { const k = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), bone); k.position.set(x, 0, -0.28); g.add(k); });
   return g;
 }
+// Food: roast chicken legs heaped in the open-topped WoW standing barrel (more legs = fuller, then spilling out)
 function tr3dFood(v, M, lvl){
   const n = TR3D_COUNTS.food[lvl];
-  const X = 0.45, Z = -1.3, W = 0.95, D = 0.62, Hb = 0.5;
-  const chest = tr3dChest(M, n > 0, W, D, Hb); chest.position.set(X, 0, Z); chest.rotation.y = -0.18; v.scene.add(chest);
-  tr3dShadow(v.scene, X, Z, 0.7, 0.5);
+  const X = 0.45, Z = -1.3, BH = 1.0, R = 0.36;
+  const g = new THREE.Group(); g.position.set(X, 0, Z); v.scene.add(g);
+  loadHomeProp(HOME_DECOR.standing_barrel).then(b => { b.scale.setScalar(BH / b.userData.unitHeight); g.add(b); })
+    .catch(err => console.warn('Food barrel failed to load:', err));
+  tr3dShadow(v.scene, X, Z, 0.55);
   if(!n) return;
   const meat = new THREE.MeshStandardMaterial({ color: 0xa8521f, roughness: 0.45, emissive: 0x2a0c00, emissiveIntensity: 0.4 });
   const bone = new THREE.MeshStandardMaterial({ color: 0xf1e6cc, roughness: 0.6 });
   const rnd = tr3dRand(17);
   for(let i = 0; i < n; i++){
     const d = tr3dDrumstick(meat, bone);
-    if(i < 7){ // heaped inside, bones poking up and out
-      d.position.set((rnd() - 0.5) * (W - 0.25), Hb + 0.02 + (i > 3 ? 0.1 : 0), (rnd() - 0.5) * (D - 0.25));
-      d.rotation.set(-0.7 - rnd() * 0.5, rnd() * 6, (rnd() - 0.5) * 0.5);
-      chest.add(d);
-    } else { // spilled over the front onto the floor
-      d.position.set(X + (rnd() - 0.5) * 0.9, 0.12, Z + D / 2 + 0.25 + rnd() * 0.3);
+    if(i < 8){ // standing up in the barrel, bones poking out of the top
+      const a = (i / 8) * Math.PI * 2 + rnd() * 0.4, r = i === 0 ? 0 : R * (0.35 + rnd() * 0.45);
+      d.position.set(Math.cos(a) * r, BH - 0.02 + (i > 4 ? 0.06 : 0), Math.sin(a) * r);
+      d.rotation.set(1.2 + rnd() * 0.3, -a + Math.PI / 2, (rnd() - 0.5) * 0.4); // meat down, bone up
+      g.add(d);
+    } else { // the overflow on the floor in front
+      d.position.set(X + (rnd() - 0.5) * 0.8, 0.12, Z + 0.55 + rnd() * 0.3);
       d.rotation.set(0, rnd() * 6, (rnd() - 0.5) * 0.3); v.scene.add(d);
     }
   }
-  v.anchors.food = new THREE.Vector3(X + 0.25, Hb + 0.55, Z + 0.25);
+  v.anchors.food = new THREE.Vector3(X + 0.15, BH + 0.45, Z + 0.2);
 }
-// Wood: the WoW lumber-mill log pile against the back wall, bigger as the stock grows
 function tr3dWood(v, M, lvl){
   if(!lvl) return;
   const X = -2.35, Z = -1.15, H = 1.5 * [0, 0.5, 0.65, 0.78, 0.9, 1.0][lvl];
@@ -10716,13 +10724,6 @@ function tr3dCrystals(v, M, lvl, T){
     sp.scale.setScalar(0.12); v.scene.add(sp); v.sparkles.push({ sp, X, Y: TH + 0.4, Z, seed: rnd() * 10 });
   }
   v.anchors.crystals = new THREE.Vector3(X, TH + 1.0 + lvl * 0.05, Z);
-}
-function tr3dBarrel(v, M, x, z, s){
-  const pts = []; for(let i = 0; i <= 10; i++){ const t = i / 10; pts.push(new THREE.Vector2((0.4 + Math.sin(t * Math.PI) * 0.07) * s, t * 1.0 * s)); }
-  const b = new THREE.Mesh(new THREE.LatheGeometry(pts, 18), M.wood); b.position.set(x, 0, z); v.scene.add(b);
-  const top = new THREE.Mesh(new THREE.CircleGeometry(0.41 * s, 18), M.darkWood); top.rotation.x = -Math.PI / 2; top.position.set(x, s, z); v.scene.add(top);
-  [0.15, 0.85].forEach(y => { const h = new THREE.Mesh(new THREE.TorusGeometry(0.44 * s, 0.02, 6, 24), M.iron); h.rotation.x = Math.PI / 2; h.position.set(x, y * s, z); v.scene.add(h); });
-  tr3dShadow(v.scene, x, z, 0.55 * s);
 }
 function tr3dSack(v, x, z, s){
   const cloth = new THREE.MeshStandardMaterial({ color: 0x7a5a38, roughness: 1 });
@@ -10792,7 +10793,11 @@ function tr3dRoom(v, M){
   s.add(new THREE.AmbientLight(0x6a5444, 0.4), new THREE.HemisphereLight(0xffd8a0, 0x1a120c, 0.28));
   const fill = new THREE.PointLight(0xffb060, 0.7, 8, 2); fill.position.set(0.4, 1.8, 2.6); s.add(fill);
   // props: barrels, coin sacks, an axe leaning on the left wall
-  tr3dBarrel(v, M, -3.45, 0.9, 0.95); tr3dBarrel(v, M, 3.0, 1.6, 1.0); tr3dBarrel(v, M, 3.15, -1.75, 0.8);
+  [['fish_barrel', 1.6, 0.2, 1.0, -0.5], ['sitting_barrel', 3.05, -1.7, 0.95, 0.3]].forEach(([k, x, z, hgt, ry]) => {
+    loadHomeProp(HOME_DECOR[k]).then(b => { b.scale.setScalar(hgt / b.userData.unitHeight); b.position.set(x, 0, z); b.rotation.y = ry; v.scene.add(b); })
+      .catch(err => console.warn('Coffer barrel failed to load:', k, err));
+    tr3dShadow(v.scene, x, z, 0.55);
+  });
   tr3dSack(v, 2.4, 0.15, 0.9); tr3dSack(v, 0.55, 1.75, 0.75);
   const axe = new THREE.Group();
   const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 1.5, 8), M.wood); handle.position.y = 0.75; axe.add(handle);
