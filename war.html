@@ -112,6 +112,15 @@
 <div id="signup"><div class="card" id="signupCard"></div></div>
 
 <script>
+// Any start-up failure shows on screen instead of leaving a blank room
+function showFatal(msg){
+  const g = document.getElementById('gate'); if(!g) return;
+  g.style.display = 'flex';
+  document.getElementById('gateMsg').innerHTML = 'The war room failed to load:<br><code style="font-size:12px;color:#ff9a80">' + String(msg).replace(/</g, '&lt;') + '</code>';
+}
+window.addEventListener('error', e => showFatal(e.message + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '')));
+window.addEventListener('unhandledrejection', e => showFatal(e.reason && (e.reason.stack || e.reason.message) || e.reason));
+['supabase', 'THREE', 'WarEngine', 'WarBoard'].forEach(n => { if(!window[n]) setTimeout(() => showFatal(n + ' did not load (script blocked or failed)'), 0); });
 // ---------- auth: same Supabase project as the main site ----------
 const isStaging = location.hostname.includes('staging');
 const SUPABASE_CONFIG = isStaging ? {
@@ -148,10 +157,11 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
 // ---------- boot ----------
 (async function boot(){
   let session = null, profile = null;
+  const timeout = (p, ms, what) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(what + ' timed out')), ms))]);
   try{
-    const r = await sb.auth.getSession(); session = r.data.session;
-    if(session){ const p = await sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle(); profile = p.data; }
-  }catch(e){ console.warn(e); }
+    const r = await timeout(sb.auth.getSession(), 8000, 'Sign-in check'); session = r.data.session;
+    if(session){ const p = await timeout(sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle(), 8000, 'Profile load'); profile = p.data; }
+  }catch(e){ console.warn(e); showFatal(e.message); return; }
   const admin = !!(profile && profile.protected) || LOCAL;
   if(!admin){
     document.getElementById('gate').style.display = 'flex';
@@ -160,8 +170,10 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
   }
   me = { id: profile ? profile.id : 'local-admin', name: profile ? (profile.character_name || 'Admin') : 'Admin', admin };
   document.getElementById('adminBtn').style.display = '';
-  board = new WarBoard(document.getElementById('stage'), { onClick: zoneClicked, onHover: zoneHover });
+  try{ board = new WarBoard(document.getElementById('stage'), { onClick: zoneClicked, onHover: zoneHover }); }
+  catch(e){ showFatal('3D board: ' + e.message + ' (is WebGL / hardware acceleration turned on?)'); return; }
   G = load();
+  if(G && (!G.v || !G.zones)) G = null;   // old or broken save
   if(!G){ G = E.newGame({ sandbox: true }); save(); }
   if(!playAs || !G.players[playAs]) playAs = G.players[me.id] ? me.id : (Object.keys(G.players)[0] || me.id);
   // Replay: show the board as it was when you last looked, then play everything since
