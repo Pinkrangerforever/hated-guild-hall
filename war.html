@@ -116,7 +116,9 @@
 function showFatal(msg){
   const g = document.getElementById('gate'); if(!g) return;
   g.style.display = 'flex';
-  document.getElementById('gateMsg').innerHTML = 'The war room failed to load:<br><code style="font-size:12px;color:#ff9a80">' + String(msg).replace(/</g, '&lt;') + '</code>';
+  const m = document.getElementById('gateMsg');
+  if(!m.dataset.err){ m.dataset.err = 1; m.innerHTML = 'The war room failed to load:'; }
+  m.innerHTML += '<br><code style="font-size:12px;color:#ff9a80">' + String(msg).replace(/</g, '&lt;') + '</code>';  // keep every error, the first is usually the cause
 }
 window.addEventListener('error', e => showFatal(e.message + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '')));
 window.addEventListener('unhandledrejection', e => showFatal(e.reason && (e.reason.stack || e.reason.message) || e.reason));
