@@ -234,7 +234,7 @@
       if(!THREE.GLTFLoader) return;
       const S = window.WAR_STRONGHOLD_MODELS || {
         horde:    { url: 'models/war/horde-stronghold.gltf',    drop: /interior|foyer/i, size: 0.5, rotY: Math.PI },
-        alliance: { url: 'models/war/alliance-stronghold.gltf', drop: /cellar|war_room|armordealer|weapondealer|generalarea|lefthall|righthall|stagingarea|entry/i, size: 0.5, rotY: -Math.PI / 2 }
+        alliance: { url: 'models/war/alliance-stronghold.gltf', drop: /cellar|war_room|armordealer|weapondealer|generalarea/i, size: 0.5, rotY: -Math.PI / 2 }
       };
       this.holdModels = {};
       Object.keys(S).forEach(f => {
@@ -283,6 +283,20 @@
         const im = g.createImageData(w, h);
         for(let i = 0; i < w * h; i++){ const v = 200 + Math.random() * 55; im.data[i * 4] = v; im.data[i * 4 + 1] = v; im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
         g.putImageData(im, 0, 0);
+      }).image;
+      // resource icons (the site's 2D icons; ore is drawn until it has one)
+      const R2 = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/';
+      this.resIcons = {};
+      Object.entries({ food: 'FoodIcon.png', wood: 'WoodIcon.png', crystal: 'CrystalIcon2.png' }).forEach(([r, f]) => {
+        const im = new Image(); im.crossOrigin = 'anonymous';
+        im.onload = () => { this.resIcons[r] = im; this.drawMap(); };
+        im.src = R2 + f;
+      });
+      this.resIcons.ore = canvasTex(96, 96, (g) => {
+        g.fillStyle = '#5c5a58'; g.beginPath(); g.moveTo(14, 70); g.lineTo(26, 30); g.lineTo(52, 16); g.lineTo(80, 34); g.lineTo(86, 70); g.lineTo(56, 84); g.closePath(); g.fill();
+        g.fillStyle = '#7d7b78'; g.beginPath(); g.moveTo(26, 30); g.lineTo(52, 16); g.lineTo(58, 44); g.lineTo(32, 52); g.closePath(); g.fill();
+        g.fillStyle = '#c9a24a'; [[40, 60, 7], [64, 52, 6], [58, 70, 5], [30, 44, 4]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); });
+        g.strokeStyle = '#2a241e'; g.lineWidth = 3; g.beginPath(); g.moveTo(14, 70); g.lineTo(26, 30); g.lineTo(52, 16); g.lineTo(80, 34); g.lineTo(86, 70); g.lineTo(56, 84); g.closePath(); g.stroke();
       }).image;
       this.mapTex = new THREE.CanvasTexture(c); this.mapTex.anisotropy = 8; this.mapTex.encoding = THREE.sRGBEncoding;
       const m = new THREE.Mesh(new THREE.PlaneGeometry(10, 6), new THREE.MeshStandardMaterial({ map: this.mapTex, roughness: 0.92 }));
@@ -346,6 +360,22 @@
       g.restore();
       g.textAlign = 'center'; g.fillStyle = 'rgba(40,26,12,0.55)'; g.font = 'italic 700 58px Cinzel, serif';
       g.fillText('K A L I M D O R', 430 * sx, 1180 * sy); g.fillText('EASTERN KINGDOMS', 1490 * sx, 55 * sy);
+      // resource icons: every zone shows its type faintly; this game's rich deposits are bold with a gold ring
+      KEYS.forEach(k => {
+        const p = WAR_LAYOUT[k], r = WAR_ZONES[k].resource, im = this.resIcons && this.resIcons[r];
+        const rich = this.state && this.state.rich ? !!this.state.rich[k] : false;
+        const cx = (p.x + 44) * sx, cy = (p.y - 6) * sy, size = rich ? 50 : 38;
+        g.save();
+        if(rich){
+          g.globalAlpha = 0.9; g.strokeStyle = '#d6a940'; g.lineWidth = 4; g.fillStyle = 'rgba(255,236,170,0.35)';
+          g.beginPath(); g.arc(cx, cy, size * 0.62, 0, Math.PI * 2); g.fill(); g.stroke();
+        }
+        g.globalAlpha = rich ? 0.95 : 0.36;
+        if(im) g.drawImage(im, cx - size / 2, cy - size / 2, size, size);
+        else { g.font = `${size * 0.7}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText({ food: '🍖', wood: '🪵', crystal: '💎', ore: '⛏' }[r], cx, cy); }
+        g.restore();
+      });
+      g.textBaseline = 'alphabetic';
       KEYS.forEach(k => {
         const p = WAR_LAYOUT[k], z = WAR_ZONES[k];
         g.font = `600 ${p.r > 90 ? 22 : 19}px Cinzel, serif`;

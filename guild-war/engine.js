@@ -14,6 +14,8 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     startTroops: 6,           // on each starting stronghold
     garrison: [2, 4],         // neutral defenders per zone
     fortifyHours: 24,
+    richPerContinent: 2,      // each game, 2 zones per resource per continent are rich deposits (16 of 43)
+    richYield: 2,             // a rich zone makes 2 of its resource a day (+1 per outpost / +2 stronghold); other zones make none
     endClock: 6 * 24 + 20,    // the war ends Sunday 8pm (game clock starts Monday 00:00)
     costs: {
       outpost:    { wood: 1, food: 1, ore: 1 },
@@ -107,12 +109,24 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
              cards: { warcry: 0, shieldwall: 0, march: 0, naval: 0 }, lastActiveDay: -1, joinedDay: joinedDay || 0 };
   }
 
+  // Every zone has a resource type, but only a few randomly chosen ones are rich deposits this game,
+  // so the valuable zones move around week to week and get fought over
+  function pickRich(rng){
+    const rich = {};
+    ['food', 'wood', 'ore', 'crystal'].forEach(r => ['kalimdor', 'eastern'].forEach(c => {
+      Object.keys(WAR_ZONES).filter(k => WAR_ZONES[k].resource === r && WAR_ZONES[k].continent === c)
+        .sort(() => rng() - 0.5).slice(0, RULES.richPerContinent).forEach(k => { rich[k] = true; });
+    }));
+    return rich;
+  }
+
   function startGame(s, rng){
     rng = rng || Math.random;
     if(s.phase !== 'signup') return { ok: false, error: 'Game already started' };
     if(s.signups.length < 2) return { ok: false, error: 'Need at least 2 players' };
     draft(s.signups, rng).forEach(({ p, faction }) => { s.players[p.id] = newPlayer(p.id, p.name, faction, p.bot, 0); });
     s.strongholds = pickStrongholds(rng);
+    s.rich = pickRich(rng);
     Object.keys(WAR_ZONES).forEach(k => {
       const g = RULES.garrison[0] + Math.floor(rng() * (RULES.garrison[1] - RULES.garrison[0] + 1));
       s.zones[k] = { owner: 'neutral', ready: g, fresh: 0, fortifyUntil: 0, outpost: 0, movedDay: -1, shield: 0 };
@@ -121,7 +135,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
       Object.assign(s.zones[k], { owner: f, ready: RULES.startTroops, fresh: 0, outpost: 2 }); // starting strongholds are built
     }));
     s.phase = 'live'; s.clock = 0;
-    log(s, { type: 'start', strongholds: clone(s.strongholds), teams: Object.values(s.players).map(p => ({ id: p.id, name: p.name, faction: p.faction })) },
+    log(s, { type: 'start', strongholds: clone(s.strongholds), rich: Object.keys(s.rich), teams: Object.values(s.players).map(p => ({ id: p.id, name: p.name, faction: p.faction })) },
         snap(s, Object.keys(s.zones)));
     beginDay(s, rng, true);
     return { ok: true };
@@ -355,14 +369,14 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     // daily lead point
     const hz = zonesOf(s, 'horde').length, az = zonesOf(s, 'alliance').length;
     if(!first && hz !== az) s.dailyLead[hz > az ? 'horde' : 'alliance']++;
-    // production -> players who played yesterday (others get every other unit)
+    // production (only rich deposits; games saved before rich deposits existed: every zone makes 1) -> players who played yesterday (others get every other unit)
     const produced = { horde: {}, alliance: {} };
     ['horde', 'alliance'].forEach(f => {
       const team = Object.values(s.players).filter(p => p.faction === f);
       if(!team.length) return;
       const recent = team.filter(p => p.lastActiveDay >= d - 1);
       const pool = [];
-      zonesOf(s, f).forEach(k => { const z = s.zones[k], r = WAR_ZONES[k].resource; const amt = 1 + (z.outpost || 0); for(let i = 0; i < amt; i++) pool.push(r); produced[f][r] = (produced[f][r] || 0) + amt; });
+      zonesOf(s, f).forEach(k => { const z = s.zones[k], r = WAR_ZONES[k].resource; if(s.rich && !s.rich[k]) return; const amt = (s.rich ? RULES.richYield : 1) + (z.outpost || 0); for(let i = 0; i < amt; i++) pool.push(r); produced[f][r] = (produced[f][r] || 0) + amt; });
       const takers = recent.length ? recent : team;
       pool.forEach((r, i) => { takers[i % takers.length].res[r]++; });
       team.forEach(p => {
@@ -396,7 +410,8 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
   }
 
   const warOver = s => s.clock >= RULES.endClock;
-  const api = { RULES, warOver, ADJ, PORTS, isSeaLink, adjacent, distances, newGame, signup, startGame, joinLate, beginDay, deploy, move, attack, fortify,
+  const isRich = (s, k) => !!(s.rich && s.rich[k]);
+  const api = { RULES, isRich, pickRich, warOver, ADJ, PORTS, isSeaLink, adjacent, distances, newGame, signup, startGame, joinLate, beginDay, deploy, move, attack, fortify,
                 build, craft, useShieldWall, trade, tradeRate, endGame, score, reinforcementsFor, deployable, friendlyReach, regionsHeld, zonesOf, day, enemyOf, threat };
   if(typeof module !== 'undefined') module.exports = api; else root.WarEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

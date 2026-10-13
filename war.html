@@ -278,7 +278,7 @@ function zoneHover(k, e){
   const h = document.getElementById('hover');
   if(!k || !G.zones[k]){ h.style.display = 'none'; return; }
   const z = G.zones[k], info = WAR_ZONES[k];
-  h.innerHTML = `<b>${info.name}</b>${info.capital ? ` (${info.capital})` : ''} · ${z.owner} · ${RES_ICON[info.resource]} ${info.resource}`;
+  h.innerHTML = `<b>${info.name}</b>${info.capital ? ` (${info.capital})` : ''} · ${z.owner} · ${E.isRich(G, k) ? `✨ rich ${RES_ICON[info.resource]} ${info.resource}` : `<span class="muted">${info.resource}, no deposit this war</span>`}`;
   h.style.display = 'block'; h.style.left = (e.clientX + 14) + 'px'; h.style.top = (e.clientY + 12) + 'px';
 }
 function zoneClicked(k){
@@ -312,7 +312,7 @@ function renderZone(){
   const reg = WAR_REGIONS[info.region];
   let h = `<h3>${info.name}${info.capital ? ' · ' + info.capital : ''}</h3>
     <div class="row"><span class="chip ${FC(z.owner)}">${z.owner}</span><span class="chip">⚔ ${z.ready} ready</span><span class="chip">💤 ${z.fresh} fresh</span>${fort}${z.shield ? '<span class="chip">🛡</span>' : ''}</div>
-    <div class="muted">${RES_ICON[info.resource]} ${info.resource} · ${reg.name} (+${reg.troops} troops, +${reg.points} pts if held) · ${z.outpost === 2 ? '🏰 Stronghold' : z.outpost === 1 ? '⛺ Outpost' : 'No buildings'}${E.PORTS.has(selZone) ? ' · ⚓ port' : ''}</div>`;
+    <div class="muted">${E.isRich(G, selZone) ? `✨ Rich ${info.resource} deposit: +${E.RULES.richYield + z.outpost}/day` : `${RES_ICON[info.resource]} ${info.resource} land, no deposit this war`} · ${reg.name} (+${reg.troops} troops, +${reg.points} pts if held) · ${z.outpost === 2 ? '🏰 Stronghold' : z.outpost === 1 ? '⛺ Outpost' : 'No buildings'}${E.PORTS.has(selZone) ? ' · ⚓ port' : ''}</div>`;
   if(p && G.phase === 'live'){
     if(mine){
       const canDeploy = E.deployable(G, p.faction).includes(selZone);
