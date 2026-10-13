@@ -8830,7 +8830,8 @@ const HOME_ZONES = {
     props: [
       { gltf: 'models/housing/ashenvale-gazebo.gltf', x: -3.0, z: -1.9, height: 3.8, rotY: 0.5 },      // Kaldorei gazebo with its light shafts
       { gltf: 'models/housing/ashenvale-fountain.gltf', x: 2.7, z: -0.9, height: 2.6, rotY: -0.4,      // priestess moonwell fountain
-        halo: { at: [0, 28, 0], size: 9, color: 0x9fd8ff } }
+        halo: { at: [0, 28, 0], size: 9, color: 0x9fd8ff },
+        water: { top: [29.4, 6.2], base: [1.6, 4.6] } }  // model space: [height, radius] of the bowl and base pools
     ],
     houses: {}
   },
@@ -10156,6 +10157,58 @@ function homeFlameTexture(){
   }
   return __homeFlameTex;
 }
+// Animated fountain water (model space): a rippling pool in the top bowl, translucent sheets pouring
+// from its rim, a pool at the base and mist where it lands. Textures scroll every frame (homeWaterTick).
+let __homeWaterTex = null;
+function homeWaterTextures(){
+  if(__homeWaterTex) return __homeWaterTex;
+  const ripple = document.createElement('canvas'); ripple.width = ripple.height = 128; const rg = ripple.getContext('2d');
+  rg.fillStyle = '#3a8fd0'; rg.fillRect(0, 0, 128, 128);
+  for(let i = 0; i < 26; i++){ // soft caustic highlights
+    const x = Math.random() * 128, y = Math.random() * 128, r = 6 + Math.random() * 16;
+    const g = rg.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, 'rgba(200,240,255,0.55)'); g.addColorStop(1, 'rgba(200,240,255,0)');
+    rg.fillStyle = g; rg.beginPath(); rg.arc(x, y, r, 0, Math.PI * 2); rg.fill();
+  }
+  const fall = document.createElement('canvas'); fall.width = 64; fall.height = 256; const fg = fall.getContext('2d');
+  fg.clearRect(0, 0, 64, 256);
+  for(let i = 0; i < 40; i++){ // falling streaks
+    const x = Math.random() * 64, y = Math.random() * 256, len = 30 + Math.random() * 70, w = 1 + Math.random() * 3;
+    const g = fg.createLinearGradient(0, y, 0, y + len); g.addColorStop(0, 'rgba(210,245,255,0)'); g.addColorStop(0.5, 'rgba(210,245,255,0.75)'); g.addColorStop(1, 'rgba(210,245,255,0)');
+    fg.fillStyle = g; fg.fillRect(x, y, w, len); fg.fillRect(x, y - 256, w, len);
+  }
+  const mk = c => { const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
+  return (__homeWaterTex = { ripple: mk(ripple), fall: mk(fall) });
+}
+function homeAddWater(v, root, w){
+  const T = homeWaterTextures();
+  const surface = new THREE.MeshStandardMaterial({ map: T.ripple, color: 0x9fdcff, emissive: 0x2a70b0, emissiveIntensity: 0.55, transparent: true, opacity: 0.82, roughness: 0.15, metalness: 0.2, side: THREE.DoubleSide, depthWrite: false });
+  const sheet = new THREE.MeshBasicMaterial({ map: T.fall, color: 0xbfeaff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false });
+  const add = (geo, mat, y, rotX) => { const m = new THREE.Mesh(geo, mat); m.position.y = y; if(rotX) m.rotation.x = rotX; root.add(m); return m; };
+  // pools: top bowl and the base
+  add(new THREE.CircleGeometry(w.top[1], 32), surface, w.top[0], -Math.PI / 2);
+  add(new THREE.CircleGeometry(w.base[1], 32), surface, w.base[0], -Math.PI / 2);
+  // the pour: narrow streams spilling from points around the bowl's rim down into the base pool
+  const fallMat = sheet.clone(); fallMat.map = T.fall.clone(); fallMat.map.needsUpdate = true; fallMat.map.repeat.set(1, 1);
+  const hgt = w.top[0] - w.base[0], streams = w.streams || 5;
+  for(let i = 0; i < streams; i++){
+    const a = (i / streams) * Math.PI * 2 + 0.3, r = (w.top[1] + w.base[1]) / 2 * 0.98;
+    const st = new THREE.Mesh(new THREE.PlaneGeometry(w.top[1] * 0.5, hgt), fallMat);
+    st.position.set(Math.cos(a) * r, (w.top[0] + w.base[0]) / 2, Math.sin(a) * r);
+    st.rotation.y = -a + Math.PI / 2; // face outward
+    root.add(st);
+  }
+  // mist where the water lands
+  const mist = new THREE.Sprite(new THREE.SpriteMaterial({ map: homePetGlowTexture(), color: 0xbfe6ff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.45 }));
+  mist.position.y = w.base[0] + 1; mist.scale.set(w.base[1] * 2.6, w.base[1] * 0.9, 1); root.add(mist);
+  (v.water = v.water || []).push({ surface: surface.map, fall: fallMat.map, mist });
+}
+function homeWaterTick(v, now){
+  (v.water || []).forEach(w => {
+    w.surface.offset.set(Math.sin(now / 3000) * 0.05, now / 9000);
+    w.fall.offset.y = (now / 700) % 1;
+    w.mist.material.opacity = 0.35 + 0.1 * Math.sin(now / 900);
+  });
+}
 // Put a loaded prop into the scene: shadows, its looping clip, and a lamp's light
 function addHomePropHolder(v, h, prop){
   const entry = { holder: h, prop };
@@ -10198,6 +10251,8 @@ function addHomePropHolder(v, h, prop){
     act.play();
     v.mixers.push(entry.mixer);
   }
+  // Fountain water
+  if(prop.water) homeAddWater(v, h.userData.pivot.children[0], prop.water);
   // Halo: a soft glow around a lantern (no cast light), breathing slowly
   if(prop.halo){
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: homePetGlowTexture(), color: prop.halo.color || 0xffc070,
@@ -10318,6 +10373,7 @@ function mountHomeScenes(){
         const now = performance.now();
         homeCameraUpdate(v, Math.min(1, dt * 8));
         if(v.selHelper) v.selHelper.update();
+        homeWaterTick(v, now);
         (v.flames || []).forEach(f => { // torch flicker
           const k = 0.8 + 0.2 * Math.sin(now / 90 + f.seed) + 0.1 * Math.sin(now / 37 + f.seed * 3);
           if(f.flame) f.flame.scale.set(2.2 * (f.size || 1) * (0.9 + 0.1 * k), 3 * (f.size || 1) * k, 1);
