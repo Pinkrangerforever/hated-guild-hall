@@ -4514,7 +4514,7 @@ function setWalletSeg(el, icon, label, value){
   if(!el) return;
   const prev = el.dataset.v != null ? Number(el.dataset.v) : null;
   el.dataset.v = value;
-  const src = icon.startsWith('data:') ? icon : `https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/${icon}`;
+  const src = /^(data:|https?:)/.test(icon) ? icon : `https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/${icon}`; // full URLs pass through
   el.innerHTML = `<img src="${src}" alt="${label}"><b>${Number(value).toLocaleString()}</b>`;
   if(prev != null && value !== prev){
     el.classList.remove('bump-up', 'bump-down'); void el.offsetWidth;
