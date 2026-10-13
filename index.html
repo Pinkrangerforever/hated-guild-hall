@@ -10526,7 +10526,7 @@ function renderResourceShelf(p, isMe){
 
 /* ---------------- Treasure corner (3D) ----------------
    A cozy timber-framed storeroom: mossy stone between heavy posts and braces, a hanging lantern, plank floor
-   meeting flagstones. Textures reuse files already in R2; the Horde banner is the decor model; the rest is
+   meeting flagstones. Textures reuse files already in R2; most props are WoW models; the rest is
    built here so the stores grow with the amounts:
    gold = iron-banded chest that opens and overflows (coins, gems, pearls) + coins on the floor,
    food = roast chicken legs heaped in an open standing barrel, wood = logs stacked high behind the chests,
@@ -10612,21 +10612,14 @@ function tr3dFood(v, M, lvl){
   tr3dShadow(v.scene, X, Z, 0.55);
   if(!n) return;
   const rnd = tr3dRand(17);
-  const legs = Math.min(n, 8);
-  for(let i = 0; i < legs; i++){ // drumsticks piled across the open top
-    const a = rnd() * Math.PI * 2, r = i === 0 ? 0 : R * Math.sqrt(rnd());
-    const px = Math.cos(a) * r, pz = Math.sin(a) * r, py = BH - 0.03 + (i / legs) * 0.12, yaw = rnd() * Math.PI * 2, tilt = (rnd() - 0.5) * 0.6;
-    loadHomeProp({ gltf: TR3D_MEAT.leg }).then(m => {
-      m.scale.setScalar(0.11 / m.userData.unitHeight); m.position.set(px, py, pz); m.rotation.set(0, yaw, tilt); g.add(m);
+  const pieces = Math.min(4 + n, 16);           // fuller barrel as the food grows
+  for(let i = 0; i < pieces; i++){ // drumsticks and roast haunches mixed, heaped up out of the open top
+    const haunch = i % 3 === 1, a = rnd() * Math.PI * 2, r = R * Math.sqrt(rnd()) * (1 - i / pieces * 0.5);
+    const px = Math.cos(a) * r, pz = Math.sin(a) * r, py = BH - 0.08 + (i / pieces) * (0.08 + n * 0.008), yaw = rnd() * Math.PI * 2;
+    const tilt = (rnd() - 0.5) * 0.9, size = haunch ? 0.17 : 0.11;
+    loadHomeProp({ gltf: haunch ? TR3D_MEAT.haunch : TR3D_MEAT.leg }).then(m => {
+      m.scale.setScalar(size / m.userData.unitHeight); m.position.set(px, py, pz); m.rotation.set((rnd() - 0.5) * 0.5, yaw, tilt); g.add(m);
     }).catch(() => {});
-  }
-  const haunches = n > 8 ? Math.min(3, Math.ceil((n - 8) / 2)) : 0;
-  for(let i = 0; i < haunches; i++){ // roast haunches on the floor beside the barrel
-    const px = X + 0.6 + i * 0.25, pz = Z + 0.45 + i * 0.3, yaw = 0.8 + i * 1.3;
-    loadHomeProp({ gltf: TR3D_MEAT.haunch }).then(m => {
-      m.scale.setScalar(0.26 / m.userData.unitHeight); m.position.set(px, 0, pz); m.rotation.y = yaw; v.scene.add(m);
-    }).catch(() => {});
-    tr3dShadow(v.scene, px, pz, 0.3);
   }
   v.anchors.food = new THREE.Vector3(X + 0.15, BH + 0.45, Z + 0.2);
 }
@@ -10739,17 +10732,9 @@ function tr3dRoom(v, M){
   });
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(10, 7), new THREE.MeshStandardMaterial({ map: tr3dTex(TR3D_TEX.plank, 4, 3), color: 0x3a2818, roughness: 1 }));
   ceil.rotation.x = Math.PI / 2; ceil.position.set(0, 4.1, 1); s.add(ceil);
-  // tapestry in the right bay
-  const c = document.createElement('canvas'); c.width = 64; c.height = 128; const g = c.getContext('2d');
-  g.fillStyle = '#5a1712'; g.fillRect(0, 0, 64, 128); g.strokeStyle = '#c9963f'; g.lineWidth = 3; g.strokeRect(5, 5, 54, 118);
-  g.fillStyle = '#c9963f'; g.beginPath(); g.moveTo(32, 30); g.lineTo(46, 60); g.lineTo(32, 92); g.lineTo(18, 60); g.closePath(); g.fill();
-  g.fillStyle = '#3a0e0a'; g.beginPath(); g.moveTo(32, 44); g.lineTo(40, 60); g.lineTo(32, 78); g.lineTo(24, 60); g.closePath(); g.fill();
-  const tt = new THREE.CanvasTexture(c); tt.encoding = THREE.sRGBEncoding;
-  const tap = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.6), new THREE.MeshStandardMaterial({ map: tt, roughness: 1 })); tap.position.set(2.75, 2.35, -2.47); s.add(tap);
-  const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.0, 8), M.iron); rod.rotation.z = Math.PI / 2; rod.position.set(2.75, 3.17, -2.45); s.add(rod);
   // the Karazhan rug on the flagstones (flat, so it's sized by width: the loader scales models to 1 unit across)
   loadHomeProp({ gltf: 'models/housing/coffer-rug.gltf' }).then(r => {
-    r.scale.setScalar(2.2); r.position.set(1.45, 0.05, 0.05); r.rotation.y = Math.PI / 2 + 0.06; s.add(r);
+    r.scale.setScalar(2.2); r.position.set(1.45, 0.075, 0.05); r.rotation.y = Math.PI / 2 + 0.06; s.add(r);
   }).catch(err => console.warn('Rug failed to load:', err));
   // hanging iron lantern: the main warm light
   v.torches = [];
@@ -10763,7 +10748,7 @@ function tr3dRoom(v, M){
   const lamp = new THREE.PointLight(0xffa850, 2.4, 9, 2); lamp.position.set(0, -0.89 * LH - 0.1, 0.25); hook.add(lamp);
   v.torches.push({ light: lamp, halo, seed: 1.7, base: 2.4, slow: true });
   // Dalaran sconces on the back wall, one in each bay: warm halo + gentle light at the shade
-  [['sconce_a', 1.15, 1.45, 0.4], ['sconce_b', -2.55, 1.45, -0.4]].forEach(([k, x, y, ry], i) => {
+  [['sconce_a', 1.15, 2.35, 0.4], ['sconce_b', -2.55, 2.35, -0.4]].forEach(([k, x, y, ry], i) => {
     const d = HOME_DECOR[k];
     loadHomeProp(d).then(sc => {
       sc.scale.setScalar(1.15 / sc.userData.unitHeight); sc.position.set(x, y - 0.15, -2.3); sc.rotation.y = ry; s.add(sc);
@@ -10816,12 +10801,6 @@ function tr3dRoom(v, M){
       void main(){ float d = length(gl_PointCoord - 0.5); if(d > 0.5) discard; gl_FragColor = vec4(1.0, 0.9, 0.68, vA * (1.0 - d * 2.0)); }`
   }));
   s.add(v.dust);
-  // the Horde banner in the left bay
-  loadHomeProp(HOME_DECOR.horde_banner).then(hb => {
-    hb.scale.setScalar(2.2 / hb.userData.unitHeight); hb.position.set(-3.1, 1.3, -2.42); v.scene.add(hb);
-    const clip = (hb.userData.animations || [])[0];
-    if(clip){ v.bannerMixer = new THREE.AnimationMixer(hb.userData.pivot.children[0]); v.bannerMixer.clipAction(clip).play(); }
-  }).catch(() => {});
 }
 function tr3dGoblin(v){
   loadHomeProp({ gltf: 'models/housing/coffer-treasure-goblin.gltf' }).then(gob => {
