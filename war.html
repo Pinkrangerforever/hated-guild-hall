@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guild War</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="guild-war/map-data.js"></script>
+<script src="guild-war/map-layout.js"></script>
+<script src="guild-war/engine.js"></script>
+<script src="guild-war/board.js"></script>
+<style>
+  :root{ --gold:#d6a940; --ink:#f0dfb4; --panel:rgba(22,14,8,0.88); --edge:rgba(214,169,64,0.45); --horde:#c8342a; --alliance:#3a72e0; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; overflow:hidden; background:#0b0806; color:var(--ink); font-family:Georgia, serif; }
+  #stage{ position:fixed; inset:0; }
+  .wb-overlay{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+  .wb-label{ position:absolute; left:0; top:0; white-space:nowrap; padding:1px 6px; border-radius:9px; font-size:12px; line-height:1.4;
+    background:rgba(30,22,14,0.82); border:1px solid rgba(214,169,64,0.5); color:#f4e6c8; transition:opacity .2s; }
+  .wb-label.horde{ background:rgba(110,18,12,0.88); border-color:#ff8a70; }
+  .wb-label.alliance{ background:rgba(16,40,110,0.88); border-color:#8ab4ff; }
+  .wb-label.sel{ box-shadow:0 0 10px #ffd36a; border-color:#ffd36a; }
+  .wb-label b{ font-weight:700; margin-right:1px; }
+  .wb-label i{ font-style:normal; opacity:.75; margin-left:4px; }
+  .wb-label s{ text-decoration:none; margin-left:4px; color:#ffd36a; }
+  .wb-float{ position:absolute; left:0; top:0; font:700 16px Cinzel, serif; white-space:nowrap; text-shadow:0 2px 4px #000, 0 0 8px #000; color:#ffe9a8; }
+  .wb-float.horde{ color:#ff9a80; } .wb-float.alliance{ color:#9cc0ff; } .wb-float.loss{ color:#ff5040; font-size:20px; } .wb-float.sum{ color:#ffd36a; font-size:13px; }
+
+  .bar{ position:fixed; top:0; left:0; right:0; display:flex; align-items:center; gap:10px; padding:8px 12px; flex-wrap:wrap;
+    background:linear-gradient(rgba(10,6,3,0.95), rgba(10,6,3,0.6)); border-bottom:1px solid var(--edge); z-index:5; }
+  .bar h1{ font:900 18px Cinzel, serif; margin:0; color:var(--gold); letter-spacing:2px; }
+  .btn{ font:600 13px Cinzel, serif; color:var(--ink); background:linear-gradient(#4a3418,#2a1c0c); border:1px solid var(--edge); border-radius:6px;
+    padding:6px 10px; cursor:pointer; white-space:nowrap; }
+  .btn:hover{ border-color:var(--gold); color:#fff3cc; }
+  .btn:disabled{ opacity:.45; cursor:default; }
+  .btn.red{ background:linear-gradient(#7a1a12,#4a0e08); } .btn.blue{ background:linear-gradient(#1c3a80,#0e2050); }
+  .btn.sm{ padding:3px 7px; font-size:11px; }
+  .chip{ padding:3px 8px; border-radius:10px; background:rgba(0,0,0,0.4); border:1px solid rgba(214,169,64,0.3); font-size:13px; white-space:nowrap; }
+  .score{ display:flex; gap:6px; align-items:center; font:700 14px Cinzel, serif; }
+  .score .h{ color:#ff8a70; } .score .a{ color:#8ab4ff; }
+  .spacer{ flex:1; }
+
+  .panel{ position:fixed; z-index:4; background:var(--panel); border:1px solid var(--edge); border-radius:10px; padding:10px 12px; box-shadow:0 6px 24px rgba(0,0,0,0.6); }
+  .panel h3{ font:700 14px Cinzel, serif; color:var(--gold); margin:0 0 6px; }
+  #me{ left:10px; top:62px; width:250px; }
+  #zone{ left:10px; bottom:10px; width:300px; max-height:52vh; overflow:auto; }
+  #feed{ right:10px; top:62px; width:300px; bottom:10px; display:flex; flex-direction:column; }
+  #feedList{ flex:1; overflow:auto; font-size:12.5px; margin-top:6px; }
+  #feedList div{ padding:4px 6px; border-bottom:1px solid rgba(214,169,64,0.12); }
+  #feedList div.now{ background:rgba(214,169,64,0.18); }
+  #feedList .h{ color:#ff9a80; } #feedList .a{ color:#9cc0ff; } #feedList .n{ color:#c8bca0; }
+  .row{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:5px 0; }
+  .res{ display:grid; grid-template-columns:repeat(4,1fr); gap:4px; font-size:13px; text-align:center; }
+  .res div{ background:rgba(0,0,0,0.35); border-radius:6px; padding:3px 0; }
+  .muted{ opacity:.7; font-size:12px; }
+  input[type=range]{ flex:1; accent-color:var(--gold); }
+  select, input[type=number], input[type=text]{ background:#1c130a; color:var(--ink); border:1px solid var(--edge); border-radius:5px; padding:3px 5px; font-family:inherit; }
+  #admin{ right:320px; top:62px; width:280px; max-height:calc(100vh - 80px); overflow:auto; display:none; border-color:#b06aff; }
+  #admin h3{ color:#d4a8ff; }
+  #toast{ position:fixed; left:50%; top:70px; transform:translateX(-50%); z-index:9; padding:8px 14px; border-radius:8px; background:rgba(120,20,12,0.95);
+    border:1px solid #ff8a70; display:none; font-size:14px; }
+  #gate, #signup{ position:fixed; inset:0; z-index:8; display:none; align-items:center; justify-content:center; background:rgba(5,3,2,0.75); }
+  #gate .card, #signup .card{ background:var(--panel); border:1px solid var(--edge); border-radius:12px; padding:22px 26px; max-width:520px; width:92vw; text-align:center; }
+  #signup .card{ text-align:left; max-height:80vh; overflow:auto; }
+  #signupList{ columns:2; font-size:14px; margin:10px 0; }
+  .tag{ font-size:11px; padding:1px 6px; border-radius:8px; background:#3a2a50; color:#d4a8ff; margin-left:4px; }
+  .cards{ display:flex; flex-wrap:wrap; gap:4px; font-size:12px; }
+  .replay{ display:flex; gap:4px; align-items:center; }
+  #hover{ position:fixed; z-index:6; pointer-events:none; display:none; background:rgba(14,9,5,0.92); border:1px solid var(--edge); border-radius:6px; padding:4px 8px; font-size:12px; }
+  @media (max-width: 820px){
+    #me{ top:auto; bottom:10px; left:10px; width:calc(50vw - 15px); font-size:12px; }
+    #zone{ left:auto; right:10px; width:calc(50vw - 15px); bottom:10px; max-height:40vh; }
+    #feed{ top:auto; bottom:auto; height:0; overflow:hidden; padding:0; border:0; }
+    #feed.open{ top:110px; bottom:44vh; height:auto; padding:10px 12px; border:1px solid var(--edge); left:10px; width:auto; }
+    #admin{ right:10px; left:10px; width:auto; top:110px; }
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="bar">
+  <button class="btn" onclick="location.href='index.html'">← Back to site</button>
+  <h1>GUILD WAR</h1>
+  <span class="chip" id="clock">—</span>
+  <div class="score"><span class="h" id="scH">0</span><span>⚔</span><span class="a" id="scA">0</span></div>
+  <span class="spacer"></span>
+  <button class="btn sm" onclick="board.continent('kalimdor')">Kalimdor</button>
+  <button class="btn sm" onclick="board.overview()">World</button>
+  <button class="btn sm" onclick="board.continent('eastern')">Eastern Kingdoms</button>
+  <button class="btn sm" id="feedBtn" onclick="document.getElementById('feed').classList.toggle('open')">Feed</button>
+  <button class="btn sm" id="adminBtn" style="display:none" onclick="toggleAdmin()">Admin sandbox</button>
+</div>
+
+<div class="panel" id="me"></div>
+<div class="panel" id="zone" style="display:none"></div>
+<div class="panel" id="feed">
+  <h3>War feed</h3>
+  <div class="replay">
+    <button class="btn sm" id="rpPlay" onclick="replayToggle()">⏸</button>
+    <button class="btn sm" onclick="setSpeed(1)">1×</button><button class="btn sm" onclick="setSpeed(2)">2×</button><button class="btn sm" onclick="setSpeed(4)">4×</button>
+    <button class="btn sm" onclick="replaySkip()">Skip ⏭</button>
+    <span class="muted" id="rpInfo"></span>
+  </div>
+  <div id="feedList"></div>
+</div>
+<div class="panel" id="admin"></div>
+<div id="toast"></div>
+<div id="hover"></div>
+<div id="gate"><div class="card"><h2 style="font-family:Cinzel;color:var(--gold)">Guild War</h2><p id="gateMsg">Loading…</p><button class="btn" onclick="location.href='index.html'">← Back to site</button></div></div>
+<div id="signup"><div class="card" id="signupCard"></div></div>
+
+<script>
+// ---------- auth: same Supabase project as the main site ----------
+const isStaging = location.hostname.includes('staging');
+const SUPABASE_CONFIG = isStaging ? {
+  url: 'https://jucmmnmnbjrzmjrugggl.supabase.co',
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y21tbm1uYmpyem1qcnVnZ2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExMzQ0MjksImV4cCI6MjEwNjcxMDQyOX0.a7QFtRneYum5Uy8uO1VD6TGSItXHc2aTo4F8W81MZ50'
+} : {
+  url: 'https://dymlprrudprwyctjqqer.supabase.co',
+  key: 'sb_publishable_JzIAyh2apUIXDkZZutGsHA_6UI0PuKF'
+};
+const sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+
+const E = WarEngine;
+const STORE = 'gw_sandbox_v1', SEEN = 'gw_seen_v1';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ZN = k => WAR_ZONES[k] ? WAR_ZONES[k].name : k;
+const FC = f => f === 'horde' ? 'h' : f === 'alliance' ? 'a' : 'n';
+const RES_ICON = { food: '🍖', wood: '🪵', ore: '⛏', crystal: '💎' };
+
+let G = null;            // the sandbox game state (source of truth)
+let me = null;           // { id, name, admin }
+let playAs = null;       // player id being controlled
+let board = null;
+let mode = null;         // 'attack' | 'move' | null
+let forceDice = '';
+let queue = [], playing = false, paused = false;
+
+function save(){ try{ localStorage.setItem(STORE, JSON.stringify(G)); }catch(e){} }
+function load(){ try{ return JSON.parse(localStorage.getItem(STORE)); }catch(e){ return null; } }
+function seen(){ try{ return +localStorage.getItem(SEEN) || 0; }catch(e){ return 0; } }
+function markSeen(n){ try{ localStorage.setItem(SEEN, String(n)); }catch(e){} }
+function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => { t.style.display = 'none'; }, 2600); }
+
+// ---------- boot ----------
+(async function boot(){
+  let session = null, profile = null;
+  try{
+    const r = await sb.auth.getSession(); session = r.data.session;
+    if(session){ const p = await sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle(); profile = p.data; }
+  }catch(e){ console.warn(e); }
+  const admin = !!(profile && profile.protected) || LOCAL;
+  if(!admin){
+    document.getElementById('gate').style.display = 'flex';
+    document.getElementById('gateMsg').textContent = session ? 'The Guild War is being tested by the officers. Check back soon!' : 'Sign in on the main site first.';
+    return;
+  }
+  me = { id: profile ? profile.id : 'local-admin', name: profile ? (profile.character_name || 'Admin') : 'Admin', admin };
+  document.getElementById('adminBtn').style.display = '';
+  board = new WarBoard(document.getElementById('stage'), { onClick: zoneClicked, onHover: zoneHover });
+  G = load();
+  if(!G){ G = E.newGame({ sandbox: true }); save(); }
+  if(!playAs || !G.players[playAs]) playAs = G.players[me.id] ? me.id : (Object.keys(G.players)[0] || me.id);
+  // Replay: show the board as it was when you last looked, then play everything since
+  const last = Math.min(seen(), G.seq);
+  const view = JSON.parse(JSON.stringify(G));
+  const pending = G.log.filter(e => e.seq > last);
+  for(let i = pending.length - 1; i >= 0; i--){ const e = pending[i]; if(e.zones) Object.keys(e.zones).forEach(k => { view.zones[k] = JSON.parse(JSON.stringify(e.zones[k].before)); }); }
+  board.setState(view);
+  refreshUI();
+  await board.intro();
+  if(pending.length){ toast(`${pending.length} moves since you last looked: replaying`); pending.forEach(e => queue.push(e)); runQueue(); }
+  else markSeen(G.seq);
+})();
+
+// ---------- replay queue ----------
+async function runQueue(){
+  if(playing) return; playing = true;
+  while(queue.length){
+    if(paused){ await new Promise(r => setTimeout(r, 150)); continue; }
+    const e = queue.shift();
+    highlightFeed(e.seq);
+    document.getElementById('rpInfo').textContent = queue.length ? `${queue.length} to go` : '';
+    try{ await board.play(e); }catch(err){ console.error(err); board.applyAfter(e); }
+    markSeen(e.seq);
+  }
+  playing = false;
+  board.setState(JSON.parse(JSON.stringify(G)));    // settle on the true state
+  document.getElementById('rpInfo').textContent = '';
+  refreshUI();
+}
+function replayToggle(){ paused = !paused; document.getElementById('rpPlay').textContent = paused ? '▶' : '⏸'; }
+function setSpeed(s){ board.speed = s; toast(`Replay speed ${s}×`); }
+function replaySkip(){ const sp = board.speed; board.speed = 99; queue.forEach(e => board.applyAfter(e)); queue = []; markSeen(G.seq); setTimeout(() => { board.speed = sp; }, 50); }
+function push(entry){ if(entry){ queue.push(entry); runQueue(); } }
+
+// ---------- feed ----------
+function describe(e){
+  const P = id => esc(G.players[id] ? G.players[id].name : id);
+  switch(e.type){
+    case 'signup': return `${esc(e.name)} signed up`;
+    case 'start': return `The war begins! Strongholds: Horde in ${e.strongholds.horde.map(ZN).join(', ')}; Alliance in ${e.strongholds.alliance.map(ZN).join(', ')}`;
+    case 'join': return `${esc(e.name)} joined the ${e.faction}`;
+    case 'deploy': return `${P(e.pid)} deployed ${e.n} to ${ZN(e.to)}`;
+    case 'move': return `${P(e.pid)} marched ${e.n} from ${ZN(e.from)} to ${ZN(e.to)}${e.march ? ' (Forced March)' : ''}`;
+    case 'attack': return `${P(e.pid)} attacked ${ZN(e.to)} from ${ZN(e.from)} with ${e.n}: ${e.captured ? '<b>captured it</b>' : 'repelled'} (lost ${e.attLost}, killed ${e.defLost})`;
+    case 'fortify': return `${P(e.pid)} fortified ${ZN(e.to)}`;
+    case 'build': return `${P(e.pid)} built ${e.kind === 'stronghold' ? 'a stronghold' : 'an outpost'} in ${ZN(e.to)}`;
+    case 'craft': return `${P(e.pid)} crafted ${e.kind}`;
+    case 'shieldwall': return `${P(e.pid)} raised a Shield Wall in ${ZN(e.to)}`;
+    case 'trade': return `${P(e.pid)} traded ${e.rate} ${e.give} for 1 ${e.get}`;
+    case 'autopilot': return `Autopilot placed ${P(e.pid)}'s troops: ${Object.keys(e.placed).map(k => `${e.placed[k]} in ${ZN(k)}`).join(', ')}`;
+    case 'dawn': return `☀ Day ${e.day + 1} dawns. Reinforcements: Horde ${e.reinforce.horde}, Alliance ${e.reinforce.alliance}`;
+    case 'end': return `🏆 The war is over: ${e.result.winner === 'draw' ? 'a draw' : e.result.winner + ' wins'} (${e.result.score.horde.total} – ${e.result.score.alliance.total})`;
+    default: return e.type;
+  }
+}
+function renderFeed(){
+  const list = document.getElementById('feedList');
+  list.innerHTML = G.log.slice(-150).reverse().map(e => `<div data-seq="${e.seq}" class="${FC(e.faction)}"><span class="muted">D${e.day + 1}</span> ${describe(e)}</div>`).join('');
+}
+function highlightFeed(seq){
+  document.querySelectorAll('#feedList .now').forEach(d => d.classList.remove('now'));
+  const d = document.querySelector(`#feedList [data-seq="${seq}"]`); if(d) d.classList.add('now');
+}
+
+// ---------- UI ----------
+function cur(){ return G.players[playAs]; }
+function refreshUI(){
+  const sc = G.phase === 'signup' ? null : E.score(G);
+  document.getElementById('scH').textContent = sc ? sc.horde.total : 0;
+  document.getElementById('scA').textContent = sc ? sc.alliance.total : 0;
+  const d = E.day(G), dn = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][d % 7];
+  document.getElementById('clock').textContent = G.phase === 'signup' ? 'Sign-ups open' : G.phase === 'ended' ? 'War over' : `Day ${d + 1} · ${dn}`;
+  renderMe(); renderZone(); renderFeed(); renderSignup();
+  if(document.getElementById('admin').style.display === 'block') renderAdmin();
+}
+function renderMe(){
+  const el = document.getElementById('me'), p = cur();
+  if(!p){ el.innerHTML = `<h3>${G.phase === 'signup' ? 'Sign-ups' : 'Spectating'}</h3><div class="muted">${G.phase === 'signup' ? 'Sign up for the next war.' : 'You are not in this war.'}</div>`
+    + (G.phase === 'live' ? `<div class="row"><button class="btn" onclick="joinNow()">Join now</button></div>` : ''); return; }
+  const sc = E.score(G), f = p.faction;
+  const cards = Object.keys(p.cards).filter(k => p.cards[k]).map(k => `<span class="chip">${{ warcry: '📯 Warcry', shieldwall: '🛡 Shield Wall', march: '🥾 Forced March', naval: '⛵ Naval Landing' }[k]} ×${p.cards[k]}</span>`).join('') || '<span class="muted">No cards</span>';
+  el.innerHTML = `<h3 style="color:${f === 'horde' ? '#ff8a70' : '#8ab4ff'}">${esc(p.name)} · ${f === 'horde' ? 'Horde' : 'Alliance'}${p.bot ? '<span class="tag">bot</span>' : ''}</h3>
+    <div class="row"><span class="chip">⚡ ${G.settings.unlimitedAP ? '∞' : p.ap} AP</span><span class="chip">🪖 ${p.reinforce} to deploy</span></div>
+    <div class="res">${['food', 'wood', 'ore', 'crystal'].map(r => `<div title="${r}">${RES_ICON[r]} ${p.res[r]}</div>`).join('')}</div>
+    <div class="row cards">${cards}</div>
+    <details><summary class="muted" style="cursor:pointer">Craft &amp; trade (rate ${E.tradeRate(G, f)}:1)</summary>
+      <div class="row">${['draft', 'warcry', 'shieldwall', 'march', 'naval'].map(k => `<button class="btn sm" onclick="doCraft('${k}')" title="${costStr(E.RULES.costs[k])}">${{ draft: '+2 Troops', warcry: 'Warcry', shieldwall: 'Shield Wall', march: 'Forced March', naval: 'Naval Landing' }[k]}</button>`).join('')}</div>
+      <div class="row">Give <select id="trGive">${['food', 'wood', 'ore', 'crystal'].map(r => `<option>${r}</option>`).join('')}</select> get <select id="trGet">${['wood', 'food', 'ore', 'crystal'].map(r => `<option>${r}</option>`).join('')}</select> <button class="btn sm" onclick="doTrade()">Trade</button></div>
+    </details>
+    <div class="muted" style="margin-top:6px">Zones: Horde ${E.zonesOf(G, 'horde').length} · Alliance ${E.zonesOf(G, 'alliance').length}<br>
+      Score parts (${f}): ${Object.entries(sc[f].parts).map(([k, v]) => `${k} ${v}`).join(', ')}</div>`;
+}
+const costStr = c => Object.entries(c).map(([r, n]) => `${n} ${r}`).join(' + ');
+
+let selZone = null, target = null;
+function zoneHover(k, e){
+  const h = document.getElementById('hover');
+  if(!k || !G.zones[k]){ h.style.display = 'none'; return; }
+  const z = G.zones[k], info = WAR_ZONES[k];
+  h.innerHTML = `<b>${info.name}</b>${info.capital ? ` (${info.capital})` : ''} · ${z.owner} · ${RES_ICON[info.resource]} ${info.resource}`;
+  h.style.display = 'block'; h.style.left = (e.clientX + 14) + 'px'; h.style.top = (e.clientY + 12) + 'px';
+}
+function zoneClicked(k){
+  if(!k || G.phase !== 'live'){ selZone = null; target = null; mode = null; board.select(null, []); renderZone(); return; }
+  const p = cur();
+  if(selZone && mode && k !== selZone){
+    const valid = targetsFor(selZone, mode);
+    if(valid.includes(k)){ target = k; renderZone(); return; }
+  }
+  selZone = k; target = null; mode = null;
+  board.select(k, []);
+  renderZone();
+}
+function targetsFor(k, m){
+  const p = cur(); if(!p) return [];
+  if(m === 'attack') return [...E.ADJ[k]].filter(n => G.zones[n].owner !== p.faction);
+  if(m === 'move') return [...E.friendlyReach(G, p.faction, k)].filter(n => n !== k);
+  return [];
+}
+function setMode(m){
+  mode = mode === m ? null : m; target = null;
+  board.select(selZone, mode ? targetsFor(selZone, mode) : []);
+  renderZone();
+}
+function renderZone(){
+  const el = document.getElementById('zone');
+  if(!selZone){ el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  const z = G.zones[selZone], info = WAR_ZONES[selZone], p = cur(), mine = p && z.owner === p.faction;
+  const fort = z.fortifyUntil > G.clock ? `<span class="chip">🧱 Fortified ${Math.ceil(z.fortifyUntil - G.clock)}h</span>` : '';
+  const reg = WAR_REGIONS[info.region];
+  let h = `<h3>${info.name}${info.capital ? ' · ' + info.capital : ''}</h3>
+    <div class="row"><span class="chip ${FC(z.owner)}">${z.owner}</span><span class="chip">⚔ ${z.ready} ready</span><span class="chip">💤 ${z.fresh} fresh</span>${fort}${z.shield ? '<span class="chip">🛡</span>' : ''}</div>
+    <div class="muted">${RES_ICON[info.resource]} ${info.resource} · ${reg.name} (+${reg.troops} troops, +${reg.points} pts if held) · ${z.outpost === 2 ? '🏰 Stronghold' : z.outpost === 1 ? '⛺ Outpost' : 'No buildings'}${E.PORTS.has(selZone) ? ' · ⚓ port' : ''}</div>`;
+  if(p && G.phase === 'live'){
+    if(mine){
+      const canDeploy = E.deployable(G, p.faction).includes(selZone);
+      h += `<div class="row"><button class="btn ${mode === 'attack' ? 'red' : ''}" onclick="setMode('attack')">⚔ Attack</button><button class="btn ${mode === 'move' ? 'blue' : ''}" onclick="setMode('move')">🥾 Move</button>
+        <button class="btn" onclick="doFortify()">🧱 Fortify</button></div>`;
+      if(p.reinforce > 0 && canDeploy) h += `<div class="row">Deploy <input type="range" id="depN" min="1" max="${p.reinforce}" value="${p.reinforce}" oninput="depV.textContent=this.value"><b id="depV">${p.reinforce}</b><button class="btn" onclick="doDeploy()">Deploy</button></div>`;
+      else if(p.reinforce > 0) h += `<div class="muted">This zone is cut off from your strongholds: you can't deploy here.</div>`;
+      h += `<div class="row">${z.outpost === 0 ? `<button class="btn sm" onclick="doBuild('outpost')" title="${costStr(E.RULES.costs.outpost)}">⛺ Build outpost</button>` : ''}
+        ${z.outpost === 1 ? `<button class="btn sm" onclick="doBuild('stronghold')" title="${costStr(E.RULES.costs.stronghold)}">🏰 Upgrade to stronghold</button>` : ''}
+        ${p.cards.shieldwall ? `<button class="btn sm" onclick="doShield()">🛡 Shield Wall</button>` : ''}</div>`;
+      if(mode && !target) h += `<div class="muted">Click a ${mode === 'attack' ? 'glowing enemy or neutral' : 'glowing friendly'} zone.</div>`;
+      if(mode && target){
+        const max = Math.max(0, Math.min(z.ready, z.ready + z.fresh - 1));
+        const tz = G.zones[target];
+        h += `<div style="border-top:1px solid var(--edge);margin-top:6px;padding-top:6px">
+          <b>${mode === 'attack' ? 'Attack' : 'Move to'} ${ZN(target)}</b> ${mode === 'attack' ? `<span class="muted">(${tz.ready + tz.fresh} defenders)</span>` : ''}
+          ${max < 1 ? '<div class="muted">No ready troops can leave (fresh troops 💤 rest until tomorrow, and one must stay).</div>' :
+          `<div class="row"><input type="range" id="actN" min="1" max="${max}" value="${max}" oninput="actV.textContent=this.value"><b id="actV">${max}</b></div>
+          ${mode === 'attack' ? `<div class="row">${p.cards.warcry ? '<label><input type="checkbox" id="optWar"> 📯 Warcry</label>' : ''}${p.cards.naval && E.isSeaLink(selZone, target) ? '<label><input type="checkbox" id="optNav"> ⛵ Naval</label>' : ''}</div>` :
+            (z.movedDay === E.day(G) && p.cards.march ? '<label><input type="checkbox" id="optMarch"> 🥾 Forced March</label>' : '')}
+          <div class="row"><button class="btn ${mode === 'attack' ? 'red' : 'blue'}" onclick="doAct()">${mode === 'attack' ? '⚔ Charge!' : '🥾 March'}</button></div>`}
+        </div>`;
+      }
+    } else if(z.owner !== 'neutral' || p) {
+      const from = [...E.ADJ[selZone]].filter(n => G.zones[n].owner === p.faction);
+      if(from.length) h += `<div class="muted">Attack it from: ${from.map(n => `<a href="#" onclick="selectFrom('${n}');return false" style="color:var(--gold)">${ZN(n)}</a>`).join(', ')}</div>`;
+    }
+  }
+  el.innerHTML = h;
+}
+function selectFrom(n){ const t = selZone; selZone = n; mode = 'attack'; target = t; board.select(n, targetsFor(n, 'attack')); renderZone(); }
+
+function after(r){
+  if(!r.ok){ toast(r.error); return false; }
+  save(); push(r.entry); refreshUI(); return true;
+}
+function doDeploy(){ after(E.deploy(G, playAs, selZone, +document.getElementById('depN').value)); }
+function doFortify(){ after(E.fortify(G, playAs, selZone)); }
+function doBuild(k){ after(E.build(G, playAs, selZone, k)); }
+function doShield(){ after(E.useShieldWall(G, playAs, selZone)); }
+function doCraft(k){ after(E.craft(G, playAs, k)); }
+function doTrade(){ after(E.trade(G, playAs, document.getElementById('trGive').value, document.getElementById('trGet').value)); }
+function doAct(){
+  const n = +document.getElementById('actN').value;
+  let r;
+  if(mode === 'attack') r = E.attack(G, playAs, selZone, target, n, { warcry: !!(document.getElementById('optWar') || {}).checked, naval: !!(document.getElementById('optNav') || {}).checked, forceDice });
+  else r = E.move(G, playAs, selZone, target, n, { march: !!(document.getElementById('optMarch') || {}).checked });
+  if(after(r)){ const t = target; mode = null; target = null; if(r.entry.captured){ selZone = t; } board.select(selZone, []); renderZone(); }
+}
+function joinNow(){ after(E.joinLate(G, { id: me.id, name: me.name })); playAs = me.id; refreshUI(); }
+
+// ---------- sign-ups ----------
+function renderSignup(){
+  const el = document.getElementById('signup');
+  if(G.phase !== 'signup'){ el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  const mine = G.signups.some(s => s.id === me.id);
+  document.getElementById('signupCard').innerHTML = `<h2 style="font-family:Cinzel;color:var(--gold);margin-top:0">Guild War · Sign-ups</h2>
+    <div class="muted">Sign-ups run Sunday 6pm to midnight. At midnight the teams are drafted (snake draft by activity) and the war runs Monday to Sunday 6pm.</div>
+    <div id="signupList">${G.signups.map(s => `<div>• ${esc(s.name)}${s.bot ? '<span class="tag">bot</span>' : ''}</div>`).join('') || '<div class="muted">Nobody yet</div>'}</div>
+    <div class="row">${mine ? '<span class="chip">✔ You are signed up</span>' : '<button class="btn" onclick="doSignup()">Sign me up</button>'}
+      ${me.admin ? `<button class="btn sm" onclick="addBots(5)">+5 bots</button><button class="btn sm" onclick="startWar()">Start the war (draft) ▶</button>` : ''}</div>`;
+}
+function doSignup(){ E.signup(G, { id: me.id, name: me.name, activity: 50 }); save(); refreshUI(); }
+const BOT_NAMES = ['Grommash', 'Jaina', 'Thrall', 'Varian', 'Sylvanas', 'Tyrande', 'Cairne', 'Magni', 'Vol\'jin', 'Malfurion', 'Rexxar', 'Muradin', 'Garrosh', 'Anduin', 'Baine', 'Genn', 'Lor\'themar', 'Velen', 'Gallywix', 'Gelbin'];
+function addBots(n){
+  for(let i = 0; i < n; i++){
+    const used = new Set(G.signups.map(s => s.name).concat(Object.values(G.players).map(p => p.name)));
+    const name = BOT_NAMES.find(x => !used.has(x)) || ('Bot ' + (G.signups.length + 1));
+    const id = 'bot-' + Math.random().toString(36).slice(2, 8);
+    if(G.phase === 'signup') E.signup(G, { id, name, activity: Math.floor(Math.random() * 100), bot: true });
+    else E.joinLate(G, { id, name, bot: true });
+  }
+  save(); refreshUI();
+}
+function startWar(){
+  const r = E.startGame(G); if(!r.ok){ toast(r.error); return; }
+  if(!G.players[playAs]) playAs = G.players[me.id] ? me.id : Object.keys(G.players)[0];
+  save(); refreshUI();
+  G.log.filter(e => e.seq > seen()).forEach(e => queue.push(e)); runQueue();
+}
+
+// ---------- bots: a simple aggressive AI for sandbox testing ----------
+function botTurn(pid){
+  const p = G.players[pid]; if(!p) return;
+  const f = p.faction, entries = [];
+  const frontier = () => E.zonesOf(G, f).filter(k => [...E.ADJ[k]].some(n => G.zones[n].owner !== f));
+  // deploy everything on the frontier zone with the juiciest target next door
+  if(p.reinforce > 0){
+    const spots = E.deployable(G, f).filter(k => frontier().includes(k));
+    const pick = (spots.length ? spots : E.deployable(G, f)).sort((a, b) => weakest(b, f).score - weakest(a, f).score)[0];
+    if(pick){ const r = E.deploy(G, pid, pick, p.reinforce); if(r.ok) entries.push(r.entry); }
+  }
+  for(let guard = 0; guard < 12; guard++){
+    if(!G.settings.unlimitedAP && p.ap < 1) break;
+    let best = null;
+    E.zonesOf(G, f).forEach(k => {
+      const z = G.zones[k], can = Math.min(z.ready, z.ready + z.fresh - 1); if(can < 2) return;
+      [...E.ADJ[k]].forEach(n => { const t = G.zones[n]; if(t.owner === f) return; const def = t.ready + t.fresh; const sc = can - def * 1.4; if(sc > 0 && (!best || sc > best.sc)) best = { from: k, to: n, n: can, sc }; });
+    });
+    if(!best) break;
+    const r = E.attack(G, pid, best.from, best.to, best.n, { warcry: p.cards.warcry > 0 });
+    if(!r.ok) break; entries.push(r.entry);
+  }
+  if(p.ap > 0 && !G.settings.unlimitedAP){
+    const f2 = frontier().sort((a, b) => E.threat(G, b) - E.threat(G, a))[0];
+    if(f2){ const r = E.fortify(G, pid, f2); if(r.ok) entries.push(r.entry); }
+  }
+  // spend resources
+  ['stronghold', 'outpost'].forEach(kind => { const z = E.zonesOf(G, f).find(k => G.zones[k].outpost === (kind === 'outpost' ? 0 : 1)); if(z && (p.ap > 0 || G.settings.unlimitedAP)){ const r = E.build(G, pid, z, kind); if(r.ok) entries.push(r.entry); } });
+  return entries;
+}
+function weakest(k, f){ let s = 0; E.ADJ[k].forEach(n => { const t = G.zones[n]; if(t.owner !== f) s = Math.max(s, 10 - (t.ready + t.fresh)); }); return { score: s }; }
+function runBots(){
+  const ids = Object.values(G.players).filter(p => p.bot).map(p => p.id);
+  if(!ids.length){ toast('No bots in this war'); return; }
+  ids.forEach(id => (botTurn(id) || []).forEach(e => queue.push(e)));
+  save(); refreshUI(); runQueue();
+}
+
+// ---------- admin sandbox ----------
+function toggleAdmin(){ const a = document.getElementById('admin'); a.style.display = a.style.display === 'block' ? 'none' : 'block'; if(a.style.display === 'block') renderAdmin(); }
+function renderAdmin(){
+  const el = document.getElementById('admin');
+  const opts = Object.values(G.players).map(p => `<option value="${p.id}" ${p.id === playAs ? 'selected' : ''}>${esc(p.name)} (${p.faction}${p.bot ? ', bot' : ''})</option>`).join('');
+  const z = selZone ? G.zones[selZone] : null;
+  el.innerHTML = `<h3>Admin sandbox</h3>
+    <div class="muted">This is a local test war (saved in this browser). Nothing here touches the live site.</div>
+    <div class="row">Play as <select onchange="playAs=this.value;refreshUI()">${opts || '<option>nobody yet</option>'}</select></div>
+    <div class="row"><button class="btn sm" onclick="addBots(1)">+1 bot</button><button class="btn sm" onclick="addBots(5)">+5 bots</button><button class="btn sm" onclick="runBots()">🤖 Bots take their turn</button></div>
+    <div class="row"><label><input type="checkbox" ${G.settings.unlimitedAP ? 'checked' : ''} onchange="G.settings.unlimitedAP=this.checked;save();refreshUI()"> Unlimited AP</label>
+      <button class="btn sm" onclick="giveRes()">+5 of each resource</button><button class="btn sm" onclick="giveCards()">+1 each card</button><button class="btn sm" onclick="giveTroops()">+10 troops</button></div>
+    <div class="row">Dice <select onchange="forceDice=this.value"><option value="">Fair</option><option value="att" ${forceDice === 'att' ? 'selected' : ''}>Attacker always wins</option><option value="def" ${forceDice === 'def' ? 'selected' : ''}>Defender always wins</option></select></div>
+    <div class="row"><button class="btn sm" onclick="advanceDay()">☀ Advance a day</button><button class="btn sm" onclick="advanceHours(6)">+6 hours</button></div>
+    <div class="row">Phase: <b>${G.phase}</b> <button class="btn sm" onclick="jumpPhase('signup')">→ Sign-ups</button>${G.phase === 'signup' ? '<button class="btn sm" onclick="startWar()">→ Start</button>' : ''}${G.phase === 'live' ? '<button class="btn sm" onclick="endWar()">→ End war</button>' : ''}</div>
+    ${z ? `<div style="border-top:1px solid var(--edge);margin-top:6px;padding-top:6px"><b>Edit ${ZN(selZone)}</b>
+      <div class="row">Owner <select id="edO">${['horde', 'alliance', 'neutral'].map(o => `<option ${z.owner === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
+      Ready <input type="number" id="edR" value="${z.ready}" style="width:52px"> Fresh <input type="number" id="edF" value="${z.fresh}" style="width:52px"></div>
+      <div class="row">Building <select id="edB">${['None', 'Outpost', 'Stronghold'].map((o, i) => `<option value="${i}" ${z.outpost === i ? 'selected' : ''}>${o}</option>`).join('')}</select>
+      <button class="btn sm" onclick="editZone()">Apply</button></div></div>` : '<div class="muted">Select a zone to edit it.</div>'}
+    <div class="row" style="margin-top:8px"><button class="btn sm" onclick="replayAll()">⟲ Replay whole war</button><button class="btn sm red" onclick="resetWar()">Reset sandbox</button></div>
+    <div class="row"><button class="btn sm" onclick="testBattle()">🎬 Demo battle animation</button></div>`;
+}
+function giveRes(){ const p = cur(); if(!p) return; ['food', 'wood', 'ore', 'crystal'].forEach(r => { p.res[r] += 5; }); save(); refreshUI(); }
+function giveCards(){ const p = cur(); if(!p) return; Object.keys(p.cards).forEach(k => { p.cards[k]++; }); save(); refreshUI(); }
+function giveTroops(){ const p = cur(); if(!p) return; p.reinforce += 10; save(); refreshUI(); }
+function advanceDay(){
+  if(G.phase !== 'live'){ toast('Start the war first'); return; }
+  const from = G.seq;
+  E.beginDay(G);
+  if(E.day(G) >= 6 && G.phase === 'live'){ toast('Sunday 6pm: the war ends'); E.endGame(G); }
+  save(); refreshUI(); G.log.filter(e => e.seq > from).forEach(e => queue.push(e)); runQueue();
+}
+function advanceHours(h){ G.clock += h; if(E.day(G) > E.day({ clock: G.clock - h })){ G.clock -= h; advanceDay(); return; } save(); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
+function jumpPhase(ph){ if(ph === 'signup' && !confirm('Go back to sign-ups? This wipes the board (sign-ups are kept).')) return; const s = G.signups; G = E.newGame({ sandbox: true }); G.signups = s; save(); markSeen(G.seq); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
+function endWar(){ after(E.endGame(G)); }
+function editZone(){
+  const z = G.zones[selZone];
+  z.owner = document.getElementById('edO').value; z.ready = Math.max(0, +document.getElementById('edR').value); z.fresh = Math.max(0, +document.getElementById('edF').value);
+  z.outpost = +document.getElementById('edB').value; save(); board.setState(JSON.parse(JSON.stringify(G))); refreshUI();
+}
+function resetWar(){ if(!confirm('Reset the sandbox war completely?')) return; G = E.newGame({ sandbox: true }); save(); markSeen(0); selZone = null; board.select(null, []); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
+function replayAll(){
+  // rewind the board to the start and play every move again
+  const view = JSON.parse(JSON.stringify(G));
+  const evs = G.log.filter(e => e.type !== 'signup' && e.type !== 'start');
+  for(let i = evs.length - 1; i >= 0; i--){ const e = evs[i]; if(e.zones) Object.keys(e.zones).forEach(k => { view.zones[k] = JSON.parse(JSON.stringify(e.zones[k].before)); }); }
+  board.setState(view); queue = evs.slice(); runQueue();
+}
+// A scripted battle on a scratch copy, for checking the camera and the dice without touching the war
+function testBattle(){
+  const S = JSON.parse(JSON.stringify(G));
+  if(S.phase !== 'live'){ toast('Start the war first'); return; }
+  const p = Object.values(S.players)[0]; const f = p.faction;
+  const from = E.zonesOf(S, f).find(k => [...E.ADJ[k]].some(n => S.zones[n].owner !== f)); if(!from){ toast('No frontier'); return; }
+  const to = [...E.ADJ[from]].find(n => S.zones[n].owner !== f);
+  S.zones[from].ready = 12; S.settings.unlimitedAP = true;
+  const r = E.attack(S, p.id, from, to, 11, { warcry: false }); if(!r.ok){ toast(r.error); return; }
+  board.state.zones[from] = JSON.parse(JSON.stringify(r.entry.zones[from].before)); board.syncPiece(from);
+  board.play(r.entry).then(() => setTimeout(() => board.setState(JSON.parse(JSON.stringify(G))), 1200));
+}
+</script>
+</body>
+</html>

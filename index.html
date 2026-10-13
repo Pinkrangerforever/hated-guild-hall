@@ -4294,6 +4294,7 @@
             <button type="button" role="menuitem" data-user-menu="profile">My Profile</button>
             <button type="button" role="menuitem" data-user-menu="settings">Settings</button>
             <button type="button" role="menuitem" data-user-menu="admin" id="nav-menu-admin" hidden>Admin</button>
+            <button type="button" role="menuitem" data-user-menu="war" id="nav-menu-war" hidden>Guild War (test)</button>
             <div class="nav-user-menu-sep"></div>
             <button type="button" role="menuitem" data-user-menu="signout" class="danger">Sign Out</button>
           </div>
@@ -4492,6 +4493,8 @@ function updateNavbarUserInfo(){
   if(navRank){ navRank.textContent = rankLabelFor(state.profile); navRank.className = 'nav-identity-rank rank-text-' + rankKey(state.profile); }
   const navMenuAdmin = document.getElementById('nav-menu-admin');
   if(navMenuAdmin) navMenuAdmin.hidden = !state.profile.protected;
+  const navMenuWar = document.getElementById('nav-menu-war');
+  if(navMenuWar) navMenuWar.hidden = !state.profile.protected; // admin-only while Guild War is in testing
   setWalletSeg(navGold, 'GoldIcon.png', 'Gold', gold);
 
   // Update mobile menu
@@ -4539,6 +4542,7 @@ document.addEventListener('click', e => {
     const what = item.getAttribute('data-user-menu');
     if(what === 'profile' && state.profile) openProfile(state.profile.id);
     else if(what === 'settings' || what === 'admin'){ state.tab = what; state.modal = null; render(); window.scrollTo({ top: 0 }); }
+    else if(what === 'war') window.location.href = 'war.html';
     else if(what === 'signout'){ const lo = document.getElementById('logout-btn'); if(lo) lo.click(); }
     return;
   }
