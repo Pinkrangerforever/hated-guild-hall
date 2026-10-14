@@ -158,10 +158,17 @@
           piece('6or_garrison_stonewall_snow', sw, WALL_H, (DOOR_W + sw) / 2, 0);
           piece('6or_garrison_stonewall_snow', DOOR_W, WALL_H - DOOR_H, 0, DOOR_H);
           // a timber door frame
-          const post = new THREE.MeshStandardMaterial({ map: tex('6or_garrison_woodfloor', 0.3, 2), roughness: 0.8 });
-          [[-DOOR_W / 2, DOOR_H / 2, 0.35, DOOR_H], [DOOR_W / 2, DOOR_H / 2, 0.35, DOOR_H], [0, DOOR_H, DOOR_W + 0.7, 0.35]].forEach(([x, y, w, h]) => {
-            const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.35), post); m.position.set(x, y, 0.1); m.castShadow = true; wall.add(m);
+          // frame cut from the Shadowfang door's own textures so it matches the door
+          const DT = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/War%20Room/Door/';
+          const dtex = (f, rx, ry) => { const t = tl.load(DT + f + '.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.encoding = THREE.sRGBEncoding; return t; };
+          const jamb = new THREE.MeshStandardMaterial({ map: dtex('127757', 0.25, 2.2), roughness: 0.85 });
+          const lintel = new THREE.MeshStandardMaterial({ map: dtex('129746', 1.6, 0.25), roughness: 0.7, metalness: 0.15 });
+          [[-DOOR_W / 2 - 0.15, DOOR_H / 2, 0.45, DOOR_H, jamb], [DOOR_W / 2 + 0.15, DOOR_H / 2, 0.45, DOOR_H, jamb], [0, DOOR_H + 0.25, DOOR_W + 1.0, 0.55, lintel]].forEach(([x, y, w, h, mat]) => {
+            const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.5), mat); m.position.set(x, y, 0.12); m.castShadow = true; wall.add(m);
           });
+          // the door is pointed: a planked header fills the doorway's top corners behind it
+          const header = new THREE.Mesh(new THREE.BoxGeometry(DOOR_W, 1.3, 0.12), new THREE.MeshStandardMaterial({ map: dtex('127757', 1.4, 0.4), roughness: 0.85 }));
+          header.position.set(0, DOOR_H - 0.65, -0.25); wall.add(header);
         } else piece('6or_garrison_stonewall', SIDE, WALL_H, 0, 0);
         // a skirting of dark stone where the wall meets the floor
         const skirt = new THREE.Mesh(new THREE.BoxGeometry(SIDE, 0.5, 0.25), new THREE.MeshStandardMaterial({ map: tex('6or_garrison_stonewall', SIDE / TILE, 0.2), color: 0x77706a, roughness: 1 }));
@@ -380,14 +387,22 @@
       const A = -this.outsideAt.z - 2.3;   // the hall's apothem (the back wall's distance)
       new THREE.GLTFLoader().load(M.door, gltf => {
         const m = gltf.scene;
-        m.traverse(o => { if(o.isMesh){ o.castShadow = o.receiveShadow = true; o.frustumCulled = false; } });
-        m.scale.setScalar(1.03); m.rotation.y = Math.PI / 2;   // its width runs along the wall
+        m.traverse(o => { if(o.isMesh){ o.castShadow = o.receiveShadow = true; o.frustumCulled = false; o.material.side = THREE.DoubleSide; } });
+        m.scale.set(-1.03, 1.03, 1.03); m.rotation.y = Math.PI / 2;   // width along the wall; mirrored so it swings into the hall, away from the snowman
         m.position.set(2.05, 0, -A + 0.05);                    // hinged on the right jamb
         this.walls.add(m);
-        const mixer = new THREE.AnimationMixer(m), open = gltf.animations.find(c => /Opened/.test(c.name));
-        if(open) mixer.clipAction(open).play();
+        const mixer = new THREE.AnimationMixer(m), clip = n => gltf.animations.find(c => c.name === n);
         (this.mixers = this.mixers || []).push(mixer);
-        this.doorModel = m;
+        let cur = mixer.clipAction(clip('Opened')); cur.play();
+        this.doorOpen = true; this.doorModel = m;
+        // click the door: swing it shut / open (Close/Open play once, then it rests Closed/Opened)
+        this.toggleDoor = () => {
+          const swing = clip(this.doorOpen ? 'Close' : 'Open'), rest = clip(this.doorOpen ? 'Closed' : 'Opened');
+          if(!swing) return;
+          const a = mixer.clipAction(swing); a.reset(); a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true;
+          cur.stop(); a.play(); cur = a; this.doorOpen = !this.doorOpen;
+          setTimeout(() => { if(cur === a && rest){ a.stop(); cur = mixer.clipAction(rest); cur.play(); } }, swing.duration * 1000);
+        };
       }, undefined, err => console.warn('door failed to load:', err));
       new THREE.GLTFLoader().load(M.torch, gltf => {
         const proto = gltf.scene, box = new THREE.Box3().setFromObject(proto), s = 4.2 / (box.max.y - box.min.y);
@@ -396,13 +411,17 @@
           t.traverse(o => { if(o.isMesh){
             o.frustumCulled = false; o.castShadow = true;
             // flame + glow cards burn additively; the iron plate is a cut-out
-            if(/195953|189824/.test(o.material.name)){ o.material = new THREE.MeshBasicMaterial({ map: o.material.map, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }); o.castShadow = false; this.torchFlames = (this.torchFlames || []).concat(o); }
+            if(/195953|189824/.test(o.material.name)){ if(/195953/.test(o.material.name)) o.name += '195953'; o.material = new THREE.MeshBasicMaterial({ map: o.material.map, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }); o.castShadow = false; this.torchFlames = (this.torchFlames || []).concat(o); }
             else { o.material = o.material.clone(); o.material.alphaTest = 0.4; o.material.transparent = false; o.material.side = THREE.DoubleSide; }
           } });
           t.scale.setScalar(s); t.position.set(side * 3.3, 1.2, -A + 0.9); t.rotation.y = -Math.PI / 2;   // bracket flat on the wall, flame up
           this.walls.add(t);
-          const l = new THREE.PointLight(0xff8a30, 1.5, 14, 2); l.position.set(side * 3.3, 4.0, -A + 1.4); this.walls.add(l);
-          this.flames.push({ f: { scale: { y: 0 } }, l, s: 1, seed: Math.random() * 100, base: 1.5 });
+          // the light goes right in the flame
+          t.updateMatrixWorld(true); const fb = new THREE.Box3();
+          t.traverse(o => { if(o.isMesh && /195953/.test(o.name + (o.material.map && o.material.map.name || '')) ) fb.expandByObject(o); });
+          const at = fb.isEmpty() ? new THREE.Vector3(side * 3.3, 4.6, -A + 1.6) : this.walls.worldToLocal(fb.getCenter(new THREE.Vector3()));
+          const l = new THREE.PointLight(0xff9a40, 3.2, 20, 1.6); l.position.copy(at); l.position.z += 0.4; this.walls.add(l);
+          this.flames.push({ f: { scale: { y: 0 } }, l, s: 1, seed: Math.random() * 100, base: 3.2 });
           if(gltf.animations[0]){ const mx = new THREE.AnimationMixer(t); mx.clipAction(gltf.animations[0]).play(); (this.mixers = this.mixers || []).push(mx); }
         });
       }, undefined, err => console.warn('snow torch failed to load:', err));
@@ -507,8 +526,8 @@
       const pos = geo.attributes.position, uv = geo.attributes.uv;
       for(let i = 0; i < pos.count; i++) pos.setZ(i, curlHeight(uv.getX(i), uv.getY(i)));
       geo.computeVertexNormals();
-      const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: this.mapTex, roughness: 0.92 }));
-      m.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x8c7650, roughness: 1, side: THREE.BackSide })));   // the parchment's back
+      const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: this.mapTex, roughness: 0.92, alphaTest: 0.5 }));   // alpha: the torn edges
+      m.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: this.mapTex, color: 0x5a4a34, alphaTest: 0.5, roughness: 1, side: THREE.BackSide })));   // the parchment's back
       m.rotation.x = -Math.PI / 2; m.receiveShadow = true; m.castShadow = true;
       this.scene.add(m); this.mapMesh = m; this.mapGeo = geo;
       this.drawMap();
@@ -694,7 +713,36 @@
       const vg = g.createRadialGradient(W / 2, H / 2, H * 0.42, W / 2, H / 2, W * 0.72);
       vg.addColorStop(0, 'rgba(60,30,10,0)'); vg.addColorStop(1, 'rgba(40,20,6,0.55)');
       g.fillStyle = vg; g.fillRect(0, 0, W, H);
+      this.tearEdges(g, W, H);
       this.mapTex.needsUpdate = true;
+    }
+
+    // rips and tears round the parchment's edge (same every load): a scorched outline, then cut away
+    tearEdges(g, W, H){
+      let seed = 41; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+      const tears = [];
+      const edge = (len, at) => {   // at(t, depth) -> [x, y]: t along the edge, depth into the map
+        for(let t = 0.04 + rnd() * 0.05; t < 0.96; t += 0.06 + rnd() * 0.12){
+          const big = rnd() < 0.3, w = (big ? 30 : 10) + rnd() * (big ? 50 : 22), d = (big ? 34 : 10) + rnd() * (big ? 46 : 18);
+          const pts = [at(t - w / len / 2, 0)];
+          const n = 3 + Math.floor(rnd() * 4);
+          for(let i = 1; i < n; i++){ const f = i / n; pts.push(at(t - w / len / 2 + f * w / len + (rnd() - 0.5) * 0.01, d * (0.35 + rnd() * 0.65) * Math.sin(f * Math.PI))); }
+          pts.push(at(t + w / len / 2, 0));
+          tears.push(pts);
+        }
+      };
+      edge(W, (t, d) => [t * W, d - 2]); edge(W, (t, d) => [t * W, H - d + 2]);
+      edge(H, (t, d) => [d - 2, t * H]); edge(H, (t, d) => [W - d + 2, t * H]);
+      this.tears = tears;
+      const path = pts => { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); pts.slice(1).forEach(p => g.lineTo(p[0], p[1])); g.closePath(); };
+      g.save();
+      g.strokeStyle = 'rgba(48,26,8,0.85)'; g.lineWidth = 9; g.lineJoin = 'round';
+      tears.forEach(p => { path(p); g.stroke(); });           // scorched lip round each tear
+      g.globalCompositeOperation = 'destination-out';
+      tears.forEach(p => { path(p); g.fill(); });             // then the tear itself
+      g.lineWidth = 3; g.strokeStyle = '#000';
+      g.beginPath(); g.rect(0, 0, W, H); g.stroke();          // ragged-free hairline so the sheet edge is clean
+      g.restore();
     }
 
     // ----- 3D touches on the map: little mountains, moving water on the lakes and sea -----
@@ -754,8 +802,14 @@
       // water: a second sheet just above the map, showing over lakes (strong) and the sea (faint)
       const mask = document.createElement('canvas'); mask.width = RW; mask.height = RH;
       const mg = mask.getContext('2d'), mi = mg.createImageData(RW, RH);
-      for(let i = 0; i < R.length; i++){ const v = R[i] === LAKE ? 200 : R[i] === SEA ? 70 : 0; mi.data[i * 4] = mi.data[i * 4 + 1] = mi.data[i * 4 + 2] = v; mi.data[i * 4 + 3] = 255; }
+      for(let i = 0; i < R.length; i++){ const v = R[i] === LAKE ? 200 : 0; /* lakes only: a sea shimmer washed out the painted sea and covered the torn edges */ mi.data[i * 4] = mi.data[i * 4 + 1] = mi.data[i * 4 + 2] = v; mi.data[i * 4 + 3] = 255; }
       mg.putImageData(mi, 0, 0);
+      // no water over the torn-away edges: black out the same tear shapes in the mask
+      if(this.tears){
+        const kx = RW / this.mapCanvas.width, ky = RH / this.mapCanvas.height;
+        mg.fillStyle = '#000';
+        this.tears.forEach(pts => { mg.beginPath(); pts.forEach(([x, y], i) => i ? mg.lineTo(x * kx, y * ky) : mg.moveTo(x * kx, y * ky)); mg.closePath(); mg.fill(); });
+      }
       const ripple = canvasTex(256, 256, (g) => {
         g.fillStyle = '#6f97a8'; g.fillRect(0, 0, 256, 256);
         for(let i = 0; i < 60; i++){
@@ -1151,7 +1205,15 @@
       });
       const up = e => {
         pts.delete(e.pointerId);
-        if(drag && drag.moved < 6 && pts.size === 0 && this.opts.onClick) this.opts.onClick(this.pickZone(e.clientX, e.clientY), e);
+        if(drag && drag.moved < 6 && pts.size === 0){
+          if(this.doorModel && this.toggleDoor){
+            const r = this.renderer.domElement.getBoundingClientRect();
+            this.mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+            if(this.raycaster.intersectObject(this.doorModel, true).length){ this.toggleDoor(); pts.clear(); drag = null; return; }
+          }
+          if(this.opts.onClick) this.opts.onClick(this.pickZone(e.clientX, e.clientY), e);
+        }
         if(pts.size === 0) drag = null;
       };
       el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
@@ -1188,7 +1250,6 @@
         f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.4 : 2.2) * (0.9 + 0.15 * k);
       });
       this.dust.rotation.y = now / 60000;
-      (this.torchFlames || []).forEach((o, i) => { const k = 1 + 0.08 * Math.sin(now / 70 + i * 2) + 0.05 * Math.sin(now / 33 + i); o.scale.set(k, 1 + (k - 1) * 1.6, k); });
       if(this.snowfall){
         const a = this.snowfall.geometry.attributes.position, d = this.snowDoor;
         for(let i = 0; i < a.count; i++){
