@@ -4,8 +4,8 @@
 const WAR_TUNING = {
   "pieces": {
    "darkshore": [
-    250,
-    294
+    232,
+    306
    ],
    "felwood": [
     278,
@@ -16,12 +16,12 @@ const WAR_TUNING = {
     384
    ],
    "ashenvale": [
-    294,
-    482
+    290,
+    510
    ],
    "durotar": [
-    476,
-    570
+    490,
+    596
    ],
    "mulgore": [
     266,
@@ -43,17 +43,25 @@ const WAR_TUNING = {
     1036,
     1022
    ],
+   "redridge": [
+    1028,
+    936
+   ],
    "riverglades": [
     1124,
     888
    ],
    "wetlands": [
     1048,
-    638
+    572
+   ],
+   "badlands": [
+    1080,
+    746
    ],
    "arathi": [
-    1052,
-    430
+    1030,
+    454
    ],
    "hinterlands": [
     1030,
@@ -78,7 +86,7 @@ const WAR_TUNING = {
     288
    ],
    "felwood": [
-    288,
+    310,
     298
    ],
    "hyjal": [
@@ -86,8 +94,8 @@ const WAR_TUNING = {
     404
    ],
    "ashenvale": [
-    290,
-    518,
+    336,
+    544,
     26
    ],
    "stonetalon": [
@@ -119,6 +127,10 @@ const WAR_TUNING = {
    "wetlands": [
     1048,
     606
+   ],
+   "badlands": [
+    1084,
+    774
    ],
    "arathi": [
     1052,
