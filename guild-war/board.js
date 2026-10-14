@@ -730,7 +730,8 @@
           const j = ny * GW + nx; if(dist[j] > dist[i] + 1){ dist[j] = dist[i] + 1; q.push(j); }
         });
       }
-      const cost = i => 1 + 8 * Math.exp(-dist[i] / 2.5);
+      const lane = { boat: new Uint8Array(N), zeppelin: new Uint8Array(N) }; let laneOf = lane.boat;
+      const cost = i => (1 + 8 * Math.exp(-dist[i] / 2.5)) * (laneOf[i] ? 0.45 : 1);
       const toG = (mx, my) => [Math.floor(mx / MW * RW / S), Math.floor(my / MH * RH / S)];
       const nearestSea = (mx, my, toward) => {
         const [cx, cy] = toG(mx, my); let best = -1, bd = 1e9;
@@ -764,18 +765,45 @@
         return out.reverse();
       };
       const paths = {};
-      WAR_ROUTES.filter(rt => rt.kind === 'boat').forEach(rt => {
+      // every route (boats and zeppelins) goes by sea; longest first, so shorter ones join their lanes
+      const edges = { boat: new Set(), zeppelin: new Set() };
+      const routes = WAR_ROUTES.slice().sort((p, q) => {
+        const d = r => Math.hypot(WAR_LAYOUT[r.a].x - WAR_LAYOUT[r.b].x, WAR_LAYOUT[r.a].y - WAR_LAYOUT[r.b].y);
+        return d(q) - d(p);
+      });
+      routes.forEach(rt => {
+        const kind = rt.kind === 'zeppelin' ? 'zeppelin' : 'boat'; laneOf = lane[kind];
         const A = WAR_LAYOUT[rt.a], B = WAR_LAYOUT[rt.b];
         const pa = HARBOURS[rt.a] || [A.x, A.y], pb = HARBOURS[rt.b] || [B.x, B.y];
         const s = nearestSea(pa[0], pa[1], HARBOURS[rt.a] ? toG(...pa) : toG(B.x, B.y)), t = nearestSea(pb[0], pb[1], HARBOURS[rt.b] ? toG(...pb) : toG(A.x, A.y));
         if(s < 0 || t < 0) return;
         const cells = astar(s, t); if(!cells) return;
+        cells.forEach((c, i) => { laneOf[c] = 1; if(i) edges[kind].add(Math.min(c, cells[i - 1]) + ',' + Math.max(c, cells[i - 1])); });
         const pts = cells.filter((_, i) => i % 6 === 0 || i === cells.length - 1)
           .map(i => [((i % GW) + 0.5) * S / RW * MW, ((((i / GW) | 0) + 0.5) * S) / RH * MH]);
         // run the line right into the harbour
-        if(HARBOURS[rt.a]) pts.unshift(HARBOURS[rt.a]);
-        if(HARBOURS[rt.b]) pts.push(HARBOURS[rt.b]);
+        if(HARBOURS[rt.a]){ pts.unshift(HARBOURS[rt.a]); edges[kind].add('H' + rt.a + ',' + s); }
+        if(HARBOURS[rt.b]){ pts.push(HARBOURS[rt.b]); edges[kind].add('H' + rt.b + ',' + t); }
         paths[rt.a + '|' + rt.b] = pts;
+      });
+      // the network: each shared stretch drawn once. Chain the edges into polylines between junctions.
+      const cellPt = c => typeof c === 'string' ? HARBOURS[c.slice(1)] : [((c % GW) + 0.5) * S / RW * MW, (((c / GW) | 0) + 0.5) * S / RH * MH];
+      this.routeNet = {};
+      Object.keys(edges).forEach(kind => {
+        const adj = new Map(), key = v => String(v);
+        edges[kind].forEach(e => { const [a, bb] = e.split(',').map(v => v[0] === 'H' ? v : +v); [[a, bb], [bb, a]].forEach(([u, w]) => { if(!adj.has(key(u))) adj.set(key(u), { v: u, n: [] }); adj.get(key(u)).n.push(w); }); });
+        const used = new Set(), lines = [], ek = (u, w) => [key(u), key(w)].sort().join('|');
+        const walk = (start, next) => {
+          const line = [start, next]; used.add(ek(start, next)); let prev = start, cur = next;
+          while(adj.get(key(cur)).n.length === 2){
+            const nx = adj.get(key(cur)).n.find(w => key(w) !== key(prev)); if(used.has(ek(cur, nx))) break;
+            used.add(ek(cur, nx)); line.push(nx); prev = cur; cur = nx;
+          }
+          lines.push(line);
+        };
+        adj.forEach(({ v, n }) => { if(n.length !== 2) n.forEach(w => { if(!used.has(ek(v, w))) walk(v, w); }); });
+        adj.forEach(({ v, n }) => n.forEach(w => { if(!used.has(ek(v, w))) walk(v, w); }));   // loops
+        this.routeNet[kind] = lines.map(line => line.filter((_, i) => i % 4 === 0 || i === line.length - 1).map(cellPt));
       });
       return paths;
     }
@@ -811,29 +839,21 @@
         g.imageSmoothingEnabled = true;
         g.drawImage(this.overlayCanvas, 0, 0, W, H);
       }
-      // routes: boats follow the sea around the coasts; zeppelins fly straight over
-      const seaPaths = this.raster ? (this.seaPaths = this.seaPaths || this.routeSeaPaths()) : {};
-      WAR_ROUTES.forEach(rt => {
-        const path = rt.kind === 'boat' && seaPaths[rt.a + '|' + rt.b];
-        if(path){
-          g.setLineDash([20, 13]); g.lineWidth = 5; g.strokeStyle = 'rgba(24,48,70,0.7)';
+      // routes: one network per kind, every stretch drawn once (shared lanes stay a single dotted line)
+      if(this.raster){ this.seaPaths = this.seaPaths || this.routeSeaPaths(); }
+      [['boat', [20, 13], 5, 'rgba(24,48,70,0.7)'], ['zeppelin', [8, 14], 4, 'rgba(110,54,18,0.75)']].forEach(([kind, dash, w, col]) => {
+        (this.routeNet && this.routeNet[kind] || []).forEach(path => {
+          if(path.length < 2) return;
+          g.setLineDash(dash); g.lineWidth = w; g.strokeStyle = col; g.lineCap = 'round';
           g.beginPath(); g.moveTo(path[0][0] * sx, path[0][1] * sy);
           for(let i = 1; i < path.length - 1; i++){
             const mx = (path[i][0] + path[i + 1][0]) / 2, my = (path[i][1] + path[i + 1][1]) / 2;
             g.quadraticCurveTo(path[i][0] * sx, path[i][1] * sy, mx * sx, my * sy);
           }
-          const last = path[path.length - 1]; g.lineTo(last[0] * sx, last[1] * sy); g.stroke(); g.setLineDash([]);
-          return;
-        }
-        const a = WAR_LAYOUT[rt.a], b = WAR_LAYOUT[rt.b];
-        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, dx = b.x - a.x, dy = b.y - a.y;
-        const bend = rt.kind === 'zeppelin' ? -0.18 : 0.14;
-        const cx = mx - dy * bend, cy = my + dx * bend;
-        g.setLineDash(rt.kind === 'zeppelin' ? [8, 16] : [20, 13]); g.lineWidth = rt.kind === 'zeppelin' ? 4 : 5;
-        g.strokeStyle = rt.kind === 'zeppelin' ? 'rgba(92,52,20,0.75)' : 'rgba(24,48,70,0.7)';
-        g.beginPath(); g.moveTo(a.x * sx, a.y * sy); g.quadraticCurveTo(cx * sx, cy * sy, b.x * sx, b.y * sy); g.stroke();
-        g.setLineDash([]);
+          const last = path[path.length - 1]; g.lineTo(last[0] * sx, last[1] * sy); g.stroke();
+        });
       });
+      g.setLineDash([]); g.lineCap = 'butt';
       // resource icons: every zone shows its type faintly; this game's rich deposits are bold with a gold ring
       KEYS.forEach(k => {
         const p = WAR_LAYOUT[k], r = WAR_ZONES[k].resource, im = this.resIcons && this.resIcons[r];
