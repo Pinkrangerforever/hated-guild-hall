@@ -591,11 +591,11 @@ document.addEventListener('mouseover', e => {
 const CARD_HELP = {
   draft: ['🪖 +2 Troops', 'Two extra reinforcements, ready to deploy right away.'],
   warcry: ['📯 Warcry', 'Tick it when you attack: +1 attack die for that whole battle.'],
-  shieldwall: ['🛡 Shield Wall', "Raise it on one of your zones (free). The next attack on that zone loses its best die in the first round."],
+  shieldwall: ['🛡 Shield Wall', "Raise it on one of your zones. The next attack on that zone loses its best die in the first round."],
   march: ['🥾 Forced March', 'Lets a zone send troops again on a day it already moved.'],
   naval: ['⛵ Naval Landing', 'Attack across a boat or zeppelin route with no defender bonuses (no fortify, capital or stronghold +1, no third die).']
 };
-const tipFor = k => `<b>${CARD_HELP[k][0]}</b><br>${CARD_HELP[k][1]}<span class="c">Cost: ${costStr(E.RULES.costs[k])} · no AP</span>`;
+const tipFor = k => `<b>${CARD_HELP[k][0]}</b><br>${CARD_HELP[k][1]}<span class="c">Craft for ${costStr(E.RULES.costs[k])}. Crafting and playing cards cost no action points.</span>`;
 function refreshUI(){
   setTimeout(placePamphlet, 0);
   renderLedger();
