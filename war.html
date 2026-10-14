@@ -23,7 +23,7 @@
   *{ box-sizing:border-box; }
   html,body{ margin:0; height:100%; overflow:hidden; background:#0b0806; color:var(--ink); font-family:Georgia, serif; }
   #stage{ position:fixed; inset:0; }
-  #curtain{ position:fixed; inset:0; z-index:7; background:#000; display:flex; align-items:center; justify-content:center; transition:opacity 1.6s ease; }
+  #curtain{ position:fixed; inset:0; z-index:7; background:#000; display:flex; align-items:center; justify-content:center; transition:opacity 2.2s ease; }
   #curtain{ background:radial-gradient(ellipse at center, #1a1008 0%, #000 70%); flex-direction:column; }
   #curtain .crest{ width:84px; height:84px; margin-bottom:18px; filter:drop-shadow(0 0 14px rgba(214,169,64,0.45)); animation:breathe 3s ease-in-out infinite; }
   #curtain .title{ font:900 30px Cinzel, serif; letter-spacing:6px; text-transform:uppercase; text-align:center;
@@ -358,9 +358,9 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
     setTimeout(() => { m.textContent = lines[++li % lines.length]; m.style.opacity = 1; }, 400);
   }, 1800);
   const prog = setInterval(() => { peak = Math.max(peak, board._loading || 0); const done = peak ? 1 - (board._loading || 0) / peak : 0; document.getElementById('curtainBar').style.width = Math.round(Math.max(5, done * 100)) + '%'; }, 150);
-  await board.whenLoaded();
+  await Promise.all([board.whenLoaded(), new Promise(r => setTimeout(r, 4200))]);   // stay up long enough to read, even on a fast load
   clearInterval(tick); clearInterval(prog); document.getElementById('curtainBar').style.width = '100%'; document.getElementById('curtainMsg').textContent = 'To war!';
-  await new Promise(r => setTimeout(r, 450));
+  await new Promise(r => setTimeout(r, 1400));
   document.getElementById('curtain').classList.add('gone');
   await new Promise(r => setTimeout(r, 900));
   await board.intro();
