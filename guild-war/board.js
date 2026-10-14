@@ -1268,19 +1268,38 @@
       this.troopProtos = {};
       Object.keys(M).forEach(f => new THREE.GLTFLoader().load(M[f], gltf => {
         const m = gltf.scene;
-        // the export leaves the separate gear pieces (helm, shoulders, weapon) unattached at the feet: keep only the
-        // body, which is every mesh sharing the big vertex list
-        let biggest = 0; m.traverse(o => { if(o.isMesh) biggest = Math.max(biggest, o.geometry.attributes.position.count); });
-        m.traverse(o => { if(o.isMesh){
-          if(o.geometry.attributes.position.count < biggest) o.visible = false;
-          o.castShadow = true; o.frustumCulled = false; if(o.material.map){ o.material.alphaTest = 0.4; o.material.transparent = false; }
-        } });
+        m.traverse(o => { if(o.isMesh){ o.castShadow = true; o.frustumCulled = false; if(o.material.map){ o.material.alphaTest = 0.4; o.material.transparent = false; } } });
+        this.attachGear(m);
         const box = new THREE.Box3(); m.traverse(o => { if(o.isMesh && o.visible) box.expandByObject(o); });
         const s = 0.17 / (box.max.y - box.min.y);   // a figure ~0.17 tall
         m.position.y = -box.min.y;
         const inner = new THREE.Group(); inner.add(m); inner.scale.setScalar(s);
         this.troopProtos[f] = { proto: inner, clips: gltf.animations };
       }, undefined, err => console.warn(f + ' troops failed to load, using plain tokens:', err)));
+    }
+    // wow.export writes worn gear (helm, shoulders, weapons) as loose meshes at the origin: WoW pins them to
+    // attachment points the glTF doesn't carry. Find the bones from the bind pose and pin each piece on.
+    attachGear(root){
+      root.updateMatrixWorld(true);
+      let body = null; root.traverse(o => { if(o.isSkinnedMesh && !body) body = o; });
+      if(!body) return;
+      const sk = body.skeleton, pos = sk.bones.map((bn, i) => new THREE.Vector3().setFromMatrixPosition(new THREE.Matrix4().copy(sk.boneInverses[i]).invert()));
+      const H = Math.max(...pos.map(p => p.y)), pick = (filter, score) => { let best = -1, bs = -Infinity; pos.forEach((p, i) => { if(filter(p)){ const s = score(p); if(s > bs){ bs = s; best = i; } } }); return best; };
+      // the model faces +x, so its left is +z and right is -z
+      const head = pick(p => Math.abs(p.z) < H * 0.08 && p.y > H * 0.8, p => -Math.abs(p.y - H * 0.9) - Math.abs(p.x) * 0.5);
+      const shL = pick(p => p.y > H * 0.7 && p.y < H * 0.9, p => p.z), shR = pick(p => p.y > H * 0.7 && p.y < H * 0.9, p => -p.z);
+      const hand = side => pick(p => p.y > H * 0.25 && p.y < H * 0.6 && Math.sign(p.z) === side && Math.abs(p.z) > H * 0.12, p => -p.y + Math.abs(p.z) * 0.3);
+      const handR = hand(-1), handL = hand(1);
+      const slots = [[/^Head/, head], [/Shoulder \(L\)/, shL], [/Shoulder \(R\)/, shR], [/^Main-hand/, handR], [/^Off-hand/, handL]];
+      const items = []; root.traverse(o => { if(o.isMesh && !o.isSkinnedMesh) items.push(o); });
+      items.forEach(o => {
+        const slot = slots.find(([re]) => re.test(o.name)); if(!slot || slot[1] < 0){ o.visible = false; return; }
+        // the piece belongs at the bone's bind position (model space); as the bone's child that is
+        // boneInverse * translate(bonePos), so it follows the bone from then on
+        const i = slot[1], bone = sk.bones[i];
+        o.parent.remove(o); bone.add(o);
+        new THREE.Matrix4().copy(sk.boneInverses[i]).multiply(new THREE.Matrix4().makeTranslation(pos[i].x, pos[i].y, pos[i].z)).decompose(o.position, o.quaternion, o.scale);
+      });
     }
     // a troop figure with its own animation player; falls back to a plain token if the model isn't in
     troop(faction){
