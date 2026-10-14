@@ -165,10 +165,12 @@
           const lintel = new THREE.MeshStandardMaterial({ map: dtex('129746', 1.6, 0.25), roughness: 0.7, metalness: 0.15 });
           [[-DOOR_W / 2 - 0.15, DOOR_H / 2, 0.45, DOOR_H, jamb], [DOOR_W / 2 + 0.15, DOOR_H / 2, 0.45, DOOR_H, jamb], [0, DOOR_H + 0.25, DOOR_W + 1.0, 0.55, lintel]].forEach(([x, y, w, h, mat]) => {
             const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.5), mat); m.position.set(x, y, 0.12); m.castShadow = true; wall.add(m);
+            (this.doorFrameParts = this.doorFrameParts || []).push(m);
           });
+          this.doorWall = wall; this.doorFrameMat = jamb; this.doorStoneTex = tex('6or_garrison_stonewall_snow', 1 / TILE, 1 / TILE); this.doorSize = [DOOR_W, DOOR_H]; this.doorTex = dtex;
           // the door is pointed: a planked header fills the doorway's top corners behind it
           const header = new THREE.Mesh(new THREE.BoxGeometry(DOOR_W, 1.3, 0.12), new THREE.MeshStandardMaterial({ map: dtex('127757', 1.4, 0.4), roughness: 0.85 }));
-          header.position.set(0, DOOR_H - 0.65, -0.25); wall.add(header);
+          header.position.set(0, DOOR_H - 0.65, -0.25); wall.add(header); this.doorFrameParts.push(header);
         } else piece('6or_garrison_stonewall', SIDE, WALL_H, 0, 0);
         // a skirting of dark stone where the wall meets the floor
         const skirt = new THREE.Mesh(new THREE.BoxGeometry(SIDE, 0.5, 0.25), new THREE.MeshStandardMaterial({ map: tex('6or_garrison_stonewall', SIDE / TILE, 0.2), color: 0x77706a, roughness: 1 }));
@@ -277,6 +279,8 @@
           const g = topMesh.geometry.clone(), n = g.attributes.normal.clone(), idx = g.index;
           for(let i = 0; i < idx.count; i++) n.setXYZ(idx.getX(i), 0, 1, 0);
           g.setAttribute('normal', n); topMesh.geometry = g;
+          // its painted top is parchment too; darken it so the map's torn-out pieces read as holes
+          topMesh.material = topMesh.material.clone(); topMesh.material.color.setHex(0x5a4532);
         }
         rc.set(new THREE.Vector3(0.5, 50, 0.5), new THREE.Vector3(0, -1, 0));
         const hit = rc.intersectObject(topMesh || m, true)[0];
@@ -395,6 +399,7 @@
         (this.mixers = this.mixers || []).push(mixer);
         let cur = mixer.clipAction(clip('Opened')); cur.play();
         this.doorOpen = true; this.doorModel = m;
+        this.frameDoor(m);
         // click the door: swing it shut / open (Close/Open play once, then it rests Closed/Opened)
         this.toggleDoor = () => {
           const swing = clip(this.doorOpen ? 'Close' : 'Open'), rest = clip(this.doorOpen ? 'Closed' : 'Opened');
@@ -483,6 +488,45 @@
         };
         loop();
       }, undefined, err => console.warn('succubus failed to load:', err));
+    }
+
+    // Replace the square frame with one cut to the door's outline: the convex hull of the door's
+    // vertices (bind pose = closed) flattened onto the wall, as a hole in a planked panel round it.
+    frameDoor(door){
+      if(!this.doorWall) return;
+      const W = this.doorWall; door.updateMatrixWorld(true); W.updateMatrixWorld(true);
+      const pts = [], v = new THREE.Vector3();
+      door.traverse(o => { if(!o.isMesh) return; const pa = o.geometry.attributes.position;
+        for(let i = 0; i < pa.count; i += 2){ v.fromBufferAttribute(pa, i).applyMatrix4(o.matrixWorld); W.worldToLocal(v); pts.push([v.x, v.y]); } });
+      if(pts.length < 3) return;
+      pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+      const lo = [], hi = [];
+      pts.forEach(p => { while(lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); });
+      for(let i = pts.length - 1; i >= 0; i--){ const p = pts[i]; while(hi.length >= 2 && cross(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
+      const hull = lo.slice(0, -1).concat(hi.slice(0, -1));
+      const cx = hull.reduce((s, p) => s + p[0], 0) / hull.length;
+      const minY = Math.min(...hull.map(p => p[1])), maxY = Math.max(...hull.map(p => p[1]));
+      const minX = Math.min(...hull.map(p => p[0])), maxX = Math.max(...hull.map(p => p[0]));
+      // a wooden frame that follows the door's outline (inner edge = the door, outer edge = 0.45 further out),
+      // and snowy stone filling the rest of the square opening in the wall
+      const M = 0.45, grow = (s, d) => hull.map(p => { const dx = p[0] - cx, dy = p[1] - (minY + maxY) / 2, L = Math.hypot(dx, dy) || 1; return [p[0] + dx / L * d, Math.max(minY, p[1] + dy / L * d)]; });
+      const shapeOf = pts => { const s = new THREE.Shape(); pts.forEach((p, i) => i ? s.lineTo(p[0], p[1]) : s.moveTo(p[0], p[1])); s.closePath(); return s; };
+      const pathOf = pts => { const s = new THREE.Path(); pts.slice().reverse().forEach((p, i) => i ? s.lineTo(p[0], p[1]) : s.moveTo(p[0], p[1])); s.closePath(); return s; };
+      const inner = grow(0, 0.03), outerPts = grow(0, M);
+      const ring = shapeOf(outerPts); ring.holes.push(pathOf(inner));
+      const geo = new THREE.ExtrudeGeometry(ring, { depth: 0.45, bevelEnabled: true, bevelSize: 0.05, bevelThickness: 0.05, bevelSegments: 1 });
+      const mat = this.doorFrameMat.clone(); mat.map = this.doorTex('127757', 0.3, 0.3);
+      const frame = new THREE.Mesh(geo, mat); frame.position.z = -0.12; frame.castShadow = frame.receiveShadow = true;
+      W.add(frame);
+      const [DW, DH] = this.doorSize, fill = new THREE.Shape();
+      fill.moveTo(-DW / 2 - 0.4, minY); fill.lineTo(DW / 2 + 0.4, minY); fill.lineTo(DW / 2 + 0.4, DH + 0.6); fill.lineTo(-DW / 2 - 0.4, DH + 0.6); fill.closePath();
+      fill.holes.push(pathOf(outerPts));
+      const stoneTex = this.doorStoneTex || null;
+      const stone = new THREE.Mesh(new THREE.ExtrudeGeometry(fill, { depth: 0.2, bevelEnabled: false }), new THREE.MeshStandardMaterial({ map: stoneTex, color: stoneTex ? 0xffffff : 0x6a6660, roughness: 0.95 }));
+      stone.position.z = -0.05; stone.receiveShadow = true; W.add(stone);
+      frame.userData.fill = stone;
+      (this.doorFrameParts || []).forEach(o => W.remove(o)); this.doorFrameParts = [frame, stone];
     }
 
     // ----- a snowman out in the snow beyond the doorway, under a little cloud of drifting snow -----
@@ -807,8 +851,9 @@
       this.tears = tears;
       const path = pts => { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); pts.slice(1).forEach(p => g.lineTo(p[0], p[1])); g.closePath(); };
       g.save();
-      g.strokeStyle = 'rgba(48,26,8,0.85)'; g.lineWidth = 9; g.lineJoin = 'round';
-      tears.forEach(p => { path(p); g.stroke(); });           // scorched lip round each tear
+      g.lineJoin = 'round';
+      g.strokeStyle = 'rgba(30,18,6,0.55)'; g.lineWidth = 16; tears.forEach(p => { path(p); g.stroke(); });   // shadow of the curled lip
+      g.strokeStyle = 'rgba(236,224,196,0.95)'; g.lineWidth = 8; tears.forEach(p => { path(p); g.stroke(); });  // pale torn-paper fibres
       g.globalCompositeOperation = 'destination-out';
       tears.forEach(p => { path(p); g.fill(); });             // then the tear itself
       g.lineWidth = 3; g.strokeStyle = '#000';
