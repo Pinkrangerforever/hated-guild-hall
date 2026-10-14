@@ -146,6 +146,8 @@ const ZN = k => WAR_ZONES[k] ? WAR_ZONES[k].name : k;
 const FC = f => f === 'horde' ? 'h' : f === 'alliance' ? 'a' : 'n';
 // the site's resource icons (same art as the board)
 const RES_IMG = { food: 'FoodIcon.png', wood: 'WoodIcon.png', ore: 'War%20Games/CopperOre.png', crystal: 'CrystalIcon2.png' };
+// troop icon by faction: Horde orc portrait, Alliance footman helm
+const TROOP_ICON = f => `<img class="ri" src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/${f === 'horde' ? 'achievement_character_orc_male' : 'inv_helmet_02'}.png" alt="troops" title="troops">`;
 const RES_ICON = Object.fromEntries(Object.entries(RES_IMG).map(([r, f]) => [r, `<img class="ri" src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/${f}" alt="${r}" title="${r}">`]));
 
 let G = null;            // the sandbox game state (source of truth)
@@ -265,7 +267,7 @@ function renderMe(){
   const sc = E.score(G), f = p.faction;
   const cards = Object.keys(p.cards).filter(k => p.cards[k]).map(k => `<span class="chip">${{ warcry: '📯 Warcry', shieldwall: '🛡 Shield Wall', march: '🥾 Forced March', naval: '⛵ Naval Landing' }[k]} ×${p.cards[k]}</span>`).join('') || '<span class="muted">No cards</span>';
   el.innerHTML = `<h3 style="color:${f === 'horde' ? '#ff8a70' : '#8ab4ff'}">${esc(p.name)} · ${f === 'horde' ? 'Horde' : 'Alliance'}${p.bot ? '<span class="tag">bot</span>' : ''}</h3>
-    <div class="row"><span class="chip">⚡ ${G.settings.unlimitedAP ? '∞' : p.ap} AP</span><span class="chip">🪖 ${p.reinforce} to deploy</span></div>
+    <div class="row"><span class="chip">⚡ ${G.settings.unlimitedAP ? '∞' : p.ap} AP</span><span class="chip">${TROOP_ICON(p.faction)} ${p.reinforce} to deploy</span></div>
     <div class="res">${['food', 'wood', 'ore', 'crystal'].map(r => `<div title="${r}">${RES_ICON[r]} ${p.res[r]}</div>`).join('')}</div>
     <div class="row cards">${cards}</div>
     <details><summary class="muted" style="cursor:pointer">Craft &amp; trade (rate ${E.tradeRate(G, f)}:1)</summary>
