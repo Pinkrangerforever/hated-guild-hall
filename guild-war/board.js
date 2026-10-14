@@ -1452,7 +1452,7 @@
     // in big zones, smaller in tight ones so nothing spills over a border. Footprint at full size ~0.42 units.
     fitPieces(){
       if(!this.raster) return;
-      const RW = this.RW, RH = this.RH, R = this.raster, FOOT = 0.42, pxPerUnit = RW / PW;
+      const RW = this.RW, RH = this.RH, R = this.raster, FOOT = 0.34, pxPerUnit = RW / PW;
       KEYS.forEach(k => {
         const v = this.zoneVal[k], [ax, ay] = anchor(k), cx = Math.floor(ax / MW * RW), cy = Math.floor(ay / MH * RH);
         let clear = 0;
@@ -1463,7 +1463,7 @@
           }
         }
         const room = (clear || 80) / pxPerUnit;   // distance to the nearest border, in world units
-        const s = Math.max(0.45, Math.min(1, room / FOOT));
+        const s = Math.max(0.6, Math.min(1, room / FOOT));
         this.pieces[k].grp.scale.setScalar(s); this.pieces[k].fit = s;
       });
     }

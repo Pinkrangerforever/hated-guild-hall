@@ -180,7 +180,7 @@ const WAR_TUNING = {
     "rot": -0.785
    },
    "redridge": {
-    "scale": 0.65
+    "scale": 0.9
    }
   },
   "mountains": {
