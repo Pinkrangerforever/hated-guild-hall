@@ -11,7 +11,16 @@
     hordeHex: 0xb3221c, allianceHex: 0x2454be, neutralHex: 0x8a7f6a
   };
   const toWorld = (x, y) => new THREE.Vector3((x / MW - 0.5) * PW, 0, (y / MH - 0.5) * PH);
-  const zoneWorld = k => toWorld(WAR_LAYOUT[k].x, WAR_LAYOUT[k].y);
+  // scenery pieces standing on the map (map-px offsets from the zone's anchor); zones with scenery in the
+  // middle move their banner / stronghold aside (PIECE_SHIFT)
+  const SCENERY = {
+    teldrassil: { model: 'tree', dx: 14, dy: -6 },
+    hyjal:      { model: 'tree', dx: 10, dy: -12 }
+  };
+  const SCENERY_MODELS = { tree: { url: 'models/war/world-tree.gltf', height: 0.62, mask: /branch/i } };
+  const PIECE_SHIFT = { teldrassil: [-26, 6], hyjal: [-38, 12] };
+  const anchor = k => { const p = WAR_LAYOUT[k], s = PIECE_SHIFT[k] || [0, 0]; return [p.x + s[0], p.y + s[1]]; };
+  const zoneWorld = k => toWorld(...anchor(k));
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   const easeOut = t => 1 - Math.pow(1 - t, 3);
@@ -94,7 +103,7 @@
       this.camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
       this.cam = { target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 }; this.shakeOff = new THREE.Vector3();
       this.glow = glowTex();
-      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -266,6 +275,26 @@
       });
     }
 
+    // ----- scenery (World Tree on Teldrassil and Mount Hyjal) -----
+    loadScenery(){
+      if(!THREE.GLTFLoader) return;
+      const M = window.WAR_SCENERY_MODELS || SCENERY_MODELS;
+      Object.keys(M).forEach(name => new THREE.GLTFLoader().load(M[name].url, gltf => {
+        const m = gltf.scene, cfg = M[name];
+        m.traverse(o => { if(o.isMesh){ o.castShadow = o.receiveShadow = true; o.material.side = THREE.DoubleSide; o.material.transparent = false; o.material.alphaTest = cfg.mask && cfg.mask.test(o.material.name) ? 0.5 : 0; } });
+        const box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3());
+        const s = cfg.height / size.y;
+        m.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+        const proto = new THREE.Group(), inner = new THREE.Group(); inner.add(m); inner.scale.setScalar(s); proto.add(inner);
+        Object.keys(SCENERY).filter(k => SCENERY[k].model === name).forEach((k, i) => {
+          const p = WAR_LAYOUT[k], sc = SCENERY[k], x = p.x + sc.dx, y = p.y + sc.dy;
+          const t = i ? proto.clone() : proto, at = toWorld(x, y);
+          t.position.set(at.x, this.sheetY(x, y) - 0.01, at.z); t.rotation.y = i * 2.1;
+          this.scene.add(t);
+        });
+      }, undefined, err => console.warn(name + ' scenery failed to load:', err)));
+    }
+
     // ----- faction flags (WoW banner models with their idle wave); neutral zones keep the plain flag -----
     loadFlags(){
       if(!THREE.GLTFLoader || !THREE.SkeletonUtils) return;
@@ -420,6 +449,8 @@
           const ang = rnd() * Math.PI * 2, dist = p.r * (0.35 + rnd() * 0.55);
           const mx = p.x + Math.cos(ang) * dist, my = p.y + Math.sin(ang) * dist;
           if(Math.abs(mx - p.x) < 40 && my > p.y - 30 && my < p.y + 55) continue;   // keep clear of the banner, icon and name
+          const [ax, ay] = anchor(k); if(Math.hypot(mx - ax, my - ay) < 30) continue;
+          const sc = SCENERY[k]; if(sc && Math.hypot(mx - p.x - sc.dx, my - p.y - sc.dy) < 48) continue;
           const rx = Math.floor(mx / MW * RW), ry = Math.floor(my / MH * RH);
           let ok = true;
           for(let dy = -3; dy <= 3 && ok; dy++) for(let dx = -3; dx <= 3; dx++){ if(R[(ry + dy) * RW + rx + dx] !== v){ ok = false; break; } }
