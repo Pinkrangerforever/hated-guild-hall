@@ -711,7 +711,7 @@
     // zone's anchor to the coast nearest the other's, kept a little off the shore, then thinned to waypoints.
     // harbours: where boat lines land for a zone (map px); others land on the coast nearest the zone's banner
     routeSeaPaths(){
-      const HARBOURS = { wetlands: [918, 624] };   // Menethil Harbor, on the west coast
+      const HARBOURS = { wetlands: [918, 624], stranglethorn: [848, 1214] };   // Menethil Harbor (west coast); Booty Bay (southern tip) - boats only
       const S = 3, R = this.raster, RW = this.RW, RH = this.RH;
       const GW = Math.floor(RW / S), GH = Math.floor(RH / S), N = GW * GH;
       const sea = new Uint8Array(N);
@@ -774,16 +774,17 @@
       routes.forEach(rt => {
         const kind = rt.kind === 'zeppelin' ? 'zeppelin' : 'boat'; laneOf = lane[kind];
         const A = WAR_LAYOUT[rt.a], B = WAR_LAYOUT[rt.b];
-        const pa = HARBOURS[rt.a] || [A.x, A.y], pb = HARBOURS[rt.b] || [B.x, B.y];
-        const s = nearestSea(pa[0], pa[1], HARBOURS[rt.a] ? toG(...pa) : toG(B.x, B.y)), t = nearestSea(pb[0], pb[1], HARBOURS[rt.b] ? toG(...pb) : toG(A.x, A.y));
+        const ha = kind === 'boat' && HARBOURS[rt.a], hb = kind === 'boat' && HARBOURS[rt.b];
+        const pa = ha || [A.x, A.y], pb = hb || [B.x, B.y];
+        const s = nearestSea(pa[0], pa[1], ha ? toG(...pa) : toG(B.x, B.y)), t = nearestSea(pb[0], pb[1], hb ? toG(...pb) : toG(A.x, A.y));
         if(s < 0 || t < 0) return;
         const cells = astar(s, t); if(!cells) return;
         cells.forEach((c, i) => { laneOf[c] = 1; if(i) edges[kind].add(Math.min(c, cells[i - 1]) + ',' + Math.max(c, cells[i - 1])); });
         const pts = cells.filter((_, i) => i % 6 === 0 || i === cells.length - 1)
           .map(i => [((i % GW) + 0.5) * S / RW * MW, ((((i / GW) | 0) + 0.5) * S) / RH * MH]);
         // run the line right into the harbour
-        if(HARBOURS[rt.a]){ pts.unshift(HARBOURS[rt.a]); edges[kind].add('H' + rt.a + ',' + s); }
-        if(HARBOURS[rt.b]){ pts.push(HARBOURS[rt.b]); edges[kind].add('H' + rt.b + ',' + t); }
+        if(ha){ pts.unshift(ha); edges[kind].add('H' + rt.a + ',' + s); }
+        if(hb){ pts.push(hb); edges[kind].add('H' + rt.b + ',' + t); }
         paths[rt.a + '|' + rt.b] = pts;
       });
       // the network: each shared stretch drawn once. Chain the edges into polylines between junctions.
