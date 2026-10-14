@@ -867,8 +867,8 @@
           if(border){ d[o] = 40; d[o + 1] = 24; d[o + 2] = 10; d[o + 3] = 200; continue; }
           const c = COL[own[z]] || COL.neutral;
           let a = own[z] === 'neutral' ? 0 : 0.36, cr = c[0], cg = c[1], cb = c[2];
-          if(z === sel){ cr = 255; cg = 230; cb = 150; a += 0.3; }
-          else if(hl.has(z)){ cr = 255; cg = 210; cb = 120; a += 0.2; }
+          if(z === sel){ cr = 255; cg = 225; cb = 150; a += 0.16; }
+          else if(hl.has(z)){ cr = 255; cg = 190; cb = 120; a += 0.08; }
           d[o] = cr; d[o + 1] = cg; d[o + 2] = cb; d[o + 3] = Math.round(Math.min(1, a) * 255);
         }
         oc.putImageData(im, 0, 0);
@@ -1170,6 +1170,7 @@
     }
     select(k, targets){
       this.selected = k; this.highlights = targets || [];
+      this.updateZoneGlow();
       KEYS.forEach(z => this.syncPiece(z));
       this.drawMap();
     }
@@ -1467,6 +1468,52 @@
       });
     }
 
+    // ----- selection glow: a bright rim just inside the selected zone's border that fades inward, with a soft
+    // halo just outside; valid targets get a pulsing ember rim. Two additive sheets over the map. -----
+    zoneGlowCanvas(vals, inner, outer){
+      const RW = this.RW, RH = this.RH, R = this.raster, N = RW * RH, inS = new Uint8Array(256);
+      vals.forEach(v => { inS[v] = 1; });
+      const din = new Int16Array(N).fill(-1), dout = new Int16Array(N).fill(-1), q1 = [], q2 = [];
+      for(let y = 0; y < RH; y++) for(let x = 0; x < RW; x++){
+        const i = y * RW + x, s = inS[R[i]];
+        const edge = (x > 0 && inS[R[i - 1]] !== s) || (x < RW - 1 && inS[R[i + 1]] !== s) || (y > 0 && inS[R[i - RW]] !== s) || (y < RH - 1 && inS[R[i + RW]] !== s);
+        if(!edge) continue;
+        if(s){ din[i] = 0; q1.push(i); } else { dout[i] = 0; q2.push(i); }
+      }
+      const grow = (q, d, want, lim) => {
+        for(let h = 0; h < q.length; h++){
+          const i = q[h], x = i % RW, y = (i / RW) | 0; if(d[i] >= lim) continue;
+          [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => { const nx = x + dx, ny = y + dy; if(nx < 0 || ny < 0 || nx >= RW || ny >= RH) return; const j = ny * RW + nx; if(d[j] < 0 && inS[R[j]] === want){ d[j] = d[i] + 1; q.push(j); } });
+        }
+      };
+      grow(q1, din, 1, inner); grow(q2, dout, 0, outer);
+      const c = document.createElement('canvas'); c.width = RW; c.height = RH;
+      const g = c.getContext('2d'), im = g.createImageData(RW, RH), d = im.data;
+      for(let i = 0; i < N; i++){
+        let a = 0;
+        if(din[i] >= 0) a = din[i] <= 1 ? 0.95 : Math.pow(1 - din[i] / inner, 2.2) * 0.4;
+        else if(dout[i] >= 0) a = Math.pow(1 - dout[i] / outer, 2) * 0.45;
+        d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = 255; d[i * 4 + 3] = Math.round(a * 255);
+      }
+      g.putImageData(im, 0, 0); return c;
+    }
+    updateZoneGlow(){
+      if(!this.raster || !this.mapGeo) return;
+      const mk = (color) => {
+        const m = new THREE.Mesh(this.mapGeo, new THREE.MeshBasicMaterial({ color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 }));
+        m.rotation.x = -Math.PI / 2; m.position.y = 0.006; m.renderOrder = 2; this.scene.add(m); return m;
+      };
+      if(!this.selGlow){ this.selGlow = mk(0xffd36a); this.tgtGlow = mk(0xff6a3a); }
+      const set = (mesh, vals, inner, outer) => {
+        if(mesh.material.map){ mesh.material.map.dispose(); mesh.material.map = null; }
+        if(!vals.length){ mesh.visible = false; return; }
+        const t = new THREE.CanvasTexture(this.zoneGlowCanvas(vals, inner, outer)); t.encoding = THREE.sRGBEncoding;
+        mesh.material.map = t; mesh.material.needsUpdate = true; mesh.visible = true;
+      };
+      set(this.selGlow, this.selected ? [this.zoneVal[this.selected]] : [], 9, 5);
+      set(this.tgtGlow, (this.highlights || []).map(k => this.zoneVal[k]).filter(Boolean), 6, 3);
+    }
+
     // ----- troop figures: the animated Alliance footman / Horde grunt. wow.export leaves worn gear loose;
     // tools/attach_gear.py worked out each piece's bone and exact placement (from the posed OBJ export) and
     // stored it in the node's extras, so here every piece is pinned to its bone and moves with the animation. -----
@@ -1750,15 +1797,14 @@
         const p = this.pieces[k], pos = p.flagGeo.attributes.position, b = p.base;
         for(let i = 0; i < pos.count; i++){ const x = b[i * 3] + 0.1; pos.array[i * 3 + 2] = Math.sin(now / 260 + x * 30 + p.seed) * 0.018 * x * 8; }
         pos.needsUpdate = true;
-        const isSel = this.selected === k, isTgt = (this.highlights || []).includes(k);
-        p.ring.material.opacity = isSel ? 0.85 : isTgt ? 0.45 + 0.35 * Math.sin(now / 220) : 0;
-        p.ring.material.color.setHex(isSel ? 0xffd36a : 0xff7050);
+                p.ring.visible = false;
       });
       this.flames.forEach(f => {
         const k = 0.8 + 0.12 * Math.sin(now / 90 + f.seed) + 0.08 * Math.sin(now / 37 + f.seed * 3);
         f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.4 : 2.2) * (0.9 + 0.15 * k);
       });
       this.dust.rotation.y = now / 60000;
+      if(this.selGlow){ this.selGlow.material.opacity = 0.85 + 0.15 * Math.sin(now / 600); this.tgtGlow.material.opacity = 0.45 + 0.4 * Math.sin(now / 260); }
       (this.zeppelins || []).forEach(z => { z.position.y = z.userData.base + Math.sin(now / 1700 + z.userData.bob) * 0.03; z.rotation.z = Math.sin(now / 2300 + z.userData.bob) * 0.025; });
       (this.ships || []).forEach(s => { s.rotation.z = Math.sin(now / 1400 + s.userData.bob) * 0.04; s.rotation.x = Math.sin(now / 1900 + s.userData.bob) * 0.03; });
       if(this.snowfall){
