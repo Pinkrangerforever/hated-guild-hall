@@ -122,7 +122,7 @@
       LM.onProgress = (u, l, t) => { this._loading = t - l; prevProg && prevProg(u, l, t); };
       LM.onError = () => {};
       this.glow = glowTex();
-      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.loadSuccubus(); this.loadPainting(); this.loadShips(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.loadSuccubus(); this.loadPainting(); this.loadShips(); this.loadTroops(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -1261,25 +1261,65 @@
       });
       return { grow, remove: () => this.animate(400, t => { mat.opacity = 0.9 * (1 - t); }).then(() => { this.scene.remove(tube, head); geo.dispose(); }) };
     }
-    marchTokens(curve, n, faction, ms){
-      const count = Math.min(6, Math.max(1, n));
-      const mat = new THREE.MeshStandardMaterial({ color: COL[faction + 'Hex'] || COL.neutralHex, metalness: 0.3, roughness: 0.5 });
-      const toks = [];
-      for(let i = 0; i < count; i++){
-        const m = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.1, 8), mat); body.position.y = 0.05; m.add(body);
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), mat); head.position.y = 0.12; m.add(head);
-        m.castShadow = true; this.scene.add(m); toks.push(m);
+    // ----- troop figures: the Alliance footman (human) and Horde grunt (orc) models -----
+    loadTroops(){
+      if(!THREE.GLTFLoader || !THREE.SkeletonUtils) return;
+      const M = window.WAR_TROOPS || { alliance: 'models/war/troop-alliance.gltf', horde: 'models/war/troop-horde.gltf' };
+      this.troopProtos = {};
+      Object.keys(M).forEach(f => new THREE.GLTFLoader().load(M[f], gltf => {
+        const m = gltf.scene;
+        // the export leaves the separate gear pieces (helm, shoulders, weapon) unattached at the feet: keep only the
+        // body, which is every mesh sharing the big vertex list
+        let biggest = 0; m.traverse(o => { if(o.isMesh) biggest = Math.max(biggest, o.geometry.attributes.position.count); });
+        m.traverse(o => { if(o.isMesh){
+          if(o.geometry.attributes.position.count < biggest) o.visible = false;
+          o.castShadow = true; o.frustumCulled = false; if(o.material.map){ o.material.alphaTest = 0.4; o.material.transparent = false; }
+        } });
+        const box = new THREE.Box3(); m.traverse(o => { if(o.isMesh && o.visible) box.expandByObject(o); });
+        const s = 0.17 / (box.max.y - box.min.y);   // a figure ~0.17 tall
+        m.position.y = -box.min.y;
+        const inner = new THREE.Group(); inner.add(m); inner.scale.setScalar(s);
+        this.troopProtos[f] = { proto: inner, clips: gltf.animations };
+      }, undefined, err => console.warn(f + ' troops failed to load, using plain tokens:', err)));
+    }
+    // a troop figure with its own animation player; falls back to a plain token if the model isn't in
+    troop(faction){
+      const P = this.troopProtos && this.troopProtos[faction];
+      const holder = new THREE.Group();
+      if(!P){
+        const mat = new THREE.MeshStandardMaterial({ color: COL[faction + 'Hex'] || COL.neutralHex, metalness: 0.3, roughness: 0.5 });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.1, 8), mat); body.position.y = 0.05; holder.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), mat); head.position.y = 0.12; holder.add(head);
+        holder.userData.play = () => {}; this.scene.add(holder); return holder;
       }
+      const fig = THREE.SkeletonUtils.clone(P.proto); holder.add(fig);
+      const mixer = new THREE.AnimationMixer(fig); let cur = null;
+      holder.userData.mixer = mixer; (this.mixers = this.mixers || []).push(mixer);
+      holder.userData.play = (name, once) => {
+        const c = P.clips.find(x => x.name === name); if(!c) return 0;
+        const a = mixer.clipAction(c); a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat); a.clampWhenFinished = !!once;
+        a.time = once ? 0 : Math.random() * c.duration;
+        if(cur && cur !== a) a.crossFadeFrom(cur, 0.2, false);
+        a.play(); cur = a; return c.duration * 1000;
+      };
+      holder.userData.face = (dx, dz) => { holder.rotation.y = Math.atan2(-dz, dx); };   // WoW models face +x
+      holder.userData.play('Ready1H');
+      this.scene.add(holder); return holder;
+    }
+    marchTokens(curve, n, faction, ms){
+      const count = Math.min(5, Math.max(1, n)), toks = [];
+      for(let i = 0; i < count; i++){ const m = this.troop(faction); m.userData.play('Run'); toks.push(m); }
       return this.animate(ms, t => {
         toks.forEach((m, i) => {
-          const tt = Math.max(0, Math.min(1, t * 1.3 - i * 0.06));
-          const p = curve.getPoint(ease(tt)); m.position.copy(p); m.position.y = Math.max(0.0, p.y - 0.06) + Math.abs(Math.sin(tt * 18 + i)) * 0.03;
+          const tt = Math.max(0, Math.min(1, t * 1.3 - i * 0.06)), e = ease(tt);
+          const p = curve.getPoint(e), d = curve.getTangent(Math.min(0.999, Math.max(0.001, e)));
+          m.position.copy(p); m.position.y = Math.max(0.0, p.y - 0.06);
           m.position.x += (i % 3 - 1) * 0.05; m.position.z += (Math.floor(i / 3) - 0.5) * 0.06;
+          if(m.userData.face) m.userData.face(d.x, d.z);
         });
-      }).then(() => toks);
+      }).then(() => { toks.forEach(m => m.userData.play('Ready1H')); return toks; });
     }
-    removeAll(objs){ objs.forEach(o => this.scene.remove(o)); }
+    removeAll(objs){ objs.forEach(o => { this.scene.remove(o); if(o.userData.mixer) this.mixers = this.mixers.filter(m => m !== o.userData.mixer); }); }
 
     // ----- playing log entries -----
     // Applies an entry's "after" zone snapshots once its animation reaches that point.
@@ -1313,19 +1353,21 @@
     async playDeploy(e){
       await this.focusZones([e.to], 700, 4.2);
       const at = zoneWorld(e.to), toks = [];
-      const mat = new THREE.MeshStandardMaterial({ color: COL[e.faction + 'Hex'], metalness: 0.3, roughness: 0.5 });
-      const n = Math.min(6, e.n);
+      const n = Math.min(5, e.n);
       for(let i = 0; i < n; i++){
-        const m = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.1, 8), mat); m.castShadow = true;
-        m.position.set(at.x + (i % 3 - 1) * 0.08, 2, at.z + 0.12 + Math.floor(i / 3) * 0.08); this.scene.add(m); toks.push(m);
+        const m = this.troop(e.faction);
+        m.position.set(at.x + (i % 3 - 1) * 0.09, 2, at.z + 0.14 + Math.floor(i / 3) * 0.09);
+        if(m.userData.face) m.userData.face(0, 1);   // facing the camera side of the table
+        toks.push(m);
       }
       await this.animate(700, t => toks.forEach((m, i) => {
         const tt = Math.max(0, Math.min(1, t * 1.4 - i * 0.07)); const b = tt < 1 ? 1 - easeOut(tt) : 0;
-        m.position.y = 0.05 + b * 2 + (tt > 0.85 ? Math.sin((tt - 0.85) / 0.15 * Math.PI) * 0.04 : 0);
+        m.position.y = b * 2 + (tt > 0.85 ? Math.sin((tt - 0.85) / 0.15 * Math.PI) * 0.03 : 0);
       }));
+      const roar = Math.max(...toks.map(m => m.userData.play('BattleRoar', true) || 0));
       this.pulseRing(e.to, COL[e.faction + 'Hex']);
       this.applyAfter(e); this.floatText(e.to, `+${e.n} 💤`, e.faction);
-      await this.wait(350);
+      await this.wait(Math.max(350, Math.min(1600, roar)));
       await this.animate(300, t => toks.forEach(m => { m.scale.setScalar(1 - t); })); this.removeAll(toks);
     }
     async playMove(e){
@@ -1367,6 +1409,7 @@
       const arrow = this.drawArrow(curve, att === 'horde' ? 0xff4a30 : 0x5a9aff);
       await arrow.grow;
       const toks = await this.marchTokens(this.arcCurve(e.from, e.to, 0.1), e.n, att, 900);
+      toks.forEach(m => m.userData.play('Attack1H'));
       const A = zoneWorld(e.from), B = zoneWorld(e.to);
       const mid = A.clone().lerp(B, 0.62);
       if(e.naval) this.floatText(e.to, '⛵ Naval Landing', att);
