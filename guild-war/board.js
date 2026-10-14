@@ -1346,7 +1346,9 @@
       await this.focusZones([e.to], 700, 3.6);
       this.applyAfter(e);
       const obj = e.kind === 'stronghold' ? (this.pieces[e.to].hold || this.pieces[e.to].tower) : this.pieces[e.to].tent;
-      await this.animate(800, t => { obj.scale.set(1, Math.max(0.01, easeOut(t)), 1); });
+      const base = obj.scale.clone();
+      await this.animate(800, t => { obj.scale.set(base.x, base.y * Math.max(0.01, easeOut(t)), base.z); });
+      obj.scale.copy(base);
       this.pulseRing(e.to, 0xffd36a); this.floatText(e.to, e.kind === 'stronghold' ? '🏰 Stronghold' : '⛺ Outpost', e.faction);
       await this.wait(500);
     }
@@ -1398,7 +1400,9 @@
         this.applyAfter(e);
         this.pulseRing(e.to, COL[att + 'Hex']); this.flash(B, att === 'horde' ? 0xff5030 : 0x60a0ff, 2.2);
         const fl = this.pieces[e.to].flagModel || this.pieces[e.to].flag;
-        await this.animate(600, t => { fl.scale.set(1, Math.max(0.05, 1 - Math.sin(t * Math.PI) * 0.95), 1); });
+        const base = fl.scale.clone();   // the banner models carry a small scale of their own: fold relative to it
+        await this.animate(600, t => { fl.scale.set(base.x, base.y * Math.max(0.05, 1 - Math.sin(t * Math.PI) * 0.95), base.z); });
+        fl.scale.copy(base);
         this.floatText(e.to, '⚑ Captured!', att);
       } else {
         this.applyAfter(e);
