@@ -1063,7 +1063,7 @@
       const flagMat = new THREE.MeshStandardMaterial({ color: COL.neutralHex, side: THREE.DoubleSide, roughness: 0.8 });
       const flag = new THREE.Mesh(flagGeo, flagMat); flag.position.set(0.1, 0.35, 0); flag.castShadow = true; grp.add(flag);
       const base = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.03, 12), new THREE.MeshStandardMaterial({ color: 0x5a4632, metalness: 0.4, roughness: 0.5 }));
-      base.position.y = 0.015; grp.add(base);
+      base.position.y = 0.015;   // (pedestal removed: banners stand straight on the map)
       // stronghold tower / outpost tent (hidden until built)
       const towerMat = new THREE.MeshStandardMaterial({ color: 0x8a8070, roughness: 0.9 });
       const tower = new THREE.Group();
@@ -1261,69 +1261,59 @@
       });
       return { grow, remove: () => this.animate(400, t => { mat.opacity = 0.9 * (1 - t); }).then(() => { this.scene.remove(tube, head); geo.dispose(); }) };
     }
-    // ----- troop figures: the Alliance footman (human) and Horde grunt (orc) models -----
+    // ----- troop figures: wow.export "OBJ (Posed)" of the Alliance footman and Horde grunt, gear already in
+    // place. OBJ has no rig, so the figures are moved in code: a bob when running, a lunge when attacking,
+    // a hop when they roar, a slow breath when standing ready. -----
     loadTroops(){
-      if(!THREE.GLTFLoader || !THREE.SkeletonUtils) return;
-      const M = window.WAR_TROOPS || { alliance: 'models/war/troop-alliance.gltf', horde: 'models/war/troop-horde.gltf' };
+      if(!THREE.OBJLoader || !THREE.MTLLoader) return;
+      const R2 = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/Game%20Pieces/';
+      const M = window.WAR_TROOPS || { alliance: [R2 + 'Alliance%20Troops/', 'humanmale_hd'], horde: [R2 + 'Horde%20Troops/', 'orcmale_hd'] };
       this.troopProtos = {};
-      Object.keys(M).forEach(f => new THREE.GLTFLoader().load(M[f], gltf => {
-        const m = gltf.scene;
-        m.traverse(o => { if(o.isMesh){ o.castShadow = true; o.frustumCulled = false; if(o.material.map){ o.material.alphaTest = 0.4; o.material.transparent = false; } } });
-        this.attachGear(m);
-        const box = new THREE.Box3(); m.traverse(o => { if(o.isMesh && o.visible) box.expandByObject(o); });
-        const s = 0.17 / (box.max.y - box.min.y);   // a figure ~0.17 tall
-        m.position.y = -box.min.y;
-        const inner = new THREE.Group(); inner.add(m); inner.scale.setScalar(s);
-        this.troopProtos[f] = { proto: inner, clips: gltf.animations };
-      }, undefined, err => console.warn(f + ' troops failed to load, using plain tokens:', err)));
-    }
-    // wow.export writes worn gear (helm, shoulders, weapons) as loose meshes at the origin: WoW pins them to
-    // attachment points the glTF doesn't carry. Find the bones from the bind pose and pin each piece on.
-    attachGear(root){
-      root.updateMatrixWorld(true);
-      let body = null; root.traverse(o => { if(o.isSkinnedMesh && !body) body = o; });
-      if(!body) return;
-      const sk = body.skeleton, pos = sk.bones.map((bn, i) => new THREE.Vector3().setFromMatrixPosition(new THREE.Matrix4().copy(sk.boneInverses[i]).invert()));
-      const H = Math.max(...pos.map(p => p.y)), pick = (filter, score) => { let best = -1, bs = -Infinity; pos.forEach((p, i) => { if(filter(p)){ const s = score(p); if(s > bs){ bs = s; best = i; } } }); return best; };
-      // the model faces +x, so its left is +z and right is -z
-      const head = pick(p => Math.abs(p.z) < H * 0.08 && p.y > H * 0.8, p => -Math.abs(p.y - H * 0.9) - Math.abs(p.x) * 0.5);
-      const shL = pick(p => p.y > H * 0.7 && p.y < H * 0.9, p => p.z), shR = pick(p => p.y > H * 0.7 && p.y < H * 0.9, p => -p.z);
-      const hand = side => pick(p => p.y > H * 0.25 && p.y < H * 0.6 && Math.sign(p.z) === side && Math.abs(p.z) > H * 0.12, p => -p.y + Math.abs(p.z) * 0.3);
-      const handR = hand(-1), handL = hand(1);
-      const slots = [[/^Head/, head], [/Shoulder \(L\)/, shL], [/Shoulder \(R\)/, shR], [/^Main-hand/, handR], [/^Off-hand/, handL]];
-      const items = []; root.traverse(o => { if(o.isMesh && !o.isSkinnedMesh) items.push(o); });
-      items.forEach(o => {
-        const slot = slots.find(([re]) => re.test(o.name)); if(!slot || slot[1] < 0){ o.visible = false; return; }
-        // the piece belongs at the bone's bind position (model space); as the bone's child that is
-        // boneInverse * translate(bonePos), so it follows the bone from then on
-        const i = slot[1], bone = sk.bones[i];
-        o.parent.remove(o); bone.add(o);
-        new THREE.Matrix4().copy(sk.boneInverses[i]).multiply(new THREE.Matrix4().makeTranslation(pos[i].x, pos[i].y, pos[i].z)).decompose(o.position, o.quaternion, o.scale);
+      Object.keys(M).forEach(f => {
+        const [dir, name] = M[f];
+        new THREE.MTLLoader().setPath(dir).setCrossOrigin('anonymous').load(name + '.mtl', mats => {
+          mats.preload();
+          Object.values(mats.materials).forEach(m => { m.side = THREE.DoubleSide; if(m.map){ m.map.encoding = THREE.sRGBEncoding; m.alphaTest = 0.4; m.transparent = false; } });
+          new THREE.OBJLoader().setMaterials(mats).setPath(dir).load(name + '.obj', obj => {
+            // gear whose texture didn't come with the export inherits the eye material: give it plain steel instead
+            const steel = new THREE.MeshStandardMaterial({ color: 0x9aa3b0, metalness: 0.6, roughness: 0.4, side: THREE.DoubleSide });
+            obj.traverse(o => { if(o.isMesh){
+              o.castShadow = true; if(/EyeGlow/i.test(o.name)) o.visible = false;
+              if(/Item/.test(o.name) && (!o.material.map || /eyereflect/i.test(o.material.name))) o.material = steel;
+            } });
+            const box = new THREE.Box3().setFromObject(obj), s = 0.17 / (box.max.y - box.min.y);   // a figure ~0.17 tall
+            obj.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+            const inner = new THREE.Group(); inner.add(obj); inner.scale.setScalar(s); inner.rotation.y = Math.PI / 2;   // the export faces +z; the board faces figures along +x
+            this.troopProtos[f] = inner;
+          }, undefined, err => console.warn(f + ' troops failed to load, using plain tokens:', err));
+        }, undefined, err => console.warn(f + ' troop materials failed to load:', err));
       });
     }
-    // a troop figure with its own animation player; falls back to a plain token if the model isn't in
+    // a troop figure; play(name) switches its code-driven motion
     troop(faction){
       const P = this.troopProtos && this.troopProtos[faction];
-      const holder = new THREE.Group();
-      if(!P){
+      const holder = new THREE.Group(), body = new THREE.Group(); holder.add(body);
+      if(P) body.add(P.clone());
+      else {
         const mat = new THREE.MeshStandardMaterial({ color: COL[faction + 'Hex'] || COL.neutralHex, metalness: 0.3, roughness: 0.5 });
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.1, 8), mat); body.position.y = 0.05; holder.add(body);
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), mat); head.position.y = 0.12; holder.add(head);
-        holder.userData.play = () => {}; this.scene.add(holder); return holder;
+        const b1 = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.1, 8), mat); b1.position.y = 0.05; body.add(b1);
+        const hd = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), mat); hd.position.y = 0.12; body.add(hd);
       }
-      const fig = THREE.SkeletonUtils.clone(P.proto); holder.add(fig);
-      const mixer = new THREE.AnimationMixer(fig); let cur = null;
-      holder.userData.mixer = mixer; (this.mixers = this.mixers || []).push(mixer);
-      holder.userData.play = (name, once) => {
-        const c = P.clips.find(x => x.name === name); if(!c) return 0;
-        const a = mixer.clipAction(c); a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat); a.clampWhenFinished = !!once;
-        a.time = once ? 0 : Math.random() * c.duration;
-        if(cur && cur !== a) a.crossFadeFrom(cur, 0.2, false);
-        a.play(); cur = a; return c.duration * 1000;
-      };
-      holder.userData.face = (dx, dz) => { holder.rotation.y = Math.atan2(-dz, dx); };   // WoW models face +x
-      holder.userData.play('Ready1H');
+      holder.userData = { body, mode: 'Ready1H', t0: performance.now(), seed: Math.random() * 6 };
+      holder.userData.play = (name, once) => { holder.userData.mode = name; holder.userData.t0 = performance.now(); return { BattleRoar: 1100, Attack1H: 700 }[name] || 0; };
+      holder.userData.face = (dx, dz) => { holder.rotation.y = Math.atan2(-dz, dx); };
+      (this.figures = this.figures || []).push(holder);
       this.scene.add(holder); return holder;
+    }
+    animateFigures(now){
+      (this.figures || []).forEach(h => {
+        const u = h.userData, t = (now - u.t0) / 1000, b = u.body;
+        b.position.set(0, 0, 0); b.rotation.set(0, 0, 0); b.scale.set(1, 1, 1);
+        if(u.mode === 'Run'){ b.position.y = Math.abs(Math.sin(t * 14 + u.seed)) * 0.014; b.rotation.z = -0.18; }
+        else if(u.mode === 'Attack1H'){ const k = Math.max(0, Math.sin(t * 9 + u.seed)); b.rotation.z = -0.35 * k; b.position.x = 0.02 * k; }
+        else if(u.mode === 'BattleRoar'){ const k = Math.min(1, t / 1.1); b.position.y = Math.sin(k * Math.PI) * 0.04; b.rotation.z = 0.15 * Math.sin(k * Math.PI); b.scale.setScalar(1 + 0.06 * Math.sin(k * Math.PI)); }
+        else { b.scale.y = 1 + Math.sin(t * 2 + u.seed) * 0.012; }
+      });
     }
     marchTokens(curve, n, faction, ms){
       const count = Math.min(5, Math.max(1, n)), toks = [];
@@ -1338,7 +1328,7 @@
         });
       }).then(() => { toks.forEach(m => m.userData.play('Ready1H')); return toks; });
     }
-    removeAll(objs){ objs.forEach(o => { this.scene.remove(o); if(o.userData.mixer) this.mixers = this.mixers.filter(m => m !== o.userData.mixer); }); }
+    removeAll(objs){ objs.forEach(o => { this.scene.remove(o); this.figures = (this.figures || []).filter(f => f !== o); }); }
 
     // ----- playing log entries -----
     // Applies an entry's "after" zone snapshots once its animation reaches that point.
@@ -1562,6 +1552,7 @@
         f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.4 : 2.2) * (0.9 + 0.15 * k);
       });
       this.dust.rotation.y = now / 60000;
+      this.animateFigures(now);
       (this.zeppelins || []).forEach(z => { z.position.y = z.userData.base + Math.sin(now / 1700 + z.userData.bob) * 0.03; z.rotation.z = Math.sin(now / 2300 + z.userData.bob) * 0.025; });
       (this.ships || []).forEach(s => { s.rotation.z = Math.sin(now / 1400 + s.userData.bob) * 0.04; s.rotation.x = Math.sin(now / 1900 + s.userData.bob) * 0.03; });
       if(this.snowfall){
