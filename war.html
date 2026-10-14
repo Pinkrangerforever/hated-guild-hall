@@ -139,8 +139,8 @@
   #endScreen{ position:fixed; inset:0; z-index:9; display:none; align-items:center; justify-content:center; background:radial-gradient(ellipse at center, rgba(10,6,3,0.78), rgba(0,0,0,0.93)); animation:endIn .8s ease; }
   #endScreen.show{ display:flex; }
   @keyframes endIn{ from{ opacity:0; } to{ opacity:1; } }
-  .endWrap{ width:min(980px, 96vw); max-height:94vh; overflow-y:auto; overflow-x:hidden; padding:70px 36px 10px; box-sizing:border-box; }
-  .endHead{ text-align:center; margin-bottom:34px; font:600 13px Cinzel, serif; letter-spacing:3px; color:#a8875a; }
+  .endWrap{ width:min(980px, 96vw); max-height:94vh; overflow-y:auto; overflow-x:hidden; padding:24px 36px 10px; box-sizing:border-box; }
+  .endHead{ text-align:center; margin-bottom:112px; font:600 13px Cinzel, serif; letter-spacing:3px; color:#a8875a; }
   .endCols{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
   .endSide{ position:relative; padding:40px 16px 16px; overflow:visible; border-radius:10px; text-align:center;
     background:linear-gradient(180deg, var(--c1), rgba(12,8,4,0.95) 60%); border:2px solid var(--c2); box-shadow:0 0 40px var(--glow), inset 0 0 0 1px rgba(0,0,0,0.6); }
@@ -172,7 +172,7 @@
   .flagStage canvas{ width:100%; height:100%; display:block; }
   .endSide.has3d .banner{ display:none; }
   .endSide.lost .flagStage{ filter:saturate(0.5) brightness(0.8); }
-  .endTitle{ text-align:center; font:900 20px Cinzel, serif; letter-spacing:8px; color:#d6a940; text-shadow:0 0 14px rgba(214,169,64,0.5); margin-bottom:6px; }
+  .endTitle{ position:relative; z-index:2; text-align:center; font:900 20px Cinzel, serif; letter-spacing:8px; color:#d6a940; text-shadow:0 0 14px rgba(214,169,64,0.5); margin-bottom:6px; }
   .endHead::before, .endHead::after{ content:"✦"; margin:0 10px; color:#d6a940; }
   .embers{ position:absolute; inset:0; overflow:hidden; border-radius:10px; pointer-events:none; }
   .embers i{ position:absolute; bottom:-10px; width:4px; height:4px; border-radius:50%; background:var(--c2); box-shadow:0 0 8px var(--c2); opacity:0; animation:rise linear infinite; }
