@@ -307,6 +307,7 @@
       if(!THREE.GLTFLoader) return;
       const S = window.WAR_STRONGHOLD_MODELS || {
         horde:    { url: 'models/war/horde-stronghold.gltf',    drop: /interior|foyer/i, mask: /hangingleather|clothroof/i, size: 0.5, rotY: Math.PI },
+        horde_outpost: { url: 'models/war/horde-outpost.gltf', mask: /chain|clothfur|clothroof/i, size: 0.3, rotY: 0 },   // Warsong guard tower
         alliance: { url: 'models/war/alliance-stronghold.gltf', drop: /cellar|war_room|armordealer|weapondealer|generalarea/i, mask: /windows_01/i, size: 0.5, rotY: -Math.PI / 2 }
       };
       this.holdModels = {};
@@ -1118,7 +1119,13 @@
         }
         p.holdFor = model ? z.owner : null;
       }
-      p.tower.visible = z.outpost >= 2 && !model; p.tent.visible = z.outpost === 1;
+      const om = z.outpost === 1 && this.holdModels && this.holdModels[z.owner + '_outpost'];
+      if(p.postFor !== (om ? z.owner : null)){
+        if(p.post){ p.grp.remove(p.post); p.post = null; }
+        if(om){ p.post = om.clone(); p.post.position.set(-0.17, 0.002, 0.05); p.grp.add(p.post); }
+        p.postFor = om ? z.owner : null;
+      }
+      p.tower.visible = z.outpost >= 2 && !model; p.tent.visible = z.outpost === 1 && !om;
       const now = this.state ? this.state.clock : 0;
       p.wall.visible = z.fortifyUntil > now;
       const info = WAR_ZONES[k];
@@ -1394,7 +1401,7 @@
     async playBuild(e){
       await this.focusZones([e.to], 700, 3.6);
       this.applyAfter(e);
-      const obj = e.kind === 'stronghold' ? (this.pieces[e.to].hold || this.pieces[e.to].tower) : this.pieces[e.to].tent;
+      const obj = e.kind === 'stronghold' ? (this.pieces[e.to].hold || this.pieces[e.to].tower) : (this.pieces[e.to].post || this.pieces[e.to].tent);
       const base = obj.scale.clone();
       await this.animate(800, t => { obj.scale.set(base.x, base.y * Math.max(0.01, easeOut(t)), base.z); });
       obj.scale.copy(base);
