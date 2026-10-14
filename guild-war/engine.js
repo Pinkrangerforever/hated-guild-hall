@@ -343,24 +343,41 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
   }
 
   // ---- daily reset ----
-  function autopilot(s){
-    // players who never played today: their unused reinforcements go to the most threatened zones
-    const d = day(s);
+  // Runs at 11:59pm, just before the day turns over, for every player who did nothing that day:
+  //  1) their waiting reinforcements go to the most threatened zones they can reach
+  //  2) two of their AP fortify two random zones of theirs that aren't fortified yet (never attacks or spends resources)
+  function autopilot(s, rng){
+    rng = rng || Math.random;
+    const d = day(s), at = d * 24 + 23 + 59 / 60;
     Object.values(s.players).forEach(p => {
-      if(p.lastActiveDay === d || p.reinforce <= 0) return;
-      const spots = deployable(s, p.faction).sort((a, b) => threat(s, b) - threat(s, a));
-      if(!spots.length) return;
-      const before = snap(s, spots.slice(0, 3));
-      let left = p.reinforce, i = 0; const placed = {};
-      while(left > 0){ const k = spots[i % Math.min(3, spots.length)]; s.zones[k].fresh++; placed[k] = (placed[k] || 0) + 1; left--; i++; }
-      p.reinforce = 0;
-      log(s, { type: 'autopilot', pid: p.id, faction: p.faction, placed }, before);
+      if(p.lastActiveDay === d) return;
+      if(p.reinforce > 0){
+        const spots = deployable(s, p.faction).sort((a, b) => threat(s, b) - threat(s, a));
+        if(spots.length){
+          const before = snap(s, spots.slice(0, 3));
+          let left = p.reinforce, i = 0; const placed = {};
+          while(left > 0){ const k = spots[i % Math.min(3, spots.length)]; s.zones[k].fresh++; placed[k] = (placed[k] || 0) + 1; left--; i++; }
+          p.reinforce = 0;
+          const clock = s.clock; s.clock = at;
+          log(s, { type: 'autopilot', pid: p.id, faction: p.faction, placed }, before);
+          s.clock = clock;
+        }
+      }
+      const open = zonesOf(s, p.faction).filter(k => !(s.zones[k].fortifyUntil > at)).sort(() => rng() - 0.5);
+      for(let n = 0; n < 2 && open.length && (p.ap >= 1 || s.settings.unlimitedAP); n++){
+        const k = open.shift(), before = snap(s, [k]);
+        if(!s.settings.unlimitedAP) p.ap--;
+        s.zones[k].fortifyUntil = at + RULES.fortifyHours;
+        const clock = s.clock; s.clock = at;
+        log(s, { type: 'fortify', pid: p.id, faction: p.faction, to: k, until: s.zones[k].fortifyUntil, auto: true }, before);
+        s.clock = clock;
+      }
     });
   }
   function beginDay(s, rng, first){
     rng = rng || Math.random;
     if(!first){
-      autopilot(s);
+      autopilot(s, rng);
       s.clock = (day(s) + 1) * 24;
     }
     const d = day(s);

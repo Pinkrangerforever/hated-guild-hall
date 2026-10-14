@@ -463,7 +463,7 @@ function describe(e){
     case 'deploy': return `${P(e.pid)} deployed ${e.n} to ${ZN(e.to)}`;
     case 'move': return `${P(e.pid)} marched ${e.n} from ${ZN(e.from)} to ${ZN(e.to)}${e.march ? ' (Forced March)' : ''}`;
     case 'attack': return `${P(e.pid)} attacked ${ZN(e.to)} from ${ZN(e.from)} with ${e.n}: ${e.captured ? '<b>captured it</b>' : 'repelled'} (lost ${e.attLost}, killed ${e.defLost})`;
-    case 'fortify': return `${P(e.pid)} fortified ${ZN(e.to)}`;
+    case 'fortify': return `${P(e.pid)}${e.auto ? ' (autopilot)' : ''} fortified ${ZN(e.to)}`;
     case 'build': return `${P(e.pid)} built ${e.kind === 'stronghold' ? 'a stronghold' : 'an outpost'} in ${ZN(e.to)}`;
     case 'craft': return `${P(e.pid)} crafted ${e.kind}`;
     case 'shieldwall': return `${P(e.pid)} raised a Shield Wall in ${ZN(e.to)}`;
@@ -509,7 +509,7 @@ function renderLedger(){
   };
   l.innerHTML = `<div class="ph"><div class="crest" style="font-size:18px">📒</div><div style="flex:1"><div class="t">War Ledger</div><div class="s">Day ${d + 1} · who serves where</div></div><button class="btn sm" onclick="toggleLedger()">✕</button></div>
     <div class="ledCols">${col('horde')}${col('alliance')}</div>
-    <div class="muted" style="margin-top:8px">Players who haven't acted by 8pm have their waiting troops placed by autopilot.</div>`;
+    <div class="muted" style="margin-top:8px">Anyone who hasn't acted by 11:59pm goes on autopilot: their waiting troops are placed on threatened zones, and 2 of their AP fortify two of their zones.</div>`;
 }
 function refreshUI(){
   renderLedger();
