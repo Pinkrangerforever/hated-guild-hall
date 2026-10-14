@@ -117,7 +117,7 @@
       this.camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
       this.cam = { target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 }; this.shakeOff = new THREE.Vector3();
       this.glow = glowTex();
-      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.loadSuccubus(); this.loadPainting(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.loadSuccubus(); this.loadPainting(); this.loadShips(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -430,6 +430,62 @@
           if(gltf.animations[0]){ const mx = new THREE.AnimationMixer(t); mx.clipAction(gltf.animations[0]).play(); (this.mixers = this.mixers || []).push(mx); }
         });
       }, undefined, err => console.warn('snow torch failed to load:', err));
+    }
+
+    // ----- ships on the sea, moored along the boat routes: Booty Bay pirate ships and Alliance transports.
+    // Each sits a few steps out along a route's sea path from the named zone. -----
+    loadShips(){
+      if(!THREE.GLTFLoader) return;
+      const M = window.WAR_SHIPS || { pirate: 'models/war/pirate-ship.gltf', alliance: 'models/war/alliance-ship.gltf' };
+      const SHIPS = [
+        { kind: 'pirate',   route: 'tanaris|riverglades',    from: 'tanaris' },
+        { kind: 'pirate',   route: 'barrens|stranglethorn',  from: 'barrens' },
+        { kind: 'pirate',   route: 'tanaris|riverglades',    from: 'riverglades' },
+        { kind: 'alliance', route: 'elwynn|darkshore',       from: 'elwynn' },
+        { kind: 'alliance', route: 'darkshore|wetlands',     from: 'wetlands' },
+        { kind: 'alliance', route: 'dustwallow|wetlands',    from: 'dustwallow', step: 1 },   // in close to Theramore
+        { kind: 'alliance', route: 'darkshore|wetlands',     from: 'darkshore' }
+      ];
+      const protos = {};
+      const place = () => {
+        if(!this.raster) return setTimeout(place, 300);
+        const paths = this.seaPaths = this.seaPaths || this.routeSeaPaths();
+        SHIPS.forEach((sh, i) => {
+          const proto = protos[sh.kind], path = paths[sh.route]; if(!proto || !path) return;
+          const fromStart = sh.route.split('|')[0] === sh.from;
+          const seq = fromStart ? path : path.slice().reverse();
+          const st = sh.step != null ? sh.step : sh.from === 'wetlands' ? 2 : 3;
+          const at = seq[Math.min(seq.length - 1, st)], next = seq[Math.min(seq.length - 1, st + 2)];
+          const w = toWorld(at[0], at[1]), w2 = toWorld(next[0], next[1]);
+          const ship = proto.clone(); ship.position.set(w.x, this.sheetY(at[0], at[1]) + 0.004, w.z);
+          ship.rotation.y = Math.atan2(-(w2.z - w.z), w2.x - w.x) + (i % 2 ? 0.25 : -0.25);   // bow (+x) along the route
+          ship.userData.bob = Math.random() * 6; this.scene.add(ship); (this.ships = this.ships || []).push(ship);
+        });
+      };
+      let left = 2;
+      Object.keys(M).forEach(kind => new THREE.GLTFLoader().load(M[kind], gltf => {
+        gltf.scene.updateMatrixWorld(true);
+        const byMat = new Map();
+        gltf.scene.traverse(o => {
+          if(!o.isMesh) return;
+          const g = o.geometry.clone().applyMatrix4(o.matrixWorld);
+          ['color', 'uv2', 'skinIndex', 'skinWeight', 'tangent'].forEach(a => g.deleteAttribute(a));
+          if(!g.attributes.uv) return; if(!g.attributes.normal) g.computeVertexNormals();
+          const ng = g.index ? g.toNonIndexed() : g, key = o.material.uuid;
+          if(!byMat.has(key)) byMat.set(key, { mat: o.material, geos: [] }); byMat.get(key).geos.push(ng);
+        });
+        const grp = new THREE.Group();
+        byMat.forEach(({ mat, geos }) => {
+          const merged = THREE.BufferGeometryUtils ? THREE.BufferGeometryUtils.mergeBufferGeometries(geos) : null;
+          mat.side = THREE.DoubleSide; mat.transparent = false; mat.alphaTest = 0;
+          (merged ? [merged] : geos).forEach(g => { const m = new THREE.Mesh(g, mat); m.castShadow = true; grp.add(m); });
+        });
+        const box = new THREE.Box3().setFromObject(grp), s = 0.52 / (box.max.x - box.min.x);   // ~0.52 units long
+        grp.position.set(-(box.min.x + box.max.x) / 2, 0, -(box.min.z + box.max.z) / 2);      // origin stays at the waterline
+        const holder = new THREE.Group(), inner = new THREE.Group(); inner.add(grp); inner.scale.setScalar(s); holder.add(inner);
+        protos[kind] = holder;
+        if(--left === 0) place();
+      }, undefined, err => { console.warn(kind + ' ship failed to load:', err); if(--left === 0) place(); }));
     }
 
     // ----- paintings either side of the doorway: the Dalaran lady on the left, the Worgen portrait on the right -----
@@ -750,9 +806,6 @@
             g.quadraticCurveTo(path[i][0] * sx, path[i][1] * sy, mx * sx, my * sy);
           }
           const last = path[path.length - 1]; g.lineTo(last[0] * sx, last[1] * sy); g.stroke(); g.setLineDash([]);
-          const mid = path[Math.floor(path.length / 2)];
-          g.font = '28px serif'; g.fillStyle = '#2d1e10'; g.textAlign = 'center'; g.textBaseline = 'middle';
-          g.fillText('⛵', mid[0] * sx, mid[1] * sy);
           return;
         }
         const a = WAR_LAYOUT[rt.a], b = WAR_LAYOUT[rt.b];
@@ -763,8 +816,6 @@
         g.strokeStyle = rt.kind === 'zeppelin' ? 'rgba(92,52,20,0.75)' : 'rgba(24,48,70,0.7)';
         g.beginPath(); g.moveTo(a.x * sx, a.y * sy); g.quadraticCurveTo(cx * sx, cy * sy, b.x * sx, b.y * sy); g.stroke();
         g.setLineDash([]);
-        g.font = '28px serif'; g.fillStyle = '#2d1e10'; g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.fillText(rt.kind === 'zeppelin' ? '🎈' : '⛵', (0.25 * a.x + 0.5 * cx + 0.25 * b.x) * sx, (0.25 * a.y + 0.5 * cy + 0.25 * b.y) * sy);
       });
       // resource icons: every zone shows its type faintly; this game's rich deposits are bold with a gold ring
       KEYS.forEach(k => {
@@ -1366,6 +1417,7 @@
         f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.4 : 2.2) * (0.9 + 0.15 * k);
       });
       this.dust.rotation.y = now / 60000;
+      (this.ships || []).forEach(s => { s.rotation.z = Math.sin(now / 1400 + s.userData.bob) * 0.04; s.rotation.x = Math.sin(now / 1900 + s.userData.bob) * 0.03; });
       if(this.snowfall){
         const a = this.snowfall.geometry.attributes.position, d = this.snowDoor;
         for(let i = 0; i < a.count; i++){
