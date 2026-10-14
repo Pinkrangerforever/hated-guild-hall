@@ -668,6 +668,7 @@
       KEYS.forEach(k => {
         const p = WAR_LAYOUT[k], r = WAR_ZONES[k].resource, im = this.resIcons && this.resIcons[r];
         const rich = this.state && this.state.rich ? !!this.state.rich[k] : false;
+        if(!rich) return;   // only this war's rich deposits show an icon
         const off = Math.min(46, p.r * 0.45);
         const ic = TUNE.icons[k] || [p.x + off, p.y - off * 0.2];
         const cx = ic[0] * sx, cy = ic[1] * sy, size = Math.min(rich ? 54 : 42, 14 + p.r * 0.9);

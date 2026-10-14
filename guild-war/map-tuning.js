@@ -8,24 +8,24 @@ const WAR_TUNING = {
     294
    ],
    "felwood": [
-    282,
-    414
+    278,
+    364
    ],
    "hyjal": [
     318,
     384
    ],
    "ashenvale": [
-    290,
-    518
+    294,
+    482
    ],
    "durotar": [
     476,
-    562
+    570
    ],
    "mulgore": [
-    250,
-    708
+    266,
+    726
    ],
    "stranglethorn": [
     940,
@@ -78,8 +78,8 @@ const WAR_TUNING = {
     288
    ],
    "felwood": [
-    278,
-    364
+    288,
+    298
    ],
    "hyjal": [
     370,
@@ -87,7 +87,8 @@ const WAR_TUNING = {
    ],
    "ashenvale": [
     290,
-    566
+    518,
+    26
    ],
    "stonetalon": [
     174,
