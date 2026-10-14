@@ -44,10 +44,11 @@
 
   // the map's edges curl up like old parchment
   const CURL_BAND = 0.07, CURL_LIFT = 0.28;
+  // only the top-left and bottom-right corners curl (uv: v = 1 is the top edge)
+  const CURL_R = 0.16;
   function curlHeight(u, v){
-    const e = (d) => d < CURL_BAND ? Math.pow((CURL_BAND - d) / CURL_BAND, 2) : 0;
-    const a = Math.max(e(u), e(1 - u)), c = Math.max(e(v), e(1 - v));
-    return (a + c + a * c) * CURL_LIFT;
+    const corner = (du, dv) => { const d = Math.hypot(du, dv * MH / MW); return d < CURL_R ? Math.pow((CURL_R - d) / CURL_R, 2) : 0; };
+    return Math.max(corner(u, 1 - v), corner(1 - u, v)) * CURL_LIFT * 1.6;
   }
 
   // ---------- small canvas textures ----------
@@ -412,6 +413,73 @@
       this.scene.add(m); this.mapMesh = m; this.mapGeo = geo;
       this.drawMap();
     }
+    // Boat routes: shortest sea path (A* on a coarse grid of the outline map) from the coast nearest one
+    // zone's anchor to the coast nearest the other's, kept a little off the shore, then thinned to waypoints.
+    routeSeaPaths(){
+      const S = 3, R = this.raster, RW = this.RW, RH = this.RH;
+      const GW = Math.floor(RW / S), GH = Math.floor(RH / S), N = GW * GH;
+      const sea = new Uint8Array(N);
+      for(let gy = 0; gy < GH; gy++) for(let gx = 0; gx < GW; gx++){
+        let water = true;
+        for(let y = 0; y < S && water; y++) for(let x = 0; x < S; x++){ const v = R[(gy * S + y) * RW + gx * S + x]; if(v !== 0){ water = false; break; } }
+        sea[gy * GW + gx] = water ? 1 : 0;
+      }
+      // distance to land (grid steps), so routes keep a little water between them and the coast
+      const dist = new Float32Array(N).fill(1e9), q = [];
+      for(let i = 0; i < N; i++) if(!sea[i]){ dist[i] = 0; q.push(i); }
+      for(let h = 0; h < q.length; h++){
+        const i = q[h], x = i % GW, y = (i / GW) | 0;
+        [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
+          const nx = x + dx, ny = y + dy; if(nx < 0 || ny < 0 || nx >= GW || ny >= GH) return;
+          const j = ny * GW + nx; if(dist[j] > dist[i] + 1){ dist[j] = dist[i] + 1; q.push(j); }
+        });
+      }
+      const cost = i => 1 + 8 * Math.exp(-dist[i] / 2.5);
+      const toG = (mx, my) => [Math.floor(mx / MW * RW / S), Math.floor(my / MH * RH / S)];
+      const nearestSea = (mx, my, toward) => {
+        const [cx, cy] = toG(mx, my); let best = -1, bd = 1e9;
+        for(let r = 1; r < 60 && best < 0; r++) for(let y = cy - r; y <= cy + r; y++) for(let x = cx - r; x <= cx + r; x++){
+          if(x < 0 || y < 0 || x >= GW || y >= GH) continue; const i = y * GW + x; if(!sea[i] || dist[i] < 2) continue;
+          const d = Math.hypot(x - cx, y - cy) + 0.25 * Math.hypot(x - toward[0], y - toward[1]);
+          if(d < bd){ bd = d; best = i; }
+        }
+        return best;
+      };
+      const astar = (s, t) => {
+        const g = new Float32Array(N).fill(Infinity), from = new Int32Array(N).fill(-1), done = new Uint8Array(N); g[s] = 0;
+        const tx = t % GW, ty = (t / GW) | 0, hz = i => Math.hypot(i % GW - tx, ((i / GW) | 0) - ty);
+        // binary min-heap of [priority, cell]
+        const heap = [[0, s]];
+        const push = e => { heap.push(e); let k = heap.length - 1; while(k){ const p = (k - 1) >> 1; if(heap[p][0] <= heap[k][0]) break; [heap[p], heap[k]] = [heap[k], heap[p]]; k = p; } };
+        const pop = () => { const top = heap[0], last = heap.pop(); if(heap.length){ heap[0] = last; let k = 0; for(;;){ const l = 2 * k + 1, r = l + 1; let m = k; if(l < heap.length && heap[l][0] < heap[m][0]) m = l; if(r < heap.length && heap[r][0] < heap[m][0]) m = r; if(m === k) break; [heap[m], heap[k]] = [heap[k], heap[m]]; k = m; } } return top; };
+        while(heap.length){
+          const [, i] = pop(); if(done[i]) continue; done[i] = 1;
+          if(i === t) break;
+          const x = i % GW, y = (i / GW) | 0;
+          for(let dy = -1; dy <= 1; dy++) for(let dx = -1; dx <= 1; dx++){
+            if(!dx && !dy) continue; const nx = x + dx, ny = y + dy; if(nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue;
+            const j = ny * GW + nx; if(!sea[j]) continue;
+            const ng = g[i] + cost(j) * (dx && dy ? 1.414 : 1);
+            if(ng < g[j]){ g[j] = ng; from[j] = i; push([ng + hz(j), j]); }
+          }
+        }
+        if(from[t] < 0 && s !== t) return null;
+        const out = []; for(let i = t; i >= 0; i = from[i]){ out.push(i); if(i === s) break; }
+        return out.reverse();
+      };
+      const paths = {};
+      WAR_ROUTES.filter(rt => rt.kind === 'boat').forEach(rt => {
+        const A = WAR_LAYOUT[rt.a], B = WAR_LAYOUT[rt.b];
+        const s = nearestSea(A.x, A.y, toG(B.x, B.y)), t = nearestSea(B.x, B.y, toG(A.x, A.y));
+        if(s < 0 || t < 0) return;
+        const cells = astar(s, t); if(!cells) return;
+        const pts = cells.filter((_, i) => i % 6 === 0 || i === cells.length - 1)
+          .map(i => [((i % GW) + 0.5) * S / RW * MW, ((((i / GW) | 0) + 0.5) * S) / RH * MH]);
+        paths[rt.a + '|' + rt.b] = pts;
+      });
+      return paths;
+    }
+
     // height of the curled sheet at a map point, so things placed near the edge sit on it
     sheetY(x, y){ return curlHeight(x / MW, 1 - y / MH); }
     ownerOf(k){ return this.state && this.state.zones[k] ? this.state.zones[k].owner : 'neutral'; }
@@ -443,8 +511,23 @@
         g.imageSmoothingEnabled = true;
         g.drawImage(this.overlayCanvas, 0, 0, W, H);
       }
-      // routes
+      // routes: boats follow the sea around the coasts; zeppelins fly straight over
+      const seaPaths = this.raster ? (this.seaPaths = this.seaPaths || this.routeSeaPaths()) : {};
       WAR_ROUTES.forEach(rt => {
+        const path = rt.kind === 'boat' && seaPaths[rt.a + '|' + rt.b];
+        if(path){
+          g.setLineDash([20, 13]); g.lineWidth = 5; g.strokeStyle = 'rgba(24,48,70,0.7)';
+          g.beginPath(); g.moveTo(path[0][0] * sx, path[0][1] * sy);
+          for(let i = 1; i < path.length - 1; i++){
+            const mx = (path[i][0] + path[i + 1][0]) / 2, my = (path[i][1] + path[i + 1][1]) / 2;
+            g.quadraticCurveTo(path[i][0] * sx, path[i][1] * sy, mx * sx, my * sy);
+          }
+          const last = path[path.length - 1]; g.lineTo(last[0] * sx, last[1] * sy); g.stroke(); g.setLineDash([]);
+          const mid = path[Math.floor(path.length / 2)];
+          g.font = '28px serif'; g.fillStyle = '#2d1e10'; g.textAlign = 'center'; g.textBaseline = 'middle';
+          g.fillText('⛵', mid[0] * sx, mid[1] * sy);
+          return;
+        }
         const a = WAR_LAYOUT[rt.a], b = WAR_LAYOUT[rt.b];
         const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, dx = b.x - a.x, dy = b.y - a.y;
         const bend = rt.kind === 'zeppelin' ? -0.18 : 0.14;

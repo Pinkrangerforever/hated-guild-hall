@@ -3,7 +3,7 @@
    guild-war/img/war-map.jpg. guild-war/img/war-zones.png holds the zone outlines at half the map's resolution:
    each pixel is 1 + the zone's index in WAR_ZONE_ORDER, 0 = sea, 253 = land that isn't a zone, 254 = lake.
    x, y = the most inland point of the zone (where its banner stands); r = its rough radius. */
-const WAR_MAP_SIZE = { w: 1308, h: 1260 };
+const WAR_MAP_SIZE = { w: 1308, h: 1380 };
 const WAR_MAP_IMAGE = 'guild-war/img/war-map.jpg';
 const WAR_ZONE_IMAGE = 'guild-war/img/war-zones.png';
 const WAR_ZONE_ORDER = ["teldrassil","darkshore","felwood","hyjal","moonglade","winterspring","azshara","durotar","ashenvale","stonetalon","desolace","feralas","barrens","mulgore","dustwallow","thousand_needles","silithus","ungoro","tanaris","shendralas","eplaguelands","wplaguelands","tirisfal","silverpine","alterac","hillsbrad","hinterlands","arathi","wetlands","loch_modan","dun_morogh","badlands","burning_steppes","riverglades","elwynn","redridge","westfall","duskwood","deadwind","swamp_sorrows","blasted_lands","stranglethorn","searing_gorge"];
@@ -27,7 +27,7 @@ const WAR_LAYOUT = {
   thousand_needles: { x: 436, y: 986, r: 75 },
   silithus:         { x: 152, y: 1098, r: 109 },
   ungoro:           { x: 298, y: 1052, r: 81 },
-  tanaris:          { x: 422, y: 1096, r: 97 },
+  tanaris:          { x: 422, y: 1096, r: 92 },
   shendralas:       { x: 182, y: 822, r: 22 },
   eplaguelands:     { x: 1110, y: 268, r: 93 },
   wplaguelands:     { x: 972, y: 268, r: 50 },
