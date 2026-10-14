@@ -322,7 +322,9 @@ function renderZone(){
       const canDeploy = E.deployable(G, p.faction).includes(selZone);
       h += `<div class="row"><button class="btn ${mode === 'attack' ? 'red' : ''}" onclick="setMode('attack')">⚔ Attack</button><button class="btn ${mode === 'move' ? 'blue' : ''}" onclick="setMode('move')">🥾 Move</button>
         <button class="btn" onclick="doFortify()">🧱 Fortify</button></div>`;
-      if(p.reinforce > 0 && canDeploy) h += `<div class="row">Deploy <input type="range" id="depN" min="1" max="${p.reinforce}" value="${p.reinforce}" oninput="depV.textContent=this.value"><b id="depV">${p.reinforce}</b><button class="btn" onclick="doDeploy()">Deploy</button></div>`;
+      // deploy as many or as few as you like here, then pick another zone for the rest
+      if(p.reinforce > 0 && canDeploy) h += `<div class="row">Deploy <button class="btn sm" onclick="doDeploy(1)">+1</button>${p.reinforce >= 3 ? '<button class="btn sm" onclick="doDeploy(3)">+3</button>' : ''}<button class="btn sm" onclick="doDeploy(${p.reinforce})">All ${p.reinforce}</button></div>
+        <div class="row"><input type="range" id="depN" min="1" max="${p.reinforce}" value="1" oninput="depV.textContent=this.value"><b id="depV">1</b><button class="btn" onclick="doDeploy()">Deploy</button></div>`;
       else if(p.reinforce > 0) h += `<div class="muted">This zone is cut off from your strongholds: you can't deploy here.</div>`;
       h += `<div class="row">${z.outpost === 0 ? `<button class="btn sm" onclick="doBuild('outpost')" title="${costStr(E.RULES.costs.outpost)}">⛺ Build outpost</button>` : ''}
         ${z.outpost === 1 ? `<button class="btn sm" onclick="doBuild('stronghold')" title="${costStr(E.RULES.costs.stronghold)}">🏰 Upgrade to stronghold</button>` : ''}
@@ -353,7 +355,7 @@ function after(r){
   if(!r.ok){ toast(r.error); return false; }
   save(); push(r.entry); refreshUI(); return true;
 }
-function doDeploy(){ after(E.deploy(G, playAs, selZone, +document.getElementById('depN').value)); }
+function doDeploy(n){ after(E.deploy(G, playAs, selZone, n || +document.getElementById('depN').value)); }
 function doFortify(){ after(E.fortify(G, playAs, selZone)); }
 function doBuild(k){ after(E.build(G, playAs, selZone, k)); }
 function doShield(){ after(E.useShieldWall(G, playAs, selZone)); }

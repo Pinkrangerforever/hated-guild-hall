@@ -1,40 +1,32 @@
-/* Guild War board: the war room, the table, the generated zone map, the pieces on it, the camera and the
-   battle animations. Everything is drawn in code for now (placeholder art until the real assets land).
-   Map space (2000 x 1200, y down) -> table space: X = x/200 - 5, Z = y/200 - 3, table top at y = 0. */
+/* Guild War board: the war room, the table, the map, the pieces on it, the camera and the battle animations.
+   The map is the WoW: Forever continents (guild-war/img/war-map.jpg); guild-war/img/war-zones.png says which
+   zone each pixel belongs to (see map-layout.js). Map space (MW x MH, y down) -> table space: the map is
+   PW x PH world units centred on the table, table top at y = 0. */
 (function(){
   const MW = WAR_MAP_SIZE.w, MH = WAR_MAP_SIZE.h;
-  const RW = 1000, RH = 600;                       // ownership raster (half the map resolution)
+  const PW = 8.2, PH = PW * MH / MW;              // the map's size on the table (fits inside the round top)
   const KEYS = Object.keys(WAR_LAYOUT);
   const COL = {
     horde: [178, 34, 28], alliance: [36, 84, 190], neutral: [120, 110, 92],
     hordeHex: 0xb3221c, allianceHex: 0x2454be, neutralHex: 0x8a7f6a
   };
-  const toWorld = (x, y) => new THREE.Vector3(x / 200 - 5, 0, y / 200 - 3);
+  const toWorld = (x, y) => new THREE.Vector3((x / MW - 0.5) * PW, 0, (y / MH - 0.5) * PH);
   const zoneWorld = k => toWorld(WAR_LAYOUT[k].x, WAR_LAYOUT[k].y);
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   const easeOut = t => 1 - Math.pow(1 - t, 3);
-
-  // ---------- the map raster: which zone owns each pixel ----------
-  function noise(x, y){
-    return Math.sin(x * 0.021 + Math.sin(y * 0.013) * 2) * 0.5 + Math.sin(y * 0.027 + x * 0.008) * 0.35 + Math.sin((x + y) * 0.06) * 0.15;
-  }
-  function buildRaster(){
-    const idx = new Int8Array(RW * RH).fill(-1);
-    const pts = KEYS.map(k => WAR_LAYOUT[k]);
-    for(let py = 0; py < RH; py++){
-      for(let px = 0; px < RW; px++){
-        const x = px * 2, y = py * 2;
-        let best = -1, bd = 1e9;
-        for(let i = 0; i < pts.length; i++){
-          const p = pts[i], dx = x - p.x, dy = y - p.y;
-          const d = Math.sqrt(dx * dx + dy * dy) / p.r;
-          if(d < bd){ bd = d; best = i; }
-        }
-        if(bd < 1.32 + noise(x, y) * 0.16) idx[py * RW + px] = best;
-      }
-    }
-    return idx;
+  // raster values: 1 + index in WAR_ZONE_ORDER; 0 sea, 253 land that isn't a zone, 254 lake
+  const SEA = 0, WASTE = 253, LAKE = 254;
+  const isZone = v => v > 0 && v < WASTE;
+  // mountains rise in these zones (little 3D peaks); 1 = snow caps
+  const PEAKS = { alterac: 1, dun_morogh: 1, winterspring: 1, hyjal: 1, searing_gorge: 0, burning_steppes: 0, redridge: 0, badlands: 0,
+                  stonetalon: 0, thousand_needles: 0, hinterlands: 0, arathi: 0, ungoro: 0, blasted_lands: 0, deadwind: 0 };
+  // the map's edges curl up like old parchment
+  const CURL_BAND = 0.07, CURL_LIFT = 0.28;
+  function curlHeight(u, v){
+    const e = (d) => d < CURL_BAND ? Math.pow((CURL_BAND - d) / CURL_BAND, 2) : 0;
+    const a = Math.max(e(u), e(1 - u)), c = Math.max(e(v), e(1 - v));
+    return (a + c + a * c) * CURL_LIFT;
   }
 
   // ---------- small canvas textures ----------
@@ -90,9 +82,8 @@
     constructor(container, opts){
       this.el = container; this.opts = opts || {};
       this.speed = 1; this.state = null; this.selected = null; this.anims = []; this.labels = {};
-      this.raster = buildRaster();
-      this.zoneIdx = {}; KEYS.forEach((k, i) => { this.zoneIdx[k] = i; });
-      this.centers = KEYS.map(k => WAR_LAYOUT[k]);
+      this.raster = null; this.RW = 1; this.RH = 1;   // zone outlines, loaded with the map image
+      this.zoneVal = {}; WAR_ZONE_ORDER.forEach((k, i) => { this.zoneVal[k] = i + 1; });
       this.renderer = new THREE.WebGLRenderer({ antialias: true });
       this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
       this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -101,7 +92,7 @@
       this.overlay = document.createElement('div'); this.overlay.className = 'wb-overlay'; container.appendChild(this.overlay);
       this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(0x0b0806); this.scene.fog = new THREE.Fog(0x0b0806, 16, 34);
       this.camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
-      this.cam = { target: new THREE.Vector3(0, 0, 0.2), dist: 10.5, polar: 0.62, az: 0 }; this.shakeOff = new THREE.Vector3();
+      this.cam = { target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 }; this.shakeOff = new THREE.Vector3();
       this.glow = glowTex();
       this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
@@ -296,15 +287,9 @@
 
     // ----- the map on the table -----
     buildMap(){
-      const c = document.createElement('canvas'); c.width = 2048; c.height = 1229;
+      const W = 2048, H = Math.round(2048 * MH / MW);
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
       this.mapCanvas = c; this.mapCtx = c.getContext('2d');
-      this.rasterCanvas = document.createElement('canvas'); this.rasterCanvas.width = RW; this.rasterCanvas.height = RH;
-      // parchment grain, made once
-      this.grain = canvasTex(512, 512, (g, w, h) => {
-        const im = g.createImageData(w, h);
-        for(let i = 0; i < w * h; i++){ const v = 200 + Math.random() * 55; im.data[i * 4] = v; im.data[i * 4 + 1] = v; im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
-        g.putImageData(im, 0, 0);
-      }).image;
       // resource icons (the site's 2D icons)
       const R2 = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/';
       this.resIcons = {};
@@ -313,97 +298,158 @@
         im.onload = () => { this.resIcons[r] = im; this.drawMap(); };
         im.src = R2 + f;
       });
+      // the painted map and its zone outlines
+      const base = new Image();
+      base.onload = () => { this.baseImg = base; this.drawMap(); };
+      base.src = WAR_MAP_IMAGE;
+      const zim = new Image();
+      zim.onload = () => {
+        const zc = document.createElement('canvas'); zc.width = zim.width; zc.height = zim.height;
+        const zg = zc.getContext('2d'); zg.drawImage(zim, 0, 0);
+        const px = zg.getImageData(0, 0, zim.width, zim.height).data;
+        this.RW = zim.width; this.RH = zim.height; this.raster = new Uint8Array(this.RW * this.RH);
+        for(let i = 0; i < this.raster.length; i++) this.raster[i] = px[i * 4];
+        this.overlayCanvas = document.createElement('canvas'); this.overlayCanvas.width = this.RW; this.overlayCanvas.height = this.RH;
+        this.drawMap(); this.buildTerrain();
+      };
+      zim.src = WAR_ZONE_IMAGE;
       this.mapTex = new THREE.CanvasTexture(c); this.mapTex.anisotropy = 8; this.mapTex.encoding = THREE.sRGBEncoding;
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(10, 6), new THREE.MeshStandardMaterial({ map: this.mapTex, roughness: 0.92 }));
-      m.rotation.x = -Math.PI / 2; m.position.y = 0.0; m.receiveShadow = true;
-      this.scene.add(m); this.mapMesh = m;
+      // a finely divided sheet so the edges can curl
+      const geo = new THREE.PlaneGeometry(PW, PH, 140, Math.round(140 * PH / PW));
+      const pos = geo.attributes.position, uv = geo.attributes.uv;
+      for(let i = 0; i < pos.count; i++) pos.setZ(i, curlHeight(uv.getX(i), uv.getY(i)));
+      geo.computeVertexNormals();
+      const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: this.mapTex, roughness: 0.92 }));
+      m.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x8c7650, roughness: 1, side: THREE.BackSide })));   // the parchment's back
+      m.rotation.x = -Math.PI / 2; m.receiveShadow = true; m.castShadow = true;
+      this.scene.add(m); this.mapMesh = m; this.mapGeo = geo;
       this.drawMap();
     }
+    // height of the curled sheet at a map point, so things placed near the edge sit on it
+    sheetY(x, y){ return curlHeight(x / MW, 1 - y / MH); }
     ownerOf(k){ return this.state && this.state.zones[k] ? this.state.zones[k].owner : 'neutral'; }
     drawMap(){
-      const g = this.mapCtx, W = 2048, H = 1229, sx = W / MW, sy = H / MH;
-      const rc = this.rasterCanvas.getContext('2d'), im = rc.createImageData(RW, RH), d = im.data, R = this.raster;
-      const owners = KEYS.map(k => this.ownerOf(k));
-      const sel = this.selected != null ? this.zoneIdx[this.selected] : -1;
-      const hl = new Set((this.highlights || []).map(k => this.zoneIdx[k]));
-      for(let y = 0; y < RH; y++){
-        for(let x = 0; x < RW; x++){
+      const g = this.mapCtx, W = this.mapCanvas.width, H = this.mapCanvas.height, sx = W / MW, sy = H / MH;
+      g.fillStyle = '#7d7563'; g.fillRect(0, 0, W, H);
+      if(this.baseImg) g.drawImage(this.baseImg, 0, 0, W, H);
+      // owner tint + zone borders, drawn at the outline map's resolution and scaled up smoothly
+      if(this.raster){
+        const RW = this.RW, RH = this.RH, R = this.raster;
+        const oc = this.overlayCanvas.getContext('2d'), im = oc.createImageData(RW, RH), d = im.data;
+        const own = new Array(256).fill(null);
+        WAR_ZONE_ORDER.forEach((k, i) => { own[i + 1] = this.ownerOf(k); });
+        const sel = this.selected ? this.zoneVal[this.selected] : -1;
+        const hl = new Set((this.highlights || []).map(k => this.zoneVal[k]));
+        for(let y = 0; y < RH; y++) for(let x = 0; x < RW; x++){
           const i = y * RW + x, z = R[i], o = i * 4;
-          if(z < 0){
-            // sea: darker teal parchment, shallows near the coast
-            let near = false;
-            for(let dy = -3; dy <= 3 && !near; dy += 3) for(let dx = -3; dx <= 3; dx += 3){ const xx = x + dx, yy = y + dy; if(xx >= 0 && yy >= 0 && xx < RW && yy < RH && R[yy * RW + xx] >= 0){ near = true; break; } }
-            d[o] = near ? 120 : 82; d[o + 1] = near ? 132 : 98; d[o + 2] = near ? 118 : 96; d[o + 3] = 255;
-            continue;
-          }
-          // border: a neighbour belongs to another zone
+          if(!isZone(z)) continue;
           const r = x + 1 < RW ? R[i + 1] : z, b = y + 1 < RH ? R[i + RW] : z, l = x > 0 ? R[i - 1] : z, t = y > 0 ? R[i - RW] : z;
-          const coast = r < 0 || b < 0 || l < 0 || t < 0;
-          const border = !coast && (r !== z || b !== z || l !== z || t !== z);
-          let pr = 222, pg = 202, pb = 156;
-          const c = COL[owners[z]];
-          const a = owners[z] === 'neutral' ? 0.08 : 0.42;
-          pr = pr * (1 - a) + c[0] * a; pg = pg * (1 - a) + c[1] * a; pb = pb * (1 - a) + c[2] * a;
-          if(z === sel){ pr = Math.min(255, pr * 1.18 + 20); pg = Math.min(255, pg * 1.18 + 18); pb = Math.min(255, pb * 1.1 + 6); }
-          else if(hl.has(z)){ pr = Math.min(255, pr + 26); pg = Math.min(255, pg + 22); pb = pb + 4; }
-          if(border){ pr = 70; pg = 48; pb = 28; }
-          if(coast){ pr = 52; pg = 38; pb = 24; }
-          d[o] = pr; d[o + 1] = pg; d[o + 2] = pb; d[o + 3] = 255;
+          const border = (isZone(r) && r !== z) || (isZone(b) && b !== z) || (isZone(l) && l !== z) || (isZone(t) && t !== z);
+          if(border){ d[o] = 40; d[o + 1] = 24; d[o + 2] = 10; d[o + 3] = 200; continue; }
+          const c = COL[own[z]] || COL.neutral;
+          let a = own[z] === 'neutral' ? 0 : 0.36, cr = c[0], cg = c[1], cb = c[2];
+          if(z === sel){ cr = 255; cg = 230; cb = 150; a += 0.3; }
+          else if(hl.has(z)){ cr = 255; cg = 210; cb = 120; a += 0.2; }
+          d[o] = cr; d[o + 1] = cg; d[o + 2] = cb; d[o + 3] = Math.round(Math.min(1, a) * 255);
         }
+        oc.putImageData(im, 0, 0);
+        g.imageSmoothingEnabled = true;
+        g.drawImage(this.overlayCanvas, 0, 0, W, H);
       }
-      rc.putImageData(im, 0, 0);
-      g.imageSmoothingEnabled = true;
-      g.drawImage(this.rasterCanvas, 0, 0, W, H);
-      g.globalCompositeOperation = 'multiply'; g.globalAlpha = 0.5; g.drawImage(this.grain, 0, 0, W, H); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
       // routes
       WAR_ROUTES.forEach(rt => {
         const a = WAR_LAYOUT[rt.a], b = WAR_LAYOUT[rt.b];
-        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, dx = b.x - a.x, dy = b.y - a.y;
         const bend = rt.kind === 'zeppelin' ? -0.18 : 0.14;
-        const cx = mx - dy / L * L * bend, cy = my + dx / L * L * bend;
-        g.setLineDash(rt.kind === 'zeppelin' ? [6, 14] : [18, 12]); g.lineWidth = rt.kind === 'zeppelin' ? 3 : 4;
-        g.strokeStyle = rt.kind === 'zeppelin' ? 'rgba(92,52,20,0.8)' : 'rgba(30,58,80,0.75)';
+        const cx = mx - dy * bend, cy = my + dx * bend;
+        g.setLineDash(rt.kind === 'zeppelin' ? [8, 16] : [20, 13]); g.lineWidth = rt.kind === 'zeppelin' ? 4 : 5;
+        g.strokeStyle = rt.kind === 'zeppelin' ? 'rgba(92,52,20,0.75)' : 'rgba(24,48,70,0.7)';
         g.beginPath(); g.moveTo(a.x * sx, a.y * sy); g.quadraticCurveTo(cx * sx, cy * sy, b.x * sx, b.y * sy); g.stroke();
         g.setLineDash([]);
-        g.font = '22px serif'; g.fillStyle = '#2d1e10'; g.textAlign = 'center';
+        g.font = '28px serif'; g.fillStyle = '#2d1e10'; g.textAlign = 'center'; g.textBaseline = 'middle';
         g.fillText(rt.kind === 'zeppelin' ? '🎈' : '⛵', (0.25 * a.x + 0.5 * cx + 0.25 * b.x) * sx, (0.25 * a.y + 0.5 * cy + 0.25 * b.y) * sy);
       });
-      // compass rose + continent names + zone names
-      g.save(); g.translate(1010, 1080); g.strokeStyle = '#3a2a18'; g.fillStyle = '#3a2a18'; g.lineWidth = 2;
-      g.beginPath(); g.arc(0, 0, 60, 0, Math.PI * 2); g.stroke();
-      for(let i = 0; i < 4; i++){ g.rotate(Math.PI / 2); g.beginPath(); g.moveTo(0, -80); g.lineTo(12, 0); g.lineTo(-12, 0); g.fill(); }
-      g.restore();
-      g.textAlign = 'center'; g.fillStyle = 'rgba(40,26,12,0.55)'; g.font = 'italic 700 58px Cinzel, serif';
-      g.fillText('K A L I M D O R', 430 * sx, 1180 * sy); g.fillText('EASTERN KINGDOMS', 1490 * sx, 55 * sy);
       // resource icons: every zone shows its type faintly; this game's rich deposits are bold with a gold ring
       KEYS.forEach(k => {
         const p = WAR_LAYOUT[k], r = WAR_ZONES[k].resource, im = this.resIcons && this.resIcons[r];
         const rich = this.state && this.state.rich ? !!this.state.rich[k] : false;
-        const cx = (p.x + 44) * sx, cy = (p.y - 6) * sy, size = rich ? 50 : 38;
+        const off = Math.min(46, p.r * 0.45);
+        const cx = (p.x + off) * sx, cy = (p.y - off * 0.2) * sy, size = rich ? 54 : 42;
         g.save();
         if(rich){
           g.globalAlpha = 0.9; g.strokeStyle = '#d6a940'; g.lineWidth = 4; g.fillStyle = 'rgba(255,236,170,0.35)';
           g.beginPath(); g.arc(cx, cy, size * 0.62, 0, Math.PI * 2); g.fill(); g.stroke();
         }
-        g.globalAlpha = rich ? 0.95 : 0.36;
+        g.globalAlpha = rich ? 0.95 : 0.4;
         if(im) g.drawImage(im, cx - size / 2, cy - size / 2, size, size);
-        else { g.font = `${size * 0.7}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText({ food: '🍖', wood: '🪵', crystal: '💎', ore: '⛏' }[r], cx, cy); }
         g.restore();
       });
-      g.textBaseline = 'alphabetic';
+      // zone names
+      g.textAlign = 'center'; g.textBaseline = 'alphabetic';
       KEYS.forEach(k => {
         const p = WAR_LAYOUT[k], z = WAR_ZONES[k];
-        g.font = `600 ${p.r > 90 ? 22 : 19}px Cinzel, serif`;
-        g.lineWidth = 5; g.strokeStyle = 'rgba(240,226,190,0.85)'; g.fillStyle = '#2a1a0c';
-        const yy = p.y * sy + 52;
+        g.font = `700 ${p.r > 60 ? 25 : 21}px Cinzel, serif`;
+        g.lineWidth = 6; g.strokeStyle = 'rgba(245,232,200,0.9)'; g.fillStyle = '#24160a';
+        const yy = (p.y + Math.min(40, p.r * 0.42)) * sy + 16;
         g.strokeText(z.name, p.x * sx, yy); g.fillText(z.name, p.x * sx, yy);
-        if(z.capital){ g.font = 'italic 15px serif'; g.strokeText(z.capital, p.x * sx, yy + 18); g.fillText(z.capital, p.x * sx, yy + 18); }
+        if(z.capital){ g.font = 'italic 600 18px serif'; g.strokeText(z.capital, p.x * sx, yy + 21); g.fillText(z.capital, p.x * sx, yy + 21); }
       });
-      // a burnt vignette round the edge of the parchment
-      const vg = g.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, W * 0.62);
-      vg.addColorStop(0, 'rgba(60,30,10,0)'); vg.addColorStop(1, 'rgba(40,20,6,0.65)');
+      // darken toward the edges so the curl reads
+      const vg = g.createRadialGradient(W / 2, H / 2, H * 0.42, W / 2, H / 2, W * 0.72);
+      vg.addColorStop(0, 'rgba(60,30,10,0)'); vg.addColorStop(1, 'rgba(40,20,6,0.55)');
       g.fillStyle = vg; g.fillRect(0, 0, W, H);
       this.mapTex.needsUpdate = true;
+    }
+
+    // ----- 3D touches on the map: little mountains, moving water on the lakes and sea -----
+    buildTerrain(){
+      if(this.terrain) this.scene.remove(this.terrain);
+      const T = this.terrain = new THREE.Group(); this.scene.add(T);
+      const RW = this.RW, RH = this.RH, R = this.raster;
+      let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+      const rock = new THREE.MeshStandardMaterial({ color: 0x8a7656, roughness: 0.95, flatShading: true });
+      const rockDark = new THREE.MeshStandardMaterial({ color: 0x6e5a40, roughness: 0.95, flatShading: true });
+      const snow = new THREE.MeshStandardMaterial({ color: 0xf2efe6, roughness: 0.8, flatShading: true });
+      Object.keys(PEAKS).forEach(k => {
+        const v = this.zoneVal[k], p = WAR_LAYOUT[k]; if(!v || !p) return;
+        const count = 3 + Math.floor(p.r / 30);
+        let placed = 0;
+        for(let tries = 0; tries < 400 && placed < count; tries++){
+          const ang = rnd() * Math.PI * 2, dist = p.r * (0.35 + rnd() * 0.55);
+          const mx = p.x + Math.cos(ang) * dist, my = p.y + Math.sin(ang) * dist;
+          if(Math.abs(mx - p.x) < 40 && my > p.y - 30 && my < p.y + 55) continue;   // keep clear of the banner, icon and name
+          const rx = Math.floor(mx / MW * RW), ry = Math.floor(my / MH * RH);
+          let ok = true;
+          for(let dy = -3; dy <= 3 && ok; dy++) for(let dx = -3; dx <= 3; dx++){ if(R[(ry + dy) * RW + rx + dx] !== v){ ok = false; break; } }
+          if(!ok) continue;
+          const h = 0.09 + rnd() * 0.1, w = h * (0.7 + rnd() * 0.3), segs = 5 + Math.floor(rnd() * 3);
+          const peak = new THREE.Mesh(new THREE.ConeGeometry(w, h, segs, 1), rnd() < 0.5 ? rock : rockDark);
+          const at = toWorld(mx, my); peak.position.set(at.x, this.sheetY(mx, my) + h / 2 - 0.004, at.z); peak.rotation.y = rnd() * 6;
+          peak.castShadow = true; peak.receiveShadow = true; T.add(peak);
+          if(PEAKS[k]){
+            const cap = new THREE.Mesh(new THREE.ConeGeometry(w * 0.38, h * 0.38, segs, 1), snow);
+            cap.position.set(at.x, peak.position.y + h * 0.31, at.z); cap.rotation.y = peak.rotation.y; T.add(cap);
+          }
+          placed++;
+        }
+      });
+      // water: a second sheet just above the map, showing over lakes (strong) and the sea (faint)
+      const mask = document.createElement('canvas'); mask.width = RW; mask.height = RH;
+      const mg = mask.getContext('2d'), mi = mg.createImageData(RW, RH);
+      for(let i = 0; i < R.length; i++){ const v = R[i] === LAKE ? 200 : R[i] === SEA ? 70 : 0; mi.data[i * 4] = mi.data[i * 4 + 1] = mi.data[i * 4 + 2] = v; mi.data[i * 4 + 3] = 255; }
+      mg.putImageData(mi, 0, 0);
+      const ripple = canvasTex(256, 256, (g) => {
+        g.fillStyle = '#6f97a8'; g.fillRect(0, 0, 256, 256);
+        for(let i = 0; i < 60; i++){
+          const x = Math.random() * 256, y = Math.random() * 256, r = 6 + Math.random() * 22;
+          const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(220,240,250,0.55)'); gr.addColorStop(1, 'rgba(220,240,250,0)');
+          g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+        }
+      });
+      ripple.wrapS = ripple.wrapT = THREE.RepeatWrapping; ripple.repeat.set(10, 10);
+      const water = new THREE.Mesh(this.mapGeo, new THREE.MeshStandardMaterial({ map: ripple, alphaMap: new THREE.CanvasTexture(mask), transparent: true, roughness: 0.25, metalness: 0.1, depthWrite: false }));
+      water.rotation.x = -Math.PI / 2; water.position.y = 0.004; water.renderOrder = 1;
+      T.add(water); this.water = ripple;
     }
 
     // ----- pieces: a banner per zone, outposts / strongholds, fortify walls, troop labels -----
@@ -539,16 +585,16 @@
       // stand in the doorway, then sweep down over the table
       this.cam = { target: new THREE.Vector3(0, 0.5, -2), dist: 17, polar: 1.32, az: 0.0 };
       this.applyCamera();
-      await this.tweenCam({ target: new THREE.Vector3(0, 0, 0.2), dist: 10.5, polar: 0.62, az: 0 }, 3200);
+      await this.tweenCam({ target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 }, 3200);
     }
     focusZones(keys, ms, dist){
       const v = new THREE.Vector3(); keys.forEach(k => v.add(zoneWorld(k))); v.multiplyScalar(1 / keys.length);
       let spread = 0; keys.forEach(k => { spread = Math.max(spread, zoneWorld(k).distanceTo(v)); });
       return this.tweenCam({ target: v, dist: dist || Math.max(3.2, spread * 2.6 + 2.6), polar: 0.78 }, ms || 900);
     }
-    overview(ms){ return this.tweenCam({ target: new THREE.Vector3(0, 0, 0.2), dist: 10.5, polar: 0.62, az: 0 }, ms || 900); }
+    overview(ms){ return this.tweenCam({ target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 }, ms || 900); }
     continent(which){
-      return this.tweenCam({ target: which === 'kalimdor' ? new THREE.Vector3(-2.6, 0, 0.1) : new THREE.Vector3(2.5, 0, 0.1), dist: 6.6, polar: 0.66, az: 0 }, 1000);
+      return this.tweenCam({ target: which === 'kalimdor' ? new THREE.Vector3(-PW * 0.25, 0, 0.1) : new THREE.Vector3(PW * 0.25, 0, 0.1), dist: 7.6, polar: 0.62, az: 0 }, 1000);
     }
     shake(ms, amt){
       // a jitter added on top of the camera, so it can overlap camera tweens safely
@@ -747,9 +793,10 @@
       this.raycaster.setFromCamera(this.mouse, this.camera);
       const hit = this.raycaster.intersectObject(this.mapMesh)[0];
       if(!hit || !hit.uv) return null;
-      const px = Math.floor(hit.uv.x * RW), py = Math.floor((1 - hit.uv.y) * RH);
+      if(!this.raster) return null;
+      const RW = this.RW, RH = this.RH, px = Math.floor(hit.uv.x * RW), py = Math.floor((1 - hit.uv.y) * RH);
       const z = this.raster[Math.max(0, Math.min(RH - 1, py)) * RW + Math.max(0, Math.min(RW - 1, px))];
-      return z >= 0 ? KEYS[z] : null;
+      return isZone(z) ? WAR_ZONE_ORDER[z - 1] : null;
     }
     bindInput(){
       const el = this.renderer.domElement;
@@ -777,7 +824,7 @@
         } else {
           const s = this.cam.dist * 0.0016, ca = Math.cos(this.cam.az), sa = Math.sin(this.cam.az);
           this.cam.target.x -= (dx * ca + dy * sa) * s; this.cam.target.z -= (-dx * sa + dy * ca) * s;
-          this.cam.target.x = Math.max(-6, Math.min(6, this.cam.target.x)); this.cam.target.z = Math.max(-4, Math.min(4, this.cam.target.z));
+          this.cam.target.x = Math.max(-PW / 2, Math.min(PW / 2, this.cam.target.x)); this.cam.target.z = Math.max(-PH / 2, Math.min(PH / 2, this.cam.target.z));
         }
       });
       const up = e => {
@@ -799,6 +846,7 @@
       const now = performance.now();
       const dt = Math.min(0.1, (now - (this._last || now)) / 1000); this._last = now;
       (this.mixers || []).forEach(m => m.update(dt));
+      if(this.water){ this.water.offset.x = now / 90000; this.water.offset.y = Math.sin(now / 7000) * 0.03; }
       this.anims = this.anims.filter(a => {
         const t = Math.min(1, (now - a.t0) / a.ms); a.fn(t);
         if(t >= 1){ a.res(); return false; } return true;
