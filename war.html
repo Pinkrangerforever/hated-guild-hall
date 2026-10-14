@@ -21,6 +21,10 @@
   *{ box-sizing:border-box; }
   html,body{ margin:0; height:100%; overflow:hidden; background:#0b0806; color:var(--ink); font-family:Georgia, serif; }
   #stage{ position:fixed; inset:0; }
+  #curtain{ position:fixed; inset:0; z-index:7; background:#000; display:flex; align-items:center; justify-content:center; transition:opacity 1.6s ease; }
+  #curtain .msg{ font:600 15px Cinzel, serif; color:#a8875a; letter-spacing:2px; animation:pulse 1.6s ease-in-out infinite; }
+  #curtain.gone{ opacity:0; pointer-events:none; }
+  @keyframes pulse{ 50%{ opacity:.35; } }
   .wb-overlay{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
   .wb-label{ position:absolute; left:0; top:0; white-space:nowrap; padding:1px 6px; border-radius:9px; font-size:12px; line-height:1.4;
     background:rgba(30,22,14,0.82); border:1px solid rgba(214,169,64,0.5); color:#f4e6c8; transition:opacity .2s; }
@@ -86,6 +90,7 @@
 </head>
 <body>
 <div id="stage"></div>
+<div id="curtain"><div class="msg">Unrolling the war map…</div></div>
 <div class="bar">
   <button class="btn" onclick="location.href='index.html'">← Back to site</button>
   <h1>GUILD WAR</h1>
@@ -122,6 +127,7 @@
 function showFatal(msg){
   const g = document.getElementById('gate'); if(!g) return;
   g.style.display = 'flex';
+  const c = document.getElementById('curtain'); if(c) c.classList.add('gone');
   const m = document.getElementById('gateMsg');
   if(!m.dataset.err){ m.dataset.err = 1; m.innerHTML = 'The war room failed to load:'; }
   m.innerHTML += '<br><code style="font-size:12px;color:#ff9a80">' + String(msg).replace(/</g, '&lt;') + '</code>';  // keep every error, the first is usually the cause
@@ -197,6 +203,10 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
   for(let i = pending.length - 1; i >= 0; i--){ const e = pending[i]; if(e.zones) Object.keys(e.zones).forEach(k => { view.zones[k] = JSON.parse(JSON.stringify(e.zones[k].before)); }); }
   board.setState(view);
   refreshUI();
+  // black until everything has loaded, then fade in and sweep down onto the table
+  await board.whenLoaded();
+  document.getElementById('curtain').classList.add('gone');
+  await new Promise(r => setTimeout(r, 900));
   await board.intro();
   if(pending.length){ toast(`${pending.length} moves since you last looked: replaying`); pending.forEach(e => queue.push(e)); runQueue(); }
   else markSeen(G.seq);

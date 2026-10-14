@@ -115,7 +115,12 @@
       this.overlay = document.createElement('div'); this.overlay.className = 'wb-overlay'; container.appendChild(this.overlay);
       this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(0x0b0806); this.scene.fog = new THREE.Fog(0x0b0806, 16, 34);
       this.camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
-      this.cam = { target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 }; this.shakeOff = new THREE.Vector3();
+      this.cam = { target: new THREE.Vector3(0, 0.5, -2), dist: 17, polar: 1.32, az: 0 }; this.shakeOff = new THREE.Vector3();
+      this._loading = 0;
+      const LM = THREE.DefaultLoadingManager, prevStart = LM.onStart, prevProg = LM.onProgress;
+      LM.onStart = (u, l, t) => { this._loading = t - l; prevStart && prevStart(u, l, t); };
+      LM.onProgress = (u, l, t) => { this._loading = t - l; prevProg && prevProg(u, l, t); };
+      LM.onError = () => {};
       this.glow = glowTex();
       this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.loadSuccubus(); this.loadPainting(); this.loadShips(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
@@ -399,6 +404,12 @@
         (this.mixers = this.mixers || []).push(mixer);
         let cur = mixer.clipAction(clip('Opened')); cur.play();
         this.doorOpen = true; this.doorModel = m;
+        // the rig moves the door when it opens but not its click area, so clicks go to two invisible
+        // boxes instead: one filling the doorway (closed) and one where the open door stands
+        const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+        const shut = new THREE.Mesh(new THREE.BoxGeometry(4.2, 5.3, 0.6), hitMat); shut.position.set(0, 2.65, -A);
+        const swung = new THREE.Mesh(new THREE.BoxGeometry(0.7, 5.3, 4.3), hitMat); swung.position.set(2.0, 2.65, -A + 2.1);
+        this.walls.add(shut, swung); this.doorHits = [shut, swung];
         this.frameDoor(m);
         // click the door: swing it shut / open (Close/Open play once, then it rests Closed/Opened)
         this.toggleDoor = () => {
@@ -480,7 +491,7 @@
           mat.side = THREE.DoubleSide; mat.transparent = false; mat.alphaTest = 0;
           (merged ? [merged] : geos).forEach(g => { const m = new THREE.Mesh(g, mat); m.castShadow = true; grp.add(m); });
         });
-        const box = new THREE.Box3().setFromObject(grp), s = 0.52 / (box.max.x - box.min.x);   // ~0.52 units long
+        const box = new THREE.Box3().setFromObject(grp), s = 0.468 / (box.max.x - box.min.x);   // ~0.47 units long
         grp.position.set(-(box.min.x + box.max.x) / 2, 0, -(box.min.z + box.max.z) / 2);      // origin stays at the waterline
         const holder = new THREE.Group(), inner = new THREE.Group(); inner.add(grp); inner.scale.setScalar(s); holder.add(inner);
         protos[kind] = holder;
@@ -1124,6 +1135,22 @@
         ['dist', 'polar', 'az'].forEach(p => { if(to[p] != null) this.cam[p] = from[p] + (to[p] - from[p]) * e; });
       });
     }
+    // resolves once every model and texture has finished loading (and stayed finished for a moment, since
+    // some loads only start after others land), or after 15s whatever happens
+    whenLoaded(){
+      const LM = THREE.DefaultLoadingManager;
+      return new Promise(res => {
+        const t0 = performance.now(); let quietSince = 0;
+        const check = () => {
+          const busy = this._loading > 0 || !this.baseImg || !this.raster;
+          if(!busy){ quietSince = quietSince || performance.now(); if(performance.now() - quietSince > 900) return res(); }
+          else quietSince = 0;
+          if(performance.now() - t0 > 15000) return res();
+          setTimeout(check, 150);
+        };
+        check();
+      });
+    }
     async intro(){
       // stand in the doorway, then sweep down over the table
       this.cam = { target: new THREE.Vector3(0, 0.5, -2), dist: 17, polar: 1.32, az: 0.0 };
@@ -1377,7 +1404,7 @@
             const r = this.renderer.domElement.getBoundingClientRect();
             this.mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
             this.raycaster.setFromCamera(this.mouse, this.camera);
-            if(this.raycaster.intersectObject(this.doorModel, true).length){ this.toggleDoor(); pts.clear(); drag = null; return; }
+            if(this.raycaster.intersectObjects(this.doorHits || [this.doorModel], true).length){ this.toggleDoor(); pts.clear(); drag = null; return; }
           }
           if(this.opts.onClick) this.opts.onClick(this.pickZone(e.clientX, e.clientY), e);
         }
