@@ -308,6 +308,7 @@
       const S = window.WAR_STRONGHOLD_MODELS || {
         horde:    { url: 'models/war/horde-stronghold.gltf',    drop: /interior|foyer/i, mask: /hangingleather|clothroof/i, size: 0.5, rotY: Math.PI },
         horde_outpost: { url: 'models/war/horde-outpost.gltf', mask: /chain|clothfur|clothroof/i, size: 0.3, rotY: 0 },   // Warsong guard tower
+        alliance_fortify: { url: 'models/war/fortify-alliance.gltf', size: 0.62, rotY: 0 },   // Netherguard wall, a square enclosure round the zone's pieces
         alliance_outpost: { url: 'models/war/alliance-outpost.gltf', size: 0.26, rotY: 0 },   // Caverns of Time mage tower
         alliance: { url: 'models/war/alliance-stronghold.gltf', drop: /cellar|war_room|armordealer|weapondealer|generalarea/i, mask: /windows_01/i, size: 0.5, rotY: -Math.PI / 2 }
       };
@@ -694,7 +695,7 @@
         this.RW = zim.width; this.RH = zim.height; this.raster = new Uint8Array(this.RW * this.RH);
         for(let i = 0; i < this.raster.length; i++) this.raster[i] = px[i * 4];
         this.overlayCanvas = document.createElement('canvas'); this.overlayCanvas.width = this.RW; this.overlayCanvas.height = this.RH;
-        this.drawMap(); this.buildTerrain();
+        this.drawMap(); this.buildTerrain(); this.fitPieces();
       };
       zim.src = WAR_ZONE_IMAGE;
       this.mapTex = new THREE.CanvasTexture(c); this.mapTex.anisotropy = 8; this.mapTex.encoding = THREE.sRGBEncoding;
@@ -1128,7 +1129,13 @@
       }
       p.tower.visible = z.outpost >= 2 && !model; p.tent.visible = z.outpost === 1 && !om;
       const now = this.state ? this.state.clock : 0;
-      p.wall.visible = z.fortifyUntil > now;
+      const fortified = z.fortifyUntil > now, fm2 = fortified && this.holdModels && this.holdModels[z.owner + '_fortify'];
+      if(p.fortFor !== (fm2 ? z.owner : null)){
+        if(p.fort){ p.grp.remove(p.fort); p.fort = null; }
+        if(fm2){ p.fort = fm2.clone(); p.fort.position.set(-0.08, 0.002, 0); p.grp.add(p.fort); }
+        p.fortFor = fm2 ? z.owner : null;
+      }
+      p.wall.visible = fortified && !fm2;
       const info = WAR_ZONES[k];
       p.lab.className = 'wb-label ' + z.owner + (this.selected === k ? ' sel' : '');
       p.lab.innerHTML = `<b>${z.ready}</b>⚔${z.fresh ? `<i>+${z.fresh}💤</i>` : ''}${info.capital ? '<s>♛</s>' : ''}${z.shield ? '<s>🛡</s>' : ''}`;
@@ -1298,6 +1305,26 @@
       }, undefined, err => { console.warn(kind + ' candle failed to load:', err); if(--left === 0) place(); }));
     }
 
+    // Each zone's pieces (banner, buildings, fortify wall) are scaled to the room around their anchor: full size
+    // in big zones, smaller in tight ones so nothing spills over a border. Footprint at full size ~0.42 units.
+    fitPieces(){
+      if(!this.raster) return;
+      const RW = this.RW, RH = this.RH, R = this.raster, FOOT = 0.42, pxPerUnit = RW / PW;
+      KEYS.forEach(k => {
+        const v = this.zoneVal[k], [ax, ay] = anchor(k), cx = Math.floor(ax / MW * RW), cy = Math.floor(ay / MH * RH);
+        let clear = 0;
+        for(let r = 1; r < 80 && !clear; r++){
+          for(let a = 0; a < 24; a++){
+            const x = Math.round(cx + Math.cos(a / 24 * Math.PI * 2) * r), y = Math.round(cy + Math.sin(a / 24 * Math.PI * 2) * r);
+            if(x < 0 || y < 0 || x >= RW || y >= RH || R[y * RW + x] !== v){ clear = r; break; }
+          }
+        }
+        const room = (clear || 80) / pxPerUnit;   // distance to the nearest border, in world units
+        const s = Math.max(0.45, Math.min(1, room / FOOT));
+        this.pieces[k].grp.scale.setScalar(s); this.pieces[k].fit = s;
+      });
+    }
+
     // ----- troop figures: the animated Alliance footman / Horde grunt. wow.export leaves worn gear loose;
     // tools/attach_gear.py worked out each piece's bone and exact placement (from the posed OBJ export) and
     // stored it in the node's extras, so here every piece is pinned to its bone and moves with the animation. -----
@@ -1423,7 +1450,7 @@
     async playFortify(e){
       await this.focusZones([e.to], 700, 3.6);
       this.applyAfter(e);
-      const w = this.pieces[e.to].wall;
+      const w = this.pieces[e.to].fort || this.pieces[e.to].wall;
       await this.animate(700, t => { w.children.forEach((s, i) => { const tt = Math.max(0, Math.min(1, t * 1.6 - i * 0.04)); s.position.y = -0.04 + easeOut(tt) * 0.07; }); });
       this.pulseRing(e.to, 0xd8c8a0); this.floatText(e.to, '🧱 Fortified', e.faction);
       await this.wait(500);
