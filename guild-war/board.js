@@ -139,7 +139,7 @@
       const R2W = window.WAR_TEX_BASE || 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/';
       const tl = new THREE.TextureLoader(); tl.setCrossOrigin('anonymous');
       const tex = (f, rx, ry) => { const t = tl.load(R2W + f + '.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; return t; };
-      const A = 15, SIDE = 2 * A * Math.tan(Math.PI / 8), FLOOR_Y = -3.1, WALL_H = 13, TILE = 2.6;   // apothem, wall width, tile size
+      const A = 15, SIDE = 2 * A * Math.tan(Math.PI / 8), FLOOR_Y = -3.1, WALL_H = 17, TILE = 2.6;   // apothem, wall width, tile size
       const RC = A / Math.cos(Math.PI / 8);
       // floor: octagon of garrison planks
       const floor = new THREE.Mesh(new THREE.CircleGeometry(RC, 8, Math.PI / 8), new THREE.MeshStandardMaterial({ map: tex('6or_garrison_woodfloor', RC / 1.6, RC / 1.6), roughness: 0.85   /* tile = 3.2 units */ }));
@@ -724,7 +724,7 @@
       const tears = [];
       const edge = (len, at) => {   // at(t, depth) -> [x, y]: t along the edge, depth into the map
         for(let t = 0.04 + rnd() * 0.05; t < 0.96; t += 0.06 + rnd() * 0.12){
-          const big = rnd() < 0.3, w = (big ? 30 : 10) + rnd() * (big ? 50 : 22), d = (big ? 34 : 10) + rnd() * (big ? 46 : 18);
+          const big = rnd() < 0.4, w = (big ? 50 : 14) + rnd() * (big ? 90 : 30), d = (big ? 45 : 12) + rnd() * (big ? 75 : 22);
           const pts = [at(t - w / len / 2, 0)];
           const n = 3 + Math.floor(rnd() * 4);
           for(let i = 1; i < n; i++){ const f = i / n; pts.push(at(t - w / len / 2 + f * w / len + (rnd() - 0.5) * 0.01, d * (0.35 + rnd() * 0.65) * Math.sin(f * Math.PI))); }
@@ -732,6 +732,18 @@
           tears.push(pts);
         }
       };
+      // whole corners bitten away, and a few holes worn through near the edge
+      [[0, 0, 1, 1], [W, 0, -1, 1], [0, H, 1, -1], [W, H, -1, -1]].forEach(([cx, cy, sx, sy]) => {
+        const a = 70 + rnd() * 90, c = 60 + rnd() * 80, pts = [[cx - sx * 4, cy - sy * 4], [cx + sx * a, cy - sy * 4]];
+        for(let i = 1; i < 6; i++){ const f = i / 6; pts.push([cx + sx * a * (1 - f) + sx * rnd() * 18, cy + sy * c * f + sy * rnd() * 18]); }
+        pts.push([cx - sx * 4, cy + sy * c]); tears.push(pts);
+      });
+      for(let i = 0; i < 9; i++){
+        const side = Math.floor(rnd() * 4), t = 0.08 + rnd() * 0.84, inset = 40 + rnd() * 70, r = 6 + rnd() * 14;
+        const [x, y] = [[t * W, inset], [t * W, H - inset], [inset, t * H], [W - inset, t * H]][side];
+        const pts = []; for(let k = 0; k < 9; k++){ const a = k / 9 * Math.PI * 2, rr = r * (0.6 + rnd() * 0.6); pts.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr]); }
+        tears.push(pts);
+      }
       edge(W, (t, d) => [t * W, d - 2]); edge(W, (t, d) => [t * W, H - d + 2]);
       edge(H, (t, d) => [d - 2, t * H]); edge(H, (t, d) => [W - d + 2, t * H]);
       this.tears = tears;
