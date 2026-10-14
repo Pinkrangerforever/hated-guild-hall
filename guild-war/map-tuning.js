@@ -194,6 +194,20 @@ const WAR_TUNING = {
     914,
     808
    ]
-  }
+  },
+  "zeppelins": [
+   [
+    496,
+    627
+   ],
+   [
+    874,
+    1103
+   ],
+   [
+    837,
+    224
+   ]
+  ]
 };
 if(typeof module !== 'undefined') module.exports = { WAR_TUNING };

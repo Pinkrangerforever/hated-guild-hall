@@ -447,7 +447,7 @@
     // Each sits a few steps out along a route's sea path from the named zone. -----
     loadShips(){
       if(!THREE.GLTFLoader) return;
-      const M = window.WAR_SHIPS || { pirate: 'models/war/pirate-ship.gltf', alliance: 'models/war/alliance-ship.gltf' };
+      const M = window.WAR_SHIPS || { pirate: 'models/war/pirate-ship.gltf', alliance: 'models/war/alliance-ship.gltf', zeppelin: 'models/war/zeppelin.gltf' };
       const SHIPS = [
         { kind: 'pirate',   route: 'tanaris|riverglades',    from: 'tanaris' },
         { kind: 'pirate',   route: 'barrens|stranglethorn',  from: 'barrens' },
@@ -472,8 +472,14 @@
           ship.rotation.y = Math.atan2(-(w2.z - w.z), w2.x - w.x) + (i % 2 ? 0.25 : -0.25);   // bow (+x) along the route
           ship.userData.bob = Math.random() * 6; this.scene.add(ship); (this.ships = this.ships || []).push(ship);
         });
+        // goblin zeppelins hovering over their towers (map-tuning.js), drifting gently
+        if(protos.zeppelin) (TUNE.zeppelins || []).forEach(([x, y], i) => {
+          const z = protos.zeppelin.clone(), w = toWorld(x, y);
+          z.position.set(w.x, 0.42, w.z); z.rotation.y = [2.6, 0.4, -1.2][i % 3];
+          z.userData.base = 0.42; z.userData.bob = i * 2.1; this.scene.add(z); (this.zeppelins = this.zeppelins || []).push(z);
+        });
       };
-      let left = 2;
+      let left = Object.keys(M).length;
       Object.keys(M).forEach(kind => new THREE.GLTFLoader().load(M[kind], gltf => {
         gltf.scene.updateMatrixWorld(true);
         const byMat = new Map();
@@ -491,8 +497,8 @@
           mat.side = THREE.DoubleSide; mat.transparent = false; mat.alphaTest = 0;
           (merged ? [merged] : geos).forEach(g => { const m = new THREE.Mesh(g, mat); m.castShadow = true; grp.add(m); });
         });
-        const box = new THREE.Box3().setFromObject(grp), s = 0.468 / (box.max.x - box.min.x);   // ~0.47 units long
-        grp.position.set(-(box.min.x + box.max.x) / 2, 0, -(box.min.z + box.max.z) / 2);      // origin stays at the waterline
+        const box = new THREE.Box3().setFromObject(grp), s = (kind === 'zeppelin' ? 0.5 : 0.468) / (box.max.x - box.min.x);   // ships ~0.47 long, zeppelins 0.5
+        grp.position.set(-(box.min.x + box.max.x) / 2, kind === 'zeppelin' ? -(box.min.y + box.max.y) / 2 : 0, -(box.min.z + box.max.z) / 2);      // ships: origin at the waterline; zeppelins: centred
         const holder = new THREE.Group(), inner = new THREE.Group(); inner.add(grp); inner.scale.setScalar(s); holder.add(inner);
         protos[kind] = holder;
         if(--left === 0) place();
@@ -1457,6 +1463,7 @@
         f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.4 : 2.2) * (0.9 + 0.15 * k);
       });
       this.dust.rotation.y = now / 60000;
+      (this.zeppelins || []).forEach(z => { z.position.y = z.userData.base + Math.sin(now / 1700 + z.userData.bob) * 0.03; z.rotation.z = Math.sin(now / 2300 + z.userData.bob) * 0.025; });
       (this.ships || []).forEach(s => { s.rotation.z = Math.sin(now / 1400 + s.userData.bob) * 0.04; s.rotation.x = Math.sin(now / 1900 + s.userData.bob) * 0.03; });
       if(this.snowfall){
         const a = this.snowfall.geometry.attributes.position, d = this.snowDoor;
