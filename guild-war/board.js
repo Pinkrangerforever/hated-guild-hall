@@ -1663,7 +1663,15 @@
       await this.focusZones([e.to], 700, 3.6);
       this.applyAfter(e);
       const w = this.pieces[e.to].fort || this.pieces[e.to].wall;
-      await this.animate(700, t => { w.children.forEach((s, i) => { const tt = Math.max(0, Math.min(1, t * 1.6 - i * 0.04)); s.position.y = -0.04 + easeOut(tt) * 0.07; }); });
+      if(this.pieces[e.to].fort){
+        // wall models grow up out of the board, then rest exactly at their size on it
+        const base = w.scale.clone();
+        await this.animate(700, t => { w.scale.set(base.x, base.y * Math.max(0.01, easeOut(t)), base.z); });
+        w.scale.copy(base);
+      } else {
+        await this.animate(700, t => { w.children.forEach((s, i) => { const tt = Math.max(0, Math.min(1, t * 1.6 - i * 0.04)); s.position.y = -0.04 + easeOut(tt) * 0.07; }); });
+        w.children.forEach(s => { s.position.y = 0.03; });
+      }
       this.pulseRing(e.to, 0xd8c8a0); this.floatText(e.to, '🧱 Fortified', e.faction);
       await this.wait(500);
     }
