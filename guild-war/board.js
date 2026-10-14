@@ -998,8 +998,18 @@
       g.lineJoin = 'round';
       g.strokeStyle = 'rgba(30,18,6,0.55)'; g.lineWidth = 16; tears.forEach(p => { path(p); g.stroke(); });   // shadow of the curled lip
       g.strokeStyle = 'rgba(236,224,196,0.95)'; g.lineWidth = 8; tears.forEach(p => { path(p); g.stroke(); });  // pale torn-paper fibres
-      g.globalCompositeOperation = 'destination-out';
-      tears.forEach(p => { path(p); g.fill(); });             // then the tear itself
+      // the torn-away paper: a dark gap with a shadow under the torn lip, so it reads as missing whatever
+      // lies underneath (the war table's own top is painted parchment too)
+      tears.forEach(p => {
+        path(p); g.save(); g.clip();
+        const xs = p.map(q => q[0]), ys = p.map(q => q[1]), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+        const gr = g.createRadialGradient(cx, cy, 2, cx, cy, Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 0.7);
+        gr.addColorStop(0, '#2a1b0e'); gr.addColorStop(1, '#120a04');
+        g.fillStyle = gr; g.fill();
+        g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 14; g.lineWidth = 10; g.strokeStyle = 'rgba(0,0,0,0.85)'; path(p); g.stroke();
+        g.restore();
+      });
+      g.globalCompositeOperation = 'source-over';
       g.lineWidth = 3; g.strokeStyle = '#000';
       g.beginPath(); g.rect(0, 0, W, H); g.stroke();          // ragged-free hairline so the sheet edge is clean
       g.restore();
