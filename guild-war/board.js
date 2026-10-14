@@ -134,27 +134,75 @@
       key.position.set(0, 11, 2); key.target.position.set(0, 0, 0); key.castShadow = true;
       key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004;
       S.add(key, key.target); this.keyLight = key;
-      // floor and walls
-      const floorTex = woodTex('#3b2717', '20,10,4'); floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(6, 6);
-      const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.9 }));
-      floor.rotation.x = -Math.PI / 2; floor.position.y = -3.1; floor.receiveShadow = true; S.add(floor); this.floor = floor;
-      const st = stoneTex(); st.wrapS = st.wrapT = THREE.RepeatWrapping; st.repeat.set(5, 2);
-      const wallMat = new THREE.MeshStandardMaterial({ map: st, roughness: 1 });
-      [[0, -11, 0], [-13, 0, Math.PI / 2], [13, 0, -Math.PI / 2]].forEach(([x, z, r]) => {
-        const w = new THREE.Mesh(new THREE.PlaneGeometry(30, 14), wallMat); w.position.set(x, 3.9, z); w.rotation.y = r; w.receiveShadow = true; S.add(w);
+      // ---- the hall: an eight-sided orc garrison keep with a snowy doorway at the back ----
+      const R2W = window.WAR_TEX_BASE || 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/';
+      const tl = new THREE.TextureLoader(); tl.setCrossOrigin('anonymous');
+      const tex = (f, rx, ry) => { const t = tl.load(R2W + f + '.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; return t; };
+      const A = 15, SIDE = 2 * A * Math.tan(Math.PI / 8), FLOOR_Y = -3.1, WALL_H = 13, TILE = 2.6;   // apothem, wall width, tile size
+      const RC = A / Math.cos(Math.PI / 8);
+      // floor: octagon of garrison planks
+      const floor = new THREE.Mesh(new THREE.CircleGeometry(RC, 8, Math.PI / 8), new THREE.MeshStandardMaterial({ map: tex('6or_garrison_woodfloor', RC / 1.6, RC / 1.6), roughness: 0.85   /* tile = 3.2 units */ }));
+      floor.rotation.x = -Math.PI / 2; floor.position.y = FLOOR_Y; floor.receiveShadow = true; S.add(floor); this.floor = floor;
+      // walls: plain stonework, the back wall frosted with snow round an open doorway
+      this.walls = new THREE.Group(); this.walls.position.y = FLOOR_Y; S.add(this.walls);
+      const wallMat = (f, w, h) => new THREE.MeshStandardMaterial({ map: tex(f, w / TILE, h / TILE), roughness: 0.95 });
+      const DOOR_W = 3.4, DOOR_H = 5.2;
+      for(let i = 0; i < 8; i++){
+        const a = i * Math.PI / 4, wall = new THREE.Group();
+        wall.position.set(A * Math.sin(a), 0, -A * Math.cos(a)); wall.rotation.y = -a; this.walls.add(wall);
+        const piece = (f, w, h, x, y) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), wallMat(f, w, h)); m.position.set(x, y + h / 2, 0); m.receiveShadow = true; wall.add(m); return m; };
+        if(i === 0){
+          const sw = (SIDE - DOOR_W) / 2;
+          piece('6or_garrison_stonewall_snow', sw, WALL_H, -(DOOR_W + sw) / 2, 0);
+          piece('6or_garrison_stonewall_snow', sw, WALL_H, (DOOR_W + sw) / 2, 0);
+          piece('6or_garrison_stonewall_snow', DOOR_W, WALL_H - DOOR_H, 0, DOOR_H);
+          // a timber door frame
+          const post = new THREE.MeshStandardMaterial({ map: tex('6or_garrison_woodfloor', 0.3, 2), roughness: 0.8 });
+          [[-DOOR_W / 2, DOOR_H / 2, 0.35, DOOR_H], [DOOR_W / 2, DOOR_H / 2, 0.35, DOOR_H], [0, DOOR_H, DOOR_W + 0.7, 0.35]].forEach(([x, y, w, h]) => {
+            const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.35), post); m.position.set(x, y, 0.1); m.castShadow = true; wall.add(m);
+          });
+        } else piece('6or_garrison_stonewall', SIDE, WALL_H, 0, 0);
+        // a skirting of dark stone where the wall meets the floor
+        const skirt = new THREE.Mesh(new THREE.BoxGeometry(SIDE, 0.5, 0.25), new THREE.MeshStandardMaterial({ map: tex('6or_garrison_stonewall', SIDE / TILE, 0.2), color: 0x77706a, roughness: 1 }));
+        skirt.position.set(0, 0.25, 0.12); if(i !== 0) wall.add(skirt);   // the doorway wall has no skirting
+      }
+      // corners: a stone pillar faced with the red-cloth-and-post stonework at each of the 8 corners
+      // plain stone up to a cap faced with the red-cloth-and-post stonework (one band, not repeated)
+      const CAP = 2.2, pillarBody = new THREE.MeshStandardMaterial({ map: tex('6or_garrison_stonewall', 0.8, (WALL_H - CAP) / TILE), color: 0x958a80, roughness: 0.95 });
+      const pillarCap = new THREE.MeshStandardMaterial({ map: tex('6or_garrison_stonewall2', 1, 1), roughness: 0.9 });
+      for(let i = 0; i < 8; i++){
+        const a = i * Math.PI / 4 + Math.PI / 8, px = RC * 0.95 * Math.sin(a), pz = -RC * 0.95 * Math.cos(a);   // stands well out of the corner
+        const body = new THREE.Mesh(new THREE.BoxGeometry(2, WALL_H - CAP, 1.6), pillarBody);
+        body.position.set(px, (WALL_H - CAP) / 2, pz); body.rotation.y = -a; body.castShadow = body.receiveShadow = true; this.walls.add(body);
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(2.2, CAP, 1.8), pillarCap);
+        cap.position.set(px, WALL_H - CAP / 2 - 1.2, pz); cap.rotation.y = -a; cap.castShadow = true; this.walls.add(cap);
+      }
+      // ceiling beams fading into the dark
+      const beamMat = new THREE.MeshStandardMaterial({ map: tex('6or_garrison_woodfloor', 0.3, 4), color: 0x8a7a68, roughness: 0.9 });
+      for(let i = 0; i < 4; i++){
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.7, RC * 2), beamMat);
+        beam.position.y = WALL_H - 0.6; beam.rotation.y = i * Math.PI / 4; this.walls.add(beam);
+      }
+      // outside the doorway: a cold night, falling snow, snow blown in across the planks
+      const night = new THREE.Mesh(new THREE.PlaneGeometry(DOOR_W + 1, DOOR_H + 1), new THREE.MeshBasicMaterial({ color: 0x1c2a44 }));
+      night.position.set(0, DOOR_H / 2, -A - 1.2); this.walls.add(night);
+      const coldLight = new THREE.PointLight(0x9cc4ff, 0.9, 12, 2); coldLight.position.set(0, DOOR_H * 0.6, -A + 1.2); this.walls.add(coldLight);
+      const fade = canvasTex(256, 256, (g) => {
+        const gr = g.createRadialGradient(128, 40, 10, 128, 60, 190);
+        gr.addColorStop(0, '#fff'); gr.addColorStop(0.45, '#bbb'); gr.addColorStop(1, '#000');
+        g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
       });
-      // faction banners on the back wall
-      [['horde', -5], ['alliance', 5]].forEach(([f, x]) => {
-        const c = f === 'horde' ? '#8e1a14' : '#1d3f93', sym = f === 'horde' ? '#1a1a1a' : '#e8c35a';
-        const tex = canvasTex(128, 320, (g, w, h) => {
-          g.fillStyle = c; g.beginPath(); g.moveTo(0, 0); g.lineTo(w, 0); g.lineTo(w, h); g.lineTo(w / 2, h - 46); g.lineTo(0, h); g.fill();
-          g.fillStyle = '#d6a940'; g.fillRect(0, 0, w, 10);
-          g.fillStyle = sym; g.font = 'bold 74px serif'; g.textAlign = 'center';
-          g.fillText(f === 'horde' ? '☗' : '✠', w / 2, 150);
-        });
-        const b = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 5.5), new THREE.MeshStandardMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, roughness: 0.95 }));
-        b.position.set(x, 4.2, -10.9); S.add(b);
-      });
+      // the snowy planks line up board-for-board with the floor's planks (same tile size and offset)
+      const FT = 3.2, DW = 8, DD = 7, DZ = -A + 3.4;
+      const snowTex = tex('6or_garrison_woodfloor_snow', DW / FT, DD / FT);
+      snowTex.offset.set(((-DW / 2 + RC) / FT) % 1, ((-(DZ + DD / 2) + RC) / FT) % 1);
+      const drift = new THREE.Mesh(new THREE.PlaneGeometry(DW, DD), new THREE.MeshStandardMaterial({ map: snowTex, alphaMap: fade, transparent: true, depthWrite: false, roughness: 0.85 }));
+      drift.rotation.x = -Math.PI / 2; drift.position.set(0, 0.01, DZ); drift.renderOrder = 1; this.walls.add(drift);
+      const sn = 300, sp = new Float32Array(sn * 3);
+      for(let i = 0; i < sn; i++){ sp[i * 3] = (Math.random() - 0.5) * (DOOR_W + 2); sp[i * 3 + 1] = Math.random() * DOOR_H; sp[i * 3 + 2] = -A - 1 + Math.random() * 3.2; }
+      const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+      this.snowfall = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 0.07, transparent: true, opacity: 0.85, depthWrite: false }));
+      this.walls.add(this.snowfall); this.snowDoor = { w: DOOR_W + 2, h: DOOR_H, z0: -A - 1 };
       // the table: thick top, raised rim, four legs
       const pt = new THREE.Group(); S.add(pt); this.procTable = pt;   // stand-in until the real table loads
       const wt = woodTex('#5a3a1f', '30,16,6');
@@ -178,7 +226,7 @@
         this.flames.push({ f, l, s, seed: Math.random() * 100, base: 0.5 });
       };
       [[-5.55, -3.55], [5.55, -3.55], [-5.55, 3.55], [5.55, 3.55]].forEach(([x, z]) => candle(x, 0.17, z, 1));
-      [[-11, -9], [11, -9]].forEach(([x, z]) => {
+      [[-5.2, -12.4], [5.2, -12.4]].forEach(([x, z]) => {
         const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.35, 0.5, 14), new THREE.MeshStandardMaterial({ color: 0x2a2420, metalness: 0.6, roughness: 0.5 }));
         bowl.position.set(x, 0.2, z); S.add(bowl);
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 3.3, 8), bowl.material); pole.position.set(x, -1.5, z); S.add(pole);
@@ -237,6 +285,7 @@
         // the floor goes under the real legs
         const fb = new THREE.Box3().setFromObject(m);
         if(this.floor) this.floor.position.y = fb.min.y;
+        if(this.walls) this.walls.position.y = fb.min.y;
       }, undefined, err => console.warn('War table failed to load, keeping the stand-in:', err));
     }
 
@@ -1081,6 +1130,14 @@
         f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.4 : 2.2) * (0.9 + 0.15 * k);
       });
       this.dust.rotation.y = now / 60000;
+      if(this.snowfall){
+        const a = this.snowfall.geometry.attributes.position, d = this.snowDoor;
+        for(let i = 0; i < a.count; i++){
+          let y = a.getY(i) - dt * (0.5 + (i % 7) * 0.08); if(y < 0) y += d.h;
+          a.setY(i, y); a.setX(i, a.getX(i) + Math.sin(now / 900 + i) * dt * 0.15);
+        }
+        a.needsUpdate = true;
+      }
       this.renderer.render(this.scene, this.camera);
       // overlay labels follow their zones
       const w = this.el.clientWidth, h = this.el.clientHeight, v = new THREE.Vector3();
