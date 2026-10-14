@@ -384,7 +384,7 @@
     // ----- a snowman out in the snow beyond the doorway, under a little cloud of drifting snow -----
     loadSnowman(){
       if(!THREE.GLTFLoader || !this.outsideAt) return;
-      const M = window.WAR_SNOWMAN || { man: 'models/war/snowman.gltf', snow: 'models/war/snowfall.gltf' };
+      const M = window.WAR_SNOWMAN || { man: 'models/war/snowman.gltf' };
       new THREE.GLTFLoader().load(M.man, gltf => {
         const m = gltf.scene, box = new THREE.Box3().setFromObject(m), s = 1.7 / (box.max.y - box.min.y);
         m.traverse(o => { if(o.isMesh){ o.castShadow = true; o.frustumCulled = false; o.material.alphaTest = 0.4; o.material.transparent = false; } });
@@ -400,19 +400,6 @@
           setInterval(() => { w.reset().play(); mixer.clipAction(stand).crossFadeTo(w, 0.3); setTimeout(() => w.crossFadeTo(mixer.clipAction(stand).reset().play(), 0.4), wave.duration * 1000 - 400); }, 14000);
         }
       }, undefined, err => console.warn('snowman failed to load:', err));
-      // the "snow rain" cards: their scrolling was lost in the export, so scroll them here
-      new THREE.GLTFLoader().load(M.snow, gltf => {
-        const m = gltf.scene, box = new THREE.Box3().setFromObject(m), s = 3.2 / (box.max.y - box.min.y);
-        const skinned = []; m.traverse(o => { if(o.isSkinnedMesh) skinned.push(o); });
-        skinned.forEach(o => { const q = new THREE.Mesh(o.geometry, o.material); q.position.copy(o.position); o.parent.add(q); o.parent.remove(o); });
-        m.traverse(o => { if(o.isMesh){
-          const t = o.material.map; t.wrapS = t.wrapT = THREE.RepeatWrapping;
-          o.material = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
-          (this.snowCards = this.snowCards || []).push(t);
-        } });
-        m.scale.setScalar(s); m.position.copy(this.outsideAt); m.position.y = -box.min.y * s; m.rotation.y = Math.PI / 2;
-        this.walls.add(m);
-      }, undefined, err => console.warn('snowfall failed to load:', err));
     }
 
     // ----- scenery (World Tree on Teldrassil and Mount Hyjal) -----
@@ -1167,12 +1154,16 @@
         f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.4 : 2.2) * (0.9 + 0.15 * k);
       });
       this.dust.rotation.y = now / 60000;
-      (this.snowCards || []).forEach((t, i) => { t.offset.y = (now / (2600 + i * 700)) % 1; });
       if(this.snowfall){
         const a = this.snowfall.geometry.attributes.position, d = this.snowDoor;
         for(let i = 0; i < a.count; i++){
-          let y = a.getY(i) - dt * (0.5 + (i % 7) * 0.08); if(y < 0) y += d.h;
-          a.setY(i, y); a.setX(i, a.getX(i) + Math.sin(now / 900 + i) * dt * 0.15);
+          // wind: a steady push sideways with gusts that come and go, plus each flake's own flutter
+          const gust = 0.9 + 0.8 * Math.sin(now / 2300) + 0.5 * Math.sin(now / 870 + 1.3);
+          let y = a.getY(i) - dt * (0.45 + (i % 7) * 0.07);
+          let x = a.getX(i) + dt * (1.1 * gust + Math.sin(now / 300 + i * 1.7) * 0.5);
+          if(y < 0) y += d.h;
+          if(x > d.w / 2) x -= d.w;   // blown off one side, back in the other
+          a.setY(i, y); a.setX(i, x);
         }
         a.needsUpdate = true;
       }
