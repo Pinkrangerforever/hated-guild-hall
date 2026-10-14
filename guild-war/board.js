@@ -116,7 +116,7 @@
       this.camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
       this.cam = { target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 }; this.shakeOff = new THREE.Vector3();
       this.glow = glowTex();
-      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -146,7 +146,7 @@
       // walls: plain stonework, the back wall frosted with snow round an open doorway
       this.walls = new THREE.Group(); this.walls.position.y = FLOOR_Y; S.add(this.walls);
       const wallMat = (f, w, h) => new THREE.MeshStandardMaterial({ map: tex(f, w / TILE, h / TILE), roughness: 0.95 });
-      const DOOR_W = 3.4, DOOR_H = 5.2;
+      const DOOR_W = 4.1, DOOR_H = 5.2;   // fits the Shadowfang door (3.96 x 5.04 model units, scaled 1.03)
       for(let i = 0; i < 8; i++){
         const a = i * Math.PI / 4, wall = new THREE.Group();
         wall.position.set(A * Math.sin(a), 0, -A * Math.cos(a)); wall.rotation.y = -a; this.walls.add(wall);
@@ -218,7 +218,7 @@
       [[-5, -3.2], [5, -3.2], [-5, 3.2], [5, 3.2]].forEach(([x, z]) => {
         const l = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 2.9, 10), wood); l.position.set(x, -1.75, z); l.castShadow = true; pt.add(l);
       });
-      // candles on the corners, braziers in the room
+      // candles on the corners (the snow torches by the door load with the other models)
       this.flames = [];
       const candle = (x, y, z, s) => {
         const c = new THREE.Mesh(new THREE.CylinderGeometry(0.07 * s, 0.08 * s, 0.4 * s, 10), new THREE.MeshStandardMaterial({ color: 0xe8dcc0, roughness: 0.6 }));
@@ -229,15 +229,6 @@
         this.flames.push({ f, l, s, seed: Math.random() * 100, base: 0.5 });
       };
       [[-5.55, -3.55], [5.55, -3.55], [-5.55, 3.55], [5.55, 3.55]].forEach(([x, z]) => candle(x, 0.17, z, 1));
-      [[-5.2, -12.4], [5.2, -12.4]].forEach(([x, z]) => {
-        const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.35, 0.5, 14), new THREE.MeshStandardMaterial({ color: 0x2a2420, metalness: 0.6, roughness: 0.5 }));
-        bowl.position.set(x, 0.2, z); S.add(bowl);
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 3.3, 8), bowl.material); pole.position.set(x, -1.5, z); S.add(pole);
-        const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glow, color: 0xff8a2a, blending: THREE.AdditiveBlending, depthWrite: false }));
-        f.position.set(x, 0.9, z); f.scale.set(1.6, 2.2, 1); S.add(f);
-        const l = new THREE.PointLight(0xff7a2a, 1.4, 16, 2); l.position.set(x, 1.4, z); S.add(l);
-        this.flames.push({ f, l, s: 4, seed: Math.random() * 100, base: 1.4 });
-      });
       // floating dust in the light
       const n = 260, pos = new Float32Array(n * 3);
       for(let i = 0; i < n; i++){ pos[i * 3] = (Math.random() - 0.5) * 14; pos[i * 3 + 1] = Math.random() * 8; pos[i * 3 + 2] = (Math.random() - 0.5) * 10; }
@@ -381,6 +372,41 @@
       return c;
     }
 
+    // ----- the Shadowfang door (swung open) and two Vrykul snow torches on the snowy wall either side -----
+    loadDoorway(){
+      if(!THREE.GLTFLoader || !this.outsideAt) return;
+      const M = window.WAR_DOORWAY || { door: 'models/war/door.gltf', torch: 'models/war/snow-torch.gltf' };
+      const A = -this.outsideAt.z - 2.3;   // the hall's apothem (the back wall's distance)
+      new THREE.GLTFLoader().load(M.door, gltf => {
+        const m = gltf.scene;
+        m.traverse(o => { if(o.isMesh){ o.castShadow = o.receiveShadow = true; o.frustumCulled = false; } });
+        m.scale.setScalar(1.03); m.rotation.y = Math.PI / 2;   // its width runs along the wall
+        m.position.set(2.05, 0, -A + 0.05);                    // hinged on the right jamb
+        this.walls.add(m);
+        const mixer = new THREE.AnimationMixer(m), open = gltf.animations.find(c => /Opened/.test(c.name));
+        if(open) mixer.clipAction(open).play();
+        (this.mixers = this.mixers || []).push(mixer);
+        this.doorModel = m;
+      }, undefined, err => console.warn('door failed to load:', err));
+      new THREE.GLTFLoader().load(M.torch, gltf => {
+        const proto = gltf.scene, box = new THREE.Box3().setFromObject(proto), s = 4.2 / (box.max.y - box.min.y);
+        [-1, 1].forEach(side => {
+          const t = THREE.SkeletonUtils ? THREE.SkeletonUtils.clone(proto) : proto.clone(true);
+          t.traverse(o => { if(o.isMesh){
+            o.frustumCulled = false; o.castShadow = true;
+            // flame + glow cards burn additively; the iron plate is a cut-out
+            if(/195953|189824/.test(o.material.name)){ o.material = new THREE.MeshBasicMaterial({ map: o.material.map, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }); o.castShadow = false; this.torchFlames = (this.torchFlames || []).concat(o); }
+            else { o.material = o.material.clone(); o.material.alphaTest = 0.4; o.material.transparent = false; o.material.side = THREE.DoubleSide; }
+          } });
+          t.scale.setScalar(s); t.position.set(side * 3.3, 1.2, -A + 0.9); t.rotation.y = -Math.PI / 2;   // bracket flat on the wall, flame up
+          this.walls.add(t);
+          const l = new THREE.PointLight(0xff8a30, 1.5, 14, 2); l.position.set(side * 3.3, 4.0, -A + 1.4); this.walls.add(l);
+          this.flames.push({ f: { scale: { y: 0 } }, l, s: 1, seed: Math.random() * 100, base: 1.5 });
+          if(gltf.animations[0]){ const mx = new THREE.AnimationMixer(t); mx.clipAction(gltf.animations[0]).play(); (this.mixers = this.mixers || []).push(mx); }
+        });
+      }, undefined, err => console.warn('snow torch failed to load:', err));
+    }
+
     // ----- a snowman out in the snow beyond the doorway, under a little cloud of drifting snow -----
     loadSnowman(){
       if(!THREE.GLTFLoader || !this.outsideAt) return;
@@ -388,7 +414,7 @@
       new THREE.GLTFLoader().load(M.man, gltf => {
         const m = gltf.scene, box = new THREE.Box3().setFromObject(m), s = 1.7 / (box.max.y - box.min.y);
         m.traverse(o => { if(o.isMesh){ o.castShadow = true; o.frustumCulled = false; o.material.alphaTest = 0.4; o.material.transparent = false; } });
-        m.scale.setScalar(s); m.position.copy(this.outsideAt); m.position.y = -box.min.y * s; m.rotation.y = -0.35;   // turned a little toward the table
+        m.scale.setScalar(s); m.position.copy(this.outsideAt); m.position.y = -box.min.y * s; m.rotation.y = -0.35 - Math.PI / 2;   // turned to his right
         this.walls.add(m);
         const mixer = new THREE.AnimationMixer(m), clips = gltf.animations;
         const stand = clips.find(c => /Stand/.test(c.name)), wave = clips.find(c => /Wave/.test(c.name));
@@ -1154,6 +1180,7 @@
         f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.4 : 2.2) * (0.9 + 0.15 * k);
       });
       this.dust.rotation.y = now / 60000;
+      (this.torchFlames || []).forEach((o, i) => { const k = 1 + 0.08 * Math.sin(now / 70 + i * 2) + 0.05 * Math.sin(now / 33 + i); o.scale.set(k, 1 + (k - 1) * 1.6, k); });
       if(this.snowfall){
         const a = this.snowfall.geometry.attributes.position, d = this.snowDoor;
         for(let i = 0; i < a.count; i++){
