@@ -27,14 +27,14 @@
   #curtain{ background:radial-gradient(ellipse at center, #1a1008 0%, #000 70%); flex-direction:column; }
   #curtain .crest{ width:84px; height:84px; margin-bottom:18px; filter:drop-shadow(0 0 14px rgba(214,169,64,0.45)); animation:breathe 3s ease-in-out infinite; }
   #curtain .title{ font:900 30px Cinzel, serif; letter-spacing:6px; text-transform:uppercase; text-align:center;
-    color:#ecc867; text-shadow:0 1px 0 #fff1c4, 0 2px 3px #000, 0 0 18px rgba(214,169,64,0.45); animation:rise .9s ease both; }
-  #curtain .rule{ display:flex; align-items:center; gap:12px; width:min(420px, 80vw); margin:12px 0 10px; color:#d6a940; animation:rise .9s ease both; }
+    color:#ecc867; text-shadow:0 1px 0 #fff1c4, 0 2px 3px #000, 0 0 18px rgba(214,169,64,0.45); animation:curtainIn .9s ease both; }
+  #curtain .rule{ display:flex; align-items:center; gap:12px; width:min(420px, 80vw); margin:12px 0 10px; color:#d6a940; animation:curtainIn .9s ease both; }
   #curtain .rule::before, #curtain .rule::after{ content:''; flex:1; height:1px; background:linear-gradient(90deg, transparent, #d6a940, transparent); }
-  #curtain .msg{ font:600 13px Cinzel, serif; color:#a8875a; letter-spacing:3px; min-height:18px; transition:opacity .4s; animation:rise 1.1s ease both; }
-  #curtain .bar{ width:min(260px, 60vw); height:3px; margin-top:16px; background:rgba(214,169,64,0.15); border-radius:2px; overflow:hidden; }
-  #curtain .bar i{ display:block; height:100%; width:0; background:linear-gradient(90deg, #8a5a14, #ffd36a); box-shadow:0 0 8px #ffd36a; transition:width .4s ease; }
+  #curtain .msg{ font:600 13px Cinzel, serif; color:#a8875a; letter-spacing:3px; min-height:18px; transition:opacity .4s; animation:curtainIn 1.1s ease both; }
+  #curtain .cbar{ width:min(260px, 60vw); height:3px; margin-top:16px; background:rgba(214,169,64,0.15); border-radius:2px; overflow:hidden; }
+  #curtain .cbar i{ display:block; height:100%; width:0; background:linear-gradient(90deg, #8a5a14, #ffd36a); box-shadow:0 0 8px #ffd36a; transition:width .4s ease; }
   @keyframes breathe{ 50%{ transform:scale(1.04); filter:drop-shadow(0 0 22px rgba(214,169,64,0.6)); } }
-  @keyframes rise{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+  @keyframes curtainIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
   #curtain.gone{ opacity:0; pointer-events:none; }
   @keyframes pulse{ 50%{ opacity:.35; } }
   .wb-overlay{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
@@ -225,7 +225,7 @@
   <div class="title">Entering the War Room</div>
   <div class="rule">◆</div>
   <div class="msg" id="curtainMsg">Lighting the braziers</div>
-  <div class="bar"><i id="curtainBar"></i></div>
+  <div class="cbar"><i id="curtainBar"></i></div>
 </div>
 <div class="bar">
   <button class="btn" onclick="location.href='index.html'">← Back to site</button>
