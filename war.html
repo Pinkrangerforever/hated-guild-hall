@@ -67,6 +67,19 @@
   .muted{ opacity:.7; font-size:12px; }
   input[type=range]{ flex:1; accent-color:var(--gold); }
   select, input[type=number], input[type=text]{ background:#1c130a; color:var(--ink); border:1px solid var(--edge); border-radius:5px; padding:3px 5px; font-family:inherit; }
+  #chat{ left:50%; transform:translateX(-50%); bottom:10px; width:min(460px, calc(100vw - 660px)); min-width:300px; padding:0; display:flex; flex-direction:column; }
+  #chat .tabs{ display:flex; border-bottom:1px solid var(--edge); }
+  #chat .tabs button{ flex:1; background:none; border:0; color:var(--ink); font:600 12px Cinzel, serif; padding:7px; cursor:pointer; opacity:.6; }
+  #chat .tabs button.on{ opacity:1; color:var(--gold); border-bottom:2px solid var(--gold); }
+  #chat .tabs .min{ flex:0 0 32px; }
+  #chatLog{ height:150px; overflow:auto; padding:6px 10px; font-size:13px; }
+  #chatLog .m{ margin:2px 0; word-wrap:break-word; } #chatLog .t{ opacity:.45; font-size:11px; margin-right:4px; }
+  #chatLog .h{ color:#ff9a80; font-weight:700; } #chatLog .a{ color:#9cc0ff; font-weight:700; } #chatLog .n{ color:#d6c7a0; font-weight:700; }
+  #chatLog .sys{ opacity:.6; font-style:italic; }
+  #chat form{ display:flex; gap:6px; padding:6px 8px; border-top:1px solid rgba(214,169,64,0.2); }
+  #chat input{ flex:1; }
+  #chat.min #chatLog, #chat.min form{ display:none; }
+  #chat .badge{ background:#b3221c; color:#fff; border-radius:8px; padding:0 5px; font-size:10px; margin-left:4px; }
   #admin{ right:320px; top:62px; width:280px; max-height:calc(100vh - 80px); overflow:auto; display:none; border-color:#b06aff; }
   #admin h3{ color:#d4a8ff; }
   #toast{ position:fixed; left:50%; top:70px; transform:translateX(-50%); z-index:9; padding:8px 14px; border-radius:8px; background:rgba(120,20,12,0.95);
@@ -85,6 +98,7 @@
     #feed{ top:auto; bottom:auto; height:0; overflow:hidden; padding:0; border:0; }
     #feed.open{ top:110px; bottom:44vh; height:auto; padding:10px 12px; border:1px solid var(--edge); left:10px; width:auto; }
     #admin{ right:10px; left:10px; width:auto; top:110px; }
+    #chat{ left:10px; right:10px; transform:none; width:auto; min-width:0; bottom:auto; top:110px; }
   }
 </style>
 </head>
@@ -117,6 +131,11 @@
   <div id="feedList"></div>
 </div>
 <div class="panel" id="admin"></div>
+<div class="panel" id="chat">
+  <div class="tabs"><button id="chatBoard" class="on" onclick="setChat('board')">Board chat<span class="badge" id="badgeBoard" hidden></span></button><button id="chatFaction" onclick="setChat('faction')">Faction chat<span class="badge" id="badgeFaction" hidden></span></button><button class="min" onclick="document.getElementById('chat').classList.toggle('min')" title="Hide / show">▾</button></div>
+  <div id="chatLog"></div>
+  <form onsubmit="sendChat(event)"><input id="chatIn" type="text" maxlength="300" autocomplete="off" placeholder="Say something…"><button class="btn sm">Send</button></form>
+</div>
 <div id="toast"></div>
 <div id="hover"></div>
 <div id="gate"><div class="card"><h2 style="font-family:Cinzel;color:var(--gold)">Guild War</h2><p id="gateMsg">Loading…</p><button class="btn" onclick="location.href='index.html'">← Back to site</button></div></div>
@@ -186,7 +205,8 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
     document.getElementById('gateMsg').textContent = session ? 'The Guild War is being tested by the officers. Check back soon!' : 'Sign in on the main site first.';
     return;
   }
-  me = { id: profile ? profile.id : 'local-admin', name: profile ? (profile.character_name || 'Admin') : 'Admin', admin };
+  me = { id: profile ? profile.id : 'local-admin', name: profile ? (profile.character_name || 'Admin') : 'Admin', admin, signedIn: !!session };
+  initChat();
   document.getElementById('adminBtn').style.display = '';
   try{ board = new WarBoard(document.getElementById('stage'), { onClick: zoneClicked, onHover: zoneHover }); }
   catch(e){ showFatal('3D board: ' + e.message + ' (is WebGL / hardware acceleration turned on?)'); return; }
@@ -211,6 +231,56 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
   if(pending.length){ toast(`${pending.length} moves since you last looked: replaying`); pending.forEach(e => queue.push(e)); runQueue(); }
   else markSeen(G.seq);
 })();
+
+// ---------- chat: board (everyone) + your faction's private channel, live via Supabase realtime ----------
+let chatChan = 'board', chatMsgs = [], chatFactionSynced = null, unread = { board: 0, faction: 0 };
+function myFaction(){ const p = G && G.players && G.players[playAs]; return p ? p.faction : null; }
+function initChat(){
+  if(!me.signedIn){ document.getElementById('chatLog').innerHTML = '<div class="m sys">Sign in on the main site to use chat.</div>'; return; }
+  sb.channel('guild-war-chat').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'guild_war_chat' }, ({ new: m }) => {
+    if(chatMsgs.some(x => x.id === m.id)) return;
+    chatMsgs.push(m); const ch = m.channel === 'board' ? 'board' : 'faction';
+    if(ch !== chatChan || document.getElementById('chat').classList.contains('min')) unread[ch]++;
+    renderChat();
+  }).subscribe();
+  loadChat();
+}
+async function loadChat(){
+  const { data, error } = await sb.from('guild_war_chat').select('*').order('created_at', { ascending: false }).limit(120);
+  if(error){ document.getElementById('chatLog').innerHTML = '<div class="m sys">Chat is not set up yet.</div>'; return; }
+  chatMsgs = (data || []).reverse(); renderChat();
+}
+// while the war is a sandbox, the admin's chat faction follows whoever they are playing as
+async function syncChatFaction(){
+  const f = myFaction();
+  if(!me || !me.signedIn || !me.admin || !f || f === chatFactionSynced) return;
+  chatFactionSynced = f;
+  const { error } = await sb.rpc('set_war_faction', { p_faction: f });
+  if(error) chatFactionSynced = null; else loadChat();
+}
+function setChat(ch){ chatChan = ch; unread[ch] = 0; document.getElementById('chatBoard').classList.toggle('on', ch === 'board'); document.getElementById('chatFaction').classList.toggle('on', ch === 'faction'); renderChat(); }
+function renderChat(){
+  const log = document.getElementById('chatLog'); if(!log) return;
+  const f = myFaction();
+  document.getElementById('chatFaction').firstChild.textContent = f ? (f === 'horde' ? 'Horde chat' : 'Alliance chat') : 'Faction chat';
+  const list = chatMsgs.filter(m => chatChan === 'board' ? m.channel === 'board' : m.channel === f);
+  const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 30;
+  log.innerHTML = (chatChan === 'faction' && !f ? '<div class="m sys">Join the war to talk with your faction.</div>' : '') +
+    (list.length ? list.map(m => `<div class="m"><span class="t">${new Date(m.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span><span class="${FC(m.faction)}">${esc(m.name)}:</span> ${esc(m.body)}</div>`).join('') :
+      `<div class="m sys">${chatChan === 'board' ? 'Board chat: everyone can read this. Talk some trash.' : 'Only your faction can read this channel.'}</div>`);
+  if(atBottom) log.scrollTop = log.scrollHeight;
+  [['badgeBoard', 'board'], ['badgeFaction', 'faction']].forEach(([id, ch]) => { const b = document.getElementById(id); b.hidden = !unread[ch]; b.textContent = unread[ch]; });
+}
+async function sendChat(e){
+  e.preventDefault();
+  const inp = document.getElementById('chatIn'), body = inp.value.trim(); if(!body) return;
+  if(!me.signedIn){ toast('Sign in on the main site to chat'); return; }
+  const ch = chatChan === 'board' ? 'board' : myFaction();
+  if(!ch){ toast('Join the war to use faction chat'); return; }
+  const { data, error } = await sb.rpc('post_war_chat', { p_channel: ch, p_body: body });
+  if(error){ toast(error.message); return; }
+  inp.value = ''; if(data && !chatMsgs.some(x => x.id === data.id)){ chatMsgs.push(data); renderChat(); }
+}
 
 // ---------- replay queue ----------
 async function runQueue(){
@@ -266,6 +336,7 @@ function highlightFeed(seq){
 // ---------- UI ----------
 function cur(){ return G.players[playAs]; }
 function refreshUI(){
+  syncChatFaction();
   const sc = G.phase === 'signup' ? null : E.score(G);
   document.getElementById('scH').textContent = sc ? sc.horde.total : 0;
   document.getElementById('scA').textContent = sc ? sc.alliance.total : 0;
