@@ -122,7 +122,7 @@
       LM.onProgress = (u, l, t) => { this._loading = t - l; prevProg && prevProg(u, l, t); };
       LM.onError = () => {};
       this.glow = glowTex();
-      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.loadSuccubus(); this.loadPainting(); this.loadShips(); this.loadTroops(); this.loadCandles(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.loadSuccubus(); this.loadPainting(); this.loadShips(); this.loadTroops(); this.loadCandles(); this.loadHordeFortify(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -1303,6 +1303,38 @@
         const holder = new THREE.Group(), inner = new THREE.Group(); inner.add(m); inner.scale.setScalar(s); holder.add(inner);
         protos[kind] = holder; if(--left === 0) place();
       }, undefined, err => { console.warn(kind + ' candle failed to load:', err); if(--left === 0) place(); }));
+    }
+
+    // ----- Horde fortify: a round palisade built from the outpost pieces - a gate at the front, log wall
+    // sections round the rest, a stake at every joint. Built once, then cloned like the other models. -----
+    loadHordeFortify(){
+      if(!THREE.GLTFLoader) return;
+      const M = window.WAR_PALISADE || { wall: 'models/war/horde-palisade-04.gltf', post: 'models/war/horde-palisade-06.gltf', gate: 'models/war/horde-palisade-07.gltf' };
+      const P = {}; let left = 3;
+      const build = () => {
+        if(!P.wall) return;
+        const ring = new THREE.Group(), R = 15, sections = 9;   // model units; the wall pieces are ~8.8 long
+        for(let i = 0; i < sections; i++){
+          const a = (i + 0.5) / (sections + 1.6) * Math.PI * 2 + Math.PI / 2 + 0.55;   // leave a gap at the front for the gate
+          const piece = P.wall.clone(); piece.position.set(Math.cos(a) * R, 0, Math.sin(a) * R); piece.rotation.y = -a - Math.PI / 2; ring.add(piece);
+          if(P.post){ const b2 = a + Math.PI / (sections + 1.6); const post = P.post.clone(); post.position.set(Math.cos(b2) * R, 0, Math.sin(b2) * R); ring.add(post); }
+        }
+        if(P.gate){ const gate = P.gate.clone(); gate.scale.setScalar(0.75); gate.position.set(0, 0, R); ring.add(gate); }   // gate facing the camera side
+        const s = 0.31 / R; ring.scale.setScalar(s);
+        const holder = new THREE.Group(); holder.add(ring);
+        (this.holdModels = this.holdModels || {}).horde_fortify = holder;
+        KEYS.forEach(k => this.syncPiece(k));
+      };
+      Object.keys(M).forEach(k => new THREE.GLTFLoader().load(M[k], gltf => {
+        const m = gltf.scene;
+        const sk = []; m.traverse(o => { if(o.isSkinnedMesh) sk.push(o); });
+        sk.forEach(o => { const q = new THREE.Mesh(o.geometry, o.material); q.position.copy(o.position); q.quaternion.copy(o.quaternion); q.scale.copy(o.scale); o.parent.add(q); o.parent.remove(o); });
+        m.traverse(o => { if(o.isMesh){ o.castShadow = true; o.receiveShadow = true; o.material.side = THREE.DoubleSide; o.material.alphaTest = 0.4; o.material.transparent = false; } });
+        const box = new THREE.Box3().setFromObject(m);
+        m.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+        const g = new THREE.Group(); g.add(m); P[k] = g;
+        if(--left === 0) build();
+      }, undefined, err => { console.warn('palisade piece failed to load:', err); if(--left === 0) build(); }));
     }
 
     // Each zone's pieces (banner, buildings, fortify wall) are scaled to the room around their anchor: full size
