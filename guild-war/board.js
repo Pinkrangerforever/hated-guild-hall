@@ -790,7 +790,7 @@
           const x = i % GW, y = (i / GW) | 0;
           for(let dy = -1; dy <= 1; dy++) for(let dx = -1; dx <= 1; dx++){
             if(!dx && !dy) continue; const nx = x + dx, ny = y + dy; if(nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue;
-            const j = ny * GW + nx; if(!sea[j]) continue;
+            const j = ny * GW + nx; if(!sea[j] || (dist[j] < 3 && !nearEnds[j])) continue;   // open water only (no narrow inlets), except at its own ports
             const ng = g[i] + cost(j) * (dx && dy ? 1.414 : 1);
             if(ng < g[j]){ g[j] = ng; from[j] = i; push([ng + hz(j), j]); }
           }
@@ -825,7 +825,7 @@
         if(ha){ pts.unshift(ha); edges[kind].add('H' + rt.a + ',' + s); }
         if(hb){ pts.push(hb); edges[kind].add('H' + rt.b + ',' + t); }
         paths[rt.a + '|' + rt.b] = pts;
-        const full = cells.filter((_, i) => i % 3 === 0 || i === cells.length - 1).map(c => cellPt(c));
+        const full = cells.filter((_, i) => i % 2 === 0 || i === cells.length - 1).map(c => cellPt(c));
         if(ha) full.unshift(ha); if(hb) full.push(hb);
         (this.routeLines = this.routeLines || []).push({ rt, kind, pts: full, cells: new Set(cells) });
       });
