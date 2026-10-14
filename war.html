@@ -56,7 +56,8 @@
   #feedList .h{ color:#ff9a80; } #feedList .a{ color:#9cc0ff; } #feedList .n{ color:#c8bca0; }
   .row{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:5px 0; }
   .res{ display:grid; grid-template-columns:repeat(4,1fr); gap:4px; font-size:13px; text-align:center; }
-  .res div{ background:rgba(0,0,0,0.35); border-radius:6px; padding:3px 0; }
+  .res div{ background:rgba(0,0,0,0.35); border-radius:6px; padding:3px 0; display:flex; align-items:center; justify-content:center; gap:4px; }
+  img.ri{ width:20px; height:20px; object-fit:contain; vertical-align:middle; }
   .muted{ opacity:.7; font-size:12px; }
   input[type=range]{ flex:1; accent-color:var(--gold); }
   select, input[type=number], input[type=text]{ background:#1c130a; color:var(--ink); border:1px solid var(--edge); border-radius:5px; padding:3px 5px; font-family:inherit; }
@@ -143,7 +144,9 @@ const STORE = 'gw_sandbox_v1', SEEN = 'gw_seen_v1';
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ZN = k => WAR_ZONES[k] ? WAR_ZONES[k].name : k;
 const FC = f => f === 'horde' ? 'h' : f === 'alliance' ? 'a' : 'n';
-const RES_ICON = { food: '🍖', wood: '🪵', ore: '⛏', crystal: '💎' };
+// the site's resource icons (same art as the board)
+const RES_IMG = { food: 'FoodIcon.png', wood: 'WoodIcon.png', ore: 'War%20Games/CopperOre.png', crystal: 'CrystalIcon2.png' };
+const RES_ICON = Object.fromEntries(Object.entries(RES_IMG).map(([r, f]) => [r, `<img class="ri" src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/${f}" alt="${r}" title="${r}">`]));
 
 let G = null;            // the sandbox game state (source of truth)
 let me = null;           // { id, name, admin }
@@ -313,7 +316,7 @@ function renderZone(){
   const reg = WAR_REGIONS[info.region];
   let h = `<h3>${info.name}${info.capital ? ' · ' + info.capital : ''}</h3>
     <div class="row"><span class="chip ${FC(z.owner)}">${z.owner}</span><span class="chip">⚔ ${z.ready} ready</span><span class="chip">💤 ${z.fresh} fresh</span>${fort}${z.shield ? '<span class="chip">🛡</span>' : ''}</div>
-    <div class="muted">${E.isRich(G, selZone) ? `✨ Rich ${info.resource} deposit: +${E.RULES.richYield + z.outpost}/day` : `${RES_ICON[info.resource]} ${info.resource} land, no deposit this war`} · ${reg.name} (+${reg.troops} troops, +${reg.points} pts if held) · ${z.outpost === 2 ? '🏰 Stronghold' : z.outpost === 1 ? '⛺ Outpost' : 'No buildings'}${E.PORTS.has(selZone) ? ' · ⚓ port' : ''}</div>`;
+    <div class="muted">${E.isRich(G, selZone) ? `✨ ${RES_ICON[info.resource]} Rich ${info.resource} deposit: +${E.RULES.richYield + z.outpost}/day` : `${RES_ICON[info.resource]} ${info.resource} land, no deposit this war`} · ${reg.name} (+${reg.troops} troops, +${reg.points} pts if held) · ${z.outpost === 2 ? '🏰 Stronghold' : z.outpost === 1 ? '⛺ Outpost' : 'No buildings'}${E.PORTS.has(selZone) ? ' · ⚓ port' : ''}</div>`;
   if(p && G.phase === 'live'){
     if(mine){
       const canDeploy = E.deployable(G, p.faction).includes(selZone);

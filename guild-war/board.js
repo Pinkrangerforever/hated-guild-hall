@@ -305,20 +305,14 @@
         for(let i = 0; i < w * h; i++){ const v = 200 + Math.random() * 55; im.data[i * 4] = v; im.data[i * 4 + 1] = v; im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
         g.putImageData(im, 0, 0);
       }).image;
-      // resource icons (the site's 2D icons; ore is drawn until it has one)
+      // resource icons (the site's 2D icons)
       const R2 = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/';
       this.resIcons = {};
-      Object.entries({ food: 'FoodIcon.png', wood: 'WoodIcon.png', crystal: 'CrystalIcon2.png' }).forEach(([r, f]) => {
+      Object.entries({ food: 'FoodIcon.png', wood: 'WoodIcon.png', ore: 'War%20Games/CopperOre.png', crystal: 'CrystalIcon2.png' }).forEach(([r, f]) => {
         const im = new Image(); im.crossOrigin = 'anonymous';
         im.onload = () => { this.resIcons[r] = im; this.drawMap(); };
         im.src = R2 + f;
       });
-      this.resIcons.ore = canvasTex(96, 96, (g) => {
-        g.fillStyle = '#5c5a58'; g.beginPath(); g.moveTo(14, 70); g.lineTo(26, 30); g.lineTo(52, 16); g.lineTo(80, 34); g.lineTo(86, 70); g.lineTo(56, 84); g.closePath(); g.fill();
-        g.fillStyle = '#7d7b78'; g.beginPath(); g.moveTo(26, 30); g.lineTo(52, 16); g.lineTo(58, 44); g.lineTo(32, 52); g.closePath(); g.fill();
-        g.fillStyle = '#c9a24a'; [[40, 60, 7], [64, 52, 6], [58, 70, 5], [30, 44, 4]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); });
-        g.strokeStyle = '#2a241e'; g.lineWidth = 3; g.beginPath(); g.moveTo(14, 70); g.lineTo(26, 30); g.lineTo(52, 16); g.lineTo(80, 34); g.lineTo(86, 70); g.lineTo(56, 84); g.closePath(); g.stroke();
-      }).image;
       this.mapTex = new THREE.CanvasTexture(c); this.mapTex.anisotropy = 8; this.mapTex.encoding = THREE.sRGBEncoding;
       const m = new THREE.Mesh(new THREE.PlaneGeometry(10, 6), new THREE.MeshStandardMaterial({ map: this.mapTex, roughness: 0.92 }));
       m.rotation.x = -Math.PI / 2; m.position.y = 0.0; m.receiveShadow = true;
