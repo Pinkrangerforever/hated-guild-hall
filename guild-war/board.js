@@ -473,40 +473,25 @@
       }, undefined, err => console.warn('snow torch failed to load:', err));
     }
 
-    // ----- ships on the sea, moored along the boat routes: Booty Bay pirate ships and Alliance transports.
-    // Each sits a few steps out along a route's sea path from the named zone. -----
+    // ----- one vehicle per route: pirate ships on the goblin lines, Alliance transports on the ferries, zeppelins
+    // on the zeppelin lines, all sailing their routes very slowly -----
     loadShips(){
       if(!THREE.GLTFLoader) return;
       const M = window.WAR_SHIPS || { pirate: 'models/war/pirate-ship.gltf', alliance: 'models/war/alliance-ship.gltf', zeppelin: 'models/war/zeppelin.gltf' };
-      const SHIPS = [
-        { kind: 'pirate',   route: 'tanaris|riverglades',    from: 'tanaris' },
-        { kind: 'pirate',   route: 'barrens|stranglethorn',  from: 'barrens' },
-        { kind: 'pirate',   route: 'tanaris|riverglades',    from: 'riverglades' },
-        { kind: 'alliance', route: 'elwynn|darkshore',       from: 'elwynn' },
-        { kind: 'alliance', route: 'darkshore|wetlands',     from: 'wetlands' },
-        { kind: 'alliance', route: 'dustwallow|wetlands',    from: 'dustwallow', step: 1 },   // in close to Theramore
-        { kind: 'alliance', route: 'darkshore|wetlands',     from: 'darkshore' }
-      ];
       const protos = {};
+      // one vehicle per route, sailing it end to end very slowly; at each end it eases round and heads back
+      const KIND = r => r.kind === 'zeppelin' ? 'zeppelin' : (/barrens\|stranglethorn|tanaris\|riverglades/.test(r.a + '|' + r.b) ? 'pirate' : 'alliance');
       const place = () => {
         if(!this.raster) return setTimeout(place, 300);
-        const paths = this.seaPaths = this.seaPaths || this.routeSeaPaths();
-        SHIPS.forEach((sh, i) => {
-          const proto = protos[sh.kind], path = paths[sh.route]; if(!proto || !path) return;
-          const fromStart = sh.route.split('|')[0] === sh.from;
-          const seq = fromStart ? path : path.slice().reverse();
-          const st = sh.step != null ? sh.step : sh.from === 'wetlands' ? 2 : 3;
-          const at = seq[Math.min(seq.length - 1, st)], next = seq[Math.min(seq.length - 1, st + 2)];
-          const w = toWorld(at[0], at[1]), w2 = toWorld(next[0], next[1]);
-          const ship = proto.clone(); ship.position.set(w.x, this.sheetY(at[0], at[1]) + 0.004, w.z);
-          ship.rotation.y = Math.atan2(-(w2.z - w.z), w2.x - w.x) + (i % 2 ? 0.25 : -0.25);   // bow (+x) along the route
-          ship.userData.bob = Math.random() * 6; this.scene.add(ship); (this.ships = this.ships || []).push(ship);
-        });
-        // goblin zeppelins hovering over their towers (map-tuning.js), drifting gently
-        if(protos.zeppelin) (TUNE.zeppelins || []).forEach(([x, y], i) => {
-          const z = protos.zeppelin.clone(), w = toWorld(x, y);
-          z.position.set(w.x, 0.42, w.z); z.rotation.y = [2.6, 0.4, -1.2][i % 3];
-          z.userData.base = 0.42; z.userData.bob = i * 2.1; this.scene.add(z); (this.zeppelins = this.zeppelins || []).push(z);
+        this.seaPaths = this.seaPaths || this.routeSeaPaths();
+        (this.vehicles || []).forEach(v => this.scene.remove(v.obj)); this.vehicles = [];
+        (this.routeLines || []).forEach((L, i) => {
+          const kind = KIND(L.rt), proto = protos[kind]; if(!proto || L.pts.length < 2) return;
+          const pts = L.pts.map(([x, y]) => { const w = toWorld(x, y); w.y = kind === 'zeppelin' ? 0.42 : this.sheetY(x, y) + 0.004; return w; });
+          const cum = [0]; for(let j = 1; j < pts.length; j++) cum.push(cum[j - 1] + pts[j].distanceTo(pts[j - 1]));
+          const obj = proto.clone(); this.scene.add(obj);
+          // ~0.02 world units a second: a long crossing takes a few minutes
+          this.vehicles.push({ obj, pts, cum, len: cum[cum.length - 1], kind, d: Math.random() * cum[cum.length - 1], dir: Math.random() < 0.5 ? 1 : -1, turn: 0, seed: i * 1.7, speed: kind === 'zeppelin' ? 0.024 : 0.018 });
         });
       };
       let left = Object.keys(M).length;
@@ -533,6 +518,22 @@
         protos[kind] = holder;
         if(--left === 0) place();
       }, undefined, err => { console.warn(kind + ' ship failed to load:', err); if(--left === 0) place(); }));
+    }
+
+    // walk each vehicle along its route; the heading follows the path, and at an end it swings round
+    moveVehicles(now, dt){
+      (this.vehicles || []).forEach(v => {
+        const at = d => { let j = 1; while(j < v.cum.length - 1 && v.cum[j] < d) j++; const a = v.pts[j - 1], c = v.pts[j], f = (d - v.cum[j - 1]) / ((v.cum[j] - v.cum[j - 1]) || 1); return [a.clone().lerp(c, Math.max(0, Math.min(1, f))), c.clone().sub(a)]; };
+        if(v.turn > 0){ v.turn -= dt; if(v.turn <= 0) v.dir *= -1; }
+        else { v.d += v.dir * v.speed * dt; if(v.d <= 0 || v.d >= v.len){ v.d = Math.max(0, Math.min(v.len, v.d)); v.turn = 4; v.from = v.obj.rotation.y; } }
+        const [pos, tan] = at(v.d);
+        let heading = Math.atan2(-tan.z * v.dir, tan.x * v.dir);
+        if(v.turn > 0){ const k = 1 - v.turn / 4, target = heading + Math.PI; let diff = ((target - v.from) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI; heading = v.from + diff * (k * k * (3 - 2 * k)); }
+        else { const cur = v.obj.rotation.y; let diff = ((heading - cur) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI; heading = cur + diff * Math.min(1, dt * 1.5); }
+        v.obj.position.copy(pos); v.obj.rotation.y = heading;
+        if(v.kind === 'zeppelin'){ v.obj.position.y = 0.42 + Math.sin(now / 1700 + v.seed) * 0.03; v.obj.rotation.z = Math.sin(now / 2300 + v.seed) * 0.025; }
+        else { v.obj.rotation.z = Math.sin(now / 1400 + v.seed) * 0.04; v.obj.rotation.x = Math.sin(now / 1900 + v.seed) * 0.03; }
+      });
     }
 
     // ----- paintings either side of the doorway: the Dalaran lady on the left, the Worgen portrait on the right -----
@@ -1826,8 +1827,7 @@
         f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.4 : 2.2) * (0.9 + 0.15 * k);
       });
       if(this.selGlow){ this.selGlow.material.opacity = 0.85 + 0.15 * Math.sin(now / 600); this.tgtGlow.material.opacity = 0.45 + 0.4 * Math.sin(now / 260); }
-      (this.zeppelins || []).forEach(z => { z.position.y = z.userData.base + Math.sin(now / 1700 + z.userData.bob) * 0.03; z.rotation.z = Math.sin(now / 2300 + z.userData.bob) * 0.025; });
-      (this.ships || []).forEach(s => { s.rotation.z = Math.sin(now / 1400 + s.userData.bob) * 0.04; s.rotation.x = Math.sin(now / 1900 + s.userData.bob) * 0.03; });
+      this.moveVehicles(now, dt);
       if(this.snowfall){
         const a = this.snowfall.geometry.attributes.position, d = this.snowDoor;
         for(let i = 0; i < a.count; i++){
