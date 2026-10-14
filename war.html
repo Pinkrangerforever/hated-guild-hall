@@ -235,6 +235,9 @@
   #tip{ position:fixed; z-index:9; pointer-events:none; display:none; max-width:280px; padding:7px 10px; border-radius:6px; font-size:12.5px; line-height:1.4; color:#f0e2c0;
     background:rgba(18,11,6,0.96); border:1px solid #8a6a3a; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
   #tip b{ color:#ffd36a; } #tip .c{ display:block; margin-top:4px; color:#a8c88a; font-size:11.5px; }
+  #confirmBox{ position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.5); }
+  #confirmBox.show{ display:flex; } #confirmBox .cbx{ position:relative; width:min(340px, 92vw); animation:curtainIn .2s ease both; }
+  #confirmBox img.ri{ width:18px; height:18px; vertical-align:-4px; }
   #admin{ right:320px; top:62px; width:280px; max-height:calc(100vh - 80px); overflow:auto; display:none; border-color:#b06aff; }
   #admin h3{ color:#d4a8ff; }
   #toast{ position:fixed; left:50%; top:70px; transform:translateX(-50%); z-index:9; padding:8px 14px; border-radius:8px; background:rgba(120,20,12,0.95);
@@ -741,8 +744,26 @@ function doDeploy(n){ after(E.deploy(G, playAs, selZone, n || +document.getEleme
 function doFortify(){ after(E.fortify(G, playAs, selZone)); }
 function doBuild(k){ after(E.build(G, playAs, selZone, k)); }
 function doShield(){ after(E.useShieldWall(G, playAs, selZone)); }
-function doCraft(k){ after(E.craft(G, playAs, k)); }
-function doTrade(){ after(E.trade(G, playAs, document.getElementById('trGive').value, document.getElementById('trGet').value)); }
+function doCraft(k){
+  const n = CARD_HELP[k] ? CARD_HELP[k][0] : k;
+  confirmBox(`Craft <b>${n}</b>?`, `${CARD_HELP[k] ? CARD_HELP[k][1] : ''}<br><br>Costs <b>${costStr(E.RULES.costs[k])}</b>.`, 'Craft', () => after(E.craft(G, playAs, k)));
+}
+function doTrade(){
+  const give = document.getElementById('trGive').value, get = document.getElementById('trGet').value, p = cur(), rate = E.tradeRate(G, p.faction);
+  confirmBox('Trade with the bank?', `Give <b>${rate} ${RES_ICON[give]} ${give}</b> for <b>1 ${RES_ICON[get]} ${get}</b>.<br><span class="muted">You have ${p.res[give]} ${give}.</span>`, 'Trade', () => after(E.trade(G, playAs, give, get)));
+}
+// a small themed yes/no box
+function confirmBox(title, body, yes, onYes){
+  let el = document.getElementById('confirmBox');
+  if(!el){ el = document.createElement('div'); el.id = 'confirmBox'; document.body.appendChild(el); }
+  el.innerHTML = `<div class="panel cbx"><div class="ph"><div class="t">${title}</div></div><div style="font-size:13.5px;line-height:1.45">${body}</div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="cbNo">Cancel</button><button class="btn red" id="cbYes">${yes}</button></div></div>`;
+  el.classList.add('show');
+  const close = () => el.classList.remove('show');
+  document.getElementById('cbNo').onclick = close;
+  document.getElementById('cbYes').onclick = () => { close(); onYes(); };
+  el.onclick = e => { if(e.target === el) close(); };
+}
 function doAct(){
   const n = +document.getElementById('actN').value;
   let r;
