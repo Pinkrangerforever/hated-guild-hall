@@ -19,7 +19,8 @@
   };
   const SCENERY_MODELS = { tree: { url: 'models/war/world-tree.gltf', height: 0.48, mask: /branch/i } };
   const PIECE_SHIFT = { teldrassil: [-26, 6], hyjal: [-38, 12] };
-  const anchor = k => { const p = WAR_LAYOUT[k], s = PIECE_SHIFT[k] || [0, 0]; return [p.x + s[0], p.y + s[1]]; };
+  const TUNE = typeof WAR_TUNING !== 'undefined' ? WAR_TUNING : { pieces: {}, labels: {}, icons: {}, holds: {}, mountains: {}, landmarks: {} };   // map-tuning.js
+  const anchor = k => { if(TUNE.pieces[k]) return TUNE.pieces[k].slice(0, 2); const p = WAR_LAYOUT[k], s = PIECE_SHIFT[k] || [0, 0]; return [p.x + s[0], p.y + s[1]]; };
   const zoneWorld = k => toWorld(...anchor(k));
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -649,13 +650,14 @@
         const p = WAR_LAYOUT[k], r = WAR_ZONES[k].resource, im = this.resIcons && this.resIcons[r];
         const rich = this.state && this.state.rich ? !!this.state.rich[k] : false;
         const off = Math.min(46, p.r * 0.45);
-        const cx = (p.x + off) * sx, cy = (p.y - off * 0.2) * sy, size = Math.min(rich ? 54 : 42, 14 + p.r * 0.9);
+        const ic = TUNE.icons[k] || [p.x + off, p.y - off * 0.2];
+        const cx = ic[0] * sx, cy = ic[1] * sy, size = Math.min(rich ? 54 : 42, 14 + p.r * 0.9);
         g.save();
         if(rich){
           g.globalAlpha = 0.9; g.strokeStyle = '#d6a940'; g.lineWidth = 4; g.fillStyle = 'rgba(255,236,170,0.35)';
           g.beginPath(); g.arc(cx, cy, size * 0.62, 0, Math.PI * 2); g.fill(); g.stroke();
         }
-        g.globalAlpha = rich ? 0.95 : 0.4;
+        g.globalAlpha = rich ? 0.95 : 0.55;
         if(im) g.drawImage(im, cx - size / 2, cy - size / 2, size, size);
         g.restore();
       });
@@ -664,14 +666,15 @@
       const inZone = (v, mx, my) => !this.raster || this.raster[Math.floor(my / MH * this.RH) * this.RW + Math.floor(mx / MW * this.RW)] === v;
       KEYS.forEach(k => {
         const p = WAR_LAYOUT[k], z = WAR_ZONES[k], v = this.zoneVal[k];
-        const big = p.r > 60 ? 25 : p.r > 40 ? 21 : 17;
+        const tl = TUNE.labels[k];
+        const big = tl && tl[2] ? tl[2] : p.r > 60 ? 25 : p.r > 40 ? 21 : 17;
         let best = null;
         for(let fs = big; fs >= 10 && !(best && best.fit === 1); fs -= 2){
           g.font = `700 ${fs}px Cinzel, serif`;
           const tw = g.measureText(z.name).width / sx, th = (fs + (z.capital ? fs * 0.85 : 0)) / sy;
           if(z.capital){ g.font = `italic 600 ${Math.round(fs * 0.72)}px serif`; }
-          for(const f of [0.55, 0.35, 0.8, 0.15, -0.45, 0]){
-            const cy = p.y + p.r * f + (f >= 0 ? 10 : 0), cx = p.x;   // label centre (map px)
+          for(const f of (tl ? [null] : [0.55, 0.35, 0.8, 0.15, -0.45, 0])){
+            const cx = tl ? tl[0] : p.x, cy = tl ? tl[1] + 8 : p.y + p.r * f + (f >= 0 ? 10 : 0);   // label centre (map px); tuned ones stay put and only shrink to fit
             const pts = [[-0.5, 0], [0.5, 0], [0, 0], [-0.5, 1], [0.5, 1], [-0.25, 0.5], [0.25, 0.5], [0, 1]];
             const fit = pts.filter(([a, c]) => inZone(v, cx + a * tw, cy - th * 0.3 + c * th)).length / pts.length;
             if(!best || fit > best.fit || (fit === best.fit && fs > best.fs)) best = { fs, cx, cy, fit };
@@ -722,7 +725,7 @@
       };
       const P = this.terrainProtos || {};
       if(P.mountain) Object.keys(MOUNTAINS).forEach(k => {
-        const cfg = MOUNTAINS[k], c = freeSpot(k, 18) || freeSpot(k, 10); if(!c) return;
+        const cfg = MOUNTAINS[k], c = TUNE.mountains[k] || freeSpot(k, 18) || freeSpot(k, 10); if(!c) return;
         const proto = cfg.snow ? P.mountainSnow : P.mountain;
         for(let i = 0; i < cfg.count; i++){
           // the first peak is the tallest; the rest crowd round it, smaller, overlapping
@@ -740,6 +743,7 @@
           const mx = p.x + p.r * f, my = p.y;
           if(R[Math.floor(my / MH * RH) * RW + Math.floor(mx / MW * RW)] === v) c = [mx, my];
         }
+        if(TUNE.landmarks[k]) c = TUNE.landmarks[k];
         c = c || freeSpot(k, 6, true); if(!c) return;
         place(proto, c[0], c[1], cfg.size, 0.6);
         // a little ember glow over the crater
@@ -823,7 +827,11 @@
       const model = z.outpost >= 2 && this.holdModels && this.holdModels[z.owner];
       if(p.holdFor !== (model ? z.owner : null)){
         if(p.hold){ p.grp.remove(p.hold); p.hold = null; }
-        if(model){ p.hold = model.clone(); p.hold.position.set(-0.2, 0.002, -0.06); p.grp.add(p.hold); }
+        if(model){
+          p.hold = model.clone(); p.hold.position.set(-0.2, 0.002, -0.06);
+          const th = TUNE.holds[k]; if(th){ if(th.rot) p.hold.rotation.y = th.rot; if(th.scale) p.hold.scale.setScalar(th.scale); }
+          p.grp.add(p.hold);
+        }
         p.holdFor = model ? z.owner : null;
       }
       p.tower.visible = z.outpost >= 2 && !model; p.tent.visible = z.outpost === 1;
