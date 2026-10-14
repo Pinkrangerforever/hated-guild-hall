@@ -17,7 +17,7 @@
     teldrassil: { model: 'tree', dx: 14, dy: -6 },
     hyjal:      { model: 'tree', dx: 10, dy: -12 }
   };
-  const SCENERY_MODELS = { tree: { url: 'models/war/world-tree.gltf', height: 0.62, mask: /branch/i } };
+  const SCENERY_MODELS = { tree: { url: 'models/war/world-tree.gltf', height: 0.48, mask: /branch/i } };
   const PIECE_SHIFT = { teldrassil: [-26, 6], hyjal: [-38, 12] };
   const anchor = k => { const p = WAR_LAYOUT[k], s = PIECE_SHIFT[k] || [0, 0]; return [p.x + s[0], p.y + s[1]]; };
   const zoneWorld = k => toWorld(...anchor(k));
@@ -295,12 +295,13 @@
       }, undefined, err => console.warn(name + ' scenery failed to load:', err)));
     }
 
-    // ----- faction flags (WoW banner models with their idle wave); neutral zones keep the plain flag -----
+    // ----- flags (WoW banner models with their idle wave): Horde, Alliance and a yellow neutral banner -----
     loadFlags(){
       if(!THREE.GLTFLoader || !THREE.SkeletonUtils) return;
       const F = window.WAR_FLAG_MODELS || {
         horde:    { url: 'models/war/horde-flag.gltf',    height: 0.46 },
-        alliance: { url: 'models/war/alliance-flag.gltf', height: 0.46 }
+        alliance: { url: 'models/war/alliance-flag.gltf', height: 0.46 },
+        neutral:  { url: 'models/war/neutral-flag.gltf',  height: 0.42, cloth: 'z' }   // the yellow Brewfest banner
       };
       this.flagModels = {}; this.mixers = [];
       Object.keys(F).forEach(f => new THREE.GLTFLoader().load(F[f].url, gltf => {
@@ -309,8 +310,10 @@
         const box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3());
         const s = F[f].height / size.y;
         const inner = new THREE.Group(); inner.add(m);
-        m.position.set(-box.max.x, -box.min.y, -(box.min.z + box.max.z) / 2);   // the pole (the model's +x end) stands on the zone
-        inner.scale.setScalar(s); inner.rotation.y = Math.PI;   // cloth flies away from the stronghold
+        // stand the pole on the zone and turn the cloth to fly to the right (away from the stronghold)
+        if(F[f].cloth === 'z'){ m.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -box.max.z); inner.rotation.y = -Math.PI / 2; }
+        else { m.position.set(-box.max.x, -box.min.y, -(box.min.z + box.max.z) / 2); inner.rotation.y = Math.PI; }
+        inner.scale.setScalar(s);
         this.flagModels[f] = { proto: inner, clip: gltf.animations[0] };
         KEYS.forEach(k => this.syncPiece(k));
       }, undefined, err => console.warn(f + ' flag failed to load, keeping the plain flag:', err)));
