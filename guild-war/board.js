@@ -675,7 +675,7 @@
       // resource icons (the site's 2D icons)
       const R2 = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/';
       this.resIcons = {};
-      Object.entries({ food: 'FoodIcon.png', wood: 'WoodIcon.png', ore: 'War%20Games/CopperOre.png', crystal: 'CrystalIcon2.png' }).forEach(([r, f]) => {
+      Object.entries({ food: 'FoodIcon.png', wood: 'WoodIcon.png', ore: 'War%20Games/CopperOre.png', gold: 'GoldIcon.png' }).forEach(([r, f]) => {
         const im = new Image(); im.crossOrigin = 'anonymous';
         im.onload = () => { this.resIcons[r] = im; this.drawMap(); };
         im.src = R2 + f + '?board=1';   // its own URL: the site's nav caches these icons without CORS, which blocks drawing them on the map

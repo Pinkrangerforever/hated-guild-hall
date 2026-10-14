@@ -19,7 +19,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     endClock: 6 * 24 + 20,    // the war ends Sunday 8pm (game clock starts Monday 00:00)
     costs: {
       outpost:    { wood: 1, food: 1, ore: 1 },
-      stronghold: { ore: 2, wood: 2, crystal: 1 },
+      stronghold: { ore: 2, wood: 2, gold: 1 },
       draft:      { food: 1, ore: 1 },                // +2 reinforcements
       warcry:     { wood: 1, ore: 1 },
       shieldwall: { ore: 1, food: 1 },
@@ -105,7 +105,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
   }
 
   function newPlayer(id, name, faction, bot, joinedDay){
-    return { id, name, faction, bot: !!bot, ap: 0, reinforce: 0, res: { food: 0, wood: 0, ore: 0, crystal: 0 },
+    return { id, name, faction, bot: !!bot, ap: 0, reinforce: 0, res: { food: 0, wood: 0, ore: 0, gold: 0 },
              cards: { warcry: 0, shieldwall: 0, march: 0, naval: 0 }, lastActiveDay: -1, joinedDay: joinedDay || 0 };
   }
 
@@ -113,7 +113,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
   // so the valuable zones move around week to week and get fought over
   function pickRich(rng){
     const rich = {};
-    ['food', 'wood', 'ore', 'crystal'].forEach(r => ['kalimdor', 'eastern'].forEach(c => {
+    ['food', 'wood', 'ore', 'gold'].forEach(r => ['kalimdor', 'eastern'].forEach(c => {
       Object.keys(WAR_ZONES).filter(k => WAR_ZONES[k].resource === r && WAR_ZONES[k].continent === c)
         .sort(() => rng() - 0.5).slice(0, RULES.richPerContinent).forEach(k => { rich[k] = true; });
     }));

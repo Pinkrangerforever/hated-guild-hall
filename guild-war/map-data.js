@@ -1,36 +1,36 @@
 /* Guild War map: classic Azeroth + WoW: Forever additions (Riverglades, Shen'Dralas, Mount Hyjal).
    Capitals are folded into their zone (capital: true => +1 defence). Borders are land connections;
    routes are the real boat / zeppelin lines plus WoW: Forever's new sailings.
-   resource: food | wood | ore | crystal. */
+   resource: food | wood | ore | gold. */
 const WAR_ZONES = {
   // ---- Kalimdor ----
   teldrassil:      { name: 'Teldrassil',          continent: 'kalimdor', region: 'north_kalimdor', resource: 'food',    capital: 'Darnassus' },
   darkshore:       { name: 'Darkshore',           continent: 'kalimdor', region: 'north_kalimdor', resource: 'wood' },
   ashenvale:       { name: 'Ashenvale',           continent: 'kalimdor', region: 'north_kalimdor', resource: 'wood' },
   felwood:         { name: 'Felwood',             continent: 'kalimdor', region: 'north_kalimdor', resource: 'wood' },
-  moonglade:       { name: 'Moonglade',           continent: 'kalimdor', region: 'north_kalimdor', resource: 'crystal' },
-  winterspring:    { name: 'Winterspring',        continent: 'kalimdor', region: 'north_kalimdor', resource: 'crystal' },
-  hyjal:           { name: 'Mount Hyjal',         continent: 'kalimdor', region: 'north_kalimdor', resource: 'crystal' },
-  azshara:         { name: 'Azshara',             continent: 'kalimdor', region: 'north_kalimdor', resource: 'crystal' },
+  moonglade:       { name: 'Moonglade',           continent: 'kalimdor', region: 'north_kalimdor', resource: 'gold' },
+  winterspring:    { name: 'Winterspring',        continent: 'kalimdor', region: 'north_kalimdor', resource: 'gold' },
+  hyjal:           { name: 'Mount Hyjal',         continent: 'kalimdor', region: 'north_kalimdor', resource: 'gold' },
+  azshara:         { name: 'Azshara',             continent: 'kalimdor', region: 'north_kalimdor', resource: 'gold' },
   durotar:         { name: 'Durotar',             continent: 'kalimdor', region: 'kalimdor_heart', resource: 'food',    capital: 'Orgrimmar' },
   barrens:         { name: 'The Barrens',         continent: 'kalimdor', region: 'kalimdor_heart', resource: 'food' },
   mulgore:         { name: 'Mulgore',             continent: 'kalimdor', region: 'kalimdor_heart', resource: 'food',    capital: 'Thunder Bluff' },
   stonetalon:      { name: 'Stonetalon Mountains', continent: 'kalimdor', region: 'kalimdor_heart', resource: 'ore' },
   dustwallow:      { name: 'Dustwallow Marsh',    continent: 'kalimdor', region: 'kalimdor_heart', resource: 'food' },
   desolace:        { name: 'Desolace',            continent: 'kalimdor', region: 'southern_wilds', resource: 'ore' },
-  shendralas:      { name: "Shen'Dralas",         continent: 'kalimdor', region: 'southern_wilds', resource: 'crystal' },
+  shendralas:      { name: "Shen'Dralas",         continent: 'kalimdor', region: 'southern_wilds', resource: 'gold' },
   feralas:         { name: 'Feralas',             continent: 'kalimdor', region: 'southern_wilds', resource: 'wood' },
   thousand_needles:{ name: 'Thousand Needles',    continent: 'kalimdor', region: 'southern_wilds', resource: 'ore' },
   tanaris:         { name: 'Tanaris',             continent: 'kalimdor', region: 'southern_wilds', resource: 'ore' },
-  ungoro:          { name: "Un'Goro Crater",      continent: 'kalimdor', region: 'southern_wilds', resource: 'crystal' },
-  silithus:        { name: 'Silithus',            continent: 'kalimdor', region: 'southern_wilds', resource: 'crystal' },
+  ungoro:          { name: "Un'Goro Crater",      continent: 'kalimdor', region: 'southern_wilds', resource: 'gold' },
+  silithus:        { name: 'Silithus',            continent: 'kalimdor', region: 'southern_wilds', resource: 'gold' },
   // ---- Eastern Kingdoms ----
   tirisfal:        { name: 'Tirisfal Glades',     continent: 'eastern', region: 'lordaeron', resource: 'food',    capital: 'Undercity' },
   silverpine:      { name: 'Silverpine Forest',   continent: 'eastern', region: 'lordaeron', resource: 'wood' },
   hillsbrad:       { name: 'Hillsbrad Foothills', continent: 'eastern', region: 'lordaeron', resource: 'food' },
   alterac:         { name: 'Alterac Mountains',   continent: 'eastern', region: 'lordaeron', resource: 'ore' },
   wplaguelands:    { name: 'Western Plaguelands', continent: 'eastern', region: 'lordaeron', resource: 'food' },
-  eplaguelands:    { name: 'Eastern Plaguelands', continent: 'eastern', region: 'lordaeron', resource: 'crystal' },
+  eplaguelands:    { name: 'Eastern Plaguelands', continent: 'eastern', region: 'lordaeron', resource: 'gold' },
   hinterlands:     { name: 'The Hinterlands',     continent: 'eastern', region: 'lordaeron', resource: 'wood' },
   arathi:          { name: 'Arathi Highlands',    continent: 'eastern', region: 'khaz_modan', resource: 'food' },
   wetlands:        { name: 'Wetlands',            continent: 'eastern', region: 'khaz_modan', resource: 'food' },
@@ -45,9 +45,9 @@ const WAR_ZONES = {
   burning_steppes: { name: 'Burning Steppes',     continent: 'eastern', region: 'azeroth', resource: 'ore' },
   duskwood:        { name: 'Duskwood',            continent: 'eastern', region: 'azeroth', resource: 'wood' },
   stranglethorn:   { name: 'Stranglethorn Vale',  continent: 'eastern', region: 'azeroth', resource: 'wood' },
-  deadwind:        { name: 'Deadwind Pass',       continent: 'eastern', region: 'azeroth', resource: 'crystal' },
+  deadwind:        { name: 'Deadwind Pass',       continent: 'eastern', region: 'azeroth', resource: 'gold' },
   swamp_sorrows:   { name: 'Swamp of Sorrows',    continent: 'eastern', region: 'azeroth', resource: 'wood' },
-  blasted_lands:   { name: 'Blasted Lands',       continent: 'eastern', region: 'azeroth', resource: 'crystal' }
+  blasted_lands:   { name: 'Blasted Lands',       continent: 'eastern', region: 'azeroth', resource: 'gold' }
 };
 
 // Land borders (each pair listed once)

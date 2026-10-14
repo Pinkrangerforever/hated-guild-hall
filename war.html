@@ -172,7 +172,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 const ZN = k => WAR_ZONES[k] ? WAR_ZONES[k].name : k;
 const FC = f => f === 'horde' ? 'h' : f === 'alliance' ? 'a' : 'n';
 // the site's resource icons (same art as the board)
-const RES_IMG = { food: 'FoodIcon.png', wood: 'WoodIcon.png', ore: 'War%20Games/CopperOre.png', crystal: 'CrystalIcon2.png' };
+const RES_IMG = { food: 'FoodIcon.png', wood: 'WoodIcon.png', ore: 'War%20Games/CopperOre.png', gold: 'GoldIcon.png' };
 // troop icon by faction: Horde orc portrait, Alliance footman helm
 const TROOP_ICON = f => `<img class="ri" src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/${f === 'horde' ? 'achievement_character_orc_male' : 'inv_helmet_02'}.png" alt="troops" title="troops">`;
 const RES_ICON = Object.fromEntries(Object.entries(RES_IMG).map(([r, f]) => [r, `<img class="ri" src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/${f}" alt="${r}" title="${r}">`]));
@@ -213,6 +213,8 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
   G = load();
   if(G && (!G.v || !G.zones)) G = null;   // old or broken save
   // wars started before rich deposits existed: pick this war's deposits now so their icons show
+  // crystal was renamed gold: carry any crystal a player already had over to gold
+  if(G && G.players) Object.values(G.players).forEach(p => { if(p.res && 'crystal' in p.res){ p.res.gold = (p.res.gold || 0) + p.res.crystal; delete p.res.crystal; save(); } });
   if(G && G.phase !== 'signup' && !G.rich){ G.rich = E.pickRich(Math.random); save(); }
   if(!G){ G = E.newGame({ sandbox: true }); save(); }
   if(!playAs || !G.players[playAs]) playAs = G.players[me.id] ? me.id : (Object.keys(G.players)[0] || me.id);
@@ -353,11 +355,11 @@ function renderMe(){
   const cards = Object.keys(p.cards).filter(k => p.cards[k]).map(k => `<span class="chip">${{ warcry: '📯 Warcry', shieldwall: '🛡 Shield Wall', march: '🥾 Forced March', naval: '⛵ Naval Landing' }[k]} ×${p.cards[k]}</span>`).join('') || '<span class="muted">No cards</span>';
   el.innerHTML = `<h3 style="color:${f === 'horde' ? '#ff8a70' : '#8ab4ff'}">${esc(p.name)} · ${f === 'horde' ? 'Horde' : 'Alliance'}${p.bot ? '<span class="tag">bot</span>' : ''}</h3>
     <div class="row"><span class="chip">⚡ ${G.settings.unlimitedAP ? '∞' : p.ap} AP</span><span class="chip">${TROOP_ICON(p.faction)} ${p.reinforce} to deploy</span></div>
-    <div class="res">${['food', 'wood', 'ore', 'crystal'].map(r => `<div title="${r}">${RES_ICON[r]} ${p.res[r]}</div>`).join('')}</div>
+    <div class="res">${['food', 'wood', 'ore', 'gold'].map(r => `<div title="${r}">${RES_ICON[r]} ${p.res[r]}</div>`).join('')}</div>
     <div class="row cards">${cards}</div>
     <details><summary class="muted" style="cursor:pointer">Craft &amp; trade (rate ${E.tradeRate(G, f)}:1)</summary>
       <div class="row">${['draft', 'warcry', 'shieldwall', 'march', 'naval'].map(k => `<button class="btn sm" onclick="doCraft('${k}')" title="${costStr(E.RULES.costs[k])}">${{ draft: '+2 Troops', warcry: 'Warcry', shieldwall: 'Shield Wall', march: 'Forced March', naval: 'Naval Landing' }[k]}</button>`).join('')}</div>
-      <div class="row">Give <select id="trGive">${['food', 'wood', 'ore', 'crystal'].map(r => `<option>${r}</option>`).join('')}</select> get <select id="trGet">${['wood', 'food', 'ore', 'crystal'].map(r => `<option>${r}</option>`).join('')}</select> <button class="btn sm" onclick="doTrade()">Trade</button></div>
+      <div class="row">Give <select id="trGive">${['food', 'wood', 'ore', 'gold'].map(r => `<option>${r}</option>`).join('')}</select> get <select id="trGet">${['wood', 'food', 'ore', 'gold'].map(r => `<option>${r}</option>`).join('')}</select> <button class="btn sm" onclick="doTrade()">Trade</button></div>
     </details>
     <div class="muted" style="margin-top:6px">Zones: Horde ${E.zonesOf(G, 'horde').length} · Alliance ${E.zonesOf(G, 'alliance').length}<br>
       Score parts (${f}): ${Object.entries(sc[f].parts).map(([k, v]) => `${k} ${v}`).join(', ')}</div>`;
@@ -549,7 +551,7 @@ function renderAdmin(){
     <div class="row" style="margin-top:8px"><button class="btn sm" onclick="replayAll()">⟲ Replay whole war</button><button class="btn sm red" onclick="resetWar()">Reset sandbox</button></div>
     <div class="row"><button class="btn sm" onclick="testBattle()">🎬 Demo battle animation</button></div>`;
 }
-function giveRes(){ const p = cur(); if(!p) return; ['food', 'wood', 'ore', 'crystal'].forEach(r => { p.res[r] += 5; }); save(); refreshUI(); }
+function giveRes(){ const p = cur(); if(!p) return; ['food', 'wood', 'ore', 'gold'].forEach(r => { p.res[r] += 5; }); save(); refreshUI(); }
 function giveCards(){ const p = cur(); if(!p) return; Object.keys(p.cards).forEach(k => { p.cards[k]++; }); save(); refreshUI(); }
 function giveTroops(){ const p = cur(); if(!p) return; p.reinforce += 10; save(); refreshUI(); }
 function advanceDay(){
