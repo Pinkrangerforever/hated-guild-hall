@@ -186,6 +186,8 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
   catch(e){ showFatal('3D board: ' + e.message + ' (is WebGL / hardware acceleration turned on?)'); return; }
   G = load();
   if(G && (!G.v || !G.zones)) G = null;   // old or broken save
+  // wars started before rich deposits existed: pick this war's deposits now so their icons show
+  if(G && G.phase !== 'signup' && !G.rich){ G.rich = E.pickRich(Math.random); save(); }
   if(!G){ G = E.newGame({ sandbox: true }); save(); }
   if(!playAs || !G.players[playAs]) playAs = G.players[me.id] ? me.id : (Object.keys(G.players)[0] || me.id);
   // Replay: show the board as it was when you last looked, then play everything since
