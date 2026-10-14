@@ -415,7 +415,9 @@
     }
     // Boat routes: shortest sea path (A* on a coarse grid of the outline map) from the coast nearest one
     // zone's anchor to the coast nearest the other's, kept a little off the shore, then thinned to waypoints.
+    // harbours: where boat lines land for a zone (map px); others land on the coast nearest the zone's banner
     routeSeaPaths(){
+      const HARBOURS = { wetlands: [918, 624] };   // Menethil Harbor, on the west coast
       const S = 3, R = this.raster, RW = this.RW, RH = this.RH;
       const GW = Math.floor(RW / S), GH = Math.floor(RH / S), N = GW * GH;
       const sea = new Uint8Array(N);
@@ -470,11 +472,15 @@
       const paths = {};
       WAR_ROUTES.filter(rt => rt.kind === 'boat').forEach(rt => {
         const A = WAR_LAYOUT[rt.a], B = WAR_LAYOUT[rt.b];
-        const s = nearestSea(A.x, A.y, toG(B.x, B.y)), t = nearestSea(B.x, B.y, toG(A.x, A.y));
+        const pa = HARBOURS[rt.a] || [A.x, A.y], pb = HARBOURS[rt.b] || [B.x, B.y];
+        const s = nearestSea(pa[0], pa[1], HARBOURS[rt.a] ? toG(...pa) : toG(B.x, B.y)), t = nearestSea(pb[0], pb[1], HARBOURS[rt.b] ? toG(...pb) : toG(A.x, A.y));
         if(s < 0 || t < 0) return;
         const cells = astar(s, t); if(!cells) return;
         const pts = cells.filter((_, i) => i % 6 === 0 || i === cells.length - 1)
           .map(i => [((i % GW) + 0.5) * S / RW * MW, ((((i / GW) | 0) + 0.5) * S) / RH * MH]);
+        // run the line right into the harbour
+        if(HARBOURS[rt.a]) pts.unshift(HARBOURS[rt.a]);
+        if(HARBOURS[rt.b]) pts.push(HARBOURS[rt.b]);
         paths[rt.a + '|' + rt.b] = pts;
       });
       return paths;
