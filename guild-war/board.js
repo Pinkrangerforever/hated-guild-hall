@@ -224,8 +224,8 @@
     loadStrongholds(){
       if(!THREE.GLTFLoader) return;
       const S = window.WAR_STRONGHOLD_MODELS || {
-        horde:    { url: 'models/war/horde-stronghold.gltf',    drop: /interior|foyer/i, size: 0.5, rotY: Math.PI },
-        alliance: { url: 'models/war/alliance-stronghold.gltf', drop: /cellar|war_room|armordealer|weapondealer|generalarea/i, size: 0.5, rotY: -Math.PI / 2 }
+        horde:    { url: 'models/war/horde-stronghold.gltf',    drop: /interior|foyer/i, mask: /hangingleather|clothroof/i, size: 0.5, rotY: Math.PI },
+        alliance: { url: 'models/war/alliance-stronghold.gltf', drop: /cellar|war_room|armordealer|weapondealer|generalarea/i, mask: /windows_01/i, size: 0.5, rotY: -Math.PI / 2 }
       };
       this.holdModels = {};
       Object.keys(S).forEach(f => {
@@ -249,7 +249,9 @@
           byMat.forEach(({ mat, geos }) => {
             const merged = THREE.BufferGeometryUtils ? THREE.BufferGeometryUtils.mergeBufferGeometries(geos) : null;
             mat.side = THREE.DoubleSide;
-            if(mat.map){ mat.map.anisotropy = 4; mat.alphaTest = 0.5; mat.transparent = false; }
+            // most WoW textures keep shininess in alpha, so only real cut-outs (window grilles, hanging cloth) get masked
+            mat.transparent = false; mat.alphaTest = cfg.mask && cfg.mask.test(mat.name) ? 0.5 : 0;
+            if(mat.map) mat.map.anisotropy = 4;
             (merged ? [merged] : geos).forEach(g => { const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; grp.add(m); });
           });
           // shrink to a table piece, bottom-centred
