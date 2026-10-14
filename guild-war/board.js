@@ -491,7 +491,7 @@
           const cum = [0]; for(let j = 1; j < pts.length; j++) cum.push(cum[j - 1] + pts[j].distanceTo(pts[j - 1]));
           const obj = proto.clone(); this.scene.add(obj);
           // ~0.02 world units a second: a long crossing takes a few minutes
-          this.vehicles.push({ obj, pts, cum, len: cum[cum.length - 1], kind, d: Math.random() * cum[cum.length - 1], dir: Math.random() < 0.5 ? 1 : -1, turn: 0, seed: i * 1.7, speed: kind === 'zeppelin' ? 0.024 : 0.018 });
+          this.vehicles.push({ obj, pts, cum, len: cum[cum.length - 1], kind, d: Math.random() * cum[cum.length - 1], dir: Math.random() < 0.5 ? 1 : -1, turn: 0, seed: i * 1.7, speed: kind === 'zeppelin' ? 0.011 : 0.008 });
         });
       };
       let left = Object.keys(M).length;
@@ -527,7 +527,7 @@
         if(v.turn > 0){ v.turn -= dt; if(v.turn <= 0) v.dir *= -1; }
         else { v.d += v.dir * v.speed * dt; if(v.d <= 0 || v.d >= v.len){ v.d = Math.max(0, Math.min(v.len, v.d)); v.turn = 4; v.from = v.obj.rotation.y; } }
         const [pos, tan] = at(v.d);
-        let heading = Math.atan2(-tan.z * v.dir, tan.x * v.dir);
+        let heading = Math.atan2(-tan.z * v.dir, tan.x * v.dir) + Math.PI;   // these models' bows point along -x
         if(v.turn > 0){ const k = 1 - v.turn / 4, target = heading + Math.PI; let diff = ((target - v.from) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI; heading = v.from + diff * (k * k * (3 - 2 * k)); }
         else { const cur = v.obj.rotation.y; let diff = ((heading - cur) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI; heading = cur + diff * Math.min(1, dt * 1.5); }
         v.obj.position.copy(pos); v.obj.rotation.y = heading;
