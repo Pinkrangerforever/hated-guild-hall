@@ -335,9 +335,9 @@
       const S = window.WAR_STRONGHOLD_MODELS || {
         horde:    { url: 'models/war/horde-stronghold.gltf',    drop: /interior|foyer/i, mask: /hangingleather|clothroof/i, size: 0.5, rotY: Math.PI },
         horde_outpost: { url: 'models/war/horde-outpost.gltf', mask: /chain|clothfur|clothroof/i, size: 0.19, rotY: 0 },   // Warsong guard tower
-        alliance_fortify: { url: 'models/war/fortify-alliance.gltf', size: 0.62, rotY: 0 },   // Netherguard wall, a square enclosure round the zone's pieces
+        alliance_fortify: { url: 'models/war/fortify-alliance.gltf', size: 0.62, rotY: -1.309 },   // its gate (model +x, 15deg) turned to face the front   // Netherguard wall, a square enclosure round the zone's pieces
         alliance_outpost: { url: 'models/war/alliance-outpost.gltf', size: 0.17, rotY: 0 },   // Caverns of Time mage tower
-        alliance: { url: 'models/war/alliance-stronghold.gltf', drop: /cellar|war_room|armordealer|weapondealer|generalarea/i, mask: /windows_01/i, size: 0.5, rotY: -Math.PI / 2 }
+        alliance: { sink: 0.14, url: 'models/war/alliance-stronghold.gltf', drop: /cellar|war_room|armordealer|weapondealer|generalarea/i, mask: /windows_01/i, size: 0.5, rotY: -Math.PI / 2 }
       };
       this.holdModels = {};
       Object.keys(S).forEach(f => {
@@ -370,7 +370,7 @@
           const box = new THREE.Box3().setFromObject(grp), size = box.getSize(new THREE.Vector3());
           const s = cfg.size / Math.max(size.x, size.z);
           const holder = new THREE.Group(), inner = new THREE.Group();
-          grp.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+          grp.position.set(-(box.min.x + box.max.x) / 2, -box.min.y - (cfg.sink || 0) * (box.max.y - box.min.y), -(box.min.z + box.max.z) / 2);
           inner.add(grp); inner.scale.setScalar(s); inner.rotation.y = cfg.rotY || 0; holder.add(inner);
           this.holdModels[f] = holder;
           KEYS.forEach(k => this.syncPiece(k));
@@ -744,7 +744,7 @@
     // zone's anchor to the coast nearest the other's, kept a little off the shore, then thinned to waypoints.
     // harbours: where boat lines land for a zone (map px); others land on the coast nearest the zone's banner
     routeSeaPaths(){
-      const HARBOURS = { wetlands: [918, 624], stranglethorn: [848, 1214] };   // Menethil Harbor (west coast); Booty Bay (southern tip) - boats only
+      const HARBOURS = { wetlands: [918, 624], stranglethorn: [848, 1214], elwynn: [794, 906] };   // + Stormwind Harbor on Elwynn's west coast   // Menethil Harbor (west coast); Booty Bay (southern tip) - boats only
       const ZEP_TOWERS = { stranglethorn: [866, 1108] };                        // Grom'gol, on Stranglethorn's west coast
       const S = 3, R = this.raster, RW = this.RW, RH = this.RH;
       const GW = Math.floor(RW / S), GH = Math.floor(RH / S), N = GW * GH;
@@ -764,8 +764,8 @@
           const j = ny * GW + nx; if(dist[j] > dist[i] + 1){ dist[j] = dist[i] + 1; q.push(j); }
         });
       }
-      const lane = { boat: new Uint8Array(N), zeppelin: new Uint8Array(N) }; let laneOf = lane.boat;
-      const cost = i => (1 + 8 * Math.exp(-dist[i] / 2.5)) * (laneOf[i] ? 0.45 : 1);
+      const lane = { boat: new Uint8Array(N), zeppelin: new Uint8Array(N) }; let laneOf = new Uint8Array(N), nearEnds = new Uint8Array(N);   // laneOf: every lane so far, both kinds, widened
+      const cost = i => (1 + 8 * Math.exp(-dist[i] / 2.5)) + (laneOf[i] && !nearEnds[i] ? 40 : 0);
       const toG = (mx, my) => [Math.floor(mx / MW * RW / S), Math.floor(my / MH * RH / S)];
       const nearestSea = (mx, my, toward) => {
         const [cx, cy] = toG(mx, my); let best = -1, bd = 1e9;
@@ -807,14 +807,17 @@
         return d(q) - d(p);
       });
       routes.forEach(rt => {
-        const kind = rt.kind === 'zeppelin' ? 'zeppelin' : 'boat'; laneOf = lane[kind];
+        const kind = rt.kind === 'zeppelin' ? 'zeppelin' : 'boat';
         const A = WAR_LAYOUT[rt.a], B = WAR_LAYOUT[rt.b];
         const ports = kind === 'boat' ? HARBOURS : ZEP_TOWERS, ha = ports[rt.a], hb = ports[rt.b];
         const pa = ha || [A.x, A.y], pb = hb || [B.x, B.y];
         const s = nearestSea(pa[0], pa[1], ha ? toG(...pa) : toG(B.x, B.y)), t = nearestSea(pb[0], pb[1], hb ? toG(...pb) : toG(A.x, A.y));
         if(s < 0 || t < 0) return;
+        // near this route's own ends, other lanes are allowed (ports are shared)
+        nearEnds = new Uint8Array(N); [s, t].forEach(c0 => { const x0 = c0 % GW, y0 = (c0 / GW) | 0; for(let dy = -7; dy <= 7; dy++) for(let dx = -7; dx <= 7; dx++){ const x = x0 + dx, y = y0 + dy; if(x >= 0 && y >= 0 && x < GW && y < GH) nearEnds[y * GW + x] = 1; } });
         const cells = astar(s, t); if(!cells) return;
-        cells.forEach((c, i) => { laneOf[c] = 1; if(i) edges[kind].add(Math.min(c, cells[i - 1]) + ',' + Math.max(c, cells[i - 1])); });
+        cells.forEach(c => { const x0 = c % GW, y0 = (c / GW) | 0; for(let dy = -2; dy <= 2; dy++) for(let dx = -2; dx <= 2; dx++){ const x = x0 + dx, y = y0 + dy; if(x >= 0 && y >= 0 && x < GW && y < GH) laneOf[y * GW + x] = 1; } });
+        cells.forEach((c, i) => { if(i) edges[kind].add(Math.min(c, cells[i - 1]) + ',' + Math.max(c, cells[i - 1])); });
         const pts = cells.filter((_, i) => i % 6 === 0 || i === cells.length - 1)
           .map(i => [((i % GW) + 0.5) * S / RW * MW, ((((i / GW) | 0) + 0.5) * S) / RH * MH]);
         // run the line right into the harbour
@@ -885,13 +888,7 @@
       lines.forEach((L, li) => {
         const pts = L.pts; if(pts.length < 2) return;
         // sideways offset per point: spread the routes that pass through the same water
-        const off = pts.map((p, i) => {
-          const sharers = lines.filter(o => o !== L && o.pts.some(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 8));
-          if(!sharers.length) return [0, 0];
-          const group = [L].concat(sharers).sort((a, b) => lines.indexOf(a) - lines.indexOf(b)), k = group.indexOf(L) - (group.length - 1) / 2;
-          const a = pts[Math.max(0, i - 1)], c = pts[Math.min(pts.length - 1, i + 1)], dx = c[0] - a[0], dy = c[1] - a[1], len = Math.hypot(dx, dy) || 1;
-          return [-dy / len * k * 4.5, dx / len * k * 4.5];
-        });
+        const off = pts.map(() => [0, 0]);
         const P = pts.map((p, i) => [(p[0] + off[i][0]) * sx, (p[1] + off[i][1]) * sy]);
         g.setLineDash(L.kind === 'zeppelin' ? [8, 12] : [18, 11]); g.lineWidth = L.kind === 'zeppelin' ? 3.5 : 4.5;
         g.strokeStyle = ROUTE_COLOURS[li % ROUTE_COLOURS.length]; g.globalAlpha = 0.8; g.lineCap = 'round';
@@ -1104,7 +1101,7 @@
       const tower = new THREE.Group();
       const t1 = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.28, 10), towerMat); t1.position.y = 0.14; t1.castShadow = true; tower.add(t1);
       const roof = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.14, 10), new THREE.MeshStandardMaterial({ color: COL.neutralHex })); roof.position.y = 0.35; roof.castShadow = true; tower.add(roof);
-      tower.position.set(-0.17, 0, 0.04); grp.add(tower);
+      tower.position.set(-0.17, 0, 0.04); grp.add(tower); tower.userData.base = true;
       const tent = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.12, 4), new THREE.MeshStandardMaterial({ color: 0xc9b48a, roughness: 1 }));
       tent.position.set(-0.15, 0.06, 0.05); tent.rotation.y = Math.PI / 4; tent.castShadow = true; grp.add(tent);
       // fortify ring: little stone blocks
@@ -1147,7 +1144,7 @@
       if(p.holdFor !== (model ? z.owner : null)){
         if(p.hold){ p.grp.remove(p.hold); p.hold = null; }
         if(model){
-          p.hold = model.clone(); p.hold.position.set(-0.2, 0.002, -0.06);
+          p.hold = model.clone(); p.hold.position.set(p.bx || -0.2, 0.002, p.bz || -0.06);
           const th = TUNE.holds[k]; if(th){ if(th.rot) p.hold.rotation.y = th.rot; if(th.scale) p.hold.scale.setScalar(th.scale); }
           p.grp.add(p.hold);
         }
@@ -1156,15 +1153,16 @@
       const om = z.outpost === 1 && this.holdModels && this.holdModels[z.owner + '_outpost'];
       if(p.postFor !== (om ? z.owner : null)){
         if(p.post){ p.grp.remove(p.post); p.post = null; }
-        if(om){ p.post = om.clone(); p.post.position.set(-0.17, 0.002, 0.05); p.grp.add(p.post); }
+        if(om){ p.post = om.clone(); p.post.position.set(p.bx || -0.17, 0.002, p.bz || 0.05); p.grp.add(p.post); }
         p.postFor = om ? z.owner : null;
       }
       p.tower.visible = z.outpost >= 2 && !model; p.tent.visible = z.outpost === 1 && !om;
+      if(p.bx != null){ p.tower.position.set(p.bx, 0, p.bz); p.tent.position.set(p.bx, 0.06, p.bz); }
       const now = this.state ? this.state.clock : 0;
       const fortified = z.fortifyUntil > now, fm2 = fortified && this.holdModels && this.holdModels[z.owner + '_fortify'];
       if(p.fortFor !== (fm2 ? z.owner : null)){
         if(p.fort){ p.grp.remove(p.fort); p.fort = null; }
-        if(fm2){ p.fort = fm2.clone(); p.fort.position.set(-0.08, 0.002, 0); p.grp.add(p.fort); }
+        if(fm2){ p.fort = fm2.clone(); const hasB = z.outpost >= 1; p.fort.position.set(hasB ? (p.bx || -0.2) : 0, 0.002, hasB ? (p.bz || -0.06) : 0); p.grp.add(p.fort); }   // centred on the building
         p.fortFor = fm2 ? z.owner : null;
       }
       p.wall.visible = fortified && !fm2;
@@ -1470,6 +1468,25 @@
         const room = (clear || 80) / pxPerUnit;   // distance to the nearest border, in world units
         const s = Math.max(0.6, Math.min(1, room / FOOT));
         this.pieces[k].grp.scale.setScalar(s); this.pieces[k].fit = s;
+        // where the building stands: 0.2 units from the banner (scaled), in the direction with the most room
+        const inside = (wx, wz, rad) => {   // world offset from the anchor -> is a circle of radius rad (world) all in zone?
+          const px = cx + wx * pxPerUnit, py = cy + wz * (RH / PH), rr = rad * pxPerUnit;
+          for(let a = 0; a < 16; a++) for(const f of [0, 0.5, 1]){
+            const x = Math.round(px + Math.cos(a / 16 * Math.PI * 2) * rr * f), y = Math.round(py + Math.sin(a / 16 * Math.PI * 2) * rr * f);
+            if(x < 0 || y < 0 || x >= RW || y >= RH || R[y * RW + x] !== v) return false;
+          }
+          return true;
+        };
+        let best = null;
+        for(let i = 0; i < 12; i++){
+          const a = Math.PI + i / 12 * Math.PI * 2, d = 0.21 * s, ox = Math.cos(a) * d, oz = Math.sin(a) * d * 0.6;   // prefer left of the banner
+          if(inside(ox, oz, 0.13 * s)){ best = [ox, oz]; break; }
+        }
+        if(!best) for(let i = 0; i < 12 && !best; i++){ const a = Math.PI + i / 12 * Math.PI * 2, d = 0.15 * s; if(inside(Math.cos(a) * d, Math.sin(a) * d * 0.6, 0.09 * s)) best = [Math.cos(a) * d, Math.sin(a) * d * 0.6]; }
+        best = best || [-0.12 * s, 0];
+        this.pieces[k].bx = best[0] / s; this.pieces[k].bz = best[1] / s;   // stored in the group's (scaled) space
+        this.pieces[k].holdFor = this.pieces[k].postFor = this.pieces[k].fortFor = undefined;   // re-place on next sync
+        if(this.state) this.syncPiece(k);
       });
     }
 
