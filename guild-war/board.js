@@ -712,6 +712,7 @@
     // harbours: where boat lines land for a zone (map px); others land on the coast nearest the zone's banner
     routeSeaPaths(){
       const HARBOURS = { wetlands: [918, 624], stranglethorn: [848, 1214] };   // Menethil Harbor (west coast); Booty Bay (southern tip) - boats only
+      const ZEP_TOWERS = { stranglethorn: [866, 1108] };                        // Grom'gol, on Stranglethorn's west coast
       const S = 3, R = this.raster, RW = this.RW, RH = this.RH;
       const GW = Math.floor(RW / S), GH = Math.floor(RH / S), N = GW * GH;
       const sea = new Uint8Array(N);
@@ -775,7 +776,7 @@
       routes.forEach(rt => {
         const kind = rt.kind === 'zeppelin' ? 'zeppelin' : 'boat'; laneOf = lane[kind];
         const A = WAR_LAYOUT[rt.a], B = WAR_LAYOUT[rt.b];
-        const ha = kind === 'boat' && HARBOURS[rt.a], hb = kind === 'boat' && HARBOURS[rt.b];
+        const ports = kind === 'boat' ? HARBOURS : ZEP_TOWERS, ha = ports[rt.a], hb = ports[rt.b];
         const pa = ha || [A.x, A.y], pb = hb || [B.x, B.y];
         const s = nearestSea(pa[0], pa[1], ha ? toG(...pa) : toG(B.x, B.y)), t = nearestSea(pb[0], pb[1], hb ? toG(...pb) : toG(A.x, A.y));
         if(s < 0 || t < 0) return;
@@ -792,7 +793,7 @@
         (this.routeLines = this.routeLines || []).push({ rt, kind, pts: full, cells: new Set(cells) });
       });
       // the network: each shared stretch drawn once. Chain the edges into polylines between junctions.
-      const cellPtH = c => typeof c === 'string' ? HARBOURS[c.slice(1)] : cellPt0(c);
+      const cellPtH = c => typeof c === 'string' ? (HARBOURS[c.slice(1)] || ZEP_TOWERS[c.slice(1)]) : cellPt0(c);
       this.routeNet = {};
       Object.keys(edges).forEach(kind => {
         const adj = new Map(), key = v => String(v);
