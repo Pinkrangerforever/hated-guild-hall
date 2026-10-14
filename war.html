@@ -139,10 +139,10 @@
   #endScreen{ position:fixed; inset:0; z-index:9; display:none; align-items:center; justify-content:center; background:radial-gradient(ellipse at center, rgba(10,6,3,0.78), rgba(0,0,0,0.93)); animation:endIn .8s ease; }
   #endScreen.show{ display:flex; }
   @keyframes endIn{ from{ opacity:0; } to{ opacity:1; } }
-  .endWrap{ width:min(980px, 96vw); max-height:94vh; overflow:auto; padding-top:30px; }
+  .endWrap{ width:min(980px, 96vw); max-height:94vh; overflow-y:auto; overflow-x:hidden; padding:70px 36px 10px; box-sizing:border-box; }
   .endHead{ text-align:center; margin-bottom:34px; font:600 13px Cinzel, serif; letter-spacing:3px; color:#a8875a; }
   .endCols{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
-  .endSide{ position:relative; padding:74px 16px 16px; border-radius:10px; text-align:center;
+  .endSide{ position:relative; padding:40px 16px 16px; overflow:visible; border-radius:10px; text-align:center;
     background:linear-gradient(180deg, var(--c1), rgba(12,8,4,0.95) 60%); border:2px solid var(--c2); box-shadow:0 0 40px var(--glow), inset 0 0 0 1px rgba(0,0,0,0.6); }
   .endSide.horde{ --c1:rgba(150,24,16,0.85); --c2:#e0563f; --glow:rgba(220,60,40,0.45); --tx:#ff9a80; }
   .endSide.alliance{ --c1:rgba(24,58,150,0.85); --c2:#5a8cf0; --glow:rgba(70,120,240,0.45); --tx:#9cc0ff; }
@@ -167,6 +167,19 @@
   .roster tr.mvp td{ background:rgba(214,169,64,0.14); } .roster tr.mvp td:first-child::before{ content:"👑 "; }
   .roster td.sc{ font-weight:700; color:#ffd36a; }
   .endBtns{ display:flex; gap:10px; justify-content:center; margin-top:16px; }
+  .flagStage{ position:absolute; top:-96px; width:190px; height:250px; pointer-events:none; }
+  .flagStage.l{ left:-34px; } .flagStage.r{ right:-34px; }
+  .flagStage canvas{ width:100%; height:100%; display:block; }
+  .endSide.has3d .banner{ display:none; }
+  .endSide.lost .flagStage{ filter:saturate(0.5) brightness(0.8); }
+  .endTitle{ text-align:center; font:900 20px Cinzel, serif; letter-spacing:8px; color:#d6a940; text-shadow:0 0 14px rgba(214,169,64,0.5); margin-bottom:6px; }
+  .endHead::before, .endHead::after{ content:"✦"; margin:0 10px; color:#d6a940; }
+  .embers{ position:absolute; inset:0; overflow:hidden; border-radius:10px; pointer-events:none; }
+  .embers i{ position:absolute; bottom:-10px; width:4px; height:4px; border-radius:50%; background:var(--c2); box-shadow:0 0 8px var(--c2); opacity:0; animation:rise linear infinite; }
+  @keyframes rise{ 0%{ transform:translateY(0) translateX(0); opacity:0; } 10%{ opacity:.9; } 100%{ transform:translateY(-420px) translateX(var(--dx)); opacity:0; } }
+  .endSide .crestBig{ width:64px; height:64px; margin:0 auto 6px; border-radius:50%; border:3px solid #d6a940; overflow:hidden; background:#120b06; box-shadow:0 0 18px var(--glow); }
+  .endSide .crestBig img{ width:100%; height:100%; object-fit:cover; }
+  .endSide.lost .crestBig{ border-color:#6b5a3a; box-shadow:none; }
   @media (max-width: 760px){ .endCols{ grid-template-columns:1fr; gap:46px; } .verdict{ font-size:36px; } }
   #admin{ right:320px; top:62px; width:280px; max-height:calc(100vh - 80px); overflow:auto; display:none; border-color:#b06aff; }
   #admin h3{ color:#d4a8ff; }
@@ -721,6 +734,9 @@ function showEndScreen(){
     const top = rows.length ? rows[0].score : -1;
     return `<div class="endSide ${f} ${lost ? 'lost' : ''}">
       <div class="banner l">${TROOP_ICON(f)}</div><div class="banner r">${TROOP_ICON(f)}</div>
+      <div class="flagStage l" data-f="${f}" data-lost="${lost ? 1 : 0}"></div><div class="flagStage r" data-f="${f}" data-lost="${lost ? 1 : 0}" data-flip="1"></div>
+      ${lost ? '' : `<div class="embers">${Array.from({ length: 22 }, () => `<i style="left:${Math.random() * 100}%;--dx:${(Math.random() - 0.5) * 80}px;animation-duration:${3 + Math.random() * 4}s;animation-delay:${Math.random() * 5}s"></i>`).join('')}</div>`}
+      <div class="crestBig">${TROOP_ICON(f)}</div>
       <div class="verdict">${win === 'draw' ? 'Stalemate' : lost ? 'Defeat' : 'Victory'}</div>
       <div class="facName">${f === 'horde' ? 'The Horde' : 'The Alliance'}</div>
       <div class="final">${r.score[f].total} <small>WAR SCORE</small></div>
@@ -730,10 +746,48 @@ function showEndScreen(){
   };
   const order = win === 'alliance' ? ['alliance', 'horde'] : ['horde', 'alliance'];
   const el = document.getElementById('endScreen');
-  el.innerHTML = `<div class="endWrap"><div class="endHead">The war is over · ${E.day(G) + 1} days of fighting</div>
+  el.innerHTML = `<div class="endWrap"><div class="endTitle">THE WAR IS OVER</div><div class="endHead">${E.day(G) + 1} days of fighting</div>
     <div class="endCols">${order.map(side).join('')}</div>
     <div class="endBtns"><button class="btn" onclick="document.getElementById('endScreen').classList.remove('show')">View the board</button><button class="btn" onclick="location.href='index.html'">← Back to site</button></div></div>`;
   el.classList.add('show');
+  endFlags();
+}
+// the faction banner models from the board, waving on the result cards: the victor's stand tall in a warm light,
+// the defeated side's droop and hang low
+let endFlagLoop = null;
+function endFlags(){
+  if(endFlagLoop) cancelAnimationFrame(endFlagLoop);
+  const fm = board && board.flagModels; if(!fm || !THREE.SkeletonUtils) return;
+  const stages = [...document.querySelectorAll('#endScreen .flagStage')].filter(s => fm[s.dataset.f]);
+  const scenes = stages.map(st => {
+    st.closest('.endSide').classList.add('has3d');
+    const lost = st.dataset.lost === '1', flip = !!st.dataset.flip;
+    const r = new THREE.WebGLRenderer({ alpha: true, antialias: true }); r.setPixelRatio(Math.min(2, devicePixelRatio || 1)); r.outputEncoding = THREE.sRGBEncoding;
+    r.setSize(st.clientWidth, st.clientHeight); st.appendChild(r.domElement);
+    const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, st.clientWidth / st.clientHeight, 0.01, 10);
+    cam.position.set(0, 0.3, 0.95); cam.lookAt(0, 0.26, 0);
+    scene.add(new THREE.HemisphereLight(0xfff0d8, 0x302018, lost ? 0.85 : 1.0));
+    const key = new THREE.DirectionalLight(lost ? 0xb8bccb : 0xffd08a, lost ? 1.0 : 1.5); key.position.set(0.3, 0.8, 1.4); scene.add(key);
+    const f = fm[st.dataset.f], flag = THREE.SkeletonUtils.clone(f.proto);
+    const holder = new THREE.Group(); holder.add(flag); scene.add(holder);
+    holder.scale.setScalar(1.25); if(flip) holder.scale.x *= -1; holder.position.x = flip ? 0.12 : -0.12;   // the right-hand flag mirrors the left
+    if(lost){ holder.rotation.z = flip ? 0.35 : -0.35; holder.position.y = -0.06; }
+    // frame the whole flag (pole + cloth) whatever its proportions
+    holder.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(holder), c = bb.getCenter(new THREE.Vector3()), sz = bb.getSize(new THREE.Vector3());
+    const fit = Math.max(sz.y, sz.x * cam.aspect ** -1) * 0.62 / Math.tan(cam.fov * Math.PI / 360);
+    cam.position.set(c.x, c.y + sz.y * 0.05, c.z + fit); cam.lookAt(c.x, c.y, c.z);
+    let mixer = null;
+    if(f.clip){ mixer = new THREE.AnimationMixer(flag); const a = mixer.clipAction(f.clip); a.play(); a.timeScale = lost ? 0.35 : 1; a.time = Math.random() * f.clip.duration; }
+    return { r, scene, cam, mixer, holder, lost, flip };
+  });
+  let last = performance.now();
+  const loop = now => {
+    if(!document.getElementById('endScreen').classList.contains('show')){ scenes.forEach(s => s.r.dispose()); endFlagLoop = null; return; }
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    scenes.forEach(s => { if(s.mixer) s.mixer.update(dt); if(!s.lost) s.holder.rotation.y = Math.sin(now / 1800) * 0.12; s.r.render(s.scene, s.cam); });
+    endFlagLoop = requestAnimationFrame(loop);
+  };
+  endFlagLoop = requestAnimationFrame(loop);
 }
 function editZone(){
   const z = G.zones[selZone];
