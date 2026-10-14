@@ -402,8 +402,8 @@
         this.walls.add(m);
         const mixer = new THREE.AnimationMixer(m), clip = n => gltf.animations.find(c => c.name === n);
         (this.mixers = this.mixers || []).push(mixer);
-        let cur = mixer.clipAction(clip('Opened')); cur.play();
-        this.doorOpen = true; this.doorModel = m;
+        let cur = mixer.clipAction(clip('Closed') || clip('Opened')); cur.play();
+        this.doorOpen = !clip('Closed'); this.doorModel = m;
         // the rig moves the door when it opens but not its click area, so clicks go to two invisible
         // boxes instead: one filling the doorway (closed) and one where the open door stands
         const hitMat = new THREE.MeshBasicMaterial({ visible: false });
@@ -672,7 +672,7 @@
       Object.entries({ food: 'FoodIcon.png', wood: 'WoodIcon.png', ore: 'War%20Games/CopperOre.png', crystal: 'CrystalIcon2.png' }).forEach(([r, f]) => {
         const im = new Image(); im.crossOrigin = 'anonymous';
         im.onload = () => { this.resIcons[r] = im; this.drawMap(); };
-        im.src = R2 + f;
+        im.src = R2 + f + '?board=1';   // its own URL: the site's nav caches these icons without CORS, which blocks drawing them on the map
       });
       // the painted map and its zone outlines
       const base = new Image();
@@ -911,6 +911,19 @@
       edge(W, (t, d) => [t * W, d - 2]); edge(W, (t, d) => [t * W, H - d + 2]);
       edge(H, (t, d) => [d - 2, t * H]); edge(H, (t, d) => [W - d + 2, t * H]);
       this.tears = tears;
+      // a dark, soft-edged shadow drawn exactly where the paper is missing, on a sheet just under the map,
+      // so the holes read as holes whatever the table top looks like
+      if(!this.holeCanvas){ this.holeCanvas = document.createElement('canvas'); this.holeCanvas.width = W / 2; this.holeCanvas.height = H / 2; }
+      const hc = this.holeCanvas.getContext('2d'); hc.clearRect(0, 0, W / 2, H / 2);
+      hc.save(); hc.scale(0.5, 0.5); hc.filter = 'blur(6px)'; hc.fillStyle = 'rgba(12,7,3,0.82)';
+      tears.forEach(pts => { hc.beginPath(); pts.forEach(([x, y], i) => i ? hc.lineTo(x, y) : hc.moveTo(x, y)); hc.closePath(); hc.fill(); });
+      hc.restore();
+      if(!this.holeMesh && this.mapGeo){
+        this.holeTex = new THREE.CanvasTexture(this.holeCanvas);
+        this.holeMesh = new THREE.Mesh(this.mapGeo, new THREE.MeshBasicMaterial({ map: this.holeTex, transparent: true, depthWrite: false }));
+        this.holeMesh.rotation.x = -Math.PI / 2; this.holeMesh.position.y = -0.008; this.holeMesh.renderOrder = -1; this.scene.add(this.holeMesh);
+      }
+      if(this.holeTex) this.holeTex.needsUpdate = true;
       const path = pts => { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); pts.slice(1).forEach(p => g.lineTo(p[0], p[1])); g.closePath(); };
       g.save();
       g.lineJoin = 'round';
