@@ -103,7 +103,7 @@
       this.camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
       this.cam = { target: new THREE.Vector3(0, 0, 0.2), dist: 10.5, polar: 0.62, az: 0 }; this.shakeOff = new THREE.Vector3();
       this.glow = glowTex();
-      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -273,6 +273,27 @@
       });
     }
 
+    // ----- faction flags (WoW banner models with their idle wave); neutral zones keep the plain flag -----
+    loadFlags(){
+      if(!THREE.GLTFLoader || !THREE.SkeletonUtils) return;
+      const F = window.WAR_FLAG_MODELS || {
+        horde:    { url: 'models/war/horde-flag.gltf',    height: 0.46 },
+        alliance: { url: 'models/war/alliance-flag.gltf', height: 0.46 }
+      };
+      this.flagModels = {}; this.mixers = [];
+      Object.keys(F).forEach(f => new THREE.GLTFLoader().load(F[f].url, gltf => {
+        const m = gltf.scene;
+        m.traverse(o => { if(o.isMesh){ o.castShadow = true; o.frustumCulled = false; o.material.side = THREE.DoubleSide; o.material.alphaTest = 0.4; o.material.transparent = false; } });
+        const box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3());
+        const s = F[f].height / size.y;
+        const inner = new THREE.Group(); inner.add(m);
+        m.position.set(-box.max.x, -box.min.y, -(box.min.z + box.max.z) / 2);   // the pole (the model's +x end) stands on the zone
+        inner.scale.setScalar(s); inner.rotation.y = Math.PI;   // cloth flies away from the stronghold
+        this.flagModels[f] = { proto: inner, clip: gltf.animations[0] };
+        KEYS.forEach(k => this.syncPiece(k));
+      }, undefined, err => console.warn(f + ' flag failed to load, keeping the plain flag:', err)));
+    }
+
     // ----- the map on the table -----
     buildMap(){
       const c = document.createElement('canvas'); c.width = 2048; c.height = 1229;
@@ -421,7 +442,7 @@
       ring.rotation.x = -Math.PI / 2; ring.position.y = 0.012; grp.add(ring);
       // label
       const lab = document.createElement('div'); lab.className = 'wb-label'; this.overlay.appendChild(lab);
-      const p = { k, grp, flag, flagMat, roof, tower, tent, wall, ring, lab, flagGeo, base: flagGeo.attributes.position.array.slice(), seed: Math.random() * 10 };
+      const p = { k, grp, pole, flag, flagMat, roof, tower, tent, wall, ring, lab, flagGeo, base: flagGeo.attributes.position.array.slice(), seed: Math.random() * 10 };
       return p;
     }
     setState(s){
@@ -435,6 +456,16 @@
       p.grp.visible = true; p.lab.style.display = '';
       const hex = COL[z.owner + 'Hex'];
       p.flagMat.color.setHex(hex); p.roof.material.color.setHex(hex);
+      const fm = this.flagModels && this.flagModels[z.owner];
+      if(p.flagFor !== (fm ? z.owner : null)){
+        if(p.flagModel){ p.grp.remove(p.flagModel); this.mixers = this.mixers.filter(x => x !== p.flagMixer); p.flagModel = p.flagMixer = null; }
+        if(fm){
+          p.flagModel = THREE.SkeletonUtils.clone(fm.proto); p.grp.add(p.flagModel);
+          if(fm.clip){ p.flagMixer = new THREE.AnimationMixer(p.flagModel); const act = p.flagMixer.clipAction(fm.clip); act.play(); act.time = Math.random() * fm.clip.duration; this.mixers.push(p.flagMixer); }
+        }
+        p.flagFor = fm ? z.owner : null;
+      }
+      p.flag.visible = p.pole.visible = !fm;
       const model = z.outpost >= 2 && this.holdModels && this.holdModels[z.owner];
       if(p.holdFor !== (model ? z.owner : null)){
         if(p.hold){ p.grp.remove(p.hold); p.hold = null; }
@@ -705,8 +736,8 @@
       if(e.captured){
         this.applyAfter(e);
         this.pulseRing(e.to, COL[att + 'Hex']); this.flash(B, att === 'horde' ? 0xff5030 : 0x60a0ff, 2.2);
-        const fl = this.pieces[e.to].flag;
-        await this.animate(600, t => { fl.scale.set(1, Math.max(0.05, Math.abs(Math.cos(t * Math.PI))), 1); });
+        const fl = this.pieces[e.to].flagModel || this.pieces[e.to].flag;
+        await this.animate(600, t => { fl.scale.set(1, Math.max(0.05, 1 - Math.sin(t * Math.PI) * 0.95), 1); });
         this.floatText(e.to, '⚑ Captured!', att);
       } else {
         this.applyAfter(e);
@@ -772,6 +803,8 @@
     // ----- frame -----
     tick(){
       const now = performance.now();
+      const dt = Math.min(0.1, (now - (this._last || now)) / 1000); this._last = now;
+      (this.mixers || []).forEach(m => m.update(dt));
       this.anims = this.anims.filter(a => {
         const t = Math.min(1, (now - a.t0) / a.ms); a.fn(t);
         if(t >= 1){ a.res(); return false; } return true;
