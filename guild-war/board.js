@@ -122,7 +122,7 @@
       LM.onProgress = (u, l, t) => { this._loading = t - l; prevProg && prevProg(u, l, t); };
       LM.onError = () => {};
       this.glow = glowTex();
-      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.loadSuccubus(); this.loadPainting(); this.loadShips(); this.loadTroops(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.loadSuccubus(); this.loadPainting(); this.loadShips(); this.loadTroops(); this.loadCandles(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -237,11 +237,11 @@
       this.flames = [];
       const candle = (x, y, z, s) => {
         const c = new THREE.Mesh(new THREE.CylinderGeometry(0.07 * s, 0.08 * s, 0.4 * s, 10), new THREE.MeshStandardMaterial({ color: 0xe8dcc0, roughness: 0.6 }));
-        c.position.set(x, y + 0.2 * s, z); c.castShadow = true; S.add(c);
+        c.position.set(x, y + 0.2 * s, z); c.castShadow = true; S.add(c); (this.drawnCandles = this.drawnCandles || []).push(c);
         const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glow, color: 0xffb04a, blending: THREE.AdditiveBlending, depthWrite: false }));
         f.position.set(x, y + 0.48 * s, z); f.scale.set(0.22 * s, 0.4 * s, 1); S.add(f);
         const l = new THREE.PointLight(0xff9a3c, 0.5, 5 * s, 2); l.position.set(x, y + 0.6 * s, z); S.add(l);
-        this.flames.push({ f, l, s, seed: Math.random() * 100, base: 0.5 });
+        this.flames.push({ f, l, s, seed: Math.random() * 100, base: 0.5 }); (this.candleFx = this.candleFx || []).push({ x, z, f, l });
       };
       [[-5.55, -3.55], [5.55, -3.55], [-5.55, 3.55], [5.55, 3.55]].forEach(([x, z]) => candle(x, 0.17, z, 1));
       // floating dust in the light
@@ -1269,6 +1269,35 @@
       });
       return { grow, remove: () => this.animate(400, t => { mat.opacity = 0.9 * (1 - t); }).then(() => { this.scene.remove(tube, head); geo.dispose(); }) };
     }
+    // ----- WoW candles on the table corners: tall Stormwind funeral candles and Kul Tiran candle clusters.
+    // Their flame cards burn additively; the glow sprite and light move to the top of each flame. -----
+    loadCandles(){
+      if(!THREE.GLTFLoader || !this.candleFx) return;
+      const M = window.WAR_CANDLES || { tall: 'models/war/candle-tall.gltf', cluster: 'models/war/candle-cluster.gltf' };
+      const H = { tall: 0.75, cluster: 0.32 }, protos = {}; let left = 2;
+      const place = () => {
+        this.candleFx.forEach((cf, i) => {
+          const kind = i === 0 || i === 3 ? 'tall' : 'cluster', P = protos[kind]; if(!P) return;
+          const m = P.clone(); m.position.set(cf.x, 0, cf.z); m.rotation.y = i * 1.3; this.scene.add(m);
+          if(this.drawnCandles[i]) this.drawnCandles[i].visible = false;
+          const top = H[kind] * 0.95; cf.f.position.y = top; cf.f.scale.set(0.12, 0.2, 1); cf.l.position.y = top + 0.1;
+        });
+      };
+      Object.keys(M).forEach(kind => new THREE.GLTFLoader().load(M[kind], gltf => {
+        const m = gltf.scene;
+        const skinned = []; m.traverse(o => { if(o.isSkinnedMesh) skinned.push(o); });
+        skinned.forEach(o => { const q = new THREE.Mesh(o.geometry, o.material); q.name = o.name; q.position.copy(o.position); q.quaternion.copy(o.quaternion); q.scale.copy(o.scale); o.parent.add(q); o.parent.remove(o); });
+        m.traverse(o => { if(!o.isMesh) return;
+          if(/1380452|1380453|1829580/.test(o.material.name)) o.material = new THREE.MeshBasicMaterial({ map: o.material.map, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+          else { o.castShadow = true; o.receiveShadow = true; }
+        });
+        const box = new THREE.Box3().setFromObject(m), s = H[kind] / (box.max.y - box.min.y);
+        m.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+        const holder = new THREE.Group(), inner = new THREE.Group(); inner.add(m); inner.scale.setScalar(s); holder.add(inner);
+        protos[kind] = holder; if(--left === 0) place();
+      }, undefined, err => { console.warn(kind + ' candle failed to load:', err); if(--left === 0) place(); }));
+    }
+
     // ----- troop figures: the animated Alliance footman / Horde grunt. wow.export leaves worn gear loose;
     // tools/attach_gear.py worked out each piece's bone and exact placement (from the posed OBJ export) and
     // stored it in the node's extras, so here every piece is pinned to its bone and moves with the animation. -----
