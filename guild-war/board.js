@@ -36,7 +36,7 @@
     alterac:      { count: 3, size: 0.2,  snow: true },
     dun_morogh:   { count: 3, size: 0.22, snow: true }
   };
-  const LANDMARKS = { burning_steppes: { model: 'volcano', size: 0.3 } };   // Blackrock Mountain
+  const LANDMARKS = { burning_steppes: { model: 'volcano', size: 0.22, side: -0.62 } };   // Blackrock Mountain, on the zone's left side (side = fraction of the zone's radius)
   const TERRAIN_MODELS = {
     mountain: { url: 'models/war/mountain.gltf', tint: 0x8d7a66 },   // its texture is pale stone: warm it so snow caps read
     volcano:  { url: 'models/war/blackrock-mountain.gltf', glow: /lava/i }
@@ -526,7 +526,15 @@
         }
       });
       Object.keys(LANDMARKS).forEach(k => {
-        const cfg = LANDMARKS[k], proto = P[cfg.model], c = proto && (freeSpot(k, 14, true) || freeSpot(k, 6, true)); if(!c) return;
+        const cfg = LANDMARKS[k], proto = P[cfg.model]; if(!proto) return;
+        const p = WAR_LAYOUT[k], v = this.zoneVal[k];
+        // the spot to the side; step back toward the middle until it's inside the zone
+        let c = null;
+        for(let f = cfg.side; Math.abs(f) > 0.05 && !c; f *= 0.85){
+          const mx = p.x + p.r * f, my = p.y;
+          if(R[Math.floor(my / MH * RH) * RW + Math.floor(mx / MW * RW)] === v) c = [mx, my];
+        }
+        c = c || freeSpot(k, 6, true); if(!c) return;
         place(proto, c[0], c[1], cfg.size, 0.6);
         // a little ember glow over the crater
         const at = toWorld(c[0], c[1]);
