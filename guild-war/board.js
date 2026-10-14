@@ -117,7 +117,7 @@
       this.camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
       this.cam = { target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 }; this.shakeOff = new THREE.Vector3();
       this.glow = glowTex();
-      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.loadSuccubus(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -425,6 +425,43 @@
           if(gltf.animations[0]){ const mx = new THREE.AnimationMixer(t); mx.clipAction(gltf.animations[0]).play(); (this.mixers = this.mixers || []).push(mx); }
         });
       }, undefined, err => console.warn('snow torch failed to load:', err));
+    }
+
+    // ----- a succubus by the front wall, behind where the camera starts. She loops: stand, the Entice
+    // emote, then turns her back and plays Drown -> Drowned, turns round again, and starts over.
+    loadSuccubus(){
+      if(!THREE.GLTFLoader || !this.walls) return;
+      const url = window.WAR_SUCCUBUS || 'models/war/succubus.gltf';
+      new THREE.GLTFLoader().load(url, gltf => {
+        const m = gltf.scene, box = new THREE.Box3().setFromObject(m), s = 3.4 / (box.max.y - box.min.y);
+        m.traverse(o => { if(o.isMesh){ o.castShadow = true; o.frustumCulled = false; o.material.alphaTest = 0.4; o.material.transparent = false; o.material.side = THREE.DoubleSide; } });
+        const A = 15, FACE = Math.PI / 2;   // WoW models face +x; +PI/2 turns her toward the table (-z)
+        m.scale.setScalar(s); m.position.set(0, -box.min.y * s, A - 2.2); m.rotation.y = FACE;
+        this.walls.add(m);
+        const glow = new THREE.PointLight(0xc060ff, 1.4, 7, 2); glow.position.set(0, 3.2, A - 0.8); this.walls.add(glow);   // a soft fel glow so she reads in the dim end of the hall
+        const mixer = new THREE.AnimationMixer(m), clip = n => gltf.animations.find(c => c.name === n);
+        (this.mixers = this.mixers || []).push(mixer);
+        let cur = null;
+        const play = (name, once) => {
+          const c = clip(name); if(!c) return 0;
+          const a = mixer.clipAction(c); a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat); a.clampWhenFinished = !!once;
+          if(cur && cur !== a) a.crossFadeFrom(cur, 0.3, false);
+          a.play(); cur = a; return c.duration * 1000;
+        };
+        const turn = to => this.animate(700, t => { m.rotation.y = to.from + (to.to - to.from) * ease(t); });
+        const wait = ms => new Promise(r => setTimeout(r, ms));
+        const loop = async () => {
+          for(;;){
+            play('Stand'); await wait(5000);
+            await wait(play('SuccubusEntice', true));
+            play('Stand'); await turn({ from: FACE, to: FACE + Math.PI });
+            await wait(play('Drown', true));
+            play('Drowned'); await wait(4000);
+            play('Stand'); await turn({ from: FACE + Math.PI, to: FACE + Math.PI * 2 }); m.rotation.y = FACE;
+          }
+        };
+        loop();
+      }, undefined, err => console.warn('succubus failed to load:', err));
     }
 
     // ----- a snowman out in the snow beyond the doorway, under a little cloud of drifting snow -----
