@@ -116,7 +116,7 @@
       this.camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
       this.cam = { target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 }; this.shakeOff = new THREE.Vector3();
       this.glow = glowTex();
-      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -185,7 +185,10 @@
       }
       // outside the doorway: a cold night, falling snow, snow blown in across the planks
       const night = new THREE.Mesh(new THREE.PlaneGeometry(DOOR_W + 1, DOOR_H + 1), new THREE.MeshBasicMaterial({ color: 0x1c2a44 }));
-      night.position.set(0, DOOR_H / 2, -A - 1.2); this.walls.add(night);
+      night.position.set(0, DOOR_H / 2 + 1, -A - 5); night.scale.set(2.6, 1.6, 1); this.walls.add(night);
+      const yard = new THREE.Mesh(new THREE.PlaneGeometry(9, 5), new THREE.MeshStandardMaterial({ color: 0xdfe8f2, roughness: 1 }));
+      yard.rotation.x = -Math.PI / 2; yard.position.set(0, 0.005, -A - 2.5); this.walls.add(yard);   // snowy ground outside
+      this.outsideAt = new THREE.Vector3(0.6, 0, -A - 2.3);   // where the snowman stands (walls' local space)
       const coldLight = new THREE.PointLight(0x9cc4ff, 0.9, 12, 2); coldLight.position.set(0, DOOR_H * 0.6, -A + 1.2); this.walls.add(coldLight);
       const fade = canvasTex(256, 256, (g) => {
         const gr = g.createRadialGradient(128, 40, 10, 128, 60, 190);
@@ -199,7 +202,7 @@
       const drift = new THREE.Mesh(new THREE.PlaneGeometry(DW, DD), new THREE.MeshStandardMaterial({ map: snowTex, alphaMap: fade, transparent: true, depthWrite: false, roughness: 0.85 }));
       drift.rotation.x = -Math.PI / 2; drift.position.set(0, 0.01, DZ); drift.renderOrder = 1; this.walls.add(drift);
       const sn = 300, sp = new Float32Array(sn * 3);
-      for(let i = 0; i < sn; i++){ sp[i * 3] = (Math.random() - 0.5) * (DOOR_W + 2); sp[i * 3 + 1] = Math.random() * DOOR_H; sp[i * 3 + 2] = -A - 1 + Math.random() * 3.2; }
+      for(let i = 0; i < sn; i++){ sp[i * 3] = (Math.random() - 0.5) * (DOOR_W + 3); sp[i * 3 + 1] = Math.random() * DOOR_H; sp[i * 3 + 2] = -A - 4.5 + Math.random() * 5.5; }
       const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
       this.snowfall = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 0.07, transparent: true, opacity: 0.85, depthWrite: false }));
       this.walls.add(this.snowfall); this.snowDoor = { w: DOOR_W + 2, h: DOOR_H, z0: -A - 1 };
@@ -376,6 +379,40 @@
         o.material = mat;
       } });
       return c;
+    }
+
+    // ----- a snowman out in the snow beyond the doorway, under a little cloud of drifting snow -----
+    loadSnowman(){
+      if(!THREE.GLTFLoader || !this.outsideAt) return;
+      const M = window.WAR_SNOWMAN || { man: 'models/war/snowman.gltf', snow: 'models/war/snowfall.gltf' };
+      new THREE.GLTFLoader().load(M.man, gltf => {
+        const m = gltf.scene, box = new THREE.Box3().setFromObject(m), s = 1.7 / (box.max.y - box.min.y);
+        m.traverse(o => { if(o.isMesh){ o.castShadow = true; o.frustumCulled = false; o.material.alphaTest = 0.4; o.material.transparent = false; } });
+        m.scale.setScalar(s); m.position.copy(this.outsideAt); m.position.y = -box.min.y * s; m.rotation.y = -0.35;   // turned a little toward the table
+        this.walls.add(m);
+        const mixer = new THREE.AnimationMixer(m), clips = gltf.animations;
+        const stand = clips.find(c => /Stand/.test(c.name)), wave = clips.find(c => /Wave/.test(c.name));
+        if(stand) mixer.clipAction(stand).play();
+        (this.mixers = this.mixers || []).push(mixer);
+        // every so often he waves at the room
+        if(wave && stand){
+          const w = mixer.clipAction(wave); w.setLoop(THREE.LoopOnce); w.clampWhenFinished = false;
+          setInterval(() => { w.reset().play(); mixer.clipAction(stand).crossFadeTo(w, 0.3); setTimeout(() => w.crossFadeTo(mixer.clipAction(stand).reset().play(), 0.4), wave.duration * 1000 - 400); }, 14000);
+        }
+      }, undefined, err => console.warn('snowman failed to load:', err));
+      // the "snow rain" cards: their scrolling was lost in the export, so scroll them here
+      new THREE.GLTFLoader().load(M.snow, gltf => {
+        const m = gltf.scene, box = new THREE.Box3().setFromObject(m), s = 3.2 / (box.max.y - box.min.y);
+        const skinned = []; m.traverse(o => { if(o.isSkinnedMesh) skinned.push(o); });
+        skinned.forEach(o => { const q = new THREE.Mesh(o.geometry, o.material); q.position.copy(o.position); o.parent.add(q); o.parent.remove(o); });
+        m.traverse(o => { if(o.isMesh){
+          const t = o.material.map; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+          o.material = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+          (this.snowCards = this.snowCards || []).push(t);
+        } });
+        m.scale.setScalar(s); m.position.copy(this.outsideAt); m.position.y = -box.min.y * s; m.rotation.y = Math.PI / 2;
+        this.walls.add(m);
+      }, undefined, err => console.warn('snowfall failed to load:', err));
     }
 
     // ----- scenery (World Tree on Teldrassil and Mount Hyjal) -----
@@ -1130,6 +1167,7 @@
         f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.4 : 2.2) * (0.9 + 0.15 * k);
       });
       this.dust.rotation.y = now / 60000;
+      (this.snowCards || []).forEach((t, i) => { t.offset.y = (now / (2600 + i * 700)) % 1; });
       if(this.snowfall){
         const a = this.snowfall.geometry.attributes.position, d = this.snowDoor;
         for(let i = 0; i < a.count; i++){
