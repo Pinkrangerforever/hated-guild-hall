@@ -766,7 +766,8 @@
       };
       const paths = {};
       // every route (boats and zeppelins) goes by sea; longest first, so shorter ones join their lanes
-      const edges = { boat: new Set(), zeppelin: new Set() };
+      const edges = { boat: new Set(), zeppelin: new Set() }; this.routeLines = [];
+      const cellPt0 = c => [((c % GW) + 0.5) * S / RW * MW, (((c / GW) | 0) + 0.5) * S / RH * MH], cellPt = cellPt0;
       const routes = WAR_ROUTES.slice().sort((p, q) => {
         const d = r => Math.hypot(WAR_LAYOUT[r.a].x - WAR_LAYOUT[r.b].x, WAR_LAYOUT[r.a].y - WAR_LAYOUT[r.b].y);
         return d(q) - d(p);
@@ -786,9 +787,12 @@
         if(ha){ pts.unshift(ha); edges[kind].add('H' + rt.a + ',' + s); }
         if(hb){ pts.push(hb); edges[kind].add('H' + rt.b + ',' + t); }
         paths[rt.a + '|' + rt.b] = pts;
+        const full = cells.filter((_, i) => i % 3 === 0 || i === cells.length - 1).map(c => cellPt(c));
+        if(ha) full.unshift(ha); if(hb) full.push(hb);
+        (this.routeLines = this.routeLines || []).push({ rt, kind, pts: full, cells: new Set(cells) });
       });
       // the network: each shared stretch drawn once. Chain the edges into polylines between junctions.
-      const cellPt = c => typeof c === 'string' ? HARBOURS[c.slice(1)] : [((c % GW) + 0.5) * S / RW * MW, (((c / GW) | 0) + 0.5) * S / RH * MH];
+      const cellPtH = c => typeof c === 'string' ? HARBOURS[c.slice(1)] : cellPt0(c);
       this.routeNet = {};
       Object.keys(edges).forEach(kind => {
         const adj = new Map(), key = v => String(v);
@@ -804,7 +808,7 @@
         };
         adj.forEach(({ v, n }) => { if(n.length !== 2) n.forEach(w => { if(!used.has(ek(v, w))) walk(v, w); }); });
         adj.forEach(({ v, n }) => n.forEach(w => { if(!used.has(ek(v, w))) walk(v, w); }));   // loops
-        this.routeNet[kind] = lines.map(line => line.filter((_, i) => i % 4 === 0 || i === line.length - 1).map(cellPt));
+        this.routeNet[kind] = lines.map(line => line.filter((_, i) => i % 4 === 0 || i === line.length - 1).map(cellPtH));
       });
       return paths;
     }
@@ -840,21 +844,28 @@
         g.imageSmoothingEnabled = true;
         g.drawImage(this.overlayCanvas, 0, 0, W, H);
       }
-      // routes: one network per kind, every stretch drawn once (shared lanes stay a single dotted line)
+      // routes: each in its own colour; where routes share water they run side by side, not on top of each other
       if(this.raster){ this.seaPaths = this.seaPaths || this.routeSeaPaths(); }
-      [['boat', [20, 13], 5, 'rgba(24,48,70,0.7)'], ['zeppelin', [8, 14], 4, 'rgba(110,54,18,0.75)']].forEach(([kind, dash, w, col]) => {
-        (this.routeNet && this.routeNet[kind] || []).forEach(path => {
-          if(path.length < 2) return;
-          g.setLineDash(dash); g.lineWidth = w; g.strokeStyle = col; g.lineCap = 'round';
-          g.beginPath(); g.moveTo(path[0][0] * sx, path[0][1] * sy);
-          for(let i = 1; i < path.length - 1; i++){
-            const mx = (path[i][0] + path[i + 1][0]) / 2, my = (path[i][1] + path[i + 1][1]) / 2;
-            g.quadraticCurveTo(path[i][0] * sx, path[i][1] * sy, mx * sx, my * sy);
-          }
-          const last = path[path.length - 1]; g.lineTo(last[0] * sx, last[1] * sy); g.stroke();
+      const ROUTE_COLOURS = ['#1f5f8b', '#8b2f6b', '#2f7a3a', '#b0641a', '#5a3f9e', '#1b7f7a', '#9e2a2a', '#6b6b1a', '#2a4f9e', '#7a4a1f'];
+      const lines = this.routeLines || [];
+      lines.forEach((L, li) => {
+        const pts = L.pts; if(pts.length < 2) return;
+        // sideways offset per point: spread the routes that pass through the same water
+        const off = pts.map((p, i) => {
+          const sharers = lines.filter(o => o !== L && o.pts.some(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 8));
+          if(!sharers.length) return [0, 0];
+          const group = [L].concat(sharers).sort((a, b) => lines.indexOf(a) - lines.indexOf(b)), k = group.indexOf(L) - (group.length - 1) / 2;
+          const a = pts[Math.max(0, i - 1)], c = pts[Math.min(pts.length - 1, i + 1)], dx = c[0] - a[0], dy = c[1] - a[1], len = Math.hypot(dx, dy) || 1;
+          return [-dy / len * k * 4.5, dx / len * k * 4.5];
         });
+        const P = pts.map((p, i) => [(p[0] + off[i][0]) * sx, (p[1] + off[i][1]) * sy]);
+        g.setLineDash(L.kind === 'zeppelin' ? [8, 12] : [18, 11]); g.lineWidth = L.kind === 'zeppelin' ? 3.5 : 4.5;
+        g.strokeStyle = ROUTE_COLOURS[li % ROUTE_COLOURS.length]; g.globalAlpha = 0.8; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(P[0][0], P[0][1]);
+        for(let i = 1; i < P.length - 1; i++) g.quadraticCurveTo(P[i][0], P[i][1], (P[i][0] + P[i + 1][0]) / 2, (P[i][1] + P[i + 1][1]) / 2);
+        g.lineTo(P[P.length - 1][0], P[P.length - 1][1]); g.stroke();
       });
-      g.setLineDash([]); g.lineCap = 'butt';
+      g.setLineDash([]); g.lineCap = 'butt'; g.globalAlpha = 1;
       // resource icons: every zone shows its type faintly; this game's rich deposits are bold with a gold ring
       KEYS.forEach(k => {
         const p = WAR_LAYOUT[k], r = WAR_ZONES[k].resource, im = this.resIcons && this.resIcons[r];
