@@ -276,7 +276,7 @@
       for(let i = 0; i < n; i++){ pos[i * 3] = (Math.random() - 0.5) * 14; pos[i * 3 + 1] = Math.random() * 8; pos[i * 3 + 2] = (Math.random() - 0.5) * 10; }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
       this.dust = new THREE.Points(g, new THREE.PointsMaterial({ map: this.glow, color: 0xffd9a0, size: 0.06, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
-      S.add(this.dust);
+      // (dust motes removed: they read as white dots over the map)
     }
 
     // ----- the real war table (Blackrook war table from the game) -----
@@ -334,9 +334,9 @@
       if(!THREE.GLTFLoader) return;
       const S = window.WAR_STRONGHOLD_MODELS || {
         horde:    { url: 'models/war/horde-stronghold.gltf',    drop: /interior|foyer/i, mask: /hangingleather|clothroof/i, size: 0.5, rotY: Math.PI },
-        horde_outpost: { url: 'models/war/horde-outpost.gltf', mask: /chain|clothfur|clothroof/i, size: 0.3, rotY: 0 },   // Warsong guard tower
+        horde_outpost: { url: 'models/war/horde-outpost.gltf', mask: /chain|clothfur|clothroof/i, size: 0.19, rotY: 0 },   // Warsong guard tower
         alliance_fortify: { url: 'models/war/fortify-alliance.gltf', size: 0.62, rotY: 0 },   // Netherguard wall, a square enclosure round the zone's pieces
-        alliance_outpost: { url: 'models/war/alliance-outpost.gltf', size: 0.26, rotY: 0 },   // Caverns of Time mage tower
+        alliance_outpost: { url: 'models/war/alliance-outpost.gltf', size: 0.17, rotY: 0 },   // Caverns of Time mage tower
         alliance: { url: 'models/war/alliance-stronghold.gltf', drop: /cellar|war_room|armordealer|weapondealer|generalarea/i, mask: /windows_01/i, size: 0.5, rotY: -Math.PI / 2 }
       };
       this.holdModels = {};
@@ -1397,13 +1397,13 @@
     loadCandles(){
       if(!THREE.GLTFLoader || !this.candleFx) return;
       const M = window.WAR_CANDLES || { tall: 'models/war/candle-tall.gltf', cluster: 'models/war/candle-cluster.gltf' };
-      const H = { tall: 0.75, cluster: 0.32 }, protos = {}; let left = 2;
+      const H = { tall: 1.5, cluster: 0.65 }, protos = {}; let left = 2;
       const place = () => {
         this.candleFx.forEach((cf, i) => {
           const kind = i === 0 || i === 3 ? 'tall' : 'cluster', P = protos[kind]; if(!P) return;
           const m = P.clone(); m.position.set(cf.x, 0, cf.z); m.rotation.y = i * 1.3; this.scene.add(m);
           if(this.drawnCandles[i]) this.drawnCandles[i].visible = false;
-          const top = H[kind] * 0.95; cf.f.position.y = top; cf.f.scale.set(0.12, 0.2, 1); cf.l.position.y = top + 0.1;
+          const top = H[kind] * 0.95; cf.f.position.y = top; cf.f.scale.set(0.22, 0.36, 1); cf.l.position.y = top + 0.1;
         });
       };
       Object.keys(M).forEach(kind => new THREE.GLTFLoader().load(M[kind], gltf => {
@@ -1808,7 +1808,6 @@
         const k = 0.8 + 0.12 * Math.sin(now / 90 + f.seed) + 0.08 * Math.sin(now / 37 + f.seed * 3);
         f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.4 : 2.2) * (0.9 + 0.15 * k);
       });
-      this.dust.rotation.y = now / 60000;
       if(this.selGlow){ this.selGlow.material.opacity = 0.85 + 0.15 * Math.sin(now / 600); this.tgtGlow.material.opacity = 0.45 + 0.4 * Math.sin(now / 260); }
       (this.zeppelins || []).forEach(z => { z.position.y = z.userData.base + Math.sin(now / 1700 + z.userData.bob) * 0.03; z.rotation.z = Math.sin(now / 2300 + z.userData.bob) * 0.025; });
       (this.ships || []).forEach(s => { s.rotation.z = Math.sin(now / 1400 + s.userData.bob) * 0.04; s.rotation.x = Math.sin(now / 1900 + s.userData.bob) * 0.03; });

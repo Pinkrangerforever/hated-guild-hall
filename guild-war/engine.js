@@ -290,6 +290,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     const { p, error } = actor(s, pid); if(error) return { ok: false, error };
     const z = s.zones[zone];
     if(!z || z.owner !== p.faction) return { ok: false, error: 'Fortify one of your zones' };
+    if(z.fortifyUntil > s.clock) return { ok: false, error: `Already fortified (${Math.ceil(z.fortifyUntil - s.clock)}h left)` };
     if(!spendAP(s, p)) return { ok: false, error: 'No action points left' };
     const before = snap(s, [zone]);
     z.fortifyUntil = s.clock + RULES.fortifyHours; active(s, p);

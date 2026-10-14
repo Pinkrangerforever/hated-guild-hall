@@ -191,6 +191,18 @@
   .endSide .crestBig img{ width:100%; height:100%; object-fit:cover; }
   .endSide.lost .crestBig{ border-color:#6b5a3a; box-shadow:none; }
   @media (max-width: 760px){ .endCols{ grid-template-columns:1fr; gap:46px; } .verdict{ font-size:36px; } }
+  #ledger{ display:none; left:50%; top:62px; transform:translateX(-50%); width:min(640px, calc(100vw - 20px)); max-height:calc(100vh - 140px); overflow-y:auto; z-index:6; }
+  #ledger.show{ display:block; }
+  .ledCols{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .ledCol{ border-radius:7px; padding:8px; background:rgba(0,0,0,0.3); border:1px solid rgba(214,169,64,0.2); border-top:3px solid var(--edgeC); }
+  .ledCol.horde{ --edgeC:#c8342a; } .ledCol.alliance{ --edgeC:#3a72e0; }
+  .ledCol h4{ margin:0 0 6px; font:700 13px Cinzel, serif; color:var(--facText); display:flex; justify-content:space-between; }
+  .ledRow{ display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center; padding:4px 2px; border-bottom:1px solid rgba(214,169,64,0.08); font-size:13px; }
+  .ledRow .st{ font-size:11px; padding:1px 6px; border-radius:8px; white-space:nowrap; }
+  .ledRow .st.done{ background:rgba(90,160,70,0.25); color:#a8e08a; } .ledRow .st.wait{ background:rgba(214,169,64,0.15); color:#d6b56a; }
+  .ledRow .ap{ gap:2px; } .ledRow .ap i{ width:7px; height:7px; }
+  .ledRow.me{ background:rgba(214,169,64,0.1); }
+  @media (max-width: 620px){ .ledCols{ grid-template-columns:1fr; } }
   #admin{ right:320px; top:62px; width:280px; max-height:calc(100vh - 80px); overflow:auto; display:none; border-color:#b06aff; }
   #admin h3{ color:#d4a8ff; }
   #toast{ position:fixed; left:50%; top:70px; transform:translateX(-50%); z-index:9; padding:8px 14px; border-radius:8px; background:rgba(120,20,12,0.95);
@@ -237,6 +249,7 @@
   <button class="btn sm" onclick="board.overview()">World</button>
   <button class="btn sm" onclick="board.continent('eastern')">Eastern Kingdoms</button>
   <button class="btn sm" id="feedBtn" onclick="document.getElementById('feed').classList.toggle('open')">Feed</button>
+  <button class="btn sm" onclick="toggleLedger()">📒 Ledger</button>
   <button class="btn sm" id="resultsBtn" style="display:none" onclick="showEndScreen()">🏆 Results</button>
   <button class="btn sm" id="adminBtn" style="display:none" onclick="toggleAdmin()">Admin sandbox</button>
 </div>
@@ -261,6 +274,7 @@
 </div>
 <div id="toast"></div>
 <div id="endScreen"></div>
+<div class="panel" id="ledger"></div>
 <div id="hover"></div>
 <div id="gate"><div class="card"><h2 style="font-family:Cinzel;color:var(--gold)">Guild War</h2><p id="gateMsg">Loading…</p><button class="btn" onclick="location.href='index.html'">← Back to site</button></div></div>
 <div id="signup"><div class="card" id="signupCard"></div></div>
@@ -478,7 +492,27 @@ function highlightFeed(seq){
 
 // ---------- UI ----------
 function cur(){ return G.players[playAs]; }
+// ---------- ledger: who is on which side, and who has acted today ----------
+function toggleLedger(){ const l = document.getElementById('ledger'); l.classList.toggle('show'); if(l.classList.contains('show')) renderLedger(); }
+function renderLedger(){
+  const l = document.getElementById('ledger'); if(!l.classList.contains('show')) return;
+  const d = E.day(G), players = Object.values(G.players);
+  if(!players.length){ l.innerHTML = `<div class="ph"><div class="crest" style="font-size:18px">📒</div><div><div class="t">War Ledger</div><div class="s">No one has enlisted yet</div></div></div>`; return; }
+  const col = f => {
+    const list = players.filter(p => p.faction === f).sort((a, b) => a.name.localeCompare(b.name));
+    const acted = list.filter(p => p.lastActiveDay === d).length;
+    return `<div class="ledCol ${f}"><h4><span>${f === 'horde' ? 'The Horde' : 'The Alliance'} · ${list.length}</span><span class="lbl">${acted}/${list.length} acted today</span></h4>
+      ${list.map(p => `<div class="ledRow ${p.id === playAs ? 'me' : ''}"><span>${esc(p.name)}${p.bot ? ' <span class="tag">bot</span>' : ''}</span>
+        <span class="ap" title="${p.ap} AP left">${Array.from({ length: E.RULES.apPerDay }, (_, i) => `<i class="${i < p.ap ? 'on' : ''}"></i>`).join('')}</span>
+        <span class="st ${p.lastActiveDay === d ? 'done' : 'wait'}">${p.lastActiveDay === d ? '✓ Moved today' : p.reinforce ? `⏳ ${p.reinforce} troops waiting` : '⏳ Not yet'}</span></div>`).join('')}
+    </div>`;
+  };
+  l.innerHTML = `<div class="ph"><div class="crest" style="font-size:18px">📒</div><div style="flex:1"><div class="t">War Ledger</div><div class="s">Day ${d + 1} · who serves where</div></div><button class="btn sm" onclick="toggleLedger()">✕</button></div>
+    <div class="ledCols">${col('horde')}${col('alliance')}</div>
+    <div class="muted" style="margin-top:8px">Players who haven't acted by 8pm have their waiting troops placed by autopilot.</div>`;
+}
 function refreshUI(){
+  renderLedger();
   const rb = document.getElementById('resultsBtn'); if(rb) rb.style.display = G.phase === 'ended' ? '' : 'none';
   syncChatFaction();
   const sc = G.phase === 'signup' ? null : E.score(G);
@@ -581,7 +615,7 @@ function renderZone(){
         <div class="acts">
           <div class="act red ${mode === 'attack' ? 'on' : ''}" onclick="setMode('attack')"><span class="ic">⚔</span>Attack</div>
           <div class="act blue ${mode === 'move' ? 'on' : ''}" onclick="setMode('move')"><span class="ic">🥾</span>Move</div>
-          <div class="act" onclick="doFortify()"><span class="ic">🧱</span>Fortify</div>
+          ${z.fortifyUntil > G.clock ? `<div class="act" style="opacity:.45;cursor:default" title="Already fortified"><span class="ic">🧱</span>${Math.ceil(z.fortifyUntil - G.clock)}h left</div>` : '<div class="act" onclick="doFortify()"><span class="ic">🧱</span>Fortify</div>'}
         </div>`;
       if(p.reinforce > 0 && canDeploy) h += `<div class="sec">Deploy · ${p.reinforce} waiting</div>
         <div class="row"><button class="btn sm" onclick="doDeploy(1)">+1</button>${p.reinforce >= 3 ? '<button class="btn sm" onclick="doDeploy(3)">+3</button>' : ''}<button class="btn sm" onclick="doDeploy(${p.reinforce})">All ${p.reinforce}</button>
