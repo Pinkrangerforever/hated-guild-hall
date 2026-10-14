@@ -735,6 +735,9 @@
       m.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: this.mapTex, color: 0x5a4a34, alphaTest: 0.5, roughness: 1, side: THREE.BackSide })));   // the parchment's back
       m.rotation.x = -Math.PI / 2; m.receiveShadow = true; m.castShadow = true;
       this.scene.add(m); this.mapMesh = m; this.mapGeo = geo;
+      const wt = woodTex('#4a2f18', '24,12,4'); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(3, 3); wt.encoding = THREE.sRGBEncoding;
+      const under = new THREE.Mesh(new THREE.PlaneGeometry(PW * 1.002, PH * 1.002), new THREE.MeshStandardMaterial({ map: wt, roughness: 0.8 }));
+      under.rotation.x = -Math.PI / 2; under.position.y = -0.012; under.receiveShadow = true; this.scene.add(under); this.underMap = under;
       this.drawMap();
     }
     // Boat routes: shortest sea path (A* on a coarse grid of the outline map) from the coast nearest one
@@ -984,7 +987,7 @@
       // so the holes read as holes whatever the table top looks like
       if(!this.holeCanvas){ this.holeCanvas = document.createElement('canvas'); this.holeCanvas.width = W / 2; this.holeCanvas.height = H / 2; }
       const hc = this.holeCanvas.getContext('2d'); hc.clearRect(0, 0, W / 2, H / 2);
-      hc.save(); hc.scale(0.5, 0.5); hc.filter = 'blur(6px)'; hc.fillStyle = 'rgba(12,7,3,0.82)';
+      hc.save(); hc.scale(0.5, 0.5); hc.filter = 'blur(10px)'; hc.fillStyle = 'rgba(10,6,2,0.38)';
       tears.forEach(pts => { hc.beginPath(); pts.forEach(([x, y], i) => i ? hc.lineTo(x, y) : hc.moveTo(x, y)); hc.closePath(); hc.fill(); });
       hc.restore();
       if(!this.holeMesh && this.mapGeo){
@@ -998,17 +1001,9 @@
       g.lineJoin = 'round';
       g.strokeStyle = 'rgba(30,18,6,0.55)'; g.lineWidth = 16; tears.forEach(p => { path(p); g.stroke(); });   // shadow of the curled lip
       g.strokeStyle = 'rgba(236,224,196,0.95)'; g.lineWidth = 8; tears.forEach(p => { path(p); g.stroke(); });  // pale torn-paper fibres
-      // the torn-away paper: a dark gap with a shadow under the torn lip, so it reads as missing whatever
-      // lies underneath (the war table's own top is painted parchment too)
-      tears.forEach(p => {
-        path(p); g.save(); g.clip();
-        const xs = p.map(q => q[0]), ys = p.map(q => q[1]), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-        const gr = g.createRadialGradient(cx, cy, 2, cx, cy, Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 0.7);
-        gr.addColorStop(0, '#2a1b0e'); gr.addColorStop(1, '#120a04');
-        g.fillStyle = gr; g.fill();
-        g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 14; g.lineWidth = 10; g.strokeStyle = 'rgba(0,0,0,0.85)'; path(p); g.stroke();
-        g.restore();
-      });
+      // the torn-away paper is cut out for real: the board under the map shows through
+      g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000';   // erase fully (destination-out erases by the fill's alpha)
+      tears.forEach(p => { path(p); g.fill(); });
       g.globalCompositeOperation = 'source-over';
       g.lineWidth = 3; g.strokeStyle = '#000';
       g.beginPath(); g.rect(0, 0, W, H); g.stroke();          // ragged-free hairline so the sheet edge is clean
