@@ -28,8 +28,20 @@
   const SEA = 0, WASTE = 253, LAKE = 254;
   const isZone = v => v > 0 && v < WASTE;
   // mountains rise in these zones (little 3D peaks); 1 = snow caps
-  const PEAKS = { alterac: 1, dun_morogh: 1, winterspring: 1, hyjal: 1, searing_gorge: 0, burning_steppes: 0, redridge: 0, badlands: 0,
-                  stonetalon: 0, thousand_needles: 0, hinterlands: 0, arathi: 0, ungoro: 0, blasted_lands: 0, deadwind: 0 };
+  // board mountains: clusters of the WoW mountain model at mixed sizes, clipping into each other.
+  // count = how many peaks, size = tallest peak (world units), snow = white caps
+  const MOUNTAINS = {
+    stonetalon:   { count: 5, size: 0.26, snow: false },
+    winterspring: { count: 3, size: 0.22, snow: true },
+    alterac:      { count: 3, size: 0.2,  snow: true },
+    dun_morogh:   { count: 3, size: 0.22, snow: true }
+  };
+  const LANDMARKS = { burning_steppes: { model: 'volcano', size: 0.3 } };   // Blackrock Mountain
+  const TERRAIN_MODELS = {
+    mountain: { url: 'models/war/mountain.gltf', tint: 0x8d7a66 },   // its texture is pale stone: warm it so snow caps read
+    volcano:  { url: 'models/war/blackrock-mountain.gltf', glow: /lava/i }
+  };
+
   // the map's edges curl up like old parchment
   const CURL_BAND = 0.07, CURL_LIFT = 0.28;
   function curlHeight(u, v){
@@ -103,7 +115,7 @@
       this.camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
       this.cam = { target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 }; this.shakeOff = new THREE.Vector3();
       this.glow = glowTex();
-      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -275,6 +287,47 @@
       });
     }
 
+    // ----- mountain + Blackrock Mountain models, normalised to 1 unit tall, bottom-centred -----
+    loadTerrainModels(){
+      if(!THREE.GLTFLoader) return;
+      const M = window.WAR_TERRAIN_MODELS || TERRAIN_MODELS;
+      this.terrainProtos = {}; let left = Object.keys(M).length;
+      Object.keys(M).forEach(name => new THREE.GLTFLoader().load(M[name].url, gltf => {
+        const m = gltf.scene, cfg = M[name];
+        // rigged-but-static exports: swap skinned meshes for plain ones so copies render in their bind pose
+        const skinned = []; m.traverse(o => { if(o.isSkinnedMesh) skinned.push(o); });
+        skinned.forEach(o => { const q = new THREE.Mesh(o.geometry, o.material); q.name = o.name; q.position.copy(o.position); q.quaternion.copy(o.quaternion); q.scale.copy(o.scale); o.parent.add(q); o.parent.remove(o); });
+        m.traverse(o => { if(o.isMesh){
+          o.castShadow = o.receiveShadow = true; o.material.transparent = false; o.material.alphaTest = 0;
+          if(cfg.tint) o.material.color = new THREE.Color(cfg.tint);
+          if(cfg.glow && cfg.glow.test(o.material.name)){ o.material.emissive = new THREE.Color(0xff6a20); o.material.emissiveMap = o.material.map; o.material.emissiveIntensity = 1.2; }
+        } });
+        const box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3());
+        m.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+        const inner = new THREE.Group(); inner.add(m); inner.scale.setScalar(1 / size.y);
+        const proto = new THREE.Group(); proto.add(inner);
+        this.terrainProtos[name] = proto;
+        if(name === 'mountain') this.terrainProtos.mountainSnow = this.snowCopy(proto, size.y, box.min.y);
+        if(--left === 0 && this.raster) this.buildTerrain();
+      }, undefined, err => { console.warn(name + ' terrain model failed to load:', err); if(--left === 0 && this.raster) this.buildTerrain(); }));
+    }
+    // the same mountain with white snow blended onto its upper slopes
+    snowCopy(proto, height, minY){
+      const c = proto.clone(true);
+      c.traverse(o => { if(o.isMesh){
+        const mat = o.material.clone();
+        o.geometry.computeBoundingBox(); const gb = o.geometry.boundingBox;   // heights in the mesh's own units
+        mat.onBeforeCompile = sh => {
+          sh.uniforms.uSnowBase = { value: gb.min.y }; sh.uniforms.uSnowTop = { value: gb.max.y };
+          sh.vertexShader = 'varying float vSnowH;\nuniform float uSnowBase;\nuniform float uSnowTop;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vSnowH = (position.y - uSnowBase) / (uSnowTop - uSnowBase);');
+          sh.fragmentShader = 'varying float vSnowH;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n  float snow = smoothstep(0.6, 0.78, vSnowH + (diffuseColor.r - 0.4) * 0.15);\n  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), snow);');
+        };
+        mat.customProgramCacheKey = () => 'snowcap';
+        o.material = mat;
+      } });
+      return c;
+    }
+
     // ----- scenery (World Tree on Teldrassil and Mount Hyjal) -----
     loadScenery(){
       if(!THREE.GLTFLoader) return;
@@ -441,33 +494,44 @@
       const T = this.terrain = new THREE.Group(); this.scene.add(T);
       const RW = this.RW, RH = this.RH, R = this.raster;
       let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-      const rock = new THREE.MeshStandardMaterial({ color: 0x8a7656, roughness: 0.95, flatShading: true });
-      const rockDark = new THREE.MeshStandardMaterial({ color: 0x6e5a40, roughness: 0.95, flatShading: true });
-      const snow = new THREE.MeshStandardMaterial({ color: 0xf2efe6, roughness: 0.8, flatShading: true });
-      Object.keys(PEAKS).forEach(k => {
-        const v = this.zoneVal[k], p = WAR_LAYOUT[k]; if(!v || !p) return;
-        const count = 3 + Math.floor(p.r / 30);
-        let placed = 0;
-        for(let tries = 0; tries < 400 && placed < count; tries++){
-          const ang = rnd() * Math.PI * 2, dist = p.r * (0.35 + rnd() * 0.55);
+      // a free spot inside zone k, clear of its banner, icon, name and scenery (map px)
+      const freeSpot = (k, margin, landmark) => {
+        const v = this.zoneVal[k], p = WAR_LAYOUT[k];
+        for(let tries = 0; tries < 600; tries++){
+          const ang = rnd() * Math.PI * 2, dist = p.r * (0.2 + rnd() * 0.7);
           const mx = p.x + Math.cos(ang) * dist, my = p.y + Math.sin(ang) * dist;
-          if(Math.abs(mx - p.x) < 40 && my > p.y - 30 && my < p.y + 55) continue;   // keep clear of the banner, icon and name
-          const [ax, ay] = anchor(k); if(Math.hypot(mx - ax, my - ay) < 30) continue;
+          if(!landmark && Math.abs(mx - p.x) < 80 && my > p.y - 30 && my < p.y + 80) continue;   // the banner, icon and name
+          if(KEYS.some(o => { const [ax, ay] = anchor(o); return Math.hypot(mx - ax, my - ay) < 40; })) continue;   // any zone's banner
           const sc = SCENERY[k]; if(sc && Math.hypot(mx - p.x - sc.dx, my - p.y - sc.dy) < 48) continue;
-          const rx = Math.floor(mx / MW * RW), ry = Math.floor(my / MH * RH);
+          const rx = Math.floor(mx / MW * RW), ry = Math.floor(my / MH * RH), m = Math.ceil(margin / MW * RW);
           let ok = true;
-          for(let dy = -3; dy <= 3 && ok; dy++) for(let dx = -3; dx <= 3; dx++){ if(R[(ry + dy) * RW + rx + dx] !== v){ ok = false; break; } }
-          if(!ok) continue;
-          const h = 0.09 + rnd() * 0.1, w = h * (0.7 + rnd() * 0.3), segs = 5 + Math.floor(rnd() * 3);
-          const peak = new THREE.Mesh(new THREE.ConeGeometry(w, h, segs, 1), rnd() < 0.5 ? rock : rockDark);
-          const at = toWorld(mx, my); peak.position.set(at.x, this.sheetY(mx, my) + h / 2 - 0.004, at.z); peak.rotation.y = rnd() * 6;
-          peak.castShadow = true; peak.receiveShadow = true; T.add(peak);
-          if(PEAKS[k]){
-            const cap = new THREE.Mesh(new THREE.ConeGeometry(w * 0.38, h * 0.38, segs, 1), snow);
-            cap.position.set(at.x, peak.position.y + h * 0.31, at.z); cap.rotation.y = peak.rotation.y; T.add(cap);
-          }
-          placed++;
+          for(let dy = -m; dy <= m && ok; dy++) for(let dx = -m; dx <= m; dx++){ if(R[(ry + dy) * RW + rx + dx] !== v){ ok = false; break; } }
+          if(ok) return [mx, my];
         }
+        return null;
+      };
+      const place = (proto, mx, my, h, rotY) => {
+        const o = proto.clone(), at = toWorld(mx, my);
+        o.scale.setScalar(h); o.position.set(at.x, this.sheetY(mx, my) - 0.006, at.z); o.rotation.y = rotY; T.add(o); return o;
+      };
+      const P = this.terrainProtos || {};
+      if(P.mountain) Object.keys(MOUNTAINS).forEach(k => {
+        const cfg = MOUNTAINS[k], c = freeSpot(k, 18) || freeSpot(k, 10); if(!c) return;
+        const proto = cfg.snow ? P.mountainSnow : P.mountain;
+        for(let i = 0; i < cfg.count; i++){
+          // the first peak is the tallest; the rest crowd round it, smaller, overlapping
+          const h = cfg.size * (i ? 0.5 + rnd() * 0.35 : 1);
+          const a = rnd() * Math.PI * 2, d = i ? (0.35 + rnd() * 0.45) * cfg.size / PW * MW * 0.9 : 0;
+          place(proto, c[0] + Math.cos(a) * d, c[1] + Math.sin(a) * d * 0.8, h, rnd() * 6.28);
+        }
+      });
+      Object.keys(LANDMARKS).forEach(k => {
+        const cfg = LANDMARKS[k], proto = P[cfg.model], c = proto && (freeSpot(k, 14, true) || freeSpot(k, 6, true)); if(!c) return;
+        place(proto, c[0], c[1], cfg.size, 0.6);
+        // a little ember glow over the crater
+        const at = toWorld(c[0], c[1]);
+        const light = new THREE.PointLight(0xff5a1a, 0.6, 1.2, 2); light.position.set(at.x, cfg.size * 1.1, at.z); T.add(light);
+        this.flames.push({ f: { scale: { y: 0 } }, l: light, s: 1, seed: rnd() * 100, base: 0.6 });
       });
       // water: a second sheet just above the map, showing over lakes (strong) and the sea (faint)
       const mask = document.createElement('canvas'); mask.width = RW; mask.height = RH;
