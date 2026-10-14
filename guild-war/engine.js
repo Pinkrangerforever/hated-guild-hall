@@ -395,8 +395,17 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
       const recent = team.filter(p => p.lastActiveDay >= d - 1);
       const pool = [];
       zonesOf(s, f).forEach(k => { const z = s.zones[k], r = WAR_ZONES[k].resource; if(s.rich && !s.rich[k]) return; const amt = (s.rich ? RULES.richYield : 1) + (z.outpost || 0); for(let i = 0; i < amt; i++) pool.push(r); produced[f][r] = (produced[f][r] || 0) + amt; });
-      const takers = recent.length ? recent : team;
-      pool.forEach((r, i) => { takers[i % takers.length].res[r]++; });
+      // fair split: each resource is shared out on its own - everyone gets the same whole share, and the
+      // leftover units go round the table in turn, carrying on where yesterday's leftovers stopped
+      const takers = (recent.length ? recent : team).slice().sort((x, y) => String(x.id).localeCompare(String(y.id)));
+      s.shareTurn = s.shareTurn || { horde: 0, alliance: 0 };
+      ['food', 'wood', 'ore', 'gold'].forEach(r => {
+        const n = pool.filter(x => x === r).length; if(!n) return;
+        const each = Math.floor(n / takers.length); let left = n - each * takers.length;
+        takers.forEach(p => { p.res[r] += each; });
+        while(left-- > 0){ takers[s.shareTurn[f] % takers.length].res[r]++; s.shareTurn[f]++; }
+      });
+      s.shareTurn[f]++;   // shift a seat each day, so the same player doesn't keep getting the same leftover
       team.forEach(p => {
         p.ap = RULES.apPerDay;
         p.reinforce += reinforcementsFor(s, f);
