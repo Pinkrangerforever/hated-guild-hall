@@ -427,23 +427,25 @@
       }, undefined, err => console.warn('snow torch failed to load:', err));
     }
 
-    // ----- the Dalaran painting, hung on the wall section left of the doorway (as seen from the table) -----
+    // ----- paintings either side of the doorway: the Dalaran lady on the left, the Worgen portrait on the right -----
     loadPainting(){
       if(!THREE.GLTFLoader || !this.walls) return;
-      new THREE.GLTFLoader().load(window.WAR_PAINTING || 'models/war/painting.gltf', gltf => {
+      // wall 7 is left of the doorway as seen from the table, wall 1 is right of it
+      const list = window.WAR_PAINTINGS || [{ url: 'models/war/painting.gltf', wall: 7 }, { url: 'models/war/painting-worgen.gltf', wall: 1, flip: true }];   // flip: its picture faces -x
+      list.forEach(pt => new THREE.GLTFLoader().load(pt.url, gltf => {
         const m = gltf.scene;
         const skinned = []; m.traverse(o => { if(o.isSkinnedMesh) skinned.push(o); });
         skinned.forEach(o => { const q = new THREE.Mesh(o.geometry, o.material); q.position.copy(o.position); q.quaternion.copy(o.quaternion); q.scale.copy(o.scale); o.parent.add(q); o.parent.remove(o); });
         m.traverse(o => { if(o.isMesh){ o.castShadow = true; o.receiveShadow = true; } });
-        const box = new THREE.Box3().setFromObject(m), s = 3.6 / (box.max.y - box.min.y);
-        const A = 15, a = 7 * Math.PI / 4;                      // wall 7: left of the doorway wall
+        const box = new THREE.Box3().setFromObject(m), s = 3.0 / (box.max.y - box.min.y);
+        const A = 15, a = pt.wall * Math.PI / 4;
         const wall = new THREE.Group(); wall.position.set(A * Math.sin(a), 0, -A * Math.cos(a)); wall.rotation.y = -a;
-        m.position.set(0, -(box.min.y + box.max.y) / 2, -box.min.x);   // centred, back against the wall
-        const hang = new THREE.Group(); hang.add(m); hang.scale.setScalar(s); hang.rotation.y = -Math.PI / 2;   // its face (+x) toward the room
-        hang.position.set(0, 6.2, 0.02); wall.add(hang); this.walls.add(wall);
+        m.position.set(0, -(box.min.y + box.max.y) / 2, 0); m.position.x = pt.flip ? -box.max.x : -box.min.x;   // centred, back against the wall
+        const hang = new THREE.Group(); hang.add(m); hang.scale.setScalar(s); hang.rotation.y = pt.flip ? Math.PI / 2 : -Math.PI / 2;   // its face toward the room
+        hang.position.set(0, 5.0, 0.02); wall.add(hang); this.walls.add(wall);   // just above the table's sightline, so the camera's lowest tilt shows them
         const lamp = new THREE.SpotLight(0xffd9a0, 1.2, 9, 0.5, 0.6, 1.5);   // a little picture light
-        lamp.position.set(0, 9.4, 1.6); lamp.target = hang; wall.add(lamp);
-      }, undefined, err => console.warn('painting failed to load:', err));
+        lamp.position.set(0, 8.0, 1.6); lamp.target = hang; wall.add(lamp);
+      }, undefined, err => console.warn('painting failed to load:', err)));
     }
 
     // ----- a succubus by the front wall, behind where the camera starts. She loops: stand, the Entice
