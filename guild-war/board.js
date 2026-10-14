@@ -89,16 +89,43 @@
       g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
     });
   }
-  function dieFaceTex(n, bg, pip){
-    return canvasTex(128, 128, (g) => {
-      g.fillStyle = bg; g.fillRect(0, 0, 128, 128);
-      g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 6; g.strokeRect(3, 3, 122, 122);
-      g.fillStyle = pip;
-      const P = { 1: [[64, 64]], 2: [[34, 34], [94, 94]], 3: [[30, 30], [64, 64], [98, 98]], 4: [[34, 34], [94, 34], [34, 94], [94, 94]],
-                  5: [[32, 32], [96, 32], [64, 64], [32, 96], [96, 96]], 6: [[34, 28], [94, 28], [34, 64], [94, 64], [34, 100], [94, 100]] }[n];
-      P.forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 11, 0, Math.PI * 2); g.fill(); });
+  function dieFaceTex(n, bg, pip, trim){
+    return canvasTex(256, 256, (g) => {
+      const body = g.createRadialGradient(110, 100, 20, 128, 128, 190);
+      body.addColorStop(0, shade(bg, 1.25)); body.addColorStop(0.7, bg); body.addColorStop(1, shade(bg, 0.6));
+      g.fillStyle = body; g.fillRect(0, 0, 256, 256);
+      // faint grain so it reads as bone / lacquered wood, not plastic
+      for(let i = 0; i < 260; i++){ g.fillStyle = `rgba(255,255,255,${Math.random() * 0.05})`; g.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 3, 1); }
+      // gilt inlay border
+      g.strokeStyle = trim; g.lineWidth = 7; g.globalAlpha = 0.9; roundRect(g, 18, 18, 220, 220, 26); g.stroke();
+      g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 2; roundRect(g, 25, 25, 206, 206, 22); g.stroke(); g.globalAlpha = 1;
+      const P = { 1: [[128, 128]], 2: [[78, 78], [178, 178]], 3: [[72, 72], [128, 128], [184, 184]], 4: [[78, 78], [178, 78], [78, 178], [178, 178]],
+                  5: [[74, 74], [182, 74], [128, 128], [74, 182], [182, 182]], 6: [[80, 66], [176, 66], [80, 128], [176, 128], [80, 190], [176, 190]] }[n];
+      const r = n === 1 ? 30 : 21;
+      P.forEach(([x, y]) => {
+        g.fillStyle = 'rgba(255,255,255,0.35)'; g.beginPath(); g.arc(x + 2, y + 3, r + 2, 0, Math.PI * 2); g.fill();      // lit lower rim
+        const hole = g.createRadialGradient(x - r * 0.35, y - r * 0.35, 1, x, y, r);
+        hole.addColorStop(0, shade(pip, 0.55)); hole.addColorStop(0.75, pip); hole.addColorStop(1, shade(pip, 1.25));
+        g.fillStyle = hole; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, r, Math.PI * 1.05, Math.PI * 1.95); g.stroke();   // shadowed upper lip
+      });
     });
   }
+  function shade(hex, k){
+    const v = parseInt(hex.slice(1), 16), c = [(v >> 16) & 255, (v >> 8) & 255, v & 255].map(x => Math.max(0, Math.min(255, Math.round(x * k))));
+    return '#' + c.map(x => x.toString(16).padStart(2, '0')).join('');
+  }
+  function roundRect(g, x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+  // a cube with rounded edges: a subdivided box whose vertices are pulled onto a rounded shell
+  function roundedBox(size, radius, seg){
+    const g = new THREE.BoxGeometry(size, size, size, seg, seg, seg), pos = g.attributes.position, h = size / 2 - radius, v = new THREE.Vector3(), c = new THREE.Vector3();
+    for(let i = 0; i < pos.count; i++){
+      v.fromBufferAttribute(pos, i); c.set(Math.max(-h, Math.min(h, v.x)), Math.max(-h, Math.min(h, v.y)), Math.max(-h, Math.min(h, v.z)));
+      v.sub(c).normalize().multiplyScalar(radius).add(c); pos.setXYZ(i, v.x, v.y, v.z);
+    }
+    g.computeVertexNormals(); return g;
+  }
+
 
   // ---------- board ----------
   class WarBoard {
@@ -1149,35 +1176,118 @@
 
     // ----- dice -----
     buildDice(){
-      const mk = (bg, pip) => [1, 6, 2, 5, 3, 4].map(n => new THREE.MeshStandardMaterial({ map: dieFaceTex(n, bg, pip), roughness: 0.4 }));
-      this.dieMats = { horde: mk('#b3221c', '#f4e6c8'), alliance: mk('#2454be', '#f4e6c8'), neutral: mk('#e8dcc0', '#2a1a0c') };
-      this.dieGeo = new THREE.BoxGeometry(0.16, 0.16, 0.16);
+      const mk = (bg, pip, trim) => [1, 6, 2, 5, 3, 4].map(n => { const t = dieFaceTex(n, bg, pip, trim); t.encoding = THREE.sRGBEncoding; return t; });
+      // faction dice: Horde blood-red with bone pips, Alliance royal blue with ivory pips, neutral bone with ink pips
+      this.dieTex = { horde: mk('#9e1b14', '#f1e3c2', '#d8a845'), alliance: mk('#1f4aa8', '#f4ecd8', '#e2c060'), neutral: mk('#e6dcc4', '#2a1a0c', '#8a6a3a') };
+      this.dieGeo = roundedBox(0.16, 0.028, 4);
       this.dice = [];
     }
     faceQuat(v){
       const e = { 1: [0, 0, Math.PI / 2], 6: [0, 0, -Math.PI / 2], 2: [0, 0, 0], 5: [Math.PI, 0, 0], 3: [-Math.PI / 2, 0, 0], 4: [Math.PI / 2, 0, 0] }[v];
       return new THREE.Quaternion().setFromEuler(new THREE.Euler(e[0], e[1], e[2]));
     }
-    clearDice(){ this.dice.forEach(d => this.scene.remove(d)); this.dice = []; }
     // Throw a set of dice from `from` toward `at`, landing showing `vals`
     throwDice(vals, faction, from, at, ms){
-      const out = [];
+      const out = [], tex = this.dieTex[faction] || this.dieTex.neutral;
       vals.forEach((v, i) => {
-        const m = new THREE.Mesh(this.dieGeo, this.dieMats[faction] || this.dieMats.neutral); m.castShadow = true;
+        const mats = tex.map(t => new THREE.MeshStandardMaterial({ map: t, roughness: 0.32, metalness: 0.08, emissive: 0x000000 }));
+        const m = new THREE.Mesh(this.dieGeo, mats); m.castShadow = true; m.userData.mats = mats; m.userData.val = v;
         const side = new THREE.Vector3(at.z - from.z, 0, from.x - at.x).normalize();
         const end = at.clone().add(side.clone().multiplyScalar((i - (vals.length - 1) / 2) * 0.22)); end.y = 0.08;
         const start = from.clone(); start.y = 0.9;
-        const qEnd = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * 6.28).multiply(this.faceQuat(v));
+        const qEnd = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (Math.random() - 0.5) * 0.9).multiply(this.faceQuat(v));
         const spin = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+        const sh = new THREE.Mesh(new THREE.CircleGeometry(0.1, 20), new THREE.MeshBasicMaterial({ map: this.glow, color: 0x000000, transparent: true, opacity: 0, depthWrite: false }));
+        sh.rotation.x = -Math.PI / 2; sh.position.set(end.x, 0.006, end.z); this.scene.add(sh); m.userData.shadow = sh;
         this.scene.add(m); this.dice.push(m);
+        let landed = false;
         out.push(this.animate(ms, t => {
           const e = easeOut(t);
           m.position.lerpVectors(start, end, e);
-          m.position.y = 0.08 + Math.sin(Math.min(1, t * 1.15) * Math.PI) * 0.7 * (1 - t) + Math.abs(Math.sin(t * Math.PI * 3)) * 0.12 * (1 - t);
-          m.quaternion.copy(qEnd).premultiply(new THREE.Quaternion().setFromAxisAngle(spin, (1 - e) * 14));
+          // an arc, then two shrinking bounces
+          const bounce = t < 0.62 ? Math.sin(t / 0.62 * Math.PI) * 0.7 : t < 0.84 ? Math.sin((t - 0.62) / 0.22 * Math.PI) * 0.09 : Math.sin((t - 0.84) / 0.16 * Math.PI) * 0.025;
+          m.position.y = 0.08 + bounce;
+          m.quaternion.copy(qEnd).premultiply(new THREE.Quaternion().setFromAxisAngle(spin, (1 - e) * 16));
+          sh.position.x = m.position.x; sh.position.z = m.position.z;
+          const hgt = m.position.y - 0.08; sh.material.opacity = 0.55 * Math.max(0, 1 - hgt * 1.6); sh.scale.setScalar(1 + hgt * 1.5);
+          if(!landed && t > 0.6){ landed = true; this.sparks(m.position.clone().setY(0.02), 0xffd28a, 10, 0.5); }
         }));
       });
       return Promise.all(out);
+    }
+    // compare the dice pair by pair: winners flare gold, losers go dark and sink a little
+    async judgeDice(att, def, bonus){
+      const A = this.dice.filter(d => att.includes(d)), D = this.dice.filter(d => def.includes(d));
+      const pairs = Math.min(A.length, D.length);
+      const order = list => list.slice().sort((p, q) => q.userData.val - p.userData.val);
+      const a = order(A), d = order(D);
+      for(let i = 0; i < pairs; i++){
+        const attWins = a[i].userData.val > d[i].userData.val + (i === 0 ? bonus : 0);
+        const win = attWins ? a[i] : d[i], lose = attWins ? d[i] : a[i];
+        win.userData.mats.forEach(mm => { mm.emissive.setHex(0xffc040); mm.emissiveMap = mm.map; mm.emissiveIntensity = 0; mm.needsUpdate = true; });
+        this.animate(500, t => { win.userData.mats.forEach(mm => { mm.emissiveIntensity = Math.sin(Math.min(1, t * 2) * Math.PI / 2) * 0.18; }); win.position.y = 0.08 + Math.sin(t * Math.PI) * 0.05; });
+        this.animate(500, t => { lose.userData.mats.forEach(mm => mm.color.setScalar(1 - 0.55 * t)); lose.position.y = 0.08 - 0.02 * t; });
+        this.sparks(win.position.clone().setY(0.12), 0xffc050, 14, 0.8);
+        await this.wait(160);
+      }
+      // the unmatched extra dice fade a touch
+      a.slice(pairs).concat(d.slice(pairs)).forEach(x => x.userData.mats.forEach(mm => mm.color.setScalar(0.7)));
+    }
+    // a burst of glowing sparks that arc up and fall (additive points with simple gravity)
+    sparks(at, color, n, power){
+      const pos = new Float32Array(n * 3), vel = [];
+      for(let i = 0; i < n; i++){
+        pos.set([at.x, at.y, at.z], i * 3);
+        const a = Math.random() * Math.PI * 2, up = 0.6 + Math.random() * 0.8;
+        vel.push(new THREE.Vector3(Math.cos(a) * (0.3 + Math.random() * 0.5), up, Math.sin(a) * (0.3 + Math.random() * 0.5)).multiplyScalar(power));
+      }
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const pts = new THREE.Points(geo, new THREE.PointsMaterial({ map: this.glow, color, size: 0.05, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+      this.scene.add(pts); let last = 0;
+      return this.animate(700, t => {
+        const dt = (t - last) * 0.7; last = t; const pa = geo.attributes.position;
+        for(let i = 0; i < n; i++){ vel[i].y -= 2.2 * dt; pa.setXYZ(i, pa.getX(i) + vel[i].x * dt, Math.max(0.005, pa.getY(i) + vel[i].y * dt), pa.getZ(i) + vel[i].z * dt); }
+        pa.needsUpdate = true; pts.material.opacity = 1 - t * t;
+      }).then(() => { this.scene.remove(pts); geo.dispose(); });
+    }
+    clearDice(){ this.dice.forEach(d => { this.scene.remove(d); if(d.userData.shadow) this.scene.remove(d.userData.shadow); }); this.dice = []; }
+
+    // ----- capture: a column of faction light, a fire-and-dust shockwave, rising embers, and the zone's
+    // colour sweeping in from the centre -----
+    async captureFx(k, faction){
+      const at = zoneWorld(k), col = faction === 'horde' ? 0xff4a24 : 0x4a8cff, hot = faction === 'horde' ? 0xffb050 : 0xbfe0ff;
+      const fit = (this.pieces[k] && this.pieces[k].fit) || 1;
+      // light column
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.07 * fit, 0.16 * fit, 1.6, 24, 1, true), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      beam.position.set(at.x, 0.8, at.z); this.scene.add(beam);
+      const core = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glow, color: hot, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+      core.position.set(at.x, 0.25, at.z); this.scene.add(core);
+      const light = new THREE.PointLight(col, 0, 4, 2); light.position.set(at.x, 0.6, at.z); this.scene.add(light);
+      // two shockwave rings: a bright inner one and a dusty outer one
+      const ring = (color, w, ms, reach, op) => {
+        const r = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 64), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+        r.rotation.x = -Math.PI / 2; r.position.set(at.x, 0.015, at.z); this.scene.add(r);
+        return this.animate(ms, t => { const s = (0.08 + easeOut(t) * reach) * fit; r.scale.set(s, s, s); r.material.opacity = op * (1 - t); }).then(() => this.scene.remove(r));
+      };
+      this.shake(380, 0.1);
+      ring(hot, 0.15, 700, 0.42, 0.55); setTimeout(() => ring(col, 0.3, 1000, 0.7, 0.25), 120 / this.speed);
+      this.sparks(at.clone().setY(0.05), hot, 40, 0.7 * fit);
+      // embers drifting up the column
+      const n = 36, pos = new Float32Array(n * 3), seeds = [];
+      for(let i = 0; i < n; i++){ const a = Math.random() * 6.28, r = Math.random() * 0.25 * fit; pos.set([at.x + Math.cos(a) * r, Math.random() * 0.2, at.z + Math.sin(a) * r], i * 3); seeds.push(0.4 + Math.random() * 0.8); }
+      const eg = new THREE.BufferGeometry(); eg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const embers = new THREE.Points(eg, new THREE.PointsMaterial({ map: this.glow, color: hot, size: 0.04, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+      this.scene.add(embers);
+      await this.animate(1500, t => {
+        const up = Math.sin(Math.min(1, t * 3) * Math.PI / 2), fade = t < 0.6 ? 1 : 1 - (t - 0.6) / 0.4;
+        beam.material.opacity = 0.22 * up * fade; beam.scale.set(1 + t * 0.4, 0.3 + up * 0.7, 1 + t * 0.4);
+        core.scale.setScalar((0.25 + up * 0.5) * fit); core.material.opacity = 0.7 * fade;
+        light.intensity = 1.4 * up * fade;
+        const pa = eg.attributes.position;
+        for(let i = 0; i < n; i++) pa.setY(i, (pa.getY(i) + 0.012 * seeds[i] * this.speed) % 1.6);
+        pa.needsUpdate = true; embers.material.opacity = fade;
+      });
+      this.scene.remove(beam, core, light, embers); eg.dispose();
     }
 
     // ----- generic tween helper (speed-aware) -----
@@ -1316,7 +1426,7 @@
         const ring = new THREE.Group(), R = 15, sections = 9;   // model units; the wall pieces are ~8.8 long
         for(let i = 0; i < sections; i++){
           const a = (i + 0.5) / (sections + 1.6) * Math.PI * 2 + Math.PI / 2 + 0.55;   // leave a gap at the front for the gate
-          const piece = P.wall.clone(); piece.position.set(Math.cos(a) * R, 0, Math.sin(a) * R); piece.rotation.y = -a - Math.PI / 2; ring.add(piece);
+          const piece = P.wall.clone(); piece.position.set(Math.cos(a) * R, 0, Math.sin(a) * R); piece.rotation.y = -a + Math.PI / 2; ring.add(piece);   // spikes facing outward
           if(P.post){ const b2 = a + Math.PI / (sections + 1.6); const post = P.post.clone(); post.position.set(Math.cos(b2) * R, 0, Math.sin(b2) * R); ring.add(post); }
         }
         if(P.gate){ const gate = P.gate.clone(); gate.scale.setScalar(0.75); gate.position.set(0, 0, R); ring.add(gate); }   // gate facing the camera side
@@ -1527,6 +1637,8 @@
           this.throwDice(r.ad, att, A, mid.clone().add(new THREE.Vector3(0, 0, -0.18)), 900),
           this.throwDice(r.dd, def === 'neutral' ? 'neutral' : def, B, mid.clone().add(new THREE.Vector3(0, 0, 0.18)), 950)
         ]);
+        const attDice = this.dice.slice(0, r.ad.length), defDice = this.dice.slice(r.ad.length);
+        await this.judgeDice(attDice, defDice, r.bonus || 0);
         await this.flash(mid, 0xffc070, 1.2);
         this.shake(260, 0.08);
         attLeft -= r.al; defLeft -= r.dl;
@@ -1543,13 +1655,15 @@
       this.removeAll(toks);
       arrow.remove();
       if(e.captured){
+        const fx = this.captureFx(e.to, att);
+        await this.wait(250);
         this.applyAfter(e);
-        this.pulseRing(e.to, COL[att + 'Hex']); this.flash(B, att === 'horde' ? 0xff5030 : 0x60a0ff, 2.2);
         const fl = this.pieces[e.to].flagModel || this.pieces[e.to].flag;
         const base = fl.scale.clone();   // the banner models carry a small scale of their own: fold relative to it
         await this.animate(600, t => { fl.scale.set(base.x, base.y * Math.max(0.05, 1 - Math.sin(t * Math.PI) * 0.95), base.z); });
         fl.scale.copy(base);
         this.floatText(e.to, '⚑ Captured!', att);
+        await fx;
       } else {
         this.applyAfter(e);
         this.floatText(e.to, '🛡 Held!', def);
