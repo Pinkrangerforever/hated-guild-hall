@@ -6,7 +6,7 @@
 const WAR_MAP_SIZE = { w: 1308, h: 1260 };
 const WAR_MAP_IMAGE = 'guild-war/img/war-map.jpg';
 const WAR_ZONE_IMAGE = 'guild-war/img/war-zones.png';
-const WAR_ZONE_ORDER = ["teldrassil","darkshore","felwood","hyjal","moonglade","winterspring","azshara","durotar","ashenvale","stonetalon","desolace","feralas","shendralas","barrens","mulgore","dustwallow","thousand_needles","silithus","ungoro","tanaris","eplaguelands","wplaguelands","tirisfal","silverpine","alterac","hillsbrad","hinterlands","arathi","wetlands","loch_modan","dun_morogh","badlands","burning_steppes","riverglades","elwynn","redridge","westfall","duskwood","deadwind","swamp_sorrows","blasted_lands","stranglethorn","searing_gorge"];
+const WAR_ZONE_ORDER = ["teldrassil","darkshore","felwood","hyjal","moonglade","winterspring","azshara","durotar","ashenvale","stonetalon","desolace","feralas","barrens","mulgore","dustwallow","thousand_needles","silithus","ungoro","tanaris","shendralas","eplaguelands","wplaguelands","tirisfal","silverpine","alterac","hillsbrad","hinterlands","arathi","wetlands","loch_modan","dun_morogh","badlands","burning_steppes","riverglades","elwynn","redridge","westfall","duskwood","deadwind","swamp_sorrows","blasted_lands","stranglethorn","searing_gorge"];
 const WAR_LAKES = [{"x":1052,"y":659,"r":7},{"x":1060,"y":691,"r":14}];
 const WAR_LAYOUT = {
   teldrassil:       { x: 164, y: 112, r: 69 },
@@ -20,8 +20,7 @@ const WAR_LAYOUT = {
   ashenvale:        { x: 234, y: 512, r: 93 },
   stonetalon:       { x: 222, y: 618, r: 88 },
   desolace:         { x: 130, y: 734, r: 80 },
-  feralas:          { x: 178, y: 914, r: 95 },
-  shendralas:       { x: 42, y: 1000, r: 33 },
+  feralas:          { x: 178, y: 914, r: 92 },
   barrens:          { x: 352, y: 678, r: 113 },
   mulgore:          { x: 250, y: 786, r: 72 },
   dustwallow:       { x: 398, y: 884, r: 58 },
@@ -29,12 +28,13 @@ const WAR_LAYOUT = {
   silithus:         { x: 152, y: 1098, r: 109 },
   ungoro:           { x: 298, y: 1052, r: 81 },
   tanaris:          { x: 422, y: 1096, r: 97 },
+  shendralas:       { x: 182, y: 822, r: 22 },
   eplaguelands:     { x: 1110, y: 268, r: 93 },
   wplaguelands:     { x: 972, y: 268, r: 50 },
   tirisfal:         { x: 882, y: 262, r: 73 },
   silverpine:       { x: 810, y: 338, r: 56 },
-  alterac:          { x: 884, y: 386, r: 58 },
-  hillsbrad:        { x: 956, y: 406, r: 33 },
+  alterac:          { x: 908, y: 342, r: 40 },
+  hillsbrad:        { x: 880, y: 402, r: 53 },
   hinterlands:      { x: 1030, y: 380, r: 61 },
   arathi:           { x: 1012, y: 470, r: 64 },
   wetlands:         { x: 1058, y: 590, r: 86 },

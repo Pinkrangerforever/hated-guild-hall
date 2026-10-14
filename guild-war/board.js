@@ -461,7 +461,7 @@
         const p = WAR_LAYOUT[k], r = WAR_ZONES[k].resource, im = this.resIcons && this.resIcons[r];
         const rich = this.state && this.state.rich ? !!this.state.rich[k] : false;
         const off = Math.min(46, p.r * 0.45);
-        const cx = (p.x + off) * sx, cy = (p.y - off * 0.2) * sy, size = rich ? 54 : 42;
+        const cx = (p.x + off) * sx, cy = (p.y - off * 0.2) * sy, size = Math.min(rich ? 54 : 42, 14 + p.r * 0.9);
         g.save();
         if(rich){
           g.globalAlpha = 0.9; g.strokeStyle = '#d6a940'; g.lineWidth = 4; g.fillStyle = 'rgba(255,236,170,0.35)';
@@ -471,15 +471,33 @@
         if(im) g.drawImage(im, cx - size / 2, cy - size / 2, size, size);
         g.restore();
       });
-      // zone names
+      // zone names: each tries a few spots and shrinks until the whole label sits inside its own zone
       g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+      const inZone = (v, mx, my) => !this.raster || this.raster[Math.floor(my / MH * this.RH) * this.RW + Math.floor(mx / MW * this.RW)] === v;
       KEYS.forEach(k => {
-        const p = WAR_LAYOUT[k], z = WAR_ZONES[k];
-        g.font = `700 ${p.r > 60 ? 25 : 21}px Cinzel, serif`;
-        g.lineWidth = 6; g.strokeStyle = 'rgba(245,232,200,0.9)'; g.fillStyle = '#24160a';
-        const yy = (p.y + Math.min(40, p.r * 0.42)) * sy + 16;
-        g.strokeText(z.name, p.x * sx, yy); g.fillText(z.name, p.x * sx, yy);
-        if(z.capital){ g.font = 'italic 600 18px serif'; g.strokeText(z.capital, p.x * sx, yy + 21); g.fillText(z.capital, p.x * sx, yy + 21); }
+        const p = WAR_LAYOUT[k], z = WAR_ZONES[k], v = this.zoneVal[k];
+        const big = p.r > 60 ? 25 : p.r > 40 ? 21 : 17;
+        let best = null;
+        for(let fs = big; fs >= 10 && !(best && best.fit === 1); fs -= 2){
+          g.font = `700 ${fs}px Cinzel, serif`;
+          const tw = g.measureText(z.name).width / sx, th = (fs + (z.capital ? fs * 0.85 : 0)) / sy;
+          if(z.capital){ g.font = `italic 600 ${Math.round(fs * 0.72)}px serif`; }
+          for(const f of [0.55, 0.35, 0.8, 0.15, -0.45, 0]){
+            const cy = p.y + p.r * f + (f >= 0 ? 10 : 0), cx = p.x;   // label centre (map px)
+            const pts = [[-0.5, 0], [0.5, 0], [0, 0], [-0.5, 1], [0.5, 1], [-0.25, 0.5], [0.25, 0.5], [0, 1]];
+            const fit = pts.filter(([a, c]) => inZone(v, cx + a * tw, cy - th * 0.3 + c * th)).length / pts.length;
+            if(!best || fit > best.fit || (fit === best.fit && fs > best.fs)) best = { fs, cx, cy, fit };
+            if(fit === 1) break;
+          }
+        }
+        const fs = best.fs, yy = best.cy * sy;
+        g.font = `700 ${fs}px Cinzel, serif`;
+        g.lineWidth = Math.max(3, fs * 0.24); g.strokeStyle = 'rgba(245,232,200,0.9)'; g.fillStyle = '#24160a';
+        g.strokeText(z.name, best.cx * sx, yy); g.fillText(z.name, best.cx * sx, yy);
+        if(z.capital){
+          g.font = `italic 600 ${Math.round(fs * 0.72)}px serif`;
+          g.strokeText(z.capital, best.cx * sx, yy + fs * 0.85); g.fillText(z.capital, best.cx * sx, yy + fs * 0.85);
+        }
       });
       // darken toward the edges so the curl reads
       const vg = g.createRadialGradient(W / 2, H / 2, H * 0.42, W / 2, H / 2, W * 0.72);
