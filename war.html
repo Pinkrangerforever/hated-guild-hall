@@ -53,10 +53,64 @@
   .score .h{ color:#ff8a70; } .score .a{ color:#8ab4ff; }
   .spacer{ flex:1; }
 
-  .panel{ position:fixed; z-index:4; background:var(--panel); border:1px solid var(--edge); border-radius:10px; padding:10px 12px; box-shadow:0 6px 24px rgba(0,0,0,0.6); }
+  .panel{ position:fixed; z-index:4; padding:10px 12px; border-radius:8px;
+    background:linear-gradient(180deg, rgba(38,26,14,0.94), rgba(18,12,7,0.94));
+    border:1px solid #6b4f24; box-shadow:0 0 0 1px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(214,169,64,0.18), inset 0 1px 0 rgba(255,220,150,0.12), 0 10px 30px rgba(0,0,0,0.65); }
+  .panel::before, .panel::after{ content:''; position:absolute; width:14px; height:14px; border:2px solid var(--gold); opacity:.75; pointer-events:none; }
+  .panel::before{ top:-1px; left:-1px; border-right:0; border-bottom:0; border-radius:8px 0 0 0; }
+  .panel::after{ bottom:-1px; right:-1px; border-left:0; border-top:0; border-radius:0 0 8px 0; }
+  .ph{ display:flex; align-items:center; gap:9px; margin:-10px -12px 8px; padding:8px 12px; border-bottom:1px solid rgba(214,169,64,0.3);
+    background:linear-gradient(90deg, var(--fac, rgba(214,169,64,0.18)), rgba(0,0,0,0)); border-radius:8px 8px 0 0; }
+  .ph .crest{ width:34px; height:34px; border-radius:50%; border:2px solid var(--gold); background:#120b06; display:grid; place-items:center; overflow:hidden; flex:none; box-shadow:0 0 8px rgba(0,0,0,0.6); }
+  .ph .crest img{ width:30px; height:30px; object-fit:cover; }
+  .ph .t{ font:700 15px Cinzel, serif; color:#f4e2b4; line-height:1.1; text-shadow:0 1px 2px #000; }
+  .ph .s{ font:600 11px Cinzel, serif; letter-spacing:1px; color:var(--facText, #c8a86a); text-transform:uppercase; }
+  .sec{ font:700 10px Cinzel, serif; letter-spacing:1.5px; text-transform:uppercase; color:#a8875a; margin:9px 0 4px; display:flex; align-items:center; gap:6px; }
+  .sec::after{ content:''; flex:1; height:1px; background:linear-gradient(90deg, rgba(214,169,64,0.35), rgba(214,169,64,0)); }
+  .horde{ --fac:rgba(178,34,28,0.55); --facText:#ff9a80; } .alliance{ --fac:rgba(36,84,190,0.55); --facText:#9cc0ff; } .neutral{ --fac:rgba(140,120,80,0.35); --facText:#d6c7a0; }
+  .ap{ display:flex; gap:4px; align-items:center; }
+  .ap i{ width:12px; height:12px; transform:rotate(45deg); border:1px solid #c9a24a; background:#2a1c0c; display:inline-block; }
+  .ap i.on{ background:linear-gradient(135deg,#ffe28a,#c98a1c); box-shadow:0 0 6px rgba(255,200,90,0.7); }
+  .stat{ display:flex; align-items:center; gap:8px; }
+  .big{ font:700 22px Cinzel, serif; color:#f4e2b4; line-height:1; }
+  .lbl{ font-size:11px; color:#a8977a; }
+  .resg{ display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+  .resg div{ display:flex; align-items:center; gap:7px; padding:4px 7px; border-radius:6px; background:rgba(0,0,0,0.35); border:1px solid rgba(214,169,64,0.14); }
+  .resg img.ri{ width:22px; height:22px; } .resg b{ font:700 15px Cinzel, serif; color:#f4e2b4; } .resg small{ color:#8fc47a; font-size:11px; margin-left:auto; }
+  .cardt{ display:inline-flex; align-items:center; gap:4px; padding:3px 7px; border-radius:5px; font-size:12px; background:linear-gradient(#3a2a14,#22170b); border:1px solid rgba(214,169,64,0.35); }
+  .cardt b{ color:#ffd36a; }
+  .warbar{ height:8px; border-radius:4px; overflow:hidden; display:flex; background:#000; border:1px solid rgba(214,169,64,0.25); }
+  .warbar span{ display:block; height:100%; } .warbar .hb{ background:linear-gradient(#e0483a,#8e1a14); } .warbar .ab{ background:linear-gradient(#5a8cf0,#1d3f93); } .warbar .nb{ background:#4a4234; }
+  .acts{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .act{ display:flex; flex-direction:column; align-items:center; gap:2px; padding:7px 4px; border-radius:7px; cursor:pointer; font:700 12px Cinzel, serif; color:#f0dfb4;
+    background:linear-gradient(#4a3418,#24180b); border:1px solid rgba(214,169,64,0.45); }
+  .act .ic{ font-size:18px; line-height:1; } .act:hover{ border-color:var(--gold); filter:brightness(1.15); }
+  .act.on.red{ background:linear-gradient(#8e1f15,#4a0e08); border-color:#ff8a70; } .act.on.blue{ background:linear-gradient(#24489a,#0e2050); border-color:#8ab4ff; }
+  .info{ font-size:12px; color:#c8b896; display:grid; grid-template-columns:18px 1fr; gap:3px 6px; align-items:center; }
+  .info img.ri{ width:16px; height:16px; }
+  .tgt{ margin-top:8px; padding:8px; border-radius:7px; background:rgba(0,0,0,0.35); border:1px solid rgba(214,169,64,0.25); }
+  .vs{ display:flex; align-items:center; justify-content:space-between; font:700 13px Cinzel, serif; }
+  .vs .n{ font-size:20px; }
+  details.fold summary{ cursor:pointer; list-style:none; } details.fold summary::-webkit-details-marker{ display:none; }
+  details.fold summary::before{ content:'▸ '; color:var(--gold); } details.fold[open] summary::before{ content:'▾ '; }
+  #feedList .day{ text-align:center; font:700 10px Cinzel, serif; letter-spacing:2px; color:#a8875a; margin:8px 0 4px; display:flex; align-items:center; gap:6px; border:0; }
+  #feedList .day::before, #feedList .day::after{ content:''; flex:1; height:1px; background:rgba(214,169,64,0.3); }
+  #feedList .ev{ display:grid; grid-template-columns:22px 1fr; gap:6px; align-items:start; padding:5px 6px; margin:2px 0; border-radius:5px; border-left:3px solid #4a4234; background:rgba(0,0,0,0.22); border-bottom:0; }
+  #feedList .ev.h{ border-left-color:#c8342a; } #feedList .ev.a{ border-left-color:#3a72e0; } #feedList .ev.hi{ background:linear-gradient(90deg, rgba(214,169,64,0.18), rgba(0,0,0,0.2)); }
+  #feedList .ev .ico{ font-size:15px; text-align:center; line-height:1.2; }
+  #feedList .ev .tx{ color:#e2d3b0; line-height:1.35; } #feedList .ev .tx b{ color:#ffd36a; }
+  #feedList .ev.now{ outline:1px solid var(--gold); background:rgba(214,169,64,0.22); }
+  .replay .btn.on{ border-color:var(--gold); color:#fff3cc; }
   .panel h3{ font:700 14px Cinzel, serif; color:var(--gold); margin:0 0 6px; }
-  #me{ left:10px; top:62px; width:250px; }
-  #zone{ left:10px; bottom:10px; width:300px; max-height:52vh; overflow:auto; }
+  #me{ left:10px; top:62px; width:272px; }
+  #zone{ left:10px; bottom:10px; width:300px; max-height:calc(100vh - 80px); overflow-y:auto; overflow-x:hidden; z-index:5; }
+  /* on short screens the zone panel takes over the left column and the commander panel steps aside */
+  body.zoneOpen #me{ display:none; }
+  @media (min-height: 1000px){ body.zoneOpen #me{ display:block; } #zone{ max-height:52vh; } }
+  .panel, #feedList, #chatLog{ scrollbar-width:thin; scrollbar-color:#6b4f24 rgba(0,0,0,0.3); }
+  .panel ::-webkit-scrollbar, .panel::-webkit-scrollbar{ width:8px; height:8px; }
+  .panel ::-webkit-scrollbar-thumb, .panel::-webkit-scrollbar-thumb{ background:#6b4f24; border-radius:4px; }
+  .panel ::-webkit-scrollbar-track, .panel::-webkit-scrollbar-track{ background:rgba(0,0,0,0.3); }
   #feed{ right:10px; top:62px; width:300px; bottom:10px; display:flex; flex-direction:column; }
   #feedList{ flex:1; overflow:auto; font-size:12.5px; margin-top:6px; }
   #feedList div{ padding:4px 6px; border-bottom:1px solid rgba(214,169,64,0.12); }
@@ -123,7 +177,7 @@
 <div class="panel" id="me"></div>
 <div class="panel" id="zone" style="display:none"></div>
 <div class="panel" id="feed">
-  <h3>War feed</h3>
+  <div class="ph"><div class="crest" style="font-size:18px">📜</div><div><div class="t">War Feed</div><div class="s">Dispatches from the front</div></div></div>
   <div class="replay">
     <button class="btn sm" id="rpPlay" onclick="replayToggle()">⏸</button>
     <button class="btn sm" onclick="setSpeed(1)">1×</button><button class="btn sm" onclick="setSpeed(2)">2×</button><button class="btn sm" onclick="setSpeed(4)">4×</button>
@@ -303,7 +357,7 @@ async function runQueue(){
   refreshUI();
 }
 function replayToggle(){ paused = !paused; document.getElementById('rpPlay').textContent = paused ? '▶' : '⏸'; }
-function setSpeed(s){ board.speed = s; toast(`Replay speed ${s}×`); }
+function setSpeed(s){ board.speed = s; document.querySelectorAll('.replay .btn').forEach(b => b.classList.toggle('on', b.textContent === s + '×')); }
 function replaySkip(){ const sp = board.speed; board.speed = 99; queue.forEach(e => board.applyAfter(e)); queue = []; markSeen(G.seq); setTimeout(() => { board.speed = sp; }, 50); }
 function push(entry){ if(entry){ queue.push(entry); runQueue(); } }
 
@@ -328,9 +382,16 @@ function describe(e){
     default: return e.type;
   }
 }
+const FEED_ICON = { signup: '✍', start: '🎺', join: '🤝', deploy: '🪖', move: '🥾', attack: '⚔', fortify: '🧱', build: '🏗', craft: '📜', shieldwall: '🛡', trade: '⚖', autopilot: '🤖', dawn: '☀', end: '🏆' };
 function renderFeed(){
-  const list = document.getElementById('feedList');
-  list.innerHTML = G.log.slice(-150).reverse().map(e => `<div data-seq="${e.seq}" class="${FC(e.faction)}"><span class="muted">D${e.day + 1}</span> ${describe(e)}</div>`).join('');
+  const list = document.getElementById('feedList'); let lastDay = null, out = '';
+  G.log.slice(-150).reverse().forEach(e => {
+    if(e.day !== lastDay){ out += `<div class="day">Day ${e.day + 1}</div>`; lastDay = e.day; }
+    const ico = e.type === 'attack' && e.captured ? '⚑' : FEED_ICON[e.type] || '•';
+    const big = (e.type === 'attack' && e.captured) || e.type === 'end' || e.type === 'start';
+    out += `<div data-seq="${e.seq}" class="ev ${FC(e.faction)} ${big ? "hi" : ""}"><span class="ico">${ico}</span><span class="tx">${describe(e)}</span></div>`;
+  });
+  list.innerHTML = out;
 }
 function highlightFeed(seq){
   document.querySelectorAll('#feedList .now').forEach(d => d.classList.remove('now'));
@@ -351,20 +412,37 @@ function refreshUI(){
 }
 function renderMe(){
   const el = document.getElementById('me'), p = cur();
-  if(!p){ el.innerHTML = `<h3>${G.phase === 'signup' ? 'Sign-ups' : 'Spectating'}</h3><div class="muted">${G.phase === 'signup' ? 'Sign up for the next war.' : 'You are not in this war.'}</div>`
-    + (G.phase === 'live' ? `<div class="row"><button class="btn" onclick="joinNow()">Join now</button></div>` : ''); return; }
-  const sc = E.score(G), f = p.faction;
-  const cards = Object.keys(p.cards).filter(k => p.cards[k]).map(k => `<span class="chip">${{ warcry: '📯 Warcry', shieldwall: '🛡 Shield Wall', march: '🥾 Forced March', naval: '⛵ Naval Landing' }[k]} ×${p.cards[k]}</span>`).join('') || '<span class="muted">No cards</span>';
-  el.innerHTML = `<h3 style="color:${f === 'horde' ? '#ff8a70' : '#8ab4ff'}">${esc(p.name)} · ${f === 'horde' ? 'Horde' : 'Alliance'}${p.bot ? '<span class="tag">bot</span>' : ''}</h3>
-    <div class="row"><span class="chip">⚡ ${G.settings.unlimitedAP ? '∞' : p.ap} AP</span><span class="chip">${TROOP_ICON(p.faction)} ${p.reinforce} to deploy</span></div>
-    <div class="res">${['food', 'wood', 'ore', 'gold'].map(r => `<div title="${r}">${RES_ICON[r]} ${p.res[r]}</div>`).join('')}</div>
-    <div class="row cards">${cards}</div>
-    <details><summary class="muted" style="cursor:pointer">Craft &amp; trade (rate ${E.tradeRate(G, f)}:1)</summary>
+  if(!p){
+    el.className = 'panel neutral';
+    el.innerHTML = `<div class="ph"><div class="crest" style="font-size:18px">⚔</div><div><div class="t">${G.phase === 'signup' ? 'Sign-ups open' : 'Spectating'}</div><div class="s">${G.phase === 'signup' ? 'The next war gathers' : 'Not enlisted'}</div></div></div>
+      <div class="muted">${G.phase === 'signup' ? 'Sign up for the next war.' : 'You are not in this war.'}</div>` + (G.phase === 'live' ? `<div class="row"><button class="btn" onclick="joinNow()">Join the war</button></div>` : '');
+    return;
+  }
+  const f = p.faction, sc = E.score(G), d = E.day(G);
+  el.className = 'panel ' + f;
+  const ap = G.settings.unlimitedAP ? '<span class="big">∞</span>' : Array.from({ length: E.RULES.apPerDay }, (_, i) => `<i class="${i < p.ap ? 'on' : ''}"></i>`).join('');
+  // daily income per resource: this faction's rich deposits, shared across its players
+  const team = Object.values(G.players).filter(x => x.faction === f).length || 1, inc = { food: 0, wood: 0, ore: 0, gold: 0 };
+  E.zonesOf(G, f).forEach(k => { if(E.isRich(G, k)) inc[WAR_ZONES[k].resource] += E.RULES.richYield + (G.zones[k].outpost || 0); });
+  const CARD = { warcry: ['📯', 'Warcry'], shieldwall: ['🛡', 'Shield Wall'], march: ['🥾', 'Forced March'], naval: ['⛵', 'Naval Landing'] };
+  const cards = Object.keys(p.cards).filter(k => p.cards[k]).map(k => `<span class="cardt">${CARD[k][0]} ${CARD[k][1]} <b>×${p.cards[k]}</b></span>`).join(' ') || '<span class="muted">No cards yet: craft them below.</span>';
+  const hz = E.zonesOf(G, 'horde').length, az = E.zonesOf(G, 'alliance').length, nz = Object.keys(G.zones).length - hz - az;
+  el.innerHTML = `<div class="ph"><div class="crest">${TROOP_ICON(f)}</div><div><div class="t">${esc(p.name)}${p.bot ? ' <span class="tag">bot</span>' : ''}</div><div class="s">${f === 'horde' ? 'For the Horde' : 'For the Alliance'} · Day ${d + 1}</div></div></div>
+    <div class="row" style="justify-content:space-between">
+      <div><div class="lbl">Action points</div><div class="ap">${ap}</div></div>
+      <div class="stat">${TROOP_ICON(f)}<div><div class="big">${p.reinforce}</div><div class="lbl">to deploy</div></div></div>
+    </div>
+    <div class="sec">War chest</div>
+    <div class="resg">${['food', 'wood', 'ore', 'gold'].map(r => `<div title="${r}">${RES_ICON[r]}<b>${p.res[r]}</b>${inc[r] ? `<small>+${Math.max(1, Math.round(inc[r] / team))}/day</small>` : ''}</div>`).join('')}</div>
+    <div class="sec">Battle cards</div>
+    <div class="cards">${cards}</div>
+    <details class="fold"><summary class="sec" style="margin-top:8px">Craft &amp; trade · ${E.tradeRate(G, f)}:1</summary>
       <div class="row">${['draft', 'warcry', 'shieldwall', 'march', 'naval'].map(k => `<button class="btn sm" onclick="doCraft('${k}')" title="${costStr(E.RULES.costs[k])}">${{ draft: '+2 Troops', warcry: 'Warcry', shieldwall: 'Shield Wall', march: 'Forced March', naval: 'Naval Landing' }[k]}</button>`).join('')}</div>
       <div class="row">Give <select id="trGive">${['food', 'wood', 'ore', 'gold'].map(r => `<option>${r}</option>`).join('')}</select> get <select id="trGet">${['wood', 'food', 'ore', 'gold'].map(r => `<option>${r}</option>`).join('')}</select> <button class="btn sm" onclick="doTrade()">Trade</button></div>
     </details>
-    <div class="muted" style="margin-top:6px">Zones: Horde ${E.zonesOf(G, 'horde').length} · Alliance ${E.zonesOf(G, 'alliance').length}<br>
-      Score parts (${f}): ${Object.entries(sc[f].parts).map(([k, v]) => `${k} ${v}`).join(', ')}</div>`;
+    <div class="sec">The front</div>
+    <div class="warbar" title="Horde ${hz} · Neutral ${nz} · Alliance ${az}"><span class="hb" style="width:${hz / 43 * 100}%"></span><span class="nb" style="width:${nz / 43 * 100}%"></span><span class="ab" style="width:${az / 43 * 100}%"></span></div>
+    <div class="row" style="justify-content:space-between;font-size:12px;margin-top:3px"><span style="color:#ff9a80">Horde ${hz} zones · ${sc.horde.total} pts</span><span style="color:#9cc0ff">${sc.alliance.total} pts · ${az} zones Alliance</span></div>`;
 }
 const costStr = c => Object.entries(c).map(([r, n]) => `${n} ${r}`).join(' + ');
 
@@ -400,42 +478,56 @@ function setMode(m){
 }
 function renderZone(){
   const el = document.getElementById('zone');
+  document.body.classList.toggle('zoneOpen', !!selZone);
   if(!selZone){ el.style.display = 'none'; return; }
   el.style.display = 'block';
-  const z = G.zones[selZone], info = WAR_ZONES[selZone], p = cur(), mine = p && z.owner === p.faction;
-  const fort = z.fortifyUntil > G.clock ? `<span class="chip">🧱 Fortified ${Math.ceil(z.fortifyUntil - G.clock)}h</span>` : '';
-  const reg = WAR_REGIONS[info.region];
-  let h = `<h3>${info.name}${info.capital ? ' · ' + info.capital : ''}</h3>
-    <div class="row"><span class="chip ${FC(z.owner)}">${z.owner}</span><span class="chip">⚔ ${z.ready} ready</span><span class="chip">💤 ${z.fresh} fresh</span>${fort}${z.shield ? '<span class="chip">🛡</span>' : ''}</div>
-    <div class="muted">${E.isRich(G, selZone) ? `✨ ${RES_ICON[info.resource]} Rich ${info.resource} deposit: +${E.RULES.richYield + z.outpost}/day` : `${RES_ICON[info.resource]} ${info.resource} land, no deposit this war`} · ${reg.name} (+${reg.troops} troops, +${reg.points} pts if held) · ${z.outpost === 2 ? '🏰 Stronghold' : z.outpost === 1 ? '⛺ Outpost' : 'No buildings'}${E.PORTS.has(selZone) ? ' · ⚓ port' : ''}</div>`;
+  const z = G.zones[selZone], info = WAR_ZONES[selZone], p = cur(), mine = p && z.owner === p.faction, reg = WAR_REGIONS[info.region];
+  el.className = 'panel ' + z.owner;
+  const crest = z.owner === 'neutral' ? '<span style="font-size:18px">🏳</span>' : TROOP_ICON(z.owner);
+  const rich = E.isRich(G, selZone);
+  let h = `<div class="ph"><div class="crest">${crest}</div><div style="flex:1"><div class="t">${info.name}</div><div class="s">${info.capital ? info.capital + ' · ' : ''}${z.owner === 'neutral' ? 'Unclaimed' : z.owner === 'horde' ? 'Horde held' : 'Alliance held'}</div></div>
+      <div style="text-align:right"><div class="big">${z.ready}<span style="font-size:13px;color:#a8977a"> ⚔</span></div><div class="lbl">${z.fresh ? `+${z.fresh} 💤 resting` : 'ready'}</div></div></div>
+    <div class="info">
+      <span>${RES_ICON[info.resource]}</span><span>${rich ? `<b style="color:#ffd36a">Rich ${info.resource} deposit</b> · +${E.RULES.richYield + z.outpost}/day` : `${info.resource} land · no deposit this war`}</span>
+      <span>🗺</span><span>${reg.name} · hold it all for +${reg.troops} troops, +${reg.points} pts</span>
+      <span>${z.outpost === 2 ? '🏰' : z.outpost === 1 ? '⛺' : '·'}</span><span>${z.outpost === 2 ? 'Stronghold: deploy here, +1 defence die' : z.outpost === 1 ? 'Outpost: +1 defence die' : 'No buildings'}</span>
+      ${z.fortifyUntil > G.clock ? `<span>🧱</span><span>Fortified for ${Math.ceil(z.fortifyUntil - G.clock)}h (+1 to the best defence die)</span>` : ''}
+      ${z.shield ? '<span>🛡</span><span>Shield Wall raised</span>' : ''}
+      ${E.PORTS.has(selZone) ? '<span>⚓</span><span>Port: trade at 3:1</span>' : ''}
+    </div>`;
   if(p && G.phase === 'live'){
     if(mine){
       const canDeploy = E.deployable(G, p.faction).includes(selZone);
-      h += `<div class="row"><button class="btn ${mode === 'attack' ? 'red' : ''}" onclick="setMode('attack')">⚔ Attack</button><button class="btn ${mode === 'move' ? 'blue' : ''}" onclick="setMode('move')">🥾 Move</button>
-        <button class="btn" onclick="doFortify()">🧱 Fortify</button></div>`;
-      // deploy as many or as few as you like here, then pick another zone for the rest
-      if(p.reinforce > 0 && canDeploy) h += `<div class="row">Deploy <button class="btn sm" onclick="doDeploy(1)">+1</button>${p.reinforce >= 3 ? '<button class="btn sm" onclick="doDeploy(3)">+3</button>' : ''}<button class="btn sm" onclick="doDeploy(${p.reinforce})">All ${p.reinforce}</button></div>
-        <div class="row"><input type="range" id="depN" min="1" max="${p.reinforce}" value="1" oninput="depV.textContent=this.value"><b id="depV">1</b><button class="btn" onclick="doDeploy()">Deploy</button></div>`;
-      else if(p.reinforce > 0) h += `<div class="muted">This zone is cut off from your strongholds: you can't deploy here.</div>`;
-      h += `<div class="row">${z.outpost === 0 ? `<button class="btn sm" onclick="doBuild('outpost')" title="${costStr(E.RULES.costs.outpost)}">⛺ Build outpost</button>` : ''}
-        ${z.outpost === 1 ? `<button class="btn sm" onclick="doBuild('stronghold')" title="${costStr(E.RULES.costs.stronghold)}">🏰 Upgrade to stronghold</button>` : ''}
-        ${p.cards.shieldwall ? `<button class="btn sm" onclick="doShield()">🛡 Shield Wall</button>` : ''}</div>`;
-      if(mode && !target) h += `<div class="muted">Click a ${mode === 'attack' ? 'glowing enemy or neutral' : 'glowing friendly'} zone.</div>`;
+      h += `<div class="sec">Orders</div>
+        <div class="acts">
+          <div class="act red ${mode === 'attack' ? 'on' : ''}" onclick="setMode('attack')"><span class="ic">⚔</span>Attack</div>
+          <div class="act blue ${mode === 'move' ? 'on' : ''}" onclick="setMode('move')"><span class="ic">🥾</span>Move</div>
+          <div class="act" onclick="doFortify()"><span class="ic">🧱</span>Fortify</div>
+        </div>`;
+      if(p.reinforce > 0 && canDeploy) h += `<div class="sec">Deploy · ${p.reinforce} waiting</div>
+        <div class="row"><button class="btn sm" onclick="doDeploy(1)">+1</button>${p.reinforce >= 3 ? '<button class="btn sm" onclick="doDeploy(3)">+3</button>' : ''}<button class="btn sm" onclick="doDeploy(${p.reinforce})">All ${p.reinforce}</button>
+          <input type="range" id="depN" min="1" max="${p.reinforce}" value="1" oninput="depV.textContent=this.value"><b id="depV">1</b><button class="btn sm" onclick="doDeploy()">Deploy</button></div>`;
+      else if(p.reinforce > 0) h += `<div class="muted" style="margin-top:6px">Cut off from your strongholds: reinforcements can't reach here.</div>`;
+      const builds = (z.outpost === 0 ? `<button class="btn sm" onclick="doBuild('outpost')" title="${costStr(E.RULES.costs.outpost)}">⛺ Build outpost</button>` : '')
+        + (z.outpost === 1 ? `<button class="btn sm" onclick="doBuild('stronghold')" title="${costStr(E.RULES.costs.stronghold)}">🏰 Upgrade to stronghold</button>` : '')
+        + (p.cards.shieldwall ? `<button class="btn sm" onclick="doShield()">🛡 Shield Wall</button>` : '');
+      if(builds) h += `<div class="sec">Build</div><div class="row">${builds}</div>`;
+      if(mode && !target) h += `<div class="muted" style="margin-top:6px">Click a ${mode === 'attack' ? 'glowing enemy or neutral' : 'glowing friendly'} zone.</div>`;
       if(mode && target){
-        const max = Math.max(0, Math.min(z.ready, z.ready + z.fresh - 1));
-        const tz = G.zones[target];
-        h += `<div style="border-top:1px solid var(--edge);margin-top:6px;padding-top:6px">
-          <b>${mode === 'attack' ? 'Attack' : 'Move to'} ${ZN(target)}</b> ${mode === 'attack' ? `<span class="muted">(${tz.ready + tz.fresh} defenders)</span>` : ''}
+        const max = Math.max(0, Math.min(z.ready, z.ready + z.fresh - 1)), tz = G.zones[target];
+        h += `<div class="tgt">
+          <div class="vs"><span>${info.name}<br><span class="n" style="color:var(--facText)">${max}</span> <span class="lbl">can go</span></span><span style="font-size:18px">${mode === 'attack' ? '⚔' : '➜'}</span>
+            <span style="text-align:right">${ZN(target)}<br>${mode === 'attack' ? `<span class="n">${tz.ready + tz.fresh}</span> <span class="lbl">defending</span>` : `<span class="lbl">friendly</span>`}</span></div>
           ${max < 1 ? '<div class="muted">No ready troops can leave (fresh troops 💤 rest until tomorrow, and one must stay).</div>' :
           `<div class="row"><input type="range" id="actN" min="1" max="${max}" value="${max}" oninput="actV.textContent=this.value"><b id="actV">${max}</b></div>
           ${mode === 'attack' ? `<div class="row">${p.cards.warcry ? '<label><input type="checkbox" id="optWar"> 📯 Warcry</label>' : ''}${p.cards.naval && E.isSeaLink(selZone, target) ? '<label><input type="checkbox" id="optNav"> ⛵ Naval</label>' : ''}</div>` :
             (z.movedDay === E.day(G) && p.cards.march ? '<label><input type="checkbox" id="optMarch"> 🥾 Forced March</label>' : '')}
-          <div class="row"><button class="btn ${mode === 'attack' ? 'red' : 'blue'}" onclick="doAct()">${mode === 'attack' ? '⚔ Charge!' : '🥾 March'}</button></div>`}
+          <button class="btn ${mode === 'attack' ? 'red' : 'blue'}" style="width:100%;margin-top:4px" onclick="doAct()">${mode === 'attack' ? '⚔ Charge!' : '🥾 March'}</button>`}
         </div>`;
       }
-    } else if(z.owner !== 'neutral' || p) {
+    } else {
       const from = [...E.ADJ[selZone]].filter(n => G.zones[n].owner === p.faction);
-      if(from.length) h += `<div class="muted">Attack it from: ${from.map(n => `<a href="#" onclick="selectFrom('${n}');return false" style="color:var(--gold)">${ZN(n)}</a>`).join(', ')}</div>`;
+      if(from.length) h += `<div class="sec">Strike from</div><div class="row">${from.map(n => `<button class="btn sm red" onclick="selectFrom('${n}')">⚔ ${ZN(n)}</button>`).join('')}</div>`;
     }
   }
   el.innerHTML = h;
