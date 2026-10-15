@@ -95,7 +95,6 @@ const WAR_ROUTES = [
   { a: 'durotar', b: 'stranglethorn',   kind: 'zeppelin', name: "Orgrimmar – Grom'gol" },
   { a: 'tirisfal', b: 'stranglethorn',  kind: 'zeppelin', name: "Undercity – Grom'gol" },
   { a: 'elwynn', b: 'darkshore',        kind: 'boat',     name: 'Stormwind Harbor – Auberdine', forever: true },
-  { a: 'wetlands', b: 'hillsbrad',      kind: 'boat',     name: 'Menethil – Southshore ferry', forever: true },
   { a: 'hillsbrad', b: 'darkshore',     kind: 'boat',     name: 'Southshore – Auberdine ferry', forever: true },
   { a: 'tanaris', b: 'riverglades',     kind: 'boat',     name: 'Steamwheedle – Powderfuse', forever: true }
 ];
