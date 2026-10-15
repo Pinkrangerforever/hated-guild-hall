@@ -149,7 +149,7 @@
       LM.onProgress = (u, l, t) => { this._loading = t - l; prevProg && prevProg(u, l, t); };
       LM.onError = () => {};
       this.glow = glowTex();
-      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.loadSuccubus(); this.loadPainting(); this.loadShips(); this.loadTroops(); this.loadCandles(); this.loadHordeFortify(); this.buildMap(); this.buildDice();
+      this.buildRoom(); this.loadTable(); this.loadStrongholds(); this.loadFlags(); this.loadScenery(); this.loadTerrainModels(); this.loadSnowman(); this.loadDoorway(); this.loadSuccubus(); this.loadPainting(); this.loadShips(); this.loadTroops(); this.loadCandles(); this.loadHordeFortify(); this.loadEggs(); this.buildMap(); this.buildDice();
       this.pieces = {}; KEYS.forEach(k => { this.pieces[k] = this.buildPiece(k); });
       this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
       this.bindInput();
@@ -631,6 +631,181 @@
       stone.position.z = -0.05; stone.receiveShadow = true; W.add(stone);
       frame.userData.fill = stone;
       (this.doorFrameParts || []).forEach(o => W.remove(o)); this.doorFrameParts = [frame, stone];
+    }
+
+    // ===== easter eggs: Leeroy's chair, a rat on the table, Ragnaros in a lava pool, Onyxia's lair, the cow level =====
+    egg(obj, fn){ (this.eggs = this.eggs || []).push({ obj, fn }); }
+    eggSay(name, msg){ if(this.opts.onEgg) this.opts.onEgg(name, msg); }
+    loadGltf(url){ return new Promise((res, rej) => new THREE.GLTFLoader().load(url, res, undefined, rej)); }
+    prepModel(m){ m.traverse(o => { if(o.isMesh){ o.castShadow = true; o.frustumCulled = false; o.material.alphaTest = 0.4; o.material.transparent = false; o.material.side = THREE.DoubleSide; } }); return m; }
+    playOnce(mixer, clips, name, then){
+      const c = clips.find(c => c.name === name); if(!c) return 0;
+      const a = mixer.clipAction(c); a.reset(); a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; a.play();
+      const tc = then && clips.find(c => c.name === then);
+      if(tc) setTimeout(() => { const b2 = mixer.clipAction(tc); b2.reset().play(); a.crossFadeTo(b2, 0.3, false); }, c.duration * 1000 - 300);
+      return c.duration * 1000;
+    }
+    loadEggs(){
+      if(!THREE.GLTFLoader || !this.walls) return;
+      const M = window.WAR_EGGS || { chair: 'models/war/leeroy-chair.gltf', plate: 'models/war/food-plate.gltf', rat: 'models/war/rat.gltf', rag: 'models/war/ragnaros.gltf', tauren: 'models/war/tauren.gltf' };
+      this.eggUrls = M;
+      // --- Leeroy's chair: an empty rocking chair pulled back from the table, a plate of chicken on the seat
+      Promise.all([this.loadGltf(M.chair), this.loadGltf(M.plate)]).then(([cg, pg]) => {
+        const chair = this.prepModel(cg.scene), box = new THREE.Box3().setFromObject(chair), s = 2.1 / (box.max.y - box.min.y);
+        const holder = new THREE.Group(); holder.add(chair); chair.scale.setScalar(s); chair.position.y = -box.min.y * s;
+        holder.position.set(9.6, 0, 1.6); holder.rotation.y = Math.PI + 0.35;   // facing the table, a little askew
+        this.walls.add(holder); holder.updateMatrixWorld(true);
+        // seat height: drop a ray onto the front half of the seat
+        const rc = new THREE.Raycaster(), from = new THREE.Vector3(0.25 * s, 10, 0); holder.localToWorld(from);
+        rc.set(from, new THREE.Vector3(0, -1, 0)); const hit = rc.intersectObject(chair, true)[0];
+        const plate = this.prepModel(pg.scene), pb = new THREE.Box3().setFromObject(plate), ps = 0.75 / Math.max(pb.max.x - pb.min.x, pb.max.z - pb.min.z);
+        plate.scale.setScalar(ps);
+        const at = hit ? holder.worldToLocal(hit.point.clone()) : new THREE.Vector3(0.1, 0.9, 0);
+        plate.position.set(at.x, at.y - pb.min.y * ps + 0.01, at.z); plate.rotation.y = 0.6; holder.add(plate);
+        let busy = false;
+        this.egg(holder, () => {
+          if(busy) return; busy = true; setTimeout(() => { busy = false; }, 2500);
+          this.eggSay('leeroy', 'LEEEEROOOOY JENKINS!');
+          // the chair rocks, and every piece on the board jumps
+          this.animate(1600, t => { holder.rotation.z = Math.sin(t * Math.PI * 6) * 0.12 * (1 - t); });
+          Object.values(this.pieces || {}).forEach(p => {
+            const g = p.grp, y0 = g.position.y, d = Math.random() * 300;
+            setTimeout(() => this.animate(520, t => { g.position.y = y0 + Math.sin(t * Math.PI) * 0.22; }).then(() => { g.position.y = y0; }), d);
+          });
+        });
+      }).catch(err => console.warn('leeroy chair failed to load:', err));
+      // --- a rat that now and then scurries along the table's edge between two candles
+      this.loadGltf(M.rat).then(g => {
+        this.ratProto = { scene: this.prepModel(g.scene), clips: g.animations };
+        const box = new THREE.Box3().setFromObject(g.scene); this.ratScale = 0.42 / (box.max.x - box.min.x); this.ratLift = -box.min.y;
+        const next = first => setTimeout(() => { this.spawnRat(); next(); }, first ? 25000 + Math.random() * 30000 : 70000 + Math.random() * 90000);
+        next(true);
+      }).catch(err => console.warn('rat failed to load:', err));
+      // --- Ragnaros, half sunk in a little pool of lava on the floor by the table
+      this.loadGltf(M.rag).then(g => this.placeRagnaros(g)).catch(err => console.warn('ragnaros failed to load:', err));
+      // --- Onyxia's lair: a smoking cave mouth in Dustwallow Marsh
+      this.buildLair();
+    }
+    spawnRat(){
+      if(!this.ratProto || this.ratLive) return;
+      const R = this.ratProto, rat = THREE.SkeletonUtils ? THREE.SkeletonUtils.clone(R.scene) : R.scene.clone();
+      const TINTS = [0xffffff, 0x9a8a78, 0x6b5440, 0x4a4440, 0xd8c8b0, 0x8a6a50];   // a random coat each time
+      const tint = TINTS[Math.floor(Math.random() * TINTS.length)];
+      rat.traverse(o => { if(o.isMesh){ o.material = o.material.clone(); o.material.color.setHex(tint); } });
+      const s = this.ratScale; rat.scale.setScalar(s);
+      const holder = new THREE.Group(); holder.add(rat); rat.position.y = this.ratLift * s; this.scene.add(holder);
+      // from one candle corner to a neighbouring one, keeping clear of the candles themselves
+      const C = [[-5.55, -3.55], [5.55, -3.55], [5.55, 3.55], [-5.55, 3.55]], i = Math.floor(Math.random() * 4), j = (i + (Math.random() < 0.5 ? 1 : 3)) % 4;
+      const a = new THREE.Vector3(C[i][0], 0.17, C[i][1]), bb = new THREE.Vector3(C[j][0], 0.17, C[j][1]), dir = bb.clone().sub(a).normalize();
+      a.addScaledVector(dir, 0.5); bb.addScaledVector(dir, -0.5);
+      holder.position.copy(a); holder.rotation.y = Math.atan2(-dir.z, dir.x);
+      const mixer = new THREE.AnimationMixer(rat); (this.mixers = this.mixers || []).push(mixer);
+      const run = R.clips.find(c => c.name === 'Run'); if(run) mixer.clipAction(run).play();
+      const live = { dead: false }; this.ratLive = live;
+      const done = () => { this.scene.remove(holder); this.mixers = this.mixers.filter(m => m !== mixer); this.eggs = this.eggs.filter(e => e.obj !== holder); this.ratLive = null; };
+      this.egg(holder, () => {
+        if(live.dead) return; live.dead = true;
+        let n = 0; try{ n = (+localStorage.getItem('gw_rats') || 0) + 1; localStorage.setItem('gw_rats', n); }catch(e){}
+        this.eggSay('rat', n > 1 ? `Squeak! You caught a rat. (${n} so far)` : 'Squeak! You caught a rat.');
+        mixer.stopAllAction(); this.playOnce(mixer, R.clips, 'Death');
+        setTimeout(() => this.animate(600, t => { holder.scale.setScalar(Math.max(0.01, 1 - t)); }).then(done), 1800);
+      });
+      const ms = a.distanceTo(bb) / 2.2 * 1000;
+      this.animate(ms, t => { if(!live.dead) holder.position.lerpVectors(a, bb, t); }).then(() => { if(!live.dead){ live.dead = true; done(); } });
+    }
+    placeRagnaros(g){
+      // the pool: a disc of glowing lava (a little canvas that churns), a ring of dark crust, and a flickering light
+      const cv = document.createElement('canvas'); cv.width = cv.height = 128; const cx = cv.getContext('2d');
+      const tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding;
+      const blobs = Array.from({ length: 14 }, () => ({ x: Math.random() * 128, y: Math.random() * 128, r: 10 + Math.random() * 22, v: 0.2 + Math.random() * 0.5, p: Math.random() * 6 }));
+      let last = 0;
+      this.lavaTick = now => {
+        if(now - last < 80) return; last = now;
+        const gr = cx.createRadialGradient(64, 64, 4, 64, 64, 64); gr.addColorStop(0, '#ffe27a'); gr.addColorStop(0.5, '#ff7a14'); gr.addColorStop(1, '#8a1600');
+        cx.fillStyle = gr; cx.fillRect(0, 0, 128, 128);
+        blobs.forEach(o => { const x = o.x + Math.sin(now / 1000 * o.v + o.p) * 8, y = o.y + Math.cos(now / 1300 * o.v + o.p) * 8;
+          const q = cx.createRadialGradient(x, y, 0, x, y, o.r); q.addColorStop(0, 'rgba(255,240,160,0.55)'); q.addColorStop(1, 'rgba(120,20,0,0)'); cx.fillStyle = q; cx.fillRect(x - o.r, y - o.r, o.r * 2, o.r * 2); });
+        tex.needsUpdate = true;
+        if(this.lavaLight && !this.lavaLight.userData.roar) this.lavaLight.intensity = 1.5 + Math.sin(now / 170) * 0.2 + Math.random() * 0.2;
+      };
+      this.lavaTick(100);
+      const pool = new THREE.Group(); pool.position.set(-9.2, 0, 5.2); this.walls.add(pool);
+      const lava = new THREE.Mesh(new THREE.CircleGeometry(1.05, 40), new THREE.MeshBasicMaterial({ map: tex }));
+      lava.rotation.x = -Math.PI / 2; lava.position.y = 0.035; pool.add(lava);
+      const crust = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.16, 8, 40), new THREE.MeshStandardMaterial({ color: 0x241612, roughness: 1, emissive: 0x3a0800, emissiveIntensity: 0.6 }));
+      crust.rotation.x = -Math.PI / 2; crust.scale.z = 0.6; pool.add(crust);
+      const light = new THREE.PointLight(0xff6a1a, 1.6, 6, 2); light.position.y = 0.8; pool.add(light); this.lavaLight = light;
+      // Ragnaros, small, standing in it up to his waist (the floor hides the rest)
+      const m = this.prepModel(g.scene), box = new THREE.Box3().setFromObject(m), s = 1.9 / (box.max.y - box.min.y);
+      m.scale.setScalar(s); m.position.y = -box.min.y * s - 0.95; m.rotation.y = Math.PI / 2 - 0.6;   // turned toward the room's centre
+      pool.add(m);
+      const mixer = new THREE.AnimationMixer(m), clips = g.animations; (this.mixers = this.mixers || []).push(mixer);
+      const st = clips.find(c => c.name === 'Stand'); if(st) mixer.clipAction(st).play();
+      let busy = false;
+      this.egg(pool, () => {
+        if(busy) return; busy = true;
+        this.eggSay('ragnaros', 'TOO SOON! YOU HAVE AWAKENED ME TOO SOON, EXECUTUS!');
+        const ms = this.playOnce(mixer, clips, 'EmoteRoar', 'Stand') || 2000;
+        this.shake(900, 0.12); light.userData.roar = true;
+        this.animate(ms, t => { light.intensity = 1.6 + Math.sin(t * Math.PI) * 4; }).then(() => { light.userData.roar = false; });
+        setTimeout(() => { busy = false; }, ms + 500);
+      });
+    }
+    buildLair(){
+      // a dark cave mouth in Dustwallow's south-east with smoke curling out of it
+      const at = toWorld(430, 912); at.y = this.sheetY(430, 912);
+      const lair = new THREE.Group(); lair.position.copy(at); this.scene.add(lair);
+      const rock = new THREE.Mesh(new THREE.SphereGeometry(0.11, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x3a3028, roughness: 1 }));
+      rock.scale.set(1.3, 0.8, 1); rock.castShadow = true; lair.add(rock);
+      const mouth = new THREE.Mesh(new THREE.CircleGeometry(0.05, 16, 0, Math.PI), new THREE.MeshBasicMaterial({ color: 0x050302 }));
+      mouth.position.set(0, 0.001, 0.105); mouth.scale.y = 1.2; lair.add(mouth);
+      const sc = document.createElement('canvas'); sc.width = sc.height = 64; const sx = sc.getContext('2d');
+      const sg = sx.createRadialGradient(32, 32, 2, 32, 32, 30); sg.addColorStop(0, 'rgba(70,64,60,0.7)'); sg.addColorStop(1, 'rgba(70,64,60,0)'); sx.fillStyle = sg; sx.fillRect(0, 0, 64, 64);
+      const smokeTex = new THREE.CanvasTexture(sc);
+      this.lairSmoke = Array.from({ length: 7 }, (_, i) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: smokeTex, transparent: true, depthWrite: false })); lair.add(sp); return { sp, ph: i / 7 }; });
+      // whelps: little dragon sprites that burst out when it's clicked
+      const wc = document.createElement('canvas'); wc.width = wc.height = 64; const wx = wc.getContext('2d'); wx.font = '50px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif'; wx.textAlign = 'center'; wx.textBaseline = 'middle'; wx.fillText('🐉', 32, 36);
+      this.whelpTex = new THREE.CanvasTexture(wc);
+      let busy = false;
+      this.egg(lair, () => {
+        if(busy) return; busy = true; setTimeout(() => { busy = false; }, 4000);
+        this.eggSay('onyxia', 'MANY WHELPS! HANDLE IT!');
+        for(let i = 0; i < 14; i++){
+          const w = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.whelpTex, transparent: true, depthWrite: false })); w.scale.setScalar(0.09); lair.add(w);
+          const a0 = Math.random() * Math.PI * 2, r = 0.3 + Math.random() * 0.6, h = 0.5 + Math.random() * 0.8, spin = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 2);
+          setTimeout(() => this.animate(2600, t => {
+            const a = a0 + t * spin; w.position.set(Math.cos(a) * r * t, 0.05 + h * t + Math.sin(t * 40) * 0.015, Math.sin(a) * r * t);
+            w.material.opacity = t < 0.8 ? 1 : (1 - t) / 0.2; w.scale.setScalar(0.09 * (1 + Math.sin(t * 60) * 0.12));
+          }).then(() => lair.remove(w)), i * 90);
+        }
+      });
+    }
+    tickEggs(now){
+      if(this.lavaTick) this.lavaTick(now);
+      (this.lairSmoke || []).forEach(o => { const t = ((now / 4200) + o.ph) % 1; o.sp.position.set(Math.sin(t * 6 + o.ph * 9) * 0.03, 0.06 + t * 0.35, 0.08); o.sp.scale.setScalar(0.06 + t * 0.16); o.sp.material.opacity = Math.sin(t * Math.PI) * 0.55; });
+    }
+    // the cow level: a tauren strolls across Mulgore, roars, and wanders off
+    cowLevel(){
+      if(this.cowBusy || !THREE.GLTFLoader) return; this.cowBusy = true;
+      this.eggSay('cow', 'There is no cow level.');
+      const go = g => {
+        const m = this.prepModel(THREE.SkeletonUtils ? THREE.SkeletonUtils.clone(g.scene) : g.scene), box = new THREE.Box3().setFromObject(g.scene), s = 0.42 / (box.max.y - box.min.y);
+        const holder = new THREE.Group(); holder.add(m); m.scale.setScalar(s); m.position.y = -box.min.y * s; this.scene.add(holder);
+        const P = WAR_LAYOUT.mulgore, A = [P.x - 60, P.y + 30], B = [P.x + 55, P.y - 35];
+        const pos = t => { const x = A[0] + (B[0] - A[0]) * t, y = A[1] + (B[1] - A[1]) * t, w = toWorld(x, y); w.y = this.sheetY(x, y); return w; };
+        const d = pos(1).sub(pos(0)); holder.rotation.y = Math.atan2(-d.z, d.x); holder.position.copy(pos(0));
+        const mixer = new THREE.AnimationMixer(m); (this.mixers = this.mixers || []).push(mixer);
+        const clip = n => g.animations.find(c => c.name === n), walk = mixer.clipAction(clip('Walk')); walk.play();
+        holder.scale.setScalar(0.01);
+        this.animate(500, t => holder.scale.setScalar(Math.max(0.01, t)));
+        this.animate(4200, t => holder.position.copy(pos(t * 0.5))).then(() => {
+          walk.stop(); return sleep(this.playOnce(mixer, g.animations, 'EmoteRoar') || 1500);
+        }).then(() => { mixer.stopAllAction(); mixer.clipAction(clip('Walk')).reset().play(); return this.animate(4200, t => holder.position.copy(pos(0.5 + t * 0.5))); })
+          .then(() => this.animate(500, t => holder.scale.setScalar(Math.max(0.01, 1 - t))))
+          .then(() => { this.scene.remove(holder); this.mixers = this.mixers.filter(x => x !== mixer); this.cowBusy = false; });
+      };
+      if(this.taurenGltf) go(this.taurenGltf);
+      else this.loadGltf((this.eggUrls || {}).tauren || 'models/war/tauren.gltf').then(g => { this.taurenGltf = g; go(g); }).catch(err => { this.cowBusy = false; console.warn('tauren failed to load:', err); });
     }
 
     // ----- a snowman out in the snow beyond the doorway, under a little cloud of drifting snow -----
@@ -1822,6 +1997,13 @@
       const up = e => {
         pts.delete(e.pointerId);
         if(drag && drag.moved < 6 && pts.size === 0){
+          if(this.eggs && this.eggs.length){
+            const r = this.renderer.domElement.getBoundingClientRect();
+            this.mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+            const hit = this.raycaster.intersectObjects(this.eggs.map(g => g.obj), true)[0];
+            if(hit){ const egg = this.eggs.find(g => { for(let q = hit.object; q; q = q.parent) if(q === g.obj) return true; return false; }); if(egg){ egg.fn(); pts.clear(); drag = null; return; } }
+          }
           if(this.doorModel && this.toggleDoor){
             const r = this.renderer.domElement.getBoundingClientRect();
             this.mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
@@ -1846,6 +2028,7 @@
       const now = performance.now();
       const dt = Math.min(0.1, (now - (this._last || now)) / 1000); this._last = now;
       (this.mixers || []).forEach(m => m.update(dt));
+      this.tickEggs(now);
       if(this.water){ this.water.offset.x = now / 90000; this.water.offset.y = Math.sin(now / 7000) * 0.03; }
       this.anims = this.anims.filter(a => {
         const t = Math.min(1, (now - a.t0) / a.ms); a.fn(t);

@@ -469,7 +469,7 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
   me = { id: profile ? profile.id : 'local-admin', name: profile ? (profile.character_name || 'Admin') : 'Admin', admin, signedIn: !!session };
   initChat();
   document.getElementById('adminBtn').style.display = '';
-  try{ board = new WarBoard(document.getElementById('stage'), { onClick: zoneClicked, onHover: zoneHover }); }
+  try{ board = new WarBoard(document.getElementById('stage'), { onClick: zoneClicked, onHover: zoneHover, onEgg: (k, msg) => toast(msg) }); }
   catch(e){ showFatal('3D board: ' + e.message + ' (is WebGL / hardware acceleration turned on?)'); return; }
   G = load();
   if(G && (!G.v || !G.zones)) G = null;   // old or broken save
@@ -798,6 +798,8 @@ function zoneHover(k, e){
   h.style.display = 'block'; h.style.left = (e.clientX + 14) + 'px'; h.style.top = (e.clientY + 12) + 'px';
 }
 function zoneClicked(k){
+  // the cow level: click Mulgore 10 times in quick succession
+  if(k === 'mulgore'){ const now = Date.now(); zoneClicked.cow = (zoneClicked.cow || []).filter(t => now - t < 6000).concat(now); if(zoneClicked.cow.length >= 10){ zoneClicked.cow = []; board.cowLevel(); } }
   if(!k || G.phase !== 'live'){ selZone = null; target = null; mode = null; board.select(null, []); renderZone(); return; }
   const p = cur();
   if(selZone && mode && k !== selZone){
