@@ -1952,7 +1952,7 @@
           const aUp = att.list.filter(m => !m.userData.dead), dUp = def.list.filter(m => !m.userData.dead);
           // winners give a battle roar, then everyone still standing leaves the field
           (captured ? aUp : dUp).forEach(m => m.userData.play('BattleRoar', true));
-          await this.wait(900);
+          await this.wait(450);
           const dest = captured ? B : A;
           aUp.forEach(m => { m.userData.play('Run'); if(m.userData.face){ const d = dest.clone().sub(m.position); m.userData.face(d.x, d.z); } });
           const from = aUp.map(m => m.position.clone());
@@ -1960,8 +1960,7 @@
             this.animate(800, t => aUp.forEach((m, i) => { m.position.lerpVectors(from[i], dest, ease(t)); m.scale.setScalar(Math.max(0.01, 1 - Math.max(0, t - 0.6) / 0.4)); })),
             this.animate(600, t => dUp.forEach(m => m.scale.setScalar(Math.max(0.01, 1 - t))))
           ]);
-          await this.wait(1700);   // let the last falls finish
-          this.removeAll(att.list.concat(def.list));
+          setTimeout(() => this.removeAll(att.list.concat(def.list)), 1700 / this.speed);   // after the last falls finish
         }
       };
     }
@@ -2108,8 +2107,10 @@
         }
       }
       armies.cull(e.captured ? Math.max(0, e.survivors) : Math.max(0, attLeft), e.captured ? 0 : Math.max(0, defLeft));
-      await this.wait(900);
-      await armies.finish(e.captured);
+      await this.wait(450);
+      // the zone changes hands as the survivors march in, not after they've gone
+      const leaving = armies.finish(e.captured);
+      if(!e.captured) await leaving;
       arrow.remove();
       if(e.captured){
         const fx = this.captureFx(e.to, att);
