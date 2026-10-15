@@ -13,7 +13,7 @@ const WAR_RULEBOOK = [
   { id: 'map', icon: '🗺', title: 'The Map', tags: 'map zones regions capitals ports routes boats zeppelins borders neutral',
     body: `<p>43 zones across Kalimdor and the Eastern Kingdoms. Zones next to each other on the map are connected, and so are the ends of every <b>boat</b> and <b>zeppelin</b> route.</p>
       <ul><li><b>Neutral zones</b> start with 2 to 4 defenders and fly the yellow banner.</li>
-      <li><b>Capitals</b> (Orgrimmar, Thunder Bluff, Undercity, Stormwind, Ironforge, Darnassus) give their defenders <b>+1</b> to their best die.</li>
+      <li><b>Capitals</b> (Orgrimmar, Thunder Bluff, Undercity, Stormwind, Ironforge, Darnassus) are marked with a crown ♛. They have no special dice bonus.</li>
       <li><b>Ports</b> (any zone a boat route lands in) let your whole faction trade at 3:1.</li>
       <li><b>Regions:</b> hold every zone in a region for bonus troops each day and bonus points:
         Northern Kalimdor +5 / 4 pts, Kalimdor Heartland +3 / 2 pts, Southern Wilds +3 / 2 pts, Lordaeron +4 / 3 pts, The Heartlands +5 / 4 pts, Southern Kingdoms +5 / 4 pts. Hover over a zone to see its whole region glow.</li></ul>` },
@@ -41,7 +41,7 @@ const WAR_RULEBOOK = [
     body: `<p>Attack a bordering zone (or across a route) with ready troops. Costs 1 AP. The battle is fought out at once in rounds:</p>
       <ul><li>The attacker rolls up to <b>3 dice</b> (one per attacking troop), the defender up to <b>2</b> (<b>3</b> with an outpost or stronghold).</li>
       <li>Highest die faces highest, second faces second. <b>Ties go to the defender.</b> Each lost pair kills one troop.</li>
-      <li>Defender bonuses add to their <b>best</b> die: +1 fortified, +1 capital, +1 stronghold.</li>
+      <li>Defender bonuses add to their <b>best</b> die: +1 fortified, +1 stronghold.</li>
       <li>Rounds repeat until one side runs out. If the defenders fall, your surviving attackers <b>capture</b> the zone and arrive fresh.</li>
       <li>Defenders lose fresh troops before ready ones. Survivors of a failed attack fall back home.</li></ul>` },
   { id: 'fortify', icon: '🧱', title: 'Fortify', tags: 'fortify wall defence defense 24 hours stack',

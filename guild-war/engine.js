@@ -276,7 +276,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     const defender = b.owner;
     const info = WAR_ZONES[to];
     const fortified = !naval && b.fortifyUntil > s.clock;
-    const defBonus = naval ? 0 : (fortified ? 1 : 0) + (info.capital ? 1 : 0) + (b.outpost >= 2 ? 1 : 0);
+    const defBonus = naval ? 0 : (fortified ? 1 : 0) + (b.outpost >= 2 ? 1 : 0);   // (capitals gave +1 too, until bot wars showed it favoured the Horde)
     const defExtraDie = !naval && b.outpost >= 1 ? 1 : 0;
     let att = n, def = total(b);
     // pets: the attacker's pet joins from the zone it guards, the defender's fights at home; each is one more body
