@@ -781,11 +781,42 @@
       });
       for(let i = 0; i < 60 * 6; i++) this.smashStep(dt);   // let everything settle
     }
-    // the swing itself: the faction's weapon drops onto the spot and bounces back
-    swingAt(clientX, clientY, faction){
-      const el = document.createElement('div'); el.className = 'wb-swing'; el.textContent = faction === 'alliance' ? '🔨' : '🪓';
-      el.style.left = clientX + 'px'; el.style.top = clientY + 'px'; document.body.appendChild(el);
-      setTimeout(() => el.remove(), 600);
+    // the swing itself: the side's legendary weapon (Gorehowl / the Ashbringer) chops down onto the spot from
+    // over the champion's shoulder, its head landing where they clicked, then lifts and fades
+    loadWeapons(){
+      if(this.weaponsP) return this.weaponsP;
+      const M = window.WAR_WEAPONS || { horde: 'models/war/weapon-gorehowl.gltf', alliance: 'models/war/weapon-ashbringer.gltf' };
+      this.weapons = {};
+      return this.weaponsP = Promise.all(Object.keys(M).map(f => this.loadGltf(M[f]).then(g => {
+        const m = g.scene; m.traverse(o => { if(o.isMesh){ o.castShadow = true; o.frustumCulled = false; o.material.alphaTest = 0.4; o.material.transparent = false; o.material.side = THREE.DoubleSide; } });
+        const box = new THREE.Box3().setFromObject(m), L = 1.7, s = L / (box.max.x - box.min.x);
+        m.scale.setScalar(s); m.position.set(-box.min.x * s, -(box.min.y + box.max.y) / 2 * s, -(box.min.z + box.max.z) / 2 * s);   // handle end at the pivot, blade along +x
+        const w = new THREE.Group(); w.add(m); this.weapons[f] = { proto: w, reach: L * 0.86 };
+      }).catch(err => console.warn(f + ' weapon failed to load:', err))));
+    }
+    swingAt(clientX, clientY, faction, at){
+      const W = this.weapons && this.weapons[faction];
+      if(!W || !at){   // models not in yet: the emoji stands in
+        const el = document.createElement('div'); el.className = 'wb-swing'; el.textContent = faction === 'alliance' ? '🔨' : '🪓';
+        el.style.left = clientX + 'px'; el.style.top = clientY + 'px'; document.body.appendChild(el);
+        setTimeout(() => el.remove(), 600); return;
+      }
+      const toCam = this.camera.position.clone().sub(at); toCam.y = 0; toCam.normalize();
+      const pivot = at.clone().addScaledVector(toCam, W.reach); pivot.y = 0.12;
+      const holder = new THREE.Group(); holder.position.copy(pivot);
+      holder.rotation.y = Math.atan2(toCam.z, -toCam.x);   // local +x points from the pivot to the target
+      holder.rotation.order = 'YZX';
+      const wpn = W.proto.clone(); holder.add(wpn); this.scene.add(holder);
+      // raised high, a quick wind-up, the chop, a small recoil, then away
+      return this.animate(700, t => {
+        let a;
+        if(t < 0.25) a = 1.5 + Math.sin(t / 0.25 * Math.PI / 2) * 0.25;                 // wind up
+        else if(t < 0.42) a = 1.75 * (1 - Math.pow((t - 0.25) / 0.17, 2));                // the chop (lands at t = 0.42)
+        else if(t < 0.55) a = Math.sin((t - 0.42) / 0.13 * Math.PI) * 0.12;              // recoil
+        else a = Math.pow((t - 0.55) / 0.45, 1.5) * 1.3;                                  // lift away
+        holder.rotation.z = a;
+        wpn.scale.setScalar(t > 0.8 ? Math.max(0.01, (1 - t) / 0.2) : 1);
+      }).then(() => this.scene.remove(holder));
     }
     pointOnTable(clientX, clientY){
       const r = this.renderer.domElement.getBoundingClientRect();

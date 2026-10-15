@@ -1121,7 +1121,8 @@ function smashChannel(){
   smashCh = sb.channel('guild-war-smash', { config: { broadcast: { self: false } } })
     .on('broadcast', { event: 'hit' }, ({ payload }) => {
       if(!payload || payload.gid !== G.id || !payload.hit) return;
-      (G.smash = G.smash || []).push(payload.hit); save(); board.smashHit(payload.hit, true);
+      (G.smash = G.smash || []).push(payload.hit); save();
+      const c = champion(); board.loadWeapons(); board.swingAt(0, 0, c ? c.faction : 'horde', new THREE.Vector3(payload.hit.x, 0, payload.hit.z)); setTimeout(() => board.smashHit(payload.hit, true), 300);
     }).subscribe();
   return smashCh;
 }
@@ -1132,7 +1133,7 @@ function startSmash(){
   ['me', 'zone', 'feed', 'chat'].forEach(id => { const e = document.getElementById(id); if(e) e.dataset.was = e.style.display, e.style.display = 'none'; });
   const bar = document.getElementById('smashBar'); bar.style.display = 'flex';
   document.getElementById('smashTxt').textContent = `${cur().faction === 'alliance' ? '🔨' : '🪓'} Click the board to smash it!`;
-  board.overview(700); smashChannel();
+  board.overview(700); smashChannel(); board.loadWeapons();
 }
 function stopSmash(){
   document.body.classList.remove('smashing'); board.smashMode = false;
@@ -1146,8 +1147,8 @@ function smashClick(x, y){
   G.smash = G.smash || []; if(!G.smashStart) G.smashStart = Date.now();
   const hit = { x: +at.x.toFixed(3), z: +at.z.toFixed(3), power: +(0.8 + Math.random() * 0.5).toFixed(2), seed: Math.floor(Math.random() * 1e9), t: +((Date.now() - G.smashStart) / 1000).toFixed(2) };
   G.smash.push(hit); save();
-  board.swingAt(x, y, cur().faction);
-  setTimeout(() => board.smashHit(hit, true), 200);   // the blow lands as the weapon comes down
+  board.swingAt(x, y, cur().faction, at);
+  setTimeout(() => board.smashHit(hit, true), 300);   // the blow lands as the weapon comes down
   const ch = smashChannel(); if(ch) ch.send({ type: 'broadcast', event: 'hit', payload: { gid: G.id, hit } });
 }
 
