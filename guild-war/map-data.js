@@ -104,7 +104,7 @@ const WAR_REGIONS = {
   kalimdor_heart: { name: 'Kalimdor Heartland', troops: 3, points: 2, color: '#c0612b' },
   southern_wilds: { name: 'Southern Wilds',     troops: 3, points: 2, color: '#d6b13a' },
   lordaeron:      { name: 'Lordaeron',          troops: 4, points: 3, color: '#8a5fc0' },
-  khaz_modan:     { name: 'Khaz Modan & Elwynn', troops: 5, points: 4, color: '#3a7fd0' },
+  khaz_modan:     { name: 'The Heartlands',      troops: 5, points: 4, color: '#3a7fd0' },
   azeroth:        { name: 'Southern Kingdoms',  troops: 5, points: 4, color: '#c03a4a' }
 };
 

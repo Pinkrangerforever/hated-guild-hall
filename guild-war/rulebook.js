@@ -16,7 +16,7 @@ const WAR_RULEBOOK = [
       <li><b>Capitals</b> (Orgrimmar, Thunder Bluff, Undercity, Stormwind, Ironforge, Darnassus) give their defenders <b>+1</b> to their best die.</li>
       <li><b>Ports</b> (any zone a boat route lands in) let your whole faction trade at 3:1.</li>
       <li><b>Regions:</b> hold every zone in a region for bonus troops each day and bonus points:
-        Northern Kalimdor +5 / 4 pts, Kalimdor Heartland +3 / 2 pts, Southern Wilds +3 / 2 pts, Lordaeron +4 / 3 pts, Khaz Modan &amp; Elwynn +5 / 4 pts, Southern Kingdoms +5 / 4 pts. Hover over a zone to see its whole region glow.</li></ul>` },
+        Northern Kalimdor +5 / 4 pts, Kalimdor Heartland +3 / 2 pts, Southern Wilds +3 / 2 pts, Lordaeron +4 / 3 pts, The Heartlands +5 / 4 pts, Southern Kingdoms +5 / 4 pts. Hover over a zone to see its whole region glow.</li></ul>` },
   { id: 'ap', icon: '◆', title: 'Action Points', tags: 'action points ap day reset cost free',
     body: `<p>You get <b>5 action points</b> (AP) a day. They refill at midnight and don't carry over.</p>
       <table><tr><td>Attack</td><td>1 AP</td></tr><tr><td>Move</td><td>1 AP</td></tr><tr><td>Fortify</td><td>1 AP</td></tr><tr><td>Build an outpost / stronghold</td><td>1 AP</td></tr>

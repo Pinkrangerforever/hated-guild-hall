@@ -873,21 +873,30 @@
       const sg = sx.createRadialGradient(32, 32, 2, 32, 32, 30); sg.addColorStop(0, 'rgba(70,64,60,0.7)'); sg.addColorStop(1, 'rgba(70,64,60,0)'); sx.fillStyle = sg; sx.fillRect(0, 0, 64, 64);
       const smokeTex = new THREE.CanvasTexture(sc);
       this.lairSmoke = Array.from({ length: 7 }, (_, i) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: smokeTex, transparent: true, depthWrite: false })); lair.add(sp); return { sp, ph: i / 7 }; });
-      // whelps: little dragon sprites that burst out when it's clicked
-      const wc = document.createElement('canvas'); wc.width = wc.height = 64; const wx = wc.getContext('2d'); wx.font = '50px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif'; wx.textAlign = 'center'; wx.textBaseline = 'middle'; wx.fillText('🐉', 32, 36);
-      this.whelpTex = new THREE.CanvasTexture(wc);
+      // whelps: the pet system's black whelp model (loaded on first use), a swarm of them bursting out when it's clicked
+      const whelpGltf = () => this.whelpP || (this.whelpP = this.loadGltf('models/dragon-juvenile.gltf'));
       let busy = false;
       this.egg(lair, () => {
         if(busy) return; busy = true; setTimeout(() => { busy = false; }, 4000);
         this.eggSay('onyxia', 'MANY WHELPS! HANDLE IT!');
-        for(let i = 0; i < 14; i++){
-          const w = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.whelpTex, transparent: true, depthWrite: false })); w.scale.setScalar(0.09); lair.add(w);
-          const a0 = Math.random() * Math.PI * 2, r = 0.3 + Math.random() * 0.6, h = 0.5 + Math.random() * 0.8, spin = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 2);
-          setTimeout(() => this.animate(2600, t => {
-            const a = a0 + t * spin; w.position.set(Math.cos(a) * r * t, 0.05 + h * t + Math.sin(t * 40) * 0.015, Math.sin(a) * r * t);
-            w.material.opacity = t < 0.8 ? 1 : (1 - t) / 0.2; w.scale.setScalar(0.09 * (1 + Math.sin(t * 60) * 0.12));
-          }).then(() => lair.remove(w)), i * 90);
-        }
+        whelpGltf().then(g => {
+          const box = new THREE.Box3().setFromObject(g.scene), ws = 0.07 / Math.max(box.max.x - box.min.x, box.max.y - box.min.y, box.max.z - box.min.z);
+          const fly = g.animations.find(c => c.name === 'Fly') || g.animations[0];
+          for(let i = 0; i < 12; i++){
+            const w = THREE.SkeletonUtils.clone(g.scene); w.traverse(o => { if(o.isMesh){ o.frustumCulled = false; o.material.alphaTest = 0.4; o.material.transparent = false; o.material.side = THREE.DoubleSide; } });
+            const holder = new THREE.Group(); holder.add(w); w.scale.setScalar(ws); w.position.set(-(box.min.x + box.max.x) / 2 * ws, -(box.min.y + box.max.y) / 2 * ws, -(box.min.z + box.max.z) / 2 * ws);
+            holder.scale.setScalar(0.01); lair.add(holder);
+            const mx = new THREE.AnimationMixer(w); if(fly){ const act = mx.clipAction(fly); act.play(); act.time = Math.random() * fly.duration; act.timeScale = 1.4; } this.mixers.push(mx);
+            const a0 = Math.random() * Math.PI * 2, r = 0.3 + Math.random() * 0.6, h = 0.5 + Math.random() * 0.8, spin = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 2);
+            let prev = null;
+            setTimeout(() => this.animate(2800, t => {
+              const a = a0 + t * spin, p = new THREE.Vector3(Math.cos(a) * r * t, 0.05 + h * t + Math.sin(t * 30) * 0.012, Math.sin(a) * r * t);
+              if(prev){ const d = p.clone().sub(prev); holder.rotation.y = Math.atan2(-d.z, d.x); }   // WoW models face +x: fly where they're heading
+              prev = p.clone(); holder.position.copy(p);
+              holder.scale.setScalar(t < 0.1 ? Math.max(0.01, t / 0.1) : t > 0.85 ? Math.max(0.01, (1 - t) / 0.15) : 1);
+            }).then(() => { lair.remove(holder); this.mixers = this.mixers.filter(m => m !== mx); }), i * 110);
+          }
+        }).catch(err => console.warn('whelp model failed to load:', err));
       });
     }
     tickEggs(now){
