@@ -292,6 +292,26 @@
   #signupList{ columns:2; font-size:14px; margin:10px 0; }
   .tag{ font-size:11px; padding:1px 6px; border-radius:8px; background:#3a2a50; color:#d4a8ff; margin-left:4px; }
   .cards{ display:flex; flex-wrap:wrap; gap:4px; font-size:12px; }
+  /* battle cards: little playing cards, a dark frame with a gilded edge, art in an arch, name banner, cost or count */
+  .hand{ display:flex; justify-content:center; padding:6px 0 2px; min-height:20px; }
+  .hand .bc{ margin:0 -5px; } .hand .bc:nth-child(odd){ transform:rotate(-3deg); } .hand .bc:nth-child(even){ transform:rotate(3deg) translateY(2px); }
+  .bc{ --a:#8a5a2a; position:relative; width:54px; height:88px; flex:none; border-radius:6px; padding:3px; box-sizing:border-box; cursor:pointer;
+    background:linear-gradient(145deg,#f3d58a,#9c7426 45%,#f0cf7c 70%,#7a5a1c); box-shadow:0 3px 8px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.4);
+    transition:transform .18s, box-shadow .18s, filter .18s; font-family:Cinzel, serif; }
+  .bc:hover{ transform:translateY(-7px) rotate(0) scale(1.08) !important; z-index:3; box-shadow:0 10px 18px rgba(0,0,0,.6), 0 0 12px rgba(255,211,106,.45); }
+  .bc .in{ position:absolute; inset:3px; border-radius:4px; overflow:hidden; background:radial-gradient(ellipse at 50% 30%, var(--a), #1a0f07 75%); border:1px solid rgba(0,0,0,.6); }
+  .bc .in::before{ content:""; position:absolute; inset:0; background:repeating-linear-gradient(45deg,rgba(255,255,255,.035) 0 2px,transparent 2px 5px); }
+  .bc .art{ position:absolute; left:6px; right:6px; top:6px; height:36px; border-radius:20px 20px 3px 3px; display:flex; align-items:center; justify-content:center; font-size:22px; font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;
+    background:radial-gradient(circle at 50% 40%, rgba(255,230,170,.35), rgba(0,0,0,.35)); border:1px solid rgba(240,207,124,.6); filter:drop-shadow(0 1px 1px #000); }
+  .bc .nm{ position:absolute; left:0; right:0; top:45px; text-align:center; font-size:7.5px; font-weight:700; line-height:1.05; color:#f6e2b0; letter-spacing:.2px; text-shadow:0 1px 1px #000; padding:0 2px; }
+  .bc .ft{ position:absolute; left:2px; right:2px; bottom:3px; padding-top:2px; border-top:1px solid rgba(240,207,124,.35); display:flex; justify-content:center; gap:1px; font:700 9px system-ui, sans-serif; color:#ffe7a8; }
+  .bc .ft span{ display:inline-flex; align-items:center; } .bc .ft img{ width:10px; height:10px; margin-left:-1px; }
+  .bc .n{ position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; border-radius:9px; background:radial-gradient(#c43a2a,#6e130c); border:1.5px solid #f0cf7c; color:#fff;
+    font:800 10px system-ui, sans-serif; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px #000; z-index:2; }
+  .bc.no{ filter:grayscale(.85) brightness(.6); } .bc.no:hover{ filter:grayscale(.5) brightness(.8); }
+  .bc.ghost{ opacity:.25; cursor:default; } .bc.ghost:hover{ transform:none !important; box-shadow:none; }
+  .forge{ display:flex; justify-content:space-between; gap:3px; padding:4px 0; }
+  .bc.warcry{ --a:#8e2a1c; } .bc.shieldwall{ --a:#2a4c7e; } .bc.march{ --a:#5b4a22; } .bc.naval{ --a:#1d5e66; } .bc.draft{ --a:#3f6a26; }
   .replay{ display:flex; gap:4px; align-items:center; }
   #hover{ position:fixed; z-index:6; pointer-events:none; display:none; background:rgba(14,9,5,0.92); border:1px solid var(--edge); border-radius:6px; padding:4px 8px; font-size:12px; }
   @media (max-width: 820px){
@@ -740,8 +760,7 @@ function renderMe(){
   // daily income per resource: this faction's rich deposits, shared across its players
   const team = Object.values(G.players).filter(x => x.faction === f).length || 1, inc = { food: 0, wood: 0, ore: 0, gold: 0 };
   E.zonesOf(G, f).forEach(k => { if(E.isRich(G, k)) inc[WAR_ZONES[k].resource] += E.RULES.richYield + (G.zones[k].outpost || 0); });
-  const CARD = { warcry: ['📯', 'Warcry'], shieldwall: ['🛡', 'Shield Wall'], march: ['🥾', 'Forced March'], naval: ['⛵', 'Naval Landing'] };
-  const cards = Object.keys(p.cards).filter(k => p.cards[k]).map(k => `<span class="cardt" data-tip="${tipFor(k).replace(/"/g, '&quot;')}">${CARD[k][0]} ${CARD[k][1]} <b>×${p.cards[k]}</b></span>`).join(' ') || '<span class="muted">No cards yet: craft them below.</span>';
+  const cards = Object.keys(p.cards).filter(k => p.cards[k]).map(k => cardFace(k, `<div class="n">${p.cards[k]}</div>`, '', k === 'shieldwall' ? 'doShield()' : '')).join('') || '<span class="muted">No cards in hand: forge them below.</span>';
   const hz = E.zonesOf(G, 'horde').length, az = E.zonesOf(G, 'alliance').length, nz = Object.keys(G.zones).length - hz - az;
   el.innerHTML = `<div class="ph"><div class="crest">${TROOP_ICON(f)}</div><div><div class="t">${esc(p.name)}${p.bot ? ' <span class="tag">bot</span>' : ''}</div><div class="s">${f === 'horde' ? 'For the Horde' : 'For the Alliance'} · Day ${d + 1}</div></div></div>
     <div class="row" style="justify-content:space-between">
@@ -751,14 +770,22 @@ function renderMe(){
     <div class="sec">War chest</div>
     <div class="resg">${['food', 'wood', 'ore', 'gold'].map(r => `<div title="${r}">${RES_ICON[r]}<b>${p.res[r]}</b>${inc[r] ? `<small>+${Math.max(1, Math.round(inc[r] / team))}/day</small>` : ''}</div>`).join('')}</div>
     <div class="sec">Battle cards</div>
-    <div class="cards">${cards}</div>
-    <details class="fold"><summary class="sec" style="margin-top:8px">Craft &amp; trade · ${E.tradeRate(G, f)}:1</summary>
-      <div class="row">${['draft', 'warcry', 'shieldwall', 'march', 'naval'].map(k => `<button class="btn sm" onclick="doCraft('${k}')" data-tip="${tipFor(k).replace(/"/g, '&quot;')}">${{ draft: '+2 Troops', warcry: 'Warcry', shieldwall: 'Shield Wall', march: 'Forced March', naval: 'Naval Landing' }[k]}</button>`).join('')}</div>
+    <div class="hand">${cards}</div>
+    <details class="fold"><summary class="sec" style="margin-top:8px">Forge cards &amp; trade · ${E.tradeRate(G, f)}:1</summary>
+      <div class="forge">${['draft', 'warcry', 'shieldwall', 'march', 'naval'].map(k => {
+        const c = E.RULES.costs[k], ok = Object.entries(c).every(([r, n]) => p.res[r] >= n);
+        return cardFace(k, '', ok ? '' : 'no', `doCraft('${k}')`, `<div class="ft">${Object.entries(c).map(([r, n]) => `<span>${n}${RES_ICON[r]}</span>`).join('')}</div>`);
+      }).join('')}</div>
       <div class="row">Give <select id="trGive">${['food', 'wood', 'ore', 'gold'].map(r => `<option>${r}</option>`).join('')}</select> get <select id="trGet">${['wood', 'food', 'ore', 'gold'].map(r => `<option>${r}</option>`).join('')}</select> <button class="btn sm" onclick="doTrade()" data-tip="<b>⚖ Trade</b><br>Swap ${E.tradeRate(G, f)} of one resource for 1 of another with the bank. Free, no AP.<span class='c'>4:1 normally, 3:1 while your faction holds a port.</span>">Trade</button></div>
     </details>
     <div class="sec">The front</div>
     <div class="warbar" title="Horde ${hz} · Neutral ${nz} · Alliance ${az}"><span class="hb" style="width:${hz / 43 * 100}%"></span><span class="nb" style="width:${nz / 43 * 100}%"></span><span class="ab" style="width:${az / 43 * 100}%"></span></div>
     <div class="row" style="justify-content:space-between;font-size:12px;margin-top:3px"><span style="color:#ff9a80">Horde ${hz} zones · ${sc.horde.total} pts</span><span style="color:#9cc0ff">${sc.alliance.total} pts · ${az} zones Alliance</span></div>`;
+}
+// one battle card: frame, art arch, name banner; extra = count badge, foot = cost row
+function cardFace(k, extra, cls, click, foot){
+  const [icon, ...nm] = CARD_HELP[k][0].split(' ');
+  return `<div class="bc ${k} ${cls || ''}" ${click ? `onclick="${click}"` : ''} data-tip="${tipFor(k).replace(/"/g, '&quot;')}">${extra}<div class="in"><div class="art">${icon}</div><div class="nm">${nm.join(' ')}</div>${foot || ''}</div></div>`;
 }
 const costStr = c => Object.entries(c).map(([r, n]) => `${n} ${r}`).join(' + ');
 
