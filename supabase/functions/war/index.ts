@@ -251,7 +251,15 @@ Deno.serve(async req => {
     }
 
     // ----- player actions on the active war -----
-    return reply(await mutate(s => {
+    // (the reply carries the player's own record - AP, troops to deploy, resources, cards - which only they see change)
+    let mine: any = null;
+    const res = await mutate(s => {
+      const out = playerAction(s);
+      mine = s.players[uid] || null;
+      return out;
+    });
+    return reply({ ...res, me: res.ok ? mine : undefined });
+    function playerAction(s: any): any {
       catchUp(s, now);
       const me = s.players[uid];
       if(action === 'tickme') return { ok: true };
@@ -278,7 +286,7 @@ Deno.serve(async req => {
         case 'pet': return E.placePet(s, uid, body.zone);
       }
       return { ok: false, error: 'Unknown action' };
-    }));
+    }
   }catch(err){
     console.error(err);
     return reply({ ok: false, error: 'Server error: ' + ((err as any)?.message || err) }, 500);

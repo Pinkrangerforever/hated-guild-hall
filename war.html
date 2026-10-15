@@ -455,11 +455,15 @@ let board = null;
 let mode = null;         // 'attack' | 'move' | null
 let forceDice = '';
 let queue = [], playing = false, paused = false;
+// LIVE: the real war on the server (everyone). The sandbox (a local test war in this browser) is admin-only.
+let LIVE = true; try{ LIVE = localStorage.getItem('gw_mode') !== 'sandbox'; }catch(e){}
+let NEXT = null;         // live: the next war's sign-ups, while the board still shows the war that just ended
 
-function save(){ try{ localStorage.setItem(STORE, JSON.stringify(G)); }catch(e){} }
+function save(){ if(LIVE) return; try{ localStorage.setItem(STORE, JSON.stringify(G)); }catch(e){} }   // the live war is saved by the server
 function load(){ try{ return JSON.parse(localStorage.getItem(STORE)); }catch(e){ return null; } }
-function seen(){ try{ return +localStorage.getItem(SEEN) || 0; }catch(e){ return 0; } }
-function markSeen(n){ try{ localStorage.setItem(SEEN, String(n)); }catch(e){} }
+const seenKey = () => SEEN + (LIVE && G ? ':' + G.id : '');   // live wars remember what you've seen per war
+function seen(){ try{ return +localStorage.getItem(seenKey()) || 0; }catch(e){ return 0; } }
+function markSeen(n){ try{ localStorage.setItem(seenKey(), String(n)); }catch(e){} }
 function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => { t.style.display = 'none'; }, 2600); }
 
 // ---------- boot ----------
@@ -471,16 +475,21 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
     if(session){ const p = await timeout(sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle(), 8000, 'Profile load'); profile = p.data; }
   }catch(e){ console.warn(e); showFatal(e.message); return; }
   const admin = !!(profile && profile.protected) || LOCAL;
-  if(!admin){
+  if(!admin) LIVE = true;
+  if(!session && !(LOCAL && !LIVE)){
     document.getElementById('gate').style.display = 'flex';
-    document.getElementById('gateMsg').textContent = session ? 'The Guild War is being tested by the officers. Check back soon!' : 'Sign in on the main site first.';
+    document.getElementById('gateMsg').textContent = 'Sign in on the main site first.';
     return;
   }
   me = { id: profile ? profile.id : 'local-admin', name: profile ? (profile.character_name || 'Admin') : 'Admin', admin, signedIn: !!session };
   initChat();
-  document.getElementById('adminBtn').style.display = '';
+  document.getElementById('adminBtn').style.display = admin ? '' : 'none';
   try{ board = new WarBoard(document.getElementById('stage'), { onClick: zoneClicked, onHover: zoneHover, onEgg: (k, msg) => toast(msg), onSmash: smashClick }); }
   catch(e){ showFatal('3D board: ' + e.message + ' (is WebGL / hardware acceleration turned on?)'); return; }
+  if(LIVE){
+    if(!(await fetchLive())) return;
+    playAs = me.id;
+  } else {
   G = load();
   if(G && (!G.v || !G.zones)) G = null;   // old or broken save
   // wars started before rich deposits existed: pick this war's deposits now so their icons show
@@ -489,6 +498,7 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
   if(G && G.phase !== 'signup' && !G.rich){ G.rich = E.pickRich(Math.random); save(); }
   if(!G){ G = E.newGame({ sandbox: true }); save(); }
   if(!playAs || !G.players[playAs]) playAs = G.players[me.id] ? me.id : (Object.keys(G.players)[0] || me.id);
+  }
   // Replay: show the board as it was when you last looked, then play everything since
   const last = Math.min(seen(), G.seq);
   const view = JSON.parse(JSON.stringify(G));
@@ -514,7 +524,110 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
   await board.intro();
   if(pending.length){ toast(`${pending.length} moves since you last looked: replaying`); pending.forEach(e => queue.push(e)); runQueue(); }
   else markSeen(G.seq);
+  if(LIVE){ subscribeLive(); claimScouts(); setInterval(claimScouts, 15 * 60 * 1000); }
 })();
+
+// ---------- the live war (on the server) ----------
+// The board shows the active war - or, while the next war's sign-ups are open, the war that just ended (results,
+// the champion's smash) with the sign-ups in NEXT. Moves arrive live from guild_war_log; the few that change
+// everyone's numbers (a new day, the start, the end, someone joining) trigger a fresh load of the war.
+async function fetchLive(){
+  const { data: act, error } = await sb.from('guild_war_games').select('id, state').eq('active', true).maybeSingle();
+  if(error){ showFatal('Could not load the war: ' + error.message); return false; }
+  let view = act, next = null;
+  if(!act || act.state.phase === 'signup'){
+    const { data: prev } = await sb.from('guild_war_games').select('id, state').eq('active', false).order('created_at', { ascending: false }).limit(1);
+    if(prev && prev[0] && prev[0].state.phase === 'ended'){ view = prev[0]; next = act; }
+  }
+  if(!view){ G = E.newGame({ id: 'none' }); G.none = true; G.log = []; NEXT = null; return true; }
+  const s = view.state; s.id = view.id;
+  // just the recent moves: enough for the feed and the replay of what you missed (keeps downloads small)
+  const since = Math.max(0, Math.min(seenFor(view.id), s.seq) - 1), want = Math.min(200, Math.max(60, s.seq - since));
+  const { data: rows } = await sb.from('guild_war_log').select('entry').eq('game_id', view.id).order('seq', { ascending: false }).limit(want);
+  s.log = (rows || []).map(r => r.entry).reverse();
+  G = s; NEXT = next ? Object.assign(next.state, { id: next.id }) : null;
+  return true;
+}
+function seenFor(id){ try{ return +localStorage.getItem(SEEN + ':' + id) || 0; }catch(e){ return 0; } }
+let liveCh = null, refetchT = null;
+function subscribeLive(){
+  if(liveCh) return;
+  liveCh = sb.channel('guild-war-log').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'guild_war_log' }, ({ new: row }) => {
+    if(!row || !row.entry) return;
+    if(row.game_id === G.id) onLiveEntry(row.entry);
+    else refetchSoon();   // the next war's sign-ups, or a new war: reload to pick it up
+  }).subscribe();
+}
+function onLiveEntry(e){
+  if(e.seq <= G.seq) return;
+  if(e.seq > G.seq + 1) refetchSoon();   // missed something: the reload will catch up the numbers
+  G.seq = e.seq; G.log.push(e); if(G.log.length > 300) G.log.shift();
+  if(e.zones) Object.keys(e.zones).forEach(k => { G.zones[k] = JSON.parse(JSON.stringify(e.zones[k].after)); });
+  if(e.pl){ const p = G.players[e.pl.id]; if(p) Object.assign(p, e.pl); }
+  if(['start', 'dawn', 'end', 'join', 'signup', 'autopilot'].includes(e.type)) refetchSoon();
+  queue.push(e); runQueue(); refreshUI();
+}
+function refetchSoon(){
+  clearTimeout(refetchT);
+  refetchT = setTimeout(async () => {
+    const was = G.id, wasPhase = G.phase;
+    if(!(await fetchLive())) return;
+    if(G.id !== was || G.phase !== wasPhase){ if(board.smashed){ location.reload(); return; } board.setState(JSON.parse(JSON.stringify(G))); }
+    if(!playing) board.setState(JSON.parse(JSON.stringify(G)));
+    refreshUI();
+  }, 1200);
+}
+async function serverAct(action, args){
+  try{
+    const { data, error } = await sb.functions.invoke('war', { body: Object.assign({ action }, args || {}) });
+    if(error){ let msg = error.message; try{ const j = await error.context.json(); msg = j.error || msg; }catch(e){} return { ok: false, error: msg }; }
+    return data || { ok: false, error: 'No answer from the war server' };
+  }catch(e){ return { ok: false, error: e.message }; }
+}
+// one action: on the server in the live war (its moves then arrive through the live log), locally in the sandbox
+let acting = false;
+async function act(action, args, local){
+  if(!LIVE) return local ? after(local()) : false;
+  if(acting) return false; acting = true;
+  try{
+    const r = await serverAct(action, args);
+    if(!r.ok){ toast(r.error || 'That did not work'); return false; }
+    if(r.me && G.players) G.players[me.id] = r.me;
+    refreshUI(); return true;
+  } finally { acting = false; }
+}
+// scouts: the first look in each 8-hour watch brings a free troop (the server knows which watch it is)
+async function claimScouts(){
+  if(!LIVE || G.phase !== 'live' || !G.players[me.id]) return;
+  const r = await serverAct('scout');
+  if(r.ok){ if(r.me) G.players[me.id] = r.me; toast('🔭 Your scouts are back: +1 troop to deploy'); refreshUI(); }
+}
+// Raid Leader controls for the live war
+async function adminAct(action, args){
+  const r = await serverAct(action, args);
+  if(!r.ok){ toast(r.error); return; }
+  toast('Done'); refetchSoon();
+}
+function switchMode(m){ try{ localStorage.setItem('gw_mode', m); }catch(e){} location.reload(); }
+function adminLiveHtml(){
+  const ph = G.none ? 'no war' : G.phase;
+  return `<h3>Live war controls</h3>
+    <div class="muted">These change the real war everyone sees. War: <b>${G.none ? '-' : esc(G.id)}</b> · phase <b>${ph}</b>${NEXT ? ` · next war sign-ups open (${NEXT.signups.length})` : ''}</div>
+    <div class="row"><button class="btn sm" onclick="confirm('Start a new test war? The current war closes.') && adminAct('admin_new')">New test war (start by hand)</button>
+      <button class="btn sm" onclick="confirm('Start the weekly schedule? Sign-ups open now and the war starts next Monday 12am Pacific.') && adminAct('admin_new', { auto: true })">New weekly war</button></div>
+    ${G.phase === 'signup' ? `<div class="row"><button class="btn sm" onclick="adminAct('admin_bots', { n: 1 })">+1 bot</button><button class="btn sm" onclick="adminAct('admin_bots', { n: 5 })">+5 bots</button><button class="btn sm" onclick="adminAct('admin_start')">▶ Start the war now</button></div>` : ''}
+    ${G.phase === 'live' ? `<div class="row"><button class="btn sm" onclick="adminAct('admin_bots', { n: 1 })">+1 bot joins</button><button class="btn sm" onclick="adminAct('admin_run_bots')">🤖 Bots take their turn</button></div>
+      <div class="row"><button class="btn sm" onclick="confirm('Jump the war to the next day for everyone?') && adminAct('admin_next_day')">☀ Next day</button>
+        <label><input type="checkbox" ${G.settings.unlimitedAP ? 'checked' : ''} onchange="adminAct('admin_unlimited_ap', { on: this.checked })"> Unlimited AP</label>
+        <button class="btn sm red" onclick="confirm('End the war now for everyone?') && adminAct('admin_end')">End the war</button></div>` : ''}
+    <div class="row"><button class="btn sm red" onclick="resetMedals()">Reset everyone's medals</button></div>
+    <div class="row"><button class="btn sm" onclick="switchMode('sandbox')">⇄ Switch to my local sandbox</button></div>`;
+}
+async function resetMedals(){
+  if(!confirm("Delete EVERY player's war medals? This can't be undone.")) return;
+  const { data, error } = await sb.rpc('reset_war_medals'); toast(error ? error.message : `Removed ${data} medal${data === 1 ? '' : 's'}`);
+}
+
 
 // ---------- chat: board (everyone) + your faction's private channel, live via Supabase realtime ----------
 let chatChan = 'board', chatMsgs = [], chatFactionSynced = null, unread = { board: 0, faction: 0 };
@@ -540,7 +653,7 @@ async function loadChat(){
 // while the war is a sandbox, the admin's chat faction follows whoever they are playing as
 async function syncChatFaction(){
   const f = myFaction();
-  if(!me || !me.signedIn || !me.admin || !f || f === chatFactionSynced) return;
+  if(LIVE || !me || !me.signedIn || !me.admin || !f || f === chatFactionSynced) return;
   chatFactionSynced = f;
   const { error } = await sb.rpc('set_war_faction', { p_faction: f });
   if(error) chatFactionSynced = null; else loadChat();
@@ -753,7 +866,7 @@ function refreshUI(){
   if(board && board.syncPets) board.syncPets(G);
   setTimeout(attachPets, 0);
   // scouts: the first look at the board in each 8-hour watch brings in a free troop
-  if(G && playAs && G.players[playAs] && !G.players[playAs].bot){ const sr = E.scout(G, playAs); if(sr.ok){ save(); setTimeout(() => toast('🔭 Your scouts are back: +1 troop to deploy'), 300); } }
+  if(!LIVE && G && playAs && G.players[playAs] && !G.players[playAs].bot){ const sr = E.scout(G, playAs); if(sr.ok){ save(); setTimeout(() => toast('🔭 Your scouts are back: +1 troop to deploy'), 300); } }
   setTimeout(placePamphlet, 0);
   renderLedger();
   const rb = document.getElementById('resultsBtn'); if(rb) rb.style.display = G.phase === 'ended' ? '' : 'none';
@@ -766,7 +879,18 @@ function refreshUI(){
   renderMe(); renderZone(); renderFeed(); renderSignup();
   if(document.getElementById('admin').style.display === 'block') renderAdmin();
 }
+function nextSignupHtml(){
+  if(!NEXT && !(G.none && LIVE)) return '';
+  if(!NEXT) return `<div class="sec">The war</div><div class="muted">No war is running right now.</div>`;
+  const mine = NEXT.signups.some(s => s.id === me.id);
+  return `<div class="sec">Next war</div><div class="row" style="justify-content:space-between"><span class="muted">${NEXT.signups.length} signed up${NEXT.weekStart ? ' · starts ' + new Date(NEXT.weekStart).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : ''}</span>
+    ${mine ? '<span class="chip">✔ Signed up</span>' : '<button class="btn sm" onclick="doSignup()">Sign me up</button>'}</div>`;
+}
 function renderMe(){
+  renderMeInner();
+  const x = nextSignupHtml(); if(x) document.getElementById('me').insertAdjacentHTML('beforeend', x);
+}
+function renderMeInner(){
   const el = document.getElementById('me'), p = cur();
   if(!p){
     el.className = 'panel neutral';
@@ -908,7 +1032,7 @@ function selectFrom(n){ const t = selZone; selZone = n; mode = 'attack'; target 
 const PET_TYPES_WAR = ['gryphon', 'dragon', 'cat'], PET_STAGES = ['juvenile', 'adult', 'boss'];
 let petsLoading = false;
 async function attachPets(){
-  if(petsLoading || !G || !G.players) return;
+  if(LIVE || petsLoading || !G || !G.players) return;
   const todo = Object.values(G.players).filter(p => !p.petChecked); if(!todo.length) return;
   petsLoading = true;
   try{
@@ -927,24 +1051,24 @@ async function attachPets(){
   }catch(e){ console.warn('pets failed to load:', e); }
   petsLoading = false;
 }
-function doPlacePet(){ after(E.placePet(G, playAs, selZone)); }
+function doPlacePet(){ act('pet', { zone: selZone }, () => E.placePet(G, playAs, selZone)); }
 const petLabel = pet => `${esc(pet.name)} (level ${pet.level} ${pet.type})`;
 
 function after(r){
   if(!r.ok){ toast(r.error); return false; }
   save(); push(r.entry); refreshUI(); return true;
 }
-function doDeploy(n){ after(E.deploy(G, playAs, selZone, n || +document.getElementById('depN').value)); }
-function doFortify(){ after(E.fortify(G, playAs, selZone)); }
-function doBuild(k){ after(E.build(G, playAs, selZone, k)); }
-function doShield(){ after(E.useShieldWall(G, playAs, selZone)); }
+function doDeploy(n){ n = n || +document.getElementById('depN').value; act('deploy', { zone: selZone, n }, () => E.deploy(G, playAs, selZone, n)); }
+function doFortify(){ act('fortify', { zone: selZone }, () => E.fortify(G, playAs, selZone)); }
+function doBuild(k){ act('build', { zone: selZone, kind: k }, () => E.build(G, playAs, selZone, k)); }
+function doShield(){ act('shieldwall', { zone: selZone }, () => E.useShieldWall(G, playAs, selZone)); }
 function doCraft(k){
   const n = CARD_HELP[k] ? CARD_HELP[k][0] : k;
-  confirmBox(`Craft <b>${n}</b>?`, `${CARD_HELP[k] ? CARD_HELP[k][1] : ''}<br><br>Costs <b>${costStr(E.RULES.costs[k])}</b>.`, 'Craft', () => after(E.craft(G, playAs, k)));
+  confirmBox(`Craft <b>${n}</b>?`, `${CARD_HELP[k] ? CARD_HELP[k][1] : ''}<br><br>Costs <b>${costStr(E.RULES.costs[k])}</b>.`, 'Craft', () => act('craft', { kind: k }, () => E.craft(G, playAs, k)));
 }
 function doTrade(){
   const give = document.getElementById('trGive').value, get = document.getElementById('trGet').value, p = cur(), rate = E.tradeRate(G, p.faction);
-  confirmBox('Trade with the bank?', `Give <b>${rate} ${RES_ICON[give]} ${give}</b> for <b>1 ${RES_ICON[get]} ${get}</b>.<br><span class="muted">You have ${p.res[give]} ${give}.</span>`, 'Trade', () => after(E.trade(G, playAs, give, get)));
+  confirmBox('Trade with the bank?', `Give <b>${rate} ${RES_ICON[give]} ${give}</b> for <b>1 ${RES_ICON[get]} ${get}</b>.<br><span class="muted">You have ${p.res[give]} ${give}.</span>`, 'Trade', () => act('trade', { give, get }, () => E.trade(G, playAs, give, get)));
 }
 // a small themed yes/no box
 function confirmBox(title, body, yes, onYes){
@@ -958,28 +1082,35 @@ function confirmBox(title, body, yes, onYes){
   document.getElementById('cbYes').onclick = () => { close(); onYes(); };
   el.onclick = e => { if(e.target === el) close(); };
 }
-function doAct(){
+async function doAct(){
   const n = +document.getElementById('actN').value;
+  if(LIVE){
+    const war = !!(document.getElementById('optWar') || {}).checked, naval = !!(document.getElementById('optNav') || {}).checked, march = !!(document.getElementById('optMarch') || {}).checked;
+    const ok = await act(mode === 'attack' ? 'attack' : 'move', mode === 'attack' ? { from: selZone, to: target, n, warcry: war, naval } : { from: selZone, to: target, n, march });
+    if(ok){ mode = null; target = null; board.select(selZone, []); renderZone(); }
+    return;
+  }
   let r;
   if(mode === 'attack') r = E.attack(G, playAs, selZone, target, n, { warcry: !!(document.getElementById('optWar') || {}).checked, naval: !!(document.getElementById('optNav') || {}).checked, forceDice });
   else r = E.move(G, playAs, selZone, target, n, { march: !!(document.getElementById('optMarch') || {}).checked });
   if(after(r)){ const t = target; mode = null; target = null; if(r.entry.captured){ selZone = t; } board.select(selZone, []); renderZone(); }
 }
-function joinNow(){ after(E.joinLate(G, { id: me.id, name: me.name })); playAs = me.id; refreshUI(); }
+function joinNow(){ act('join', {}, () => E.joinLate(G, { id: me.id, name: me.name })).then(() => { playAs = me.id; refreshUI(); }); }
 
 // ---------- sign-ups ----------
 function renderSignup(){
   const el = document.getElementById('signup');
-  if(G.phase !== 'signup'){ el.style.display = 'none'; return; }
+  const S = G.phase === 'signup' && !G.none ? G : null;
+  if(!S){ el.style.display = 'none'; return; }
   el.style.display = 'flex';
-  const mine = G.signups.some(s => s.id === me.id);
+  const mine = S.signups.some(s => s.id === me.id);
   document.getElementById('signupCard').innerHTML = `<h2 style="font-family:Cinzel;color:var(--gold);margin-top:0">Guild War · Sign-ups</h2>
-    <div class="muted">Sign-ups run Sunday 8pm to midnight. At midnight the teams are drafted (snake draft by activity) and the war runs Monday to Sunday 8pm.</div>
-    <div id="signupList">${G.signups.map(s => `<div>• ${esc(s.name)}${s.bot ? '<span class="tag">bot</span>' : ''}</div>`).join('') || '<div class="muted">Nobody yet</div>'}</div>
+    <div class="muted">${S.weekStart ? `The teams are drafted (snake draft by activity) and the war begins <b>${new Date(S.weekStart).toLocaleString([], { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</b>, and runs to Sunday 8pm (Pacific).` : 'Sign-ups are open. The war starts when the Raid Leader starts it.'}</div>
+    <div id="signupList">${S.signups.map(s => `<div>• ${esc(s.name)}${s.bot ? '<span class="tag">bot</span>' : ''}</div>`).join('') || '<div class="muted">Nobody yet</div>'}</div>
     <div class="row">${mine ? '<span class="chip">✔ You are signed up</span>' : '<button class="btn" onclick="doSignup()">Sign me up</button>'}
-      ${me.admin ? `<button class="btn sm" onclick="addBots(5)">+5 bots</button><button class="btn sm" onclick="startWar()">Start the war (draft) ▶</button>` : ''}</div>`;
+      ${me.admin ? (LIVE ? `<button class="btn sm" onclick="adminAct('admin_bots', { n: 5 })">+5 bots</button><button class="btn sm" onclick="adminAct('admin_start')">Start the war now (draft) ▶</button>` : `<button class="btn sm" onclick="addBots(5)">+5 bots</button><button class="btn sm" onclick="startWar()">Start the war (draft) ▶</button>`) : ''}</div>`;
 }
-function doSignup(){ E.signup(G, { id: me.id, name: me.name, activity: 50 }); save(); refreshUI(); }
+function doSignup(){ if(LIVE){ act('signup', {}); return; } E.signup(G, { id: me.id, name: me.name, activity: 50 }); save(); refreshUI(); }
 const BOT_NAMES = ['Grommash', 'Jaina', 'Thrall', 'Varian', 'Sylvanas', 'Tyrande', 'Cairne', 'Magni', 'Vol\'jin', 'Malfurion', 'Rexxar', 'Muradin', 'Garrosh', 'Anduin', 'Baine', 'Genn', 'Lor\'themar', 'Velen', 'Gallywix', 'Gelbin'];
 function addBots(n){
   for(let i = 0; i < n; i++){
@@ -1010,10 +1141,12 @@ function runBots(){
 function toggleAdmin(){ const a = document.getElementById('admin'); a.style.display = a.style.display === 'block' ? 'none' : 'block'; if(a.style.display === 'block') renderAdmin(); }
 function renderAdmin(){
   const el = document.getElementById('admin');
+  if(LIVE){ el.innerHTML = adminLiveHtml(); return; }
   const opts = Object.values(G.players).map(p => `<option value="${p.id}" ${p.id === playAs ? 'selected' : ''}>${esc(p.name)} (${p.faction}${p.bot ? ', bot' : ''})</option>`).join('');
   const z = selZone ? G.zones[selZone] : null;
   el.innerHTML = `<h3>Admin sandbox</h3>
-    <div class="muted">This is a local test war (saved in this browser). Nothing here touches the live site.</div>
+    <div class="muted">This is a local test war (saved in this browser). Nothing here touches the live war.</div>
+    <div class="row"><button class="btn sm" onclick="switchMode('live')">⇄ Back to the live war</button></div>
     <div class="row">Play as <select onchange="playAs=this.value;refreshUI()">${opts || '<option>nobody yet</option>'}</select></div>
     <div class="row"><button class="btn sm" onclick="addBots(1)">+1 bot</button><button class="btn sm" onclick="addBots(5)">+5 bots</button><button class="btn sm" onclick="runBots()">🤖 Bots take their turn</button></div>
     <div class="row"><label><input type="checkbox" ${G.settings.unlimitedAP ? 'checked' : ''} onchange="G.settings.unlimitedAP=this.checked;save();refreshUI()"> Unlimited AP</label>
@@ -1048,7 +1181,11 @@ function endWar(){ after(E.endGame(G)); setTimeout(showEndScreen, 600); }
 
 // ---------- war over: Victory / Defeat, with each champion's part in it ----------
 // personal score: 5 per zone captured, 1 per enemy troop killed, 3 per outpost, 6 per stronghold, 1 per fortify
-const playerStats = () => WarAI.playerStats(G, G.log);
+const playerStats = () => {
+  if(!G.stats) return WarAI.playerStats(G, G.log);
+  const st = {}; Object.values(G.players).forEach(p => { const x = G.stats[p.id] || {}; st[p.id] = { p, caps: x.caps || 0, kills: x.kills || 0, builds: x.builds || 0, forts: x.forts || 0, score: x.score || 0 }; });
+  return st;
+};
 const botTurn = pid => WarAI.botTurn(E, G, pid);
 // ---------- the champion's smash ----------
 // The winning side's top scorer may smash the board any time from the end of the war until the next war starts.
@@ -1092,9 +1229,16 @@ function stopSmash(){
   document.getElementById('smashBar').style.display = 'none';
   refreshUI();
 }
-function smashClick(x, y){
+async function smashClick(x, y){
   if(!board.smashMode || !canSmash()) return;
   const at = board.pointOnTable(x, y); if(!at) return;
+  if(LIVE){
+    board.swingAt(x, y, cur().faction, at);
+    const r = await serverAct('smash', { x: at.x, z: at.z }); if(!r.ok){ toast(r.error); return; }
+    (G.smash = G.smash || []).push(r.hit); board.smashHit(r.hit, true);
+    const ch = smashChannel(); if(ch) ch.send({ type: 'broadcast', event: 'hit', payload: { gid: G.id, hit: r.hit } });
+    return;
+  }
   G.smash = G.smash || []; if(!G.smashStart) G.smashStart = Date.now();
   const hit = { x: +at.x.toFixed(3), z: +at.z.toFixed(3), power: +(0.8 + Math.random() * 0.5).toFixed(2), seed: Math.floor(Math.random() * 1e9), t: +((Date.now() - G.smashStart) / 1000).toFixed(2) };
   G.smash.push(hit); save();
