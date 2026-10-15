@@ -2101,10 +2101,14 @@
       (this.mixers || []).forEach(m => m.update(dt));
       this.tickEggs(now);
       if(this.water){ this.water.offset.x = now / 90000; this.water.offset.y = Math.sin(now / 7000) * 0.03; }
-      this.anims = this.anims.filter(a => {
+      // tweens can start new tweens (a die landing throws sparks): run this frame's batch, then keep anything
+      // added meanwhile, or the new ones would be dropped and their effects left frozen on the board
+      const batch = this.anims; this.anims = [];
+      const live = batch.filter(a => {
         const t = Math.min(1, (now - a.t0) / a.ms); a.fn(t);
         if(t >= 1){ a.res(); return false; } return true;
       });
+      this.anims = live.concat(this.anims);
       this.applyCamera();
       // flags wave, rings breathe
       KEYS.forEach(k => {
