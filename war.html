@@ -512,15 +512,18 @@ function myFaction(){ const p = G && G.players && G.players[playAs]; return p ? 
 function initChat(){
   if(!me.signedIn){ document.getElementById('chatLog').innerHTML = '<div class="m sys">Sign in on the main site to use chat.</div>'; return; }
   sb.channel('guild-war-chat').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'guild_war_chat' }, ({ new: m }) => {
-    if(chatMsgs.some(x => x.id === m.id)) return;
+    if(chatMsgs.some(x => x.id === m.id) || new Date(m.created_at) < chatSince()) return;
     chatMsgs.push(m); const ch = m.channel === 'board' ? 'board' : 'faction';
     if(ch !== chatChan || document.getElementById('chat').classList.contains('min')) unread[ch]++;
     renderChat();
   }).subscribe();
-  loadChat();
+  setTimeout(loadChat, 0);   // after boot has loaded the game, so only this war's messages show
 }
+// each war has its own chat: only messages sent since this game was created are shown (the game id is 'g' + its creation time)
+const chatSince = () => new Date(G && /^g\d+$/.test(G.id) ? +G.id.slice(1) : 0);
 async function loadChat(){
-  const { data, error } = await sb.from('guild_war_chat').select('*').order('created_at', { ascending: false }).limit(120);
+  if(!me || !me.signedIn) return;
+  const { data, error } = await sb.from('guild_war_chat').select('*').gte('created_at', chatSince().toISOString()).order('created_at', { ascending: false }).limit(120);
   if(error){ document.getElementById('chatLog').innerHTML = '<div class="m sys">Chat is not set up yet.</div>'; return; }
   chatMsgs = (data || []).reverse(); renderChat();
 }
@@ -1070,7 +1073,7 @@ function advanceDay(){
 function advanceHours(h){
   if(G.phase === 'live' && G.clock + h >= E.RULES.endClock){ G.clock = E.RULES.endClock; const from = G.seq; E.endGame(G); toast('Sunday 8pm: the war ends'); save(); refreshUI(); G.log.filter(e => e.seq > from).forEach(e => queue.push(e)); runQueue(); return; }
   G.clock += h; if(E.day(G) > E.day({ clock: G.clock - h })){ G.clock -= h; advanceDay(); return; } save(); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
-function jumpPhase(ph){ if(ph === 'signup' && !confirm('Go back to sign-ups? This wipes the board (sign-ups are kept).')) return; const s = G.signups; G = E.newGame({ sandbox: true }); G.signups = s; save(); markSeen(G.seq); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
+function jumpPhase(ph){ if(ph === 'signup' && !confirm('Go back to sign-ups? This wipes the board (sign-ups are kept).')) return; const s = G.signups; G = E.newGame({ sandbox: true }); G.signups = s; save(); chatMsgs = []; loadChat(); markSeen(G.seq); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
 function endWar(){ after(E.endGame(G)); setTimeout(showEndScreen, 600); }
 
 // ---------- war over: Victory / Defeat, with each champion's part in it ----------
@@ -1156,7 +1159,7 @@ function editZone(){
   z.owner = document.getElementById('edO').value; z.ready = Math.max(0, +document.getElementById('edR').value); z.fresh = Math.max(0, +document.getElementById('edF').value);
   z.outpost = +document.getElementById('edB').value; save(); board.setState(JSON.parse(JSON.stringify(G))); refreshUI();
 }
-function resetWar(){ if(!confirm('Reset the sandbox war completely?')) return; G = E.newGame({ sandbox: true }); save(); markSeen(0); selZone = null; board.select(null, []); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
+function resetWar(){ if(!confirm('Reset the sandbox war completely?')) return; G = E.newGame({ sandbox: true }); save(); markSeen(0); chatMsgs = []; loadChat(); selZone = null; board.select(null, []); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
 function replayAll(){
   // rewind the board to the start and play every move again
   const view = JSON.parse(JSON.stringify(G));

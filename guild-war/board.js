@@ -1475,7 +1475,7 @@
       const fortified = z.fortifyUntil > now, fm2 = fortified && this.holdModels && this.holdModels[z.owner + '_fortify'];
       if(p.fortFor !== (fm2 ? z.owner : null)){
         if(p.fort){ p.grp.remove(p.fort); p.fort = null; }
-        if(fm2){ p.fort = fm2.clone(); const hasB = z.outpost >= 1; p.fort.position.set(hasB ? (p.bx || -0.2) : 0, 0.002, hasB ? (p.bz || -0.06) : 0); p.grp.add(p.fort); }   // centred on the building
+        if(fm2){ p.fort = fm2.clone(); p.fort.position.set(p.bx != null ? p.bx : -0.2, 0.002, p.bz != null ? p.bz : -0.06); p.grp.add(p.fort); }   // always round the building spot, built or not
         p.fortFor = fm2 ? z.owner : null;
       }
       p.wall.visible = fortified && !fm2;
@@ -1779,8 +1779,9 @@
           }
         }
         const room = (clear || 80) / pxPerUnit;   // distance to the nearest border, in world units
-        const s = Math.max(0.6, Math.min(1, room / FOOT));
-        this.pieces[k].grp.scale.setScalar(s); this.pieces[k].fit = s;
+        let s = Math.max(0.6, Math.min(1, room / FOOT));
+        let best = null;
+        for(;;){   // shrink a cramped zone's pieces (down to 0.4) until its fortify wall fits inside it
         // where the building stands: 0.2 units from the banner (scaled), in the direction with the most room
         const inside = (wx, wz, rad) => {   // world offset from the anchor -> is a circle of radius rad (world) all in zone?
           const px = cx + wx * pxPerUnit, py = cy + wz * (RH / PH), rr = rad * pxPerUnit;
@@ -1790,12 +1791,27 @@
           }
           return true;
         };
-        let best = null;
-        for(let i = 0; i < 12; i++){
-          const a = Math.PI + i / 12 * Math.PI * 2, d = 0.21 * s, ox = Math.cos(a) * d, oz = Math.sin(a) * d * 0.6;   // prefer left of the banner
-          if(inside(ox, oz, 0.13 * s)){ best = [ox, oz]; break; }
+        // where the building stands - and the fortify wall, which is always centred on it: search the zone near
+        // the banner for the spot where the building fits fully inside and as much of the wall ring as possible does too
+        const frac = (wx, wz, rad, n) => {   // share of a circle's rim (radius rad, world) that lies inside the zone
+          const px = cx + wx * pxPerUnit, py = cy + wz * (RH / PH), rr = rad * pxPerUnit; let ok = 0;
+          for(let a = 0; a < n; a++){ const x = Math.round(px + Math.cos(a / n * Math.PI * 2) * rr), y = Math.round(py + Math.sin(a / n * Math.PI * 2) * rr); if(x >= 0 && y >= 0 && x < RW && y < RH && R[y * RW + x] === v) ok++; }
+          return ok / n;
+        };
+        best = null; let bestScore = -1e9;
+        const RING = 0.33 * s, REACH = 0.42 * s, STEP = 0.03 * s;
+        for(let oz = -REACH; oz <= REACH; oz += STEP) for(let ox = -REACH; ox <= REACH; ox += STEP){
+          const d = Math.hypot(ox, oz); if(d > REACH || d < 0.1 * s) continue;   // near the banner, but not on top of it
+          if(!inside(ox, oz, 0.13 * s)) continue;
+          const score = frac(ox, oz, RING, 32) * 2 + frac(ox, oz, RING * 0.6, 20) - d / REACH * 0.25 + (ox < 0 ? 0.05 : 0);
+          if(score > bestScore){ bestScore = score; best = [ox, oz]; }
         }
         if(!best) for(let i = 0; i < 12 && !best; i++){ const a = Math.PI + i / 12 * Math.PI * 2, d = 0.15 * s; if(inside(Math.cos(a) * d, Math.sin(a) * d * 0.6, 0.09 * s)) best = [Math.cos(a) * d, Math.sin(a) * d * 0.6]; }
+        this.pieces[k].ringFit = best ? frac(best[0], best[1], RING, 64) : 0;
+        if(this.pieces[k].ringFit >= 0.85 || s <= 0.4)break;
+        s = Math.max(0.4, s - 0.05);
+        }
+        this.pieces[k].grp.scale.setScalar(s); this.pieces[k].fit = s;
         best = best || [-0.12 * s, 0];
         const hAt = TUNE.holds[k] && TUNE.holds[k].at;   // a hand-placed building spot wins
         if(hAt){ const an = anchor(k); best = [(hAt[0] - an[0]) / MW * PW, (hAt[1] - an[1]) / MH * PH]; }
