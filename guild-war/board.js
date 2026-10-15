@@ -23,6 +23,10 @@
   const anchor = k => { if(TUNE.pieces[k]) return TUNE.pieces[k].slice(0, 2); const p = WAR_LAYOUT[k], s = PIECE_SHIFT[k] || [0, 0]; return [p.x + s[0], p.y + s[1]]; };
   const zoneWorld = k => toWorld(...anchor(k));
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+  // which monsters hold the neutral camps in each region (regions without one use plain tokens)
+  const NEUTRAL_MOBS = { khaz_modan: 'mob_gnoll', southern_wilds: 'mob_centaur', north_kalimdor: 'mob_furbolg', lordaeron: 'mob_ghoul' };
+  // the clip each animation request uses, in order of preference (monsters have no weapon stances)
+  const CLIP_ALIASES = { Ready1H: ['Ready1H', 'ReadyUnarmed', 'Stand'], Attack1H: ['Attack1H', 'AttackUnarmed'], BattleRoar: ['BattleRoar', 'AttackUnarmed', 'Attack1H'], Run: ['Run'], Death: ['Death'], Stand: ['Stand', 'Ready1H'] };
   const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   const easeOut = t => 1 - Math.pow(1 - t, 3);
   // raster values: 1 + index in WAR_ZONE_ORDER; 0 sea, 253 land that isn't a zone, 254 lake
@@ -1490,6 +1494,20 @@
         p.fortFor = fm2 ? z.owner : null;
       }
       p.wall.visible = fortified && !fm2;
+      const mobKey = z.owner === 'neutral' ? NEUTRAL_MOBS[WAR_ZONES[k].region] : null, haveMob = mobKey && this.troopProtos && this.troopProtos[mobKey];
+      const campN = haveMob ? Math.min(3, Math.max(1, Math.ceil((z.ready + z.fresh) / 2))) : 0;
+      if(p.campFor !== campN){
+        (p.camp || []).forEach(m => { p.grp.remove(m); if(m.userData.mixer) this.mixers = this.mixers.filter(x => x !== m.userData.mixer); });
+        p.camp = [];
+        for(let i = 0; i < campN; i++){
+          const m = this.troop(mobKey); this.scene.remove(m); p.grp.add(m);
+          const a = i / Math.max(1, campN) * Math.PI * 2 + 0.6, r = campN > 1 ? 0.07 : 0;
+          m.position.set((p.bx != null ? p.bx : -0.15) + Math.cos(a) * r, 0.002, (p.bz != null ? p.bz : 0) + Math.sin(a) * r);
+          m.rotation.y = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;   // roughly facing the camera
+          m.userData.play('Stand'); p.camp.push(m);
+        }
+        p.campFor = campN;
+      }
       const info = WAR_ZONES[k];
       p.lab.className = 'wb-label ' + z.owner + (this.selected === k ? ' sel' : '');
       p.lab.innerHTML = `<b>${z.ready}</b>⚔${z.fresh ? `<i>+${z.fresh}💤</i>` : ''}${info.capital ? '<s>♛</s>' : ''}${z.shield ? '<s>🛡</s>' : ''}`;
@@ -1827,7 +1845,7 @@
         const hAt = TUNE.holds[k] && TUNE.holds[k].at;   // a hand-placed building spot wins
         if(hAt){ const an = anchor(k); best = [(hAt[0] - an[0]) / MW * PW, (hAt[1] - an[1]) / MH * PH]; }
         this.pieces[k].bx = best[0] / s; this.pieces[k].bz = best[1] / s;   // stored in the group's (scaled) space
-        this.pieces[k].holdFor = this.pieces[k].postFor = this.pieces[k].fortFor = undefined;   // re-place on next sync
+        this.pieces[k].holdFor = this.pieces[k].postFor = this.pieces[k].fortFor = this.pieces[k].campFor = undefined;   // re-place on next sync
         if(this.state) this.syncPiece(k);
       });
     }
@@ -1883,7 +1901,9 @@
     // stored it in the node's extras, so here every piece is pinned to its bone and moves with the animation. -----
     loadTroops(){
       if(!THREE.GLTFLoader || !THREE.SkeletonUtils) return;
-      const M = window.WAR_TROOPS || { alliance: 'models/war/troop-alliance.gltf', horde: 'models/war/troop-horde.gltf' };
+      const M = window.WAR_TROOPS || { alliance: 'models/war/troop-alliance.gltf', horde: 'models/war/troop-horde.gltf',
+        // neutral camps: each region's own monsters
+        mob_gnoll: 'models/war/mob-gnoll.gltf', mob_centaur: 'models/war/mob-centaur.gltf', mob_furbolg: 'models/war/mob-furbolg.gltf', mob_ghoul: 'models/war/mob-ghoul.gltf' };
       this.troopProtos = {};
       Object.keys(M).forEach(f => new THREE.GLTFLoader().load(M[f], gltf => {
         const m = gltf.scene; m.updateMatrixWorld(true);
@@ -1904,9 +1924,12 @@
         const s = 0.17 / (box.max.y - box.min.y); m.position.y = -box.min.y;
         const inner = new THREE.Group(); inner.add(m); inner.scale.setScalar(s);
         this.troopProtos[f] = { proto: inner, clips: gltf.animations };
+        if(/^mob_/.test(f)) KEYS.forEach(k => this.syncPiece(k));   // camps appear once their monsters load
       }, undefined, err => console.warn(f + ' troops failed to load, using plain tokens:', err)));
     }
     troop(faction){
+      const mob = /^neutral:/.test(faction) ? NEUTRAL_MOBS[faction.slice(8)] : null;
+      if(mob) faction = mob;
       const P = this.troopProtos && this.troopProtos[faction];
       const holder = new THREE.Group();
       if(!P){
@@ -1919,7 +1942,7 @@
       const mixer = new THREE.AnimationMixer(fig); let cur = null;
       holder.userData.mixer = mixer; (this.mixers = this.mixers || []).push(mixer);
       holder.userData.play = (name, once) => {
-        const c = P.clips.find(x => x.name === name); if(!c) return 0;
+        const c = (CLIP_ALIASES[name] || [name]).map(n => P.clips.find(x => x.name === n)).find(Boolean); if(!c) return 0;
         const a = mixer.clipAction(c); a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat); a.clampWhenFinished = !!once;
         if(!once) a.time = Math.random() * c.duration;
         if(cur && cur !== a) a.crossFadeFrom(cur, 0.2, false);
@@ -2105,7 +2128,7 @@
       // front of their zone. One figure per troop (up to 10 a side, then each stands for a few); as troops die,
       // figures fall and vanish
       const defStart = e.zones[e.to].before.ready + e.zones[e.to].before.fresh;
-      const armies = await this.formArmies(A, B, e.n, defStart, att, def === 'neutral' ? 'neutral' : def);
+      const armies = await this.formArmies(A, B, e.n, defStart, att, def === 'neutral' ? 'neutral:' + WAR_ZONES[e.to].region : def);
       const toks = armies.att;
       toks.forEach(m => m.userData.play('Attack1H')); armies.def.forEach(m => m.userData.play('Attack1H'));
       if(e.naval) this.floatText(e.to, '⛵ Naval Landing', att);
