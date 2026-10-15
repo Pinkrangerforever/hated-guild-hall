@@ -24,7 +24,7 @@
   const zoneWorld = k => toWorld(...anchor(k));
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   // which monsters hold the neutral camps in each region (regions without one use plain tokens)
-  const NEUTRAL_MOBS = { khaz_modan: 'mob_gnoll', southern_wilds: 'mob_centaur', north_kalimdor: 'mob_furbolg', lordaeron: 'mob_ghoul' };
+  const NEUTRAL_MOBS = { khaz_modan: 'mob_gnoll', kalimdor_heart: 'mob_centaur', southern_wilds: 'mob_silithid', north_kalimdor: 'mob_furbolg', lordaeron: 'mob_ghoul', azeroth: 'mob_defias' };
   // the clip each animation request uses, in order of preference (monsters have no weapon stances)
   const CLIP_ALIASES = { Ready1H: ['Ready1H', 'ReadyUnarmed', 'Stand'], Attack1H: ['Attack1H', 'AttackUnarmed'], BattleRoar: ['BattleRoar', 'AttackUnarmed', 'Attack1H'], Run: ['Run'], Death: ['Death'], Stand: ['Stand', 'Ready1H'] };
   const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -1912,7 +1912,8 @@
       if(!THREE.GLTFLoader || !THREE.SkeletonUtils) return;
       const M = window.WAR_TROOPS || { alliance: 'models/war/troop-alliance.gltf', horde: 'models/war/troop-horde.gltf',
         // neutral camps: each region's own monsters
-        mob_gnoll: 'models/war/mob-gnoll.gltf', mob_centaur: 'models/war/mob-centaur.gltf', mob_furbolg: 'models/war/mob-furbolg.gltf', mob_ghoul: 'models/war/mob-ghoul.gltf' };
+        mob_gnoll: 'models/war/mob-gnoll.gltf', mob_centaur: 'models/war/mob-centaur.gltf', mob_furbolg: 'models/war/mob-furbolg.gltf', mob_ghoul: 'models/war/mob-ghoul.gltf',
+        mob_silithid: 'models/war/mob-silithid.gltf', mob_defias: 'models/war/mob-defias.gltf' };
       this.troopProtos = {};
       Object.keys(M).forEach(f => new THREE.GLTFLoader().load(M[f], gltf => {
         const m = gltf.scene; m.updateMatrixWorld(true);
