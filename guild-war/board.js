@@ -466,6 +466,20 @@
             const base = new THREE.Vector3((bb.min.x + bb.max.x) / 2, bb.min.y, (bb.min.z + bb.max.z) / 2);
             o.geometry.translate(-base.x, -base.y, -base.z); o.position.add(base);
             o.userData.pivoted = true; o.userData.flame = /195953/.test(o.name); o.userData.seed = Math.random() * 100;
+            if(o.userData.flame){
+              // a soft wave travelling up the flame: sideways bend that grows toward the tip (vertex shader)
+              const H = Math.max(1e-4, bb.max.y - bb.min.y), u = { uTime: { value: 0 }, uH: { value: H }, uSeed: { value: o.userData.seed } };
+              o.material = o.material.clone(); o.userData.waveU = u;
+              o.material.onBeforeCompile = sh => {
+                Object.assign(sh.uniforms, u);
+                sh.vertexShader = 'uniform float uTime; uniform float uH; uniform float uSeed;\n' + sh.vertexShader.replace('#include <begin_vertex>', [
+                  '#include <begin_vertex>',
+                  'float h = clamp(position.y / uH, 0.0, 1.0);',
+                  'float w = sin(position.y / uH * 4.0 - uTime * 3.2 + uSeed) * 0.6 + sin(position.y / uH * 7.0 - uTime * 4.7 + uSeed * 1.7) * 0.4;',
+                  'transformed.x += w * h * h * uH * 0.07;',
+                  'transformed.z += cos(position.y / uH * 3.0 - uTime * 2.6 + uSeed) * h * h * uH * 0.04;'].join('\n'));
+              };
+            }
           });
           t.scale.setScalar(s); t.position.set(side * 3.3, 1.2, -A + 0.9); t.rotation.y = -Math.PI / 2;   // bracket flat on the wall, flame up
           this.walls.add(t);
@@ -864,8 +878,8 @@
       (this.torchFlames || []).forEach(o => {
         if(!o.userData.pivoted) return; const k = o.userData.seed, t = now / 1000;
         const n = Math.sin(t * 7.1 + k) * 0.5 + Math.sin(t * 11.3 + k * 2) * 0.3 + Math.sin(t * 17.9 + k * 3) * 0.2;   // -1..1, never regular
-        if(o.userData.flame){ o.scale.set(1 - n * 0.03, 1 + n * 0.08, 1 - n * 0.03); o.rotation.z = Math.sin(t * 1.7 + k) * 0.04 + n * 0.015; }
-        else { const g = 1 + n * 0.05; o.scale.set(g, g, g); }
+        if(o.userData.flame){ if(o.userData.waveU) o.userData.waveU.uTime.value = t; }
+        else { const g = 1 + n * 0.04; o.scale.set(g, g, g); }
       });
       if(this.lavaTick) this.lavaTick(now);
       (this.lairSmoke || []).forEach(o => { const t = ((now / 4200) + o.ph) % 1; o.sp.position.set(Math.sin(t * 6 + o.ph * 9) * 0.03, 0.06 + t * 0.35, 0.08); o.sp.scale.setScalar(0.06 + t * 0.16); o.sp.material.opacity = Math.sin(t * Math.PI) * 0.55; });
