@@ -1504,7 +1504,7 @@
       }
       p.wall.visible = fortified && !fm2;
       const mobKey = z.owner === 'neutral' ? NEUTRAL_MOBS[WAR_ZONES[k].region] : null, haveMob = mobKey && this.troopProtos && this.troopProtos[mobKey];
-      const campN = haveMob ? Math.min(3, Math.max(1, Math.ceil((z.ready + z.fresh) / 2))) : 0;
+      const campN = 0;   // no standing camps (too busy on the map): the monsters only appear to defend in battles
       if(p.campFor !== campN){
         (p.camp || []).forEach(m => { p.grp.remove(m); if(m.userData.mixer) this.mixers = this.mixers.filter(x => x !== m.userData.mixer); });
         p.camp = [];
@@ -1934,7 +1934,6 @@
         const s = 0.17 / (box.max.y - box.min.y); m.position.y = -box.min.y;
         const inner = new THREE.Group(); inner.add(m); inner.scale.setScalar(s);
         this.troopProtos[f] = { proto: inner, clips: gltf.animations };
-        if(/^mob_/.test(f)) KEYS.forEach(k => this.syncPiece(k));   // camps appear once their monsters load
       }, undefined, err => console.warn(f + ' troops failed to load, using plain tokens:', err)));
     }
     troop(faction){
