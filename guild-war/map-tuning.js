@@ -176,6 +176,9 @@ const WAR_TUNING = {
    ]
   },
   "holds": {
+   "hillsbrad": {
+    "at": [932, 398]
+   },
    "swamp_sorrows": {
     "rot": -0.785
    },
