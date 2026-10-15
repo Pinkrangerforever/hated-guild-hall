@@ -1020,7 +1020,7 @@
     // zone's anchor to the coast nearest the other's, kept a little off the shore, then thinned to waypoints.
     // harbours: where boat lines land for a zone (map px); others land on the coast nearest the zone's banner
     routeSeaPaths(){
-      const HARBOURS = { wetlands: [918, 624], stranglethorn: [848, 1214], elwynn: [794, 906] };   // + Stormwind Harbor on Elwynn's west coast   // Menethil Harbor (west coast); Booty Bay (southern tip) - boats only
+      const HARBOURS = { wetlands: [918, 624], stranglethorn: [848, 1214], elwynn: [794, 906], hillsbrad: [897, 447] };   // + Southshore's dock on Hillsbrad's south coast   // + Stormwind Harbor on Elwynn's west coast   // Menethil Harbor (west coast); Booty Bay (southern tip) - boats only
       const ZEP_TOWERS = { stranglethorn: [866, 1108] };                        // Grom'gol, on Stranglethorn's west coast
       const S = 3, R = this.raster, RW = this.RW, RH = this.RH;
       const GW = Math.floor(RW / S), GH = Math.floor(RH / S), N = GW * GH;
