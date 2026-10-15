@@ -270,7 +270,20 @@
         const l = new THREE.PointLight(0xff9a3c, 0.5, 5 * s, 2); l.position.set(x, y + 0.6 * s, z); S.add(l);
         this.flames.push({ f, l, s, seed: Math.random() * 100, base: 0.5 }); (this.candleFx = this.candleFx || []).push({ x, z, f, l });
       };
-      [[-5.55, -3.55], [5.55, -3.55], [-5.55, 3.55], [5.55, 3.55]].forEach(([x, z]) => candle(x, 0.17, z, 1));
+      // two candles each side of the map, scattered a little differently every visit (clear of Leeroy's plate on the right)
+      const spots = [];
+      [-1, 1].forEach(side => {
+        let tries = 0; const mine = [];
+        while(mine.length < 2 && tries++ < 200){
+          const z = (Math.random() * 2 - 1) * 3.9, x = side * (5.2 + Math.random() * 0.7);
+          if(mine.some(m => Math.abs(m[1] - z) < 2.4)) continue;
+          if(side > 0 && Math.abs(z - 0.6) < 1.3) continue;
+          mine.push([x, z]);
+        }
+        spots.push(...mine);
+      });
+      this.candleSpots = spots;
+      spots.forEach(([x, z]) => candle(x, 0.17, z, 1));
       // floating dust in the light
       const n = 260, pos = new Float32Array(n * 3);
       for(let i = 0; i < n; i++){ pos[i * 3] = (Math.random() - 0.5) * 14; pos[i * 3 + 1] = Math.random() * 8; pos[i * 3 + 2] = (Math.random() - 0.5) * 10; }
@@ -765,7 +778,7 @@
       const s = this.ratScale; rat.scale.setScalar(s);
       const holder = new THREE.Group(); holder.add(rat); rat.position.y = this.ratLift * s; this.scene.add(holder);
       // from one candle corner to a neighbouring one, keeping clear of the candles themselves
-      const C = [[-5.55, -3.55], [5.55, -3.55], [5.55, 3.55], [-5.55, 3.55]], i = Math.floor(Math.random() * 4), j = (i + (Math.random() < 0.5 ? 1 : 3)) % 4;
+      const C = (this.candleSpots || [[-5.55, -3.55], [5.55, -3.55], [5.55, 3.55], [-5.55, 3.55]]).slice().sort((p, q) => Math.atan2(p[1], p[0]) - Math.atan2(q[1], q[0])), i = Math.floor(Math.random() * C.length), j = (i + (Math.random() < 0.5 ? 1 : C.length - 1)) % C.length;
       const a = new THREE.Vector3(C[i][0], 0.17, C[i][1]), bb = new THREE.Vector3(C[j][0], 0.17, C[j][1]), dir = bb.clone().sub(a).normalize();
       a.addScaledVector(dir, 0.5); bb.addScaledVector(dir, -0.5);
       holder.position.copy(a); holder.rotation.y = Math.atan2(-dir.z, dir.x);
@@ -1013,7 +1026,7 @@
       this.scene.add(m); this.mapMesh = m; this.mapGeo = geo;
       const wt = woodTex('#4a2f18', '24,12,4'); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(3, 3); wt.encoding = THREE.sRGBEncoding;
       const under = new THREE.Mesh(new THREE.PlaneGeometry(PW * 1.002, PH * 1.002), new THREE.MeshStandardMaterial({ map: wt, roughness: 0.8 }));
-      under.rotation.x = -Math.PI / 2; under.position.y = -0.012; under.receiveShadow = true; this.scene.add(under); this.underMap = under;
+      under.rotation.x = -Math.PI / 2; under.position.y = -0.012; under.receiveShadow = true; this.underMap = under;   // not added: the torn holes show the real tabletop
       this.drawMap();
     }
     // Boat routes: shortest sea path (A* on a coarse grid of the outline map) from the coast nearest one
@@ -1315,8 +1328,6 @@
       g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000';   // erase fully (destination-out erases by the fill's alpha)
       tears.forEach(p => { path(p); g.fill(); });
       g.globalCompositeOperation = 'source-over';
-      g.lineWidth = 3; g.strokeStyle = '#000';
-      g.beginPath(); g.rect(0, 0, W, H); g.stroke();          // ragged-free hairline so the sheet edge is clean
       g.restore();
     }
 
@@ -1711,10 +1722,10 @@
       const H = { tall: 1.5, cluster: 0.65 }, protos = {}; let left = 2;
       const place = () => {
         this.candleFx.forEach((cf, i) => {
-          const kind = i === 0 || i === 3 ? 'tall' : 'cluster', P = protos[kind]; if(!P) return;
-          const m = P.clone(); m.position.set(cf.x, 0, cf.z); m.rotation.y = i * 1.3; this.scene.add(m);
+          const kind = (cf.kind = cf.kind || (Math.random() < 0.5 ? 'tall' : 'cluster')), P = protos[kind] || protos.tall || protos.cluster; if(!P) return;
+          const m = P.clone(); m.position.set(cf.x, 0, cf.z); m.rotation.y = Math.random() * Math.PI * 2; this.scene.add(m);
           if(this.drawnCandles[i]) this.drawnCandles[i].visible = false;
-          const top = H[kind] * 0.95; cf.f.position.y = top; cf.f.scale.set(0.22, 0.36, 1); cf.l.position.y = top + 0.1;
+          const top = (H[kind] || H.tall || H.cluster) * 0.95; cf.f.position.y = top; cf.f.scale.set(0.22, 0.36, 1); cf.l.position.y = top + 0.1;
         });
       };
       Object.keys(M).forEach(kind => new THREE.GLTFLoader().load(M[kind], gltf => {
