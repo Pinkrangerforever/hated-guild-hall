@@ -94,14 +94,15 @@ async function mutate(fn: (s: any, g: Game) => any, opts: { create?: () => any, 
     if(!g) return { ok: false, error: 'No war is running' };
     const s = g.state; s.log = [];
     const r = (await fn(s, g)) || { ok: true };
-    const entries = s.log; delete s.log;
-    if(r.ok === false && !entries.length) return r;
-    // everyone who has appeared in the war gets their pet (real players: their site pet; bots: their test pet)
+    if(r.ok === false && !s.log.length) return r;
+    // everyone who has appeared in the war gets their pet (real players: their site pet; bots: their test pet);
+    // bots then station theirs (which logs a move, so this happens before the new entries are collected)
     for(const p of Object.values(s.players) as any[]){
       if(p.pet !== undefined) continue;
       p.pet = p.bot ? ((s.botPets || {})[p.id] || null) : (isUuid(p.id) ? await petOf(p.id) : null);
     }
     stationBotPets(s);
+    const entries = s.log; delete s.log;
     // the war just ended: keep each player's final stats with it (the end screen and the champion use them)
     if(s.phase === 'ended' && !s.stats){
       const { data: rows } = await db.from('guild_war_log').select('entry').eq('game_id', g.id).order('seq');
