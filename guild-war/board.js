@@ -766,7 +766,7 @@
         });
       }
       const lane = { boat: new Uint8Array(N), zeppelin: new Uint8Array(N) }; let laneOf = new Uint8Array(N), nearEnds = new Uint8Array(N);   // laneOf: every lane so far, both kinds, widened
-      const cost = i => (1 + 8 * Math.exp(-dist[i] / 2.5)) + (laneOf[i] && !nearEnds[i] ? 40 : 0);
+      let lanePen = 40; const cost = i => (1 + 8 * Math.exp(-dist[i] / 2.5)) + (laneOf[i] && !nearEnds[i] ? lanePen : 0);
       const toG = (mx, my) => [Math.floor(mx / MW * RW / S), Math.floor(my / MH * RH / S)];
       const nearestSea = (mx, my, toward) => {
         const [cx, cy] = toG(mx, my); let best = -1, bd = 1e9;
@@ -816,7 +816,12 @@
         if(s < 0 || t < 0) return;
         // near this route's own ends, other lanes are allowed (ports are shared)
         nearEnds = new Uint8Array(N); [s, t].forEach(c0 => { const x0 = c0 % GW, y0 = (c0 / GW) | 0; for(let dy = -7; dy <= 7; dy++) for(let dx = -7; dx <= 7; dx++){ const x = x0 + dx, y = y0 + dy; if(x >= 0 && y >= 0 && x < GW && y < GH) nearEnds[y * GW + x] = 1; } });
-        const cells = astar(s, t); if(!cells) return;
+        // avoid other lanes, but never at the price of a big detour: if dodging them makes the trip more than
+        // ~12% longer than the direct sea path, dodge less, and in the end just cross them
+        lanePen = 0; const direct = astar(s, t); if(!direct) return;
+        let cells = null;
+        for(const pen of [40, 8, 0]){ lanePen = pen; const c = pen ? astar(s, t) : direct; if(c && c.length <= direct.length * 1.12){ cells = c; break; } }
+        cells = cells || direct;
         cells.forEach(c => { const x0 = c % GW, y0 = (c / GW) | 0; for(let dy = -2; dy <= 2; dy++) for(let dx = -2; dx <= 2; dx++){ const x = x0 + dx, y = y0 + dy; if(x >= 0 && y >= 0 && x < GW && y < GH) laneOf[y * GW + x] = 1; } });
         cells.forEach((c, i) => { if(i) edges[kind].add(Math.min(c, cells[i - 1]) + ',' + Math.max(c, cells[i - 1])); });
         const pts = cells.filter((_, i) => i % 6 === 0 || i === cells.length - 1)
