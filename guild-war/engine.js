@@ -141,7 +141,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     return { ok: true };
   }
 
-  // Late joiners go to the smaller faction with a catch-up pack
+  // Late joiners go to the smaller faction and start with today's AP and reinforcements
   function joinLate(s, p){
     if(s.phase !== 'live') return { ok: false, error: 'Game is not running' };
     if(s.players[p.id]) return { ok: false, error: 'Already in the game' };
@@ -149,8 +149,8 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     const faction = count('horde') <= count('alliance') ? 'horde' : 'alliance';
     const pl = s.players[p.id] = newPlayer(p.id, p.name, faction, p.bot, day(s));
     const d = day(s);
-    pl.ap = RULES.apPerDay; pl.reinforce = reinforcementsFor(s, faction) + 2 + d * 2;
-    ['food', 'wood', 'ore'].forEach(r => { pl.res[r] += d; });
+    // a normal day, nothing extra: full AP and the same reinforcements (region bonuses included) the team got this morning
+    pl.ap = RULES.apPerDay; pl.reinforce = reinforcementsFor(s, faction);
     return { ok: true, entry: log(s, { type: 'join', pid: p.id, name: p.name, faction }) };
   }
 

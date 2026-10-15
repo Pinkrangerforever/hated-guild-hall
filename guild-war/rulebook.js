@@ -6,9 +6,9 @@ const WAR_RULEBOOK = [
       Take zones, hold whole regions, build outposts and strongholds, and out-score the other side by the end of the week.</p>
       <ul><li><b>Sign-ups:</b> Sunday 8pm to midnight.</li><li><b>The war:</b> Monday 12:00am to Sunday 8pm.</li>
       <li>When the war ends the side with the higher <b>war score</b> wins, and both sides earn site rewards.</li></ul>` },
-  { id: 'teams', icon: '🛡', title: 'Teams & Joining', tags: 'teams draft snake activity join late smaller catch up sign up',
+  { id: 'teams', icon: '🛡', title: 'Teams & Joining', tags: 'teams draft snake activity join late smaller sign up',
     body: `<p>At midnight on Sunday everyone who signed up is split by a <b>snake draft</b> on activity, so both sides get a fair mix of regulars and casual players.</p>
-      <p>You can join at any time during the week: you go to the <b>smaller team</b> and get a catch-up pack of troops and resources based on how far into the week it is.</p>
+      <p>You can join at any time during the week: you go to the <b>smaller team</b> and start with that day's <b>5 action points</b> and the same <b>reinforcements</b> your teammates got that morning (region bonuses included). You get your first share of resources at the next dawn.</p>
       <p>Troops are shared by the whole faction. Your own <b>action points</b>, <b>reinforcements</b>, <b>resources</b> and <b>cards</b> are yours.</p>` },
   { id: 'map', icon: '🗺', title: 'The Map', tags: 'map zones regions capitals ports routes boats zeppelins borders neutral',
     body: `<p>43 zones across Kalimdor and the Eastern Kingdoms. Zones next to each other on the map are connected, and so are the ends of every <b>boat</b> and <b>zeppelin</b> route.</p>
