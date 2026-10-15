@@ -230,6 +230,31 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     return { ok: true, entry: log(s, { type: 'move', pid, faction: p.faction, from, to, n, march: !!opts.march }, before) };
   }
 
+  // ----- pets: each player's site pet joins the war. It stands in one of its faction's zones (one pet per zone),
+  // counts as one extra troop there, and in any battle it fights in it adds +1 to its side's LOWEST die each round.
+  // It is always the last of its side to fall. A fallen pet is out for 24h at level 1, down to 12h at level 10.
+  const petRespawn = lvl => 24 - (Math.max(1, Math.min(10, lvl || 1)) - 1) * 12 / 9;
+  const petUp = (s, p) => !!(p && p.pet && !(p.petDown > s.clock));
+  function petIn(s, zone){
+    const z = s.zones[zone]; if(!z) return null;
+    return Object.values(s.players).find(p => p.petZone === zone && p.faction === z.owner && petUp(s, p)) || null;
+  }
+  function placePet(s, pid, zone){
+    const p = s.players[pid]; if(!p) return { ok: false, error: 'Not in this war' };
+    if(s.phase !== 'live' || warOver(s)) return { ok: false, error: 'The war is not running' };
+    if(!p.pet) return { ok: false, error: 'You have no hatched pet' };
+    if(!petUp(s, p)) return { ok: false, error: `Your pet is recovering (${Math.ceil(p.petDown - s.clock)}h left)` };
+    const z = s.zones[zone];
+    if(!z || z.owner !== p.faction) return { ok: false, error: 'Your pet can only go to one of your zones' };
+    const other = petIn(s, zone); if(other && other !== p) return { ok: false, error: `${other.name}'s pet already guards this zone` };
+    if(p.petZone === zone) return { ok: false, error: 'Your pet is already here' };
+    if(p.petZone && s.zones[p.petZone] && s.zones[p.petZone].owner === p.faction && p.petMovedDay === day(s)) return { ok: false, error: 'Your pet has already moved today' };
+    const from = p.petZone && s.zones[p.petZone] && s.zones[p.petZone].owner === p.faction ? p.petZone : null;
+    p.petZone = zone; if(from) p.petMovedDay = day(s);
+    return { ok: true, entry: log(s, { type: 'pet', pid, faction: p.faction, from, to: zone }) };
+  }
+  function petFalls(s, p){ p.petDown = s.clock + petRespawn(p.pet.level); p.petZone = null; }
+
   function rollDice(k, rng){ return Array.from({ length: k }, () => 1 + Math.floor(rng() * 6)).sort((x, y) => y - x); }
 
   function attack(s, pid, from, to, n, opts, rng){
@@ -254,28 +279,41 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     const defBonus = naval ? 0 : (fortified ? 1 : 0) + (info.capital ? 1 : 0) + (b.outpost >= 2 ? 1 : 0);
     const defExtraDie = !naval && b.outpost >= 1 ? 1 : 0;
     let att = n, def = total(b);
+    // pets: the attacker's pet joins from the zone it guards, the defender's fights at home; each is one more body
+    // (lost only after all its side's troops) and lifts its side's lowest die by 1
+    const aPet = petIn(s, from), dPet = petIn(s, to);
+    let aPetUp = !!aPet, dPetUp = !!dPet;
     const rounds = [];
     let shield = b.shield > 0;
-    while(att > 0 && def > 0 && rounds.length < 200){
-      let ad = rollDice(Math.min(3 + (opts.warcry ? 1 : 0), att + (opts.warcry ? 1 : 0)), rng);
-      let dd = rollDice(Math.min(2 + defExtraDie, def), rng);
+    while(att + aPetUp > 0 && def + dPetUp > 0 && rounds.length < 200){
+      const A = att + aPetUp, D = def + dPetUp;
+      let ad = rollDice(Math.min(3 + (opts.warcry ? 1 : 0), A + (opts.warcry ? 1 : 0)), rng);
+      let dd = rollDice(Math.min(2 + defExtraDie, D), rng);
       if(opts.forceDice === 'att'){ ad = ad.map(() => 6); dd = dd.map(() => 1); }      // admin sandbox only
       if(opts.forceDice === 'def'){ ad = ad.map(() => 1); dd = dd.map(() => 6); }
       const ddAdj = dd.map((v, i) => i === 0 ? v + defBonus : v);
+      if(dPetUp) ddAdj[ddAdj.length - 1] += 1;
       let adUse = ad.slice();
       if(shield){ adUse = adUse.slice(1); shield = false; b.shield = 0; }
+      if(aPetUp && adUse.length) adUse[adUse.length - 1] += 1;
       let al = 0, dl = 0;
       for(let i = 0; i < Math.min(adUse.length, ddAdj.length); i++){ if(adUse[i] > ddAdj[i]) dl++; else al++; }
-      al = Math.min(al, att); dl = Math.min(dl, def);
-      att -= al; def -= dl;
-      rounds.push({ ad, dd, bonus: defBonus, al, dl });
+      al = Math.min(al, A); dl = Math.min(dl, D);
+      const aT = Math.min(al, att), dT = Math.min(dl, def);   // troops go first, the pet last
+      att -= aT; def -= dT;
+      if(al > aT) aPetUp = false;
+      if(dl > dT) dPetUp = false;
+      rounds.push({ ad, dd, bonus: defBonus, al, dl, aPet: !!aPet, dPet: !!dPet });
     }
     const losses = n - att;
     a.ready -= n;                               // the attacking force left the zone
     let captured = false;
-    if(def === 0){
+    if(aPet && !aPetUp) petFalls(s, aPet);
+    if(dPet && !dPetUp) petFalls(s, dPet);
+    if(def === 0 && !dPetUp){
       captured = true;
       Object.assign(b, { owner: p.faction, ready: 0, fresh: att, fortifyUntil: 0, outpost: 0, movedDay: day(s), shield: 0 });
+      if(aPetUp) aPet.petZone = to;   // the pet goes in with the survivors
     } else {
       a.ready += att;                           // survivors fall back
       // defenders lose fresh troops first, then ready
@@ -283,7 +321,8 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     }
     active(s, p);
     return { ok: true, entry: log(s, { type: 'attack', pid, faction: p.faction, defender, from, to, n, rounds, attLost: losses,
-      defLost: before[to].ready + before[to].fresh - (captured ? 0 : def), captured, survivors: att, fortified, naval, warcry: !!opts.warcry }, before) };
+      defLost: before[to].ready + before[to].fresh - (captured ? 0 : def), captured, survivors: att, fortified, naval, warcry: !!opts.warcry,
+      aPet: aPet ? { pid: aPet.id, fell: !aPetUp } : null, dPet: dPet ? { pid: dPet.id, fell: !dPetUp } : null }, before) };
   }
 
   function fortify(s, pid, zone){
@@ -362,6 +401,10 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
           log(s, { type: 'autopilot', pid: p.id, faction: p.faction, placed }, before);
           s.clock = clock;
         }
+      }
+      if(petUp(s, p) && !(p.petZone && s.zones[p.petZone] && s.zones[p.petZone].owner === p.faction)){
+        const spot = zonesOf(s, p.faction).filter(k => !petIn(s, k)).sort((a, b) => threat(s, b) - threat(s, a))[0];
+        if(spot) p.petZone = spot;
       }
       const open = zonesOf(s, p.faction).filter(k => !(s.zones[k].fortifyUntil > at)).sort(() => rng() - 0.5);
       for(let n = 0; n < 2 && open.length && (p.ap >= 1 || s.settings.unlimitedAP); n++){
@@ -451,6 +494,6 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
   }
   const isRich = (s, k) => !!(s.rich && s.rich[k]);
   const api = { RULES, isRich, pickRich, warOver, ADJ, PORTS, isSeaLink, adjacent, distances, newGame, signup, startGame, joinLate, beginDay, deploy, move, attack, fortify,
-                build, craft, useShieldWall, scout, trade, tradeRate, endGame, score, reinforcementsFor, deployable, friendlyReach, regionsHeld, zonesOf, day, enemyOf, threat };
+                build, craft, useShieldWall, scout, placePet, petIn, petUp, petRespawn, trade, tradeRate, endGame, score, reinforcementsFor, deployable, friendlyReach, regionsHeld, zonesOf, day, enemyOf, threat };
   if(typeof module !== 'undefined') module.exports = api; else root.WarEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

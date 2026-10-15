@@ -27,6 +27,12 @@ const WAR_RULEBOOK = [
       <p><b>Deploying</b> is free. You can only deploy to zones linked to one of your <b>strongholds</b> through your own territory. Deploy one at a time, or all at once.</p>
       <p><b>🔭 Scout reports:</b> the day has three watches (midnight to 8am, 8am to 4pm, 4pm to midnight). The first time you open the war room in each watch you get <b>1 extra troop</b>. Missed watches don't carry over.</p>
       <p>New and moved troops are <b>fresh 💤</b>: they can defend, but can't move or attack until the next dawn. Ready troops show as ⚔.</p>` },
+  { id: 'pets', icon: '🐾', title: 'Pets', tags: 'pet pets level respawn guard station companion',
+    body: `<p>Your hatched site pet fights for your faction. Station it in one of your zones (free, and it can move once a day). Only one pet can guard each zone.</p>
+      <ul><li>It counts as <b>one more troop</b> in that zone, and joins attacks made from it.</li>
+      <li>In every round of a battle it fights in, it adds <b>+1 to its side's lowest die</b>.</li>
+      <li>It is always the <b>last</b> of its side to fall. If it wins an attack, it moves into the captured zone.</li>
+      <li>A fallen pet recovers in <b>24 hours at level 1</b>, down to <b>12 hours at level 10</b>, then can be stationed again.</li></ul>` },
   { id: 'move', icon: '🥾', title: 'Moving', tags: 'move march once per day connected forced',
     body: `<p>Move <b>ready</b> troops between your own zones that are connected through your territory. Costs 1 AP.</p>
       <ul><li>Each zone can send troops out <b>once a day</b> (a <b>Forced March</b> card lets it go again).</li>

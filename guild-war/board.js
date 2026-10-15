@@ -334,9 +334,9 @@
       if(!THREE.GLTFLoader) return;
       const S = window.WAR_STRONGHOLD_MODELS || {
         horde:    { url: 'models/war/horde-stronghold.gltf',    drop: /interior|foyer/i, mask: /hangingleather|clothroof/i, size: 0.5, rotY: Math.PI },
-        horde_outpost: { url: 'models/war/horde-outpost.gltf', mask: /chain|clothfur|clothroof/i, size: 0.19, rotY: 0 },   // Warsong guard tower
+        horde_outpost: { url: 'models/war/horde-outpost.gltf', mask: /chain|clothfur|clothroof/i, size: 0.23, rotY: 0 },   // Warsong guard tower
         alliance_fortify: { url: 'models/war/fortify-alliance.gltf', size: 0.62, rotY: -1.309 },   // its gate (model +x, 15deg) turned to face the front   // Netherguard wall, a square enclosure round the zone's pieces
-        alliance_outpost: { url: 'models/war/alliance-outpost.gltf', size: 0.17, rotY: 0 },   // Caverns of Time mage tower
+        alliance_outpost: { url: 'models/war/alliance-outpost.gltf', size: 0.21, rotY: 0 },   // Caverns of Time mage tower
         alliance: { sink: 0.14, url: 'models/war/alliance-stronghold.gltf', drop: /cellar|war_room|armordealer|weapondealer|generalarea/i, mask: /windows_01/i, size: 0.5, rotY: -Math.PI / 2 }
       };
       this.holdModels = {};
@@ -633,6 +633,48 @@
       (this.doorFrameParts || []).forEach(o => W.remove(o)); this.doorFrameParts = [frame, stone];
     }
 
+    // ===== pets: every stationed pet stands beside its zone's banner, playing its idle =====
+    syncPets(s){
+      if(!THREE.GLTFLoader || !s || !s.players) return;
+      this.petModels = this.petModels || {}; this.petFiles = this.petFiles || {};
+      const want = {};
+      Object.values(s.players).forEach(p => {
+        if(!p.pet || !p.petZone || !(s.zones[p.petZone] && s.zones[p.petZone].owner === p.faction) || p.petDown > s.clock) return;
+        const stage = ['juvenile', 'adult', 'boss'].includes(p.pet.status) ? p.pet.status : 'juvenile';
+        want[p.id] = { zone: p.petZone, url: `models/${p.pet.type}-${stage}.gltf`, type: p.pet.type, stage };
+      });
+      // drop pets that fell, moved or changed model
+      Object.keys(this.petModels).forEach(id => {
+        const m = this.petModels[id], w = want[id];
+        if(w && w.url === m.url && w.zone === m.zone) return;
+        if(m.obj) this.scene.remove(m.obj); if(m.mixer) this.mixers = this.mixers.filter(x => x !== m.mixer);
+        delete this.petModels[id];
+      });
+      Object.keys(want).forEach(id => {
+        if(this.petModels[id]) return;
+        const w = want[id], rec = this.petModels[id] = { url: w.url, zone: w.zone };
+        this.petFiles[w.url] = this.petFiles[w.url] || this.loadGltf(w.url);
+        this.petFiles[w.url].then(g => {
+          if(this.petModels[id] !== rec) return;
+          const m = THREE.SkeletonUtils ? THREE.SkeletonUtils.clone(g.scene) : g.scene.clone();
+          // the boss gryphon's alpha is a shading mask (render opaque); fx materials glow additively
+          const cutout = !(w.type === 'gryphon' && w.stage === 'boss'), additive = /fx_blue|eyeglow/i;
+          m.traverse(o => { if(!o.isMesh) return; o.castShadow = true; o.frustumCulled = false; o.material = o.material.clone(); o.material.side = THREE.DoubleSide;
+            if(additive.test(o.material.name || '')){ o.material.blending = THREE.AdditiveBlending; o.material.transparent = true; o.material.depthWrite = false; }
+            else { o.material.alphaTest = cutout ? 0.4 : 0; o.material.transparent = false; } });
+          const box = new THREE.Box3().setFromObject(g.scene), size = box.getSize(new THREE.Vector3());
+          const fit = (this.pieces[w.zone] && this.pieces[w.zone].fit) || 1, s2 = 0.2 * fit / Math.max(size.y, size.x * 0.6);
+          const holder = new THREE.Group(); holder.add(m); m.scale.setScalar(s2);
+          m.position.set(-(box.min.x + box.max.x) / 2 * s2, -box.min.y * s2, -(box.min.z + box.max.z) / 2 * s2);
+          const at = zoneWorld(w.zone); holder.position.set(at.x + 0.16 * fit, at.y, at.z + 0.1 * fit); holder.rotation.y = -Math.PI / 2 + 0.5;   // turned to the camera
+          this.scene.add(holder); rec.obj = holder;
+          const idle = g.animations.find(c => c.name === 'Stand');
+          if(idle){ rec.mixer = new THREE.AnimationMixer(m); const act = rec.mixer.clipAction(idle); act.play(); act.time = Math.random() * idle.duration; (this.mixers = this.mixers || []).push(rec.mixer); }
+          holder.scale.setScalar(0.01); this.animate(400, t => holder.scale.setScalar(Math.max(0.01, easeOut(t))));
+        }).catch(err => console.warn('pet model failed to load:', w.url, err));
+      });
+    }
+
     // ===== easter eggs: Leeroy's chair, a rat on the table, Ragnaros in a lava pool, Onyxia's lair, the cow level =====
     egg(obj, fn){ (this.eggs = this.eggs || []).push({ obj, fn }); }
     eggSay(name, msg){ if(this.opts.onEgg) this.opts.onEgg(name, msg); }
@@ -650,18 +692,20 @@
       const M = window.WAR_EGGS || { chair: 'models/war/leeroy-chair.gltf', plate: 'models/war/food-plate.gltf', rat: 'models/war/rat.gltf', rag: 'models/war/ragnaros.gltf', tauren: 'models/war/tauren.gltf' };
       this.eggUrls = M;
       // --- Leeroy's chair: an empty rocking chair pulled back from the table, a plate of chicken on the seat
-      Promise.all([this.loadGltf(M.chair), this.loadGltf(M.plate)]).then(([cg, pg]) => {
-        const chair = this.prepModel(cg.scene), box = new THREE.Box3().setFromObject(chair), s = 2.1 / (box.max.y - box.min.y);
+      const tableReady = new Promise(r => { const w = () => this.table ? r() : setTimeout(w, 200); w(); });
+      Promise.all([this.loadGltf(M.chair), this.loadGltf(M.plate), tableReady]).then(([cg, pg]) => {
+        const chair = this.prepModel(cg.scene), box = new THREE.Box3().setFromObject(chair), s = 3.3 / (box.max.y - box.min.y);
         const holder = new THREE.Group(); holder.add(chair); chair.scale.setScalar(s); chair.position.y = -box.min.y * s;
-        holder.position.set(9.6, 0, 1.6); holder.rotation.y = Math.PI + 0.35;   // facing the table, a little askew
-        this.walls.add(holder); holder.updateMatrixWorld(true);
-        // seat height: drop a ray onto the front half of the seat
-        const rc = new THREE.Raycaster(), from = new THREE.Vector3(0.25 * s, 10, 0); holder.localToWorld(from);
-        rc.set(from, new THREE.Vector3(0, -1, 0)); const hit = rc.intersectObject(chair, true)[0];
-        const plate = this.prepModel(pg.scene), pb = new THREE.Box3().setFromObject(plate), ps = 0.75 / Math.max(pb.max.x - pb.min.x, pb.max.z - pb.min.z);
-        plate.scale.setScalar(ps);
-        const at = hit ? holder.worldToLocal(hit.point.clone()) : new THREE.Vector3(0.1, 0.9, 0);
-        plate.position.set(at.x, at.y - pb.min.y * ps + 0.01, at.z); plate.rotation.y = 0.6; holder.add(plate);
+        holder.position.set(8.7, 0, 0.6); holder.rotation.y = Math.PI + 0.25;   // pulled up to the table's right side, facing it, a little askew
+        this.walls.add(holder);
+        // the plate sits on the tabletop's rim in front of the chair: find the top there with a ray
+        const PLATE = this.platePos = new THREE.Vector3(5.5, 0.17, 0.6);
+        const rc = new THREE.Raycaster(); rc.set(new THREE.Vector3(PLATE.x, 50, PLATE.z), new THREE.Vector3(0, -1, 0));
+        const th = rc.intersectObject(this.table, true)[0]; if(th) PLATE.y = th.point.y;
+        const plate = this.prepModel(pg.scene), pb = new THREE.Box3().setFromObject(plate), ps = 0.9 / Math.max(pb.max.x - pb.min.x, pb.max.z - pb.min.z);
+        plate.scale.setScalar(ps); plate.position.set(PLATE.x - (pb.min.x + pb.max.x) / 2 * ps, PLATE.y - pb.min.y * ps + 0.005, PLATE.z - (pb.min.z + pb.max.z) / 2 * ps); plate.rotation.y = 0.6;
+        this.scene.add(plate); this.plate = plate;
+        this.egg(plate, () => { const e = this.eggs.find(e => e.obj === holder); if(e) e.fn(); });
         let busy = false;
         this.egg(holder, () => {
           if(busy) return; busy = true; setTimeout(() => { busy = false; }, 2500);
@@ -682,7 +726,7 @@
         next(true);
       }).catch(err => console.warn('rat failed to load:', err));
       // --- Ragnaros, half sunk in a little pool of lava on the floor by the table
-      this.loadGltf(M.rag).then(g => this.placeRagnaros(g)).catch(err => console.warn('ragnaros failed to load:', err));
+      Promise.all([this.loadGltf(M.rag), this.loadGltf(M.lava || 'models/war/lava-pool.gltf').catch(() => null)]).then(([g, lp]) => this.placeRagnaros(g, lp)).catch(err => console.warn('ragnaros failed to load:', err));
       // --- Onyxia's lair: a smoking cave mouth in Dustwallow Marsh
       this.buildLair();
     }
@@ -710,34 +754,57 @@
         mixer.stopAllAction(); this.playOnce(mixer, R.clips, 'Death');
         setTimeout(() => this.animate(600, t => { holder.scale.setScalar(Math.max(0.01, 1 - t)); }).then(done), 1800);
       });
-      const ms = a.distanceTo(bb) / 2.2 * 1000;
-      this.animate(ms, t => { if(!live.dead) holder.position.lerpVectors(a, bb, t); }).then(() => { if(!live.dead){ live.dead = true; done(); } });
-    }
-    placeRagnaros(g){
-      // the pool: a disc of glowing lava (a little canvas that churns), a ring of dark crust, and a flickering light
-      const cv = document.createElement('canvas'); cv.width = cv.height = 128; const cx = cv.getContext('2d');
-      const tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding;
-      const blobs = Array.from({ length: 14 }, () => ({ x: Math.random() * 128, y: Math.random() * 128, r: 10 + Math.random() * 22, v: 0.2 + Math.random() * 0.5, p: Math.random() * 6 }));
-      let last = 0;
-      this.lavaTick = now => {
-        if(now - last < 80) return; last = now;
-        const gr = cx.createRadialGradient(64, 64, 4, 64, 64, 64); gr.addColorStop(0, '#ffe27a'); gr.addColorStop(0.5, '#ff7a14'); gr.addColorStop(1, '#8a1600');
-        cx.fillStyle = gr; cx.fillRect(0, 0, 128, 128);
-        blobs.forEach(o => { const x = o.x + Math.sin(now / 1000 * o.v + o.p) * 8, y = o.y + Math.cos(now / 1300 * o.v + o.p) * 8;
-          const q = cx.createRadialGradient(x, y, 0, x, y, o.r); q.addColorStop(0, 'rgba(255,240,160,0.55)'); q.addColorStop(1, 'rgba(120,20,0,0)'); cx.fillStyle = q; cx.fillRect(x - o.r, y - o.r, o.r * 2, o.r * 2); });
-        tex.needsUpdate = true;
-        if(this.lavaLight && !this.lavaLight.userData.roar) this.lavaLight.intensity = 1.5 + Math.sin(now / 170) * 0.2 + Math.random() * 0.2;
+      const legs = [[a, bb]];
+      if(this.platePos && Math.random() < 0.6){
+        // run to the plate, stop for a nibble, then off to the candle on the other side of it
+        const P = this.platePos, R1 = new THREE.Vector3(5.55, P.y, -3.05), R2 = new THREE.Vector3(5.55, P.y, 3.05), from = Math.random() < 0.5 ? R1 : R2, to = from === R1 ? R2 : R1;
+        const stopAt = new THREE.Vector3(P.x, P.y, P.z + (from === R1 ? -0.6 : 0.6));
+        legs.length = 0; legs.push([from, stopAt, true], [stopAt, to]);
+        holder.position.copy(from);
+      }
+      const runLeg = i => {
+        if(live.dead) return;
+        if(i >= legs.length){ live.dead = true; done(); return; }
+        const [p0, p1, stop] = legs[i], d = p1.clone().sub(p0);
+        holder.rotation.y = Math.atan2(-d.z, d.x);
+        this.animate(p0.distanceTo(p1) / 2.2 * 1000, t => { if(!live.dead) holder.position.lerpVectors(p0, p1, t); }).then(() => {
+          if(live.dead) return;
+          if(!stop){ runLeg(i + 1); return; }
+          const standC = R.clips.find(c => c.name === 'Stand'), rn = run && mixer.clipAction(run), st = standC && mixer.clipAction(standC);
+          if(rn && st){ st.reset().play(); rn.crossFadeTo(st, 0.2, false); }
+          setTimeout(() => { if(live.dead) return; if(rn && st){ rn.reset().play(); st.crossFadeTo(rn, 0.2, false); } runLeg(i + 1); }, 2500 + Math.random() * 2500);
+        });
       };
-      this.lavaTick(100);
-      const pool = new THREE.Group(); pool.position.set(-9.2, 0, 5.2); this.walls.add(pool);
-      const lava = new THREE.Mesh(new THREE.CircleGeometry(1.05, 40), new THREE.MeshBasicMaterial({ map: tex }));
-      lava.rotation.x = -Math.PI / 2; lava.position.y = 0.035; pool.add(lava);
-      const crust = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.16, 8, 40), new THREE.MeshStandardMaterial({ color: 0x241612, roughness: 1, emissive: 0x3a0800, emissiveIntensity: 0.6 }));
-      crust.rotation.x = -Math.PI / 2; crust.scale.z = 0.6; pool.add(crust);
-      const light = new THREE.PointLight(0xff6a1a, 1.6, 6, 2); light.position.y = 0.8; pool.add(light); this.lavaLight = light;
-      // Ragnaros, small, standing in it up to his waist (the floor hides the rest)
-      const m = this.prepModel(g.scene), box = new THREE.Box3().setFromObject(m), s = 1.9 / (box.max.y - box.min.y);
-      m.scale.setScalar(s); m.position.y = -box.min.y * s - 0.95; m.rotation.y = Math.PI / 2 - 0.6;   // turned toward the room's centre
+      runLeg(0);
+    }
+    placeRagnaros(g, lp){
+      // under the front edge of the table, so he peeks out from beneath it
+      const pool = new THREE.Group(); pool.position.set(0, 0, 3.2); this.walls.add(pool);
+      if(lp){
+        // WoW's volcanic lava pool: the lava and its crust are lit from within; the soft glow and flame sheets add light
+        const m = lp.scene, box = new THREE.Box3();
+        m.traverse(o => { if(!o.isMesh) return;
+          const name = o.material.name || '', map = o.material.map;
+          const fx = name === '3221835' || name === '3921706';
+          o.material = new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: !fx, side: THREE.DoubleSide, blending: fx ? THREE.AdditiveBlending : THREE.NormalBlending, alphaTest: fx ? 0 : 0.05 });
+          o.frustumCulled = false; o.renderOrder = fx ? 2 : 1;
+          if(!fx){ o.geometry.computeBoundingBox(); box.union(o.geometry.boundingBox); } });
+        const w = Math.max(box.max.x - box.min.x, box.max.z - box.min.z) || 30, s = 2.6 / w;
+        m.scale.setScalar(s); m.position.y = 0.02; pool.add(m);
+        if(lp.animations.length){ const mx = new THREE.AnimationMixer(m); mx.clipAction(lp.animations[0]).play(); (this.mixers = this.mixers || []).push(mx); }
+      }
+      const light = new THREE.PointLight(0xff6a1a, 1.8, 7, 2); light.position.y = 1.0; pool.add(light); this.lavaLight = light;
+      let last = 0;
+      this.lavaTick = now => { if(now - last < 60) return; last = now; if(!light.userData.roar) light.intensity = 1.6 + Math.sin(now / 170) * 0.25 + Math.random() * 0.25; };
+      // Ragnaros, waist-deep (the floor hides his lower half). His texture's alpha is a glow mask, not cut-outs,
+      // so his body renders solid and lit from within; the small flame geosets glow additively
+      const m = g.scene, box = new THREE.Box3().setFromObject(m), s = 2.3 / (box.max.y - box.min.y);
+      m.traverse(o => { if(!o.isMesh) return; o.castShadow = true; o.frustumCulled = false;
+        const body = /Geoset[01]$/.test(o.name), mat = o.material.clone();
+        if(body){ mat.alphaTest = 0; mat.transparent = false; mat.emissive = new THREE.Color(0xff7a30); mat.emissiveMap = mat.map; mat.emissiveIntensity = 0.55; }
+        else { mat.transparent = true; mat.depthWrite = false; mat.blending = THREE.AdditiveBlending; mat.alphaTest = 0; }
+        mat.side = THREE.DoubleSide; o.material = mat; });
+      m.scale.setScalar(s); m.position.y = -box.min.y * s - 1.0; m.rotation.y = -Math.PI / 2;   // facing out into the room
       pool.add(m);
       const mixer = new THREE.AnimationMixer(m), clips = g.animations; (this.mixers = this.mixers || []).push(mixer);
       const st = clips.find(c => c.name === 'Stand'); if(st) mixer.clipAction(st).play();
@@ -747,7 +814,7 @@
         this.eggSay('ragnaros', 'TOO SOON! YOU HAVE AWAKENED ME TOO SOON, EXECUTUS!');
         const ms = this.playOnce(mixer, clips, 'EmoteRoar', 'Stand') || 2000;
         this.shake(900, 0.12); light.userData.roar = true;
-        this.animate(ms, t => { light.intensity = 1.6 + Math.sin(t * Math.PI) * 4; }).then(() => { light.userData.roar = false; });
+        this.animate(ms, t => { light.intensity = 1.8 + Math.sin(t * Math.PI) * 4; }).then(() => { light.userData.roar = false; });
         setTimeout(() => { busy = false; }, ms + 500);
       });
     }
@@ -2001,7 +2068,7 @@
             const r = this.renderer.domElement.getBoundingClientRect();
             this.mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
             this.raycaster.setFromCamera(this.mouse, this.camera);
-            const hit = this.raycaster.intersectObjects(this.eggs.map(g => g.obj), true)[0];
+            const blockers = [this.table, this.mapMesh].filter(Boolean), hit = this.raycaster.intersectObjects(this.eggs.map(g => g.obj).concat(blockers), true)[0];
             if(hit){ const egg = this.eggs.find(g => { for(let q = hit.object; q; q = q.parent) if(q === g.obj) return true; return false; }); if(egg){ egg.fn(); pts.clear(); drag = null; return; } }
           }
           if(this.doorModel && this.toggleDoor){
