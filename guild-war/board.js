@@ -1786,6 +1786,8 @@
         }
         if(!best) for(let i = 0; i < 12 && !best; i++){ const a = Math.PI + i / 12 * Math.PI * 2, d = 0.15 * s; if(inside(Math.cos(a) * d, Math.sin(a) * d * 0.6, 0.09 * s)) best = [Math.cos(a) * d, Math.sin(a) * d * 0.6]; }
         best = best || [-0.12 * s, 0];
+        const hAt = TUNE.holds[k] && TUNE.holds[k].at;   // a hand-placed building spot wins
+        if(hAt){ const an = anchor(k); best = [(hAt[0] - an[0]) / MW * PW, (hAt[1] - an[1]) / MH * PH]; }
         this.pieces[k].bx = best[0] / s; this.pieces[k].bz = best[1] / s;   // stored in the group's (scaled) space
         this.pieces[k].holdFor = this.pieces[k].postFor = this.pieces[k].fortFor = undefined;   // re-place on next sync
         if(this.state) this.syncPiece(k);

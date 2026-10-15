@@ -1,6 +1,6 @@
 /* Guild War: hand placements on the map (map px), made from the owner's notes and measured against
    each zone's real outline. pieces = where the banner / stronghold stands; labels = [x, y, font size?];
-   icons = resource icon; holds = stronghold turn (radians) / scale; mountains, landmarks = cluster centres. */
+   icons = resource icon; holds = stronghold turn (radians) / scale / at (where the building stands, map px); mountains, landmarks = cluster centres. */
 const WAR_TUNING = {
   "pieces": {
    "darkshore": [
@@ -56,8 +56,8 @@ const WAR_TUNING = {
     572
    ],
    "badlands": [
-    1080,
-    746
+    1084,
+    772
    ],
    "arathi": [
     1030,
@@ -180,7 +180,8 @@ const WAR_TUNING = {
     "rot": -0.785
    },
    "redridge": {
-    "scale": 0.9
+    "scale": 0.9,
+    "at": [1018, 906]
    }
   },
   "mountains": {
