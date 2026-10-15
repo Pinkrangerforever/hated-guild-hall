@@ -641,18 +641,18 @@
       Object.values(s.players).forEach(p => {
         if(!p.pet || !p.petZone || !(s.zones[p.petZone] && s.zones[p.petZone].owner === p.faction) || p.petDown > s.clock) return;
         const stage = ['juvenile', 'adult', 'boss'].includes(p.pet.status) ? p.pet.status : 'juvenile';
-        want[p.id] = { zone: p.petZone, url: `models/${p.pet.type}-${stage}.gltf`, type: p.pet.type, stage };
+        want[p.id] = { zone: p.petZone, url: `models/${p.pet.type}-${stage}.gltf`, type: p.pet.type, stage, built: (s.zones[p.petZone].outpost || 0) >= 1 };
       });
       // drop pets that fell, moved or changed model
       Object.keys(this.petModels).forEach(id => {
         const m = this.petModels[id], w = want[id];
-        if(w && w.url === m.url && w.zone === m.zone) return;
-        if(m.obj) this.scene.remove(m.obj); if(m.mixer) this.mixers = this.mixers.filter(x => x !== m.mixer);
+        if(w && w.url === m.url && w.zone === m.zone && w.built === m.built) return;
+        if(m.obj && m.obj.parent) m.obj.parent.remove(m.obj); if(m.mixer) this.mixers = this.mixers.filter(x => x !== m.mixer);
         delete this.petModels[id];
       });
       Object.keys(want).forEach(id => {
         if(this.petModels[id]) return;
-        const w = want[id], rec = this.petModels[id] = { url: w.url, zone: w.zone };
+        const w = want[id], rec = this.petModels[id] = { url: w.url, zone: w.zone, built: w.built };
         this.petFiles[w.url] = this.petFiles[w.url] || this.loadGltf(w.url);
         this.petFiles[w.url].then(g => {
           if(this.petModels[id] !== rec) return;
@@ -663,11 +663,15 @@
             if(additive.test(o.material.name || '')){ o.material.blending = THREE.AdditiveBlending; o.material.transparent = true; o.material.depthWrite = false; }
             else { o.material.alphaTest = cutout ? 0.4 : 0; o.material.transparent = false; } });
           const box = new THREE.Box3().setFromObject(g.scene), size = box.getSize(new THREE.Vector3());
-          const fit = (this.pieces[w.zone] && this.pieces[w.zone].fit) || 1, s2 = 0.2 * fit / Math.max(size.y, size.x * 0.6);
+          // lives in the zone's piece group (already scaled to the zone), standing just in front of the outpost /
+          // stronghold's entrance (buildings face the camera, +z), or beside the banner when there is no building
+          const piece = this.pieces[w.zone], s2 = 0.2 / Math.max(size.y, size.x * 0.6);
           const holder = new THREE.Group(); holder.add(m); m.scale.setScalar(s2);
           m.position.set(-(box.min.x + box.max.x) / 2 * s2, -box.min.y * s2, -(box.min.z + box.max.z) / 2 * s2);
-          const at = zoneWorld(w.zone); holder.position.set(at.x + 0.16 * fit, at.y, at.z + 0.1 * fit); holder.rotation.y = -Math.PI / 2 + 0.5;   // turned to the camera
-          this.scene.add(holder); rec.obj = holder;
+          if(w.built) holder.position.set((piece.bx || -0.2) + 0.02, 0.002, (piece.bz || -0.06) + 0.17);
+          else holder.position.set(0.16, 0.002, 0.1);
+          holder.rotation.y = -Math.PI / 2 + 0.35;   // turned to the camera
+          piece.grp.add(holder); rec.obj = holder;
           const idle = g.animations.find(c => c.name === 'Stand');
           if(idle){ rec.mixer = new THREE.AnimationMixer(m); const act = rec.mixer.clipAction(idle); act.play(); act.time = Math.random() * idle.duration; (this.mixers = this.mixers || []).push(rec.mixer); }
           holder.scale.setScalar(0.01); this.animate(400, t => holder.scale.setScalar(Math.max(0.01, easeOut(t))));
@@ -1152,7 +1156,7 @@
       }
       // routes: each in its own colour; where routes share water they run side by side, not on top of each other
       if(this.raster){ this.seaPaths = this.seaPaths || this.routeSeaPaths(); }
-      const ROUTE_COLOURS = ['#1f5f8b', '#8b2f6b', '#2f7a3a', '#b0641a', '#5a3f9e', '#1b7f7a', '#9e2a2a', '#6b6b1a', '#2a4f9e', '#7a4a1f'];
+      const ROUTE_COLOURS = ['#1f5f8b', '#8b2f6b', '#2f7a3a', '#b0641a', '#5a3f9e', '#1b7f7a', '#9e2a2a', '#c9a227', '#f2ead8', '#7a4a1f'];   // all distinct from the sea (the ferry lanes had a navy that vanished into it)
       const lines = this.routeLines || [];
       lines.forEach((L, li) => {
         const pts = L.pts; if(pts.length < 2) return;
