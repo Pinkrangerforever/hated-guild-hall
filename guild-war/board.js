@@ -2260,7 +2260,7 @@
       const w = this.el.clientWidth, h = this.el.clientHeight, v = new THREE.Vector3();
       KEYS.forEach(k => {
         const p = this.pieces[k]; if(!p.grp.visible) return;
-        v.copy(p.grp.position); v.y = 0.5; v.project(this.camera);
+        v.copy(p.grp.position); v.y = 0.36 * (p.fit || 1); v.project(this.camera);   // just above the banner's top, scaled with the zone's pieces
         p.lab.style.transform = `translate(-50%,-100%) translate(${(v.x + 1) / 2 * w}px,${(1 - v.y) / 2 * h}px)`;
         p.lab.style.opacity = v.z < 1 ? '' : '0';
         const close = this.cam.dist < 13;
