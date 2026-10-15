@@ -1027,7 +1027,7 @@ function botTurn(pid){
 }
 function weakest(k, f){ let s = 0; E.ADJ[k].forEach(n => { const t = G.zones[n]; if(t.owner !== f) s = Math.max(s, 10 - (t.ready + t.fresh)); }); return { score: s }; }
 function runBots(){
-  const ids = Object.values(G.players).filter(p => p.bot).map(p => p.id);
+  const ids = Object.values(G.players).filter(p => p.bot).map(p => p.id).sort(() => Math.random() - 0.5);   // a different bot goes first each time, so no one bot always gets first pick of the ready troops
   if(!ids.length){ toast('No bots in this war'); return; }
   ids.forEach(id => (botTurn(id) || []).forEach(e => queue.push(e)));
   save(); refreshUI(); runQueue();
