@@ -1160,6 +1160,16 @@
           this.regionEdge = E2;
         }
         const hr = this.hoverRegion ? Object.keys(WAR_REGIONS).indexOf(this.hoverRegion) + 1 : 0;
+        if(!this.boldPx){
+          // Silverpine / Alterac meet along Lordamere Lake's shoreline art, where a thin line disappears: widen it
+          const BOLD = [['silverpine', 'alterac']].map(([a, c]) => [this.zoneVal[a], this.zoneVal[c]]), bp = new Uint8Array(RW * RH);
+          for(let y = 1; y < RH - 1; y++) for(let x = 1; x < RW - 1; x++){
+            const i = y * RW + x, z = R[i];
+            BOLD.forEach(([a, c]) => { if(z !== a && z !== c) return; const o2 = z === a ? c : a;
+              if(R[i + 1] === o2 || R[i - 1] === o2 || R[i + RW] === o2 || R[i - RW] === o2) for(let dy = -1; dy <= 1; dy++) for(let dx = -1; dx <= 1; dx++) if(isZone(R[i + dy * RW + dx])) bp[i + dy * RW + dx] = 1; });
+          }
+          this.boldPx = bp;
+        }
         const own = new Array(256).fill(null);
         WAR_ZONE_ORDER.forEach((k, i) => { own[i + 1] = this.ownerOf(k); });
         const sel = this.selected ? this.zoneVal[this.selected] : -1;
@@ -1168,7 +1178,8 @@
           const i = y * RW + x, z = R[i], o = i * 4;
           if(!isZone(z)) continue;
           const r = x + 1 < RW ? R[i + 1] : z, b = y + 1 < RH ? R[i + RW] : z, l = x > 0 ? R[i - 1] : z, t = y > 0 ? R[i - RW] : z;
-          const border = (isZone(r) && r !== z) || (isZone(b) && b !== z) || (isZone(l) && l !== z) || (isZone(t) && t !== z);
+          let border = (isZone(r) && r !== z) || (isZone(b) && b !== z) || (isZone(l) && l !== z) || (isZone(t) && t !== z);
+          if(!border && this.boldPx && this.boldPx[i]) border = true;   // borders drawn thicker where the painted shore hides them
           const hov = hr && this.regionOfPx[z] === hr;
           if(hov && this.regionEdge[i]){ const t = Math.min(1, this.regionEdge[i] / 4); d[o] = 255; d[o + 1] = 214; d[o + 2] = 120; d[o + 3] = Math.round(235 - t * 150); continue; }   // the region's rim, fading inward
           if(border){ d[o] = 40; d[o + 1] = 24; d[o + 2] = 10; d[o + 3] = 200; continue; }

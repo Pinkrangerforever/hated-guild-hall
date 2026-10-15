@@ -67,7 +67,7 @@ const WAR_BORDERS = [
   ['tanaris', 'ungoro'],
   ['ungoro', 'silithus'],
   ['tirisfal', 'silverpine'], ['tirisfal', 'wplaguelands'],
-  ['silverpine', 'hillsbrad'],
+  ['silverpine', 'hillsbrad'], ['silverpine', 'alterac'],   // across Lordamere Lake's east shore
   ['hillsbrad', 'alterac'], ['hillsbrad', 'arathi'], ['hillsbrad', 'hinterlands'],
   ['alterac', 'wplaguelands'],
   ['wplaguelands', 'eplaguelands'],
