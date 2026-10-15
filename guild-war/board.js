@@ -460,6 +460,13 @@
             if(/195953|189824/.test(o.material.name)){ if(/195953/.test(o.material.name)) o.name += '195953'; o.material = new THREE.MeshBasicMaterial({ map: o.material.map, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }); o.castShadow = false; this.torchFlames = (this.torchFlames || []).concat(o); }
             else { o.material = o.material.clone(); o.material.alphaTest = 0.4; o.material.transparent = false; o.material.side = THREE.DoubleSide; }
           } });
+          // re-pivot the flame cards at their base so they can lick and sway from the bowl (the glow card just breathes)
+          (this.torchFlames || []).filter(o => !o.userData.pivoted && t.getObjectById(o.id)).forEach(o => {
+            o.geometry = o.geometry.clone(); o.geometry.computeBoundingBox(); const bb = o.geometry.boundingBox;
+            const base = new THREE.Vector3((bb.min.x + bb.max.x) / 2, bb.min.y, (bb.min.z + bb.max.z) / 2);
+            o.geometry.translate(-base.x, -base.y, -base.z); o.position.add(base);
+            o.userData.pivoted = true; o.userData.flame = /195953/.test(o.name); o.userData.seed = Math.random() * 100;
+          });
           t.scale.setScalar(s); t.position.set(side * 3.3, 1.2, -A + 0.9); t.rotation.y = -Math.PI / 2;   // bracket flat on the wall, flame up
           this.walls.add(t);
           // the light goes right in the flame
@@ -703,9 +710,10 @@
         holder.position.set(8.7, 0, 0.6); holder.rotation.y = Math.PI + 0.25;   // pulled up to the table's right side, facing it, a little askew
         this.walls.add(holder);
         // the plate sits on the tabletop's rim in front of the chair: find the top there with a ray
-        const PLATE = this.platePos = new THREE.Vector3(5.5, 0.17, 0.6);
+        const PLATE = this.platePos = new THREE.Vector3(6.5, 0.17, 0.6);   // at the table's edge right in front of the chair
         const rc = new THREE.Raycaster(); rc.set(new THREE.Vector3(PLATE.x, 50, PLATE.z), new THREE.Vector3(0, -1, 0));
-        const th = rc.intersectObject(this.table, true)[0]; if(th) PLATE.y = th.point.y;
+        // walk in from the chair side until the ray finds tabletop (not the floor past its edge)
+        for(let x = 6.5; x >= 5.4; x -= 0.15){ rc.set(new THREE.Vector3(x, 50, PLATE.z), new THREE.Vector3(0, -1, 0)); const th = rc.intersectObject(this.table, true)[0]; if(th && th.point.y > -0.4){ PLATE.x = x - 0.3; PLATE.y = th.point.y; break; } }
         const plate = this.prepModel(pg.scene), pb = new THREE.Box3().setFromObject(plate), ps = 0.9 / Math.max(pb.max.x - pb.min.x, pb.max.z - pb.min.z);
         plate.scale.setScalar(ps); plate.position.set(PLATE.x - (pb.min.x + pb.max.x) / 2 * ps, PLATE.y - pb.min.y * ps + 0.005, PLATE.z - (pb.min.z + pb.max.z) / 2 * ps); plate.rotation.y = 0.6;
         this.scene.add(plate); this.plate = plate;
@@ -762,7 +770,7 @@
       if(this.platePos && Math.random() < 0.6){
         // run to the plate, stop for a nibble, then off to the candle on the other side of it
         const P = this.platePos, R1 = new THREE.Vector3(5.55, P.y, -3.05), R2 = new THREE.Vector3(5.55, P.y, 3.05), from = Math.random() < 0.5 ? R1 : R2, to = from === R1 ? R2 : R1;
-        const stopAt = new THREE.Vector3(P.x, P.y, P.z + (from === R1 ? -0.6 : 0.6));
+        const stopAt = new THREE.Vector3(Math.min(P.x - 0.45, 5.9), P.y, P.z + (from === R1 ? -0.45 : 0.45));
         legs.length = 0; legs.push([from, stopAt, true], [stopAt, to]);
         holder.position.copy(from);
       }
@@ -852,6 +860,13 @@
       });
     }
     tickEggs(now){
+      // torch flames: a gentle, uneven flicker (stretch and a little sway); the glow breathes with it
+      (this.torchFlames || []).forEach(o => {
+        if(!o.userData.pivoted) return; const k = o.userData.seed, t = now / 1000;
+        const n = Math.sin(t * 7.1 + k) * 0.5 + Math.sin(t * 11.3 + k * 2) * 0.3 + Math.sin(t * 17.9 + k * 3) * 0.2;   // -1..1, never regular
+        if(o.userData.flame){ o.scale.set(1 - n * 0.03, 1 + n * 0.08, 1 - n * 0.03); o.rotation.z = Math.sin(t * 1.7 + k) * 0.04 + n * 0.015; }
+        else { const g = 1 + n * 0.05; o.scale.set(g, g, g); }
+      });
       if(this.lavaTick) this.lavaTick(now);
       (this.lairSmoke || []).forEach(o => { const t = ((now / 4200) + o.ph) % 1; o.sp.position.set(Math.sin(t * 6 + o.ph * 9) * 0.03, 0.06 + t * 0.35, 0.08); o.sp.scale.setScalar(0.06 + t * 0.16); o.sp.material.opacity = Math.sin(t * Math.PI) * 0.55; });
     }
@@ -1873,6 +1888,67 @@
         });
       }).then(() => { toks.forEach(m => m.userData.play('Ready1H')); return toks; });
     }
+    // Two armies facing each other in ranks between the zones. cull(attAlive, defAlive) drops figures (Death clip,
+    // then they sink and vanish) to match how many troops each side still has; finish() sends the survivors home
+    // (or into the captured zone) and clears the field.
+    async formArmies(A, B, attN, defN, attF, defF){
+      const CAP = 10, dir = B.clone().sub(A); dir.y = 0; const len = dir.length(); dir.normalize();
+      const side = new THREE.Vector3(-dir.z, 0, dir.x), gap = 0.075, perRow = 5;
+      const front = Math.min(0.3, len * 0.45);
+      const slot = (i, n, base, back) => {   // ranks of up to 5, extra ranks stepping back
+        const row = Math.floor(i / perRow), inRow = Math.min(perRow, n - row * perRow), col = i % perRow;
+        return base.clone().addScaledVector(side, (col - (inRow - 1) / 2) * gap).addScaledVector(back, row * gap);
+      };
+      const make = (f, n, base, back, faceDir) => {
+        const shown = Math.min(CAP, n), list = [];
+        for(let i = 0; i < shown; i++){
+          const m = this.troop(f), at = slot(i, shown, base, back);
+          m.userData.slot = at; if(m.userData.face) m.userData.face(faceDir.x, faceDir.z); list.push(m);
+        }
+        return { list, total: n, shown };
+      };
+      const aBase = B.clone().addScaledVector(dir, -front), dBase = B.clone().addScaledVector(dir, -front + 0.16);
+      const att = make(attF, attN, aBase, dir.clone().negate(), dir), def = make(defF, defN, dBase, dir, dir.clone().negate());
+      // defenders rise up in their ranks, attackers run in from their zone
+      def.list.forEach(m => { m.position.copy(m.userData.slot); m.position.y = 0; m.scale.setScalar(0.01); m.userData.play('Ready1H'); });
+      att.list.forEach(m => { m.position.copy(A); m.position.y = 0; m.userData.play('Run'); });
+      this.animate(500, t => def.list.forEach(m => m.scale.setScalar(Math.max(0.01, easeOut(t)))));
+      await this.animate(1000, t => att.list.forEach((m, i) => {
+        const tt = Math.max(0, Math.min(1, t * 1.25 - i * 0.025)), e2 = ease(tt);
+        m.position.lerpVectors(A, m.userData.slot, e2); m.position.y = 0;
+      }));
+      att.list.forEach(m => m.userData.play('Ready1H'));
+      const fall = m => {
+        if(m.userData.dead) return; m.userData.dead = true;
+        const ms = m.userData.play('Death', true) || 600;
+        setTimeout(() => this.animate(500, t => { m.position.y = -0.06 * t; m.scale.setScalar(Math.max(0.01, 1 - t * 0.6)); })
+          .then(() => this.removeAll([m])), Math.min(ms, 1600) / this.speed);
+      };
+      const cullSide = (s, alive) => {
+        const want = alive <= 0 ? 0 : Math.max(1, Math.ceil(alive / s.total * s.shown));
+        const up = s.list.filter(m => !m.userData.dead);
+        up.slice(0, Math.max(0, up.length - want)).forEach(fall);   // the front rank falls first
+      };
+      return {
+        att: att.list, def: def.list,
+        cull: (aAlive, dAlive) => { cullSide(att, aAlive); cullSide(def, dAlive); },
+        finish: async captured => {
+          const aUp = att.list.filter(m => !m.userData.dead), dUp = def.list.filter(m => !m.userData.dead);
+          // winners give a battle roar, then everyone still standing leaves the field
+          (captured ? aUp : dUp).forEach(m => m.userData.play('BattleRoar', true));
+          await this.wait(900);
+          const dest = captured ? B : A;
+          aUp.forEach(m => { m.userData.play('Run'); if(m.userData.face){ const d = dest.clone().sub(m.position); m.userData.face(d.x, d.z); } });
+          const from = aUp.map(m => m.position.clone());
+          await Promise.all([
+            this.animate(800, t => aUp.forEach((m, i) => { m.position.lerpVectors(from[i], dest, ease(t)); m.scale.setScalar(Math.max(0.01, 1 - Math.max(0, t - 0.6) / 0.4)); })),
+            this.animate(600, t => dUp.forEach(m => m.scale.setScalar(Math.max(0.01, 1 - t))))
+          ]);
+          await this.wait(1700);   // let the last falls finish
+          this.removeAll(att.list.concat(def.list));
+        }
+      };
+    }
     removeAll(objs){ objs.forEach(o => { this.scene.remove(o); if(o.userData.mixer) this.mixers = this.mixers.filter(m => m !== o.userData.mixer); }); }
 
     // ----- playing log entries -----
@@ -1970,10 +2046,15 @@
       const curve = this.arcCurve(e.from, e.to);
       const arrow = this.drawArrow(curve, att === 'horde' ? 0xff4a30 : 0x5a9aff);
       await arrow.grow;
-      const toks = await this.marchTokens(this.arcCurve(e.from, e.to, 0.1), e.n, att, 900);
-      toks.forEach(m => m.userData.play('Attack1H'));
       const A = zoneWorld(e.from), B = zoneWorld(e.to);
       const mid = A.clone().lerp(B, 0.62);
+      // both armies on the board: the attackers march up and form ranks facing the defenders, who form up in
+      // front of their zone. One figure per troop (up to 10 a side, then each stands for a few); as troops die,
+      // figures fall and vanish
+      const defStart = e.zones[e.to].before.ready + e.zones[e.to].before.fresh;
+      const armies = await this.formArmies(A, B, e.n, defStart, att, def === 'neutral' ? 'neutral' : def);
+      const toks = armies.att;
+      toks.forEach(m => m.userData.play('Attack1H')); armies.def.forEach(m => m.userData.play('Attack1H'));
       if(e.naval) this.floatText(e.to, '⛵ Naval Landing', att);
       if(e.warcry) this.floatText(e.from, '📯 Warcry!', att);
       if(e.fortified) this.floatText(e.to, '🧱 Fortified +1', def);
@@ -1994,15 +2075,25 @@
         attLeft -= r.al; defLeft -= r.dl;
         if(r.al) this.floatText(e.from, `-${r.al}`, 'loss');
         if(r.dl) this.floatText(e.to, `-${r.dl}`, 'loss');
+        armies.cull(Math.max(0, attLeft), Math.max(0, defLeft));
         await this.wait(650);
       }
       this.clearDice();
       if(e.rounds.length > 3){
         const rest = e.rounds.slice(3); let al = 0, dl = 0; rest.forEach(r => { al += r.al; dl += r.dl; });
         this.floatText(e.to, `${rest.length} more round${rest.length > 1 ? 's' : ''}: -${al} / -${dl}`, 'sum');
-        for(let i = 0; i < Math.min(4, rest.length); i++){ this.flash(mid.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.4, 0, (Math.random() - 0.5) * 0.3)), 0xff9a50, 0.8); this.shake(160, 0.05); await this.wait(220); }
+        // the rest of the fight plays out quickly: figures keep falling round by round
+        const steps = Math.min(6, rest.length), per = Math.ceil(rest.length / steps);
+        for(let i = 0; i < steps; i++){
+          rest.slice(i * per, (i + 1) * per).forEach(r => { attLeft -= r.al; defLeft -= r.dl; });
+          this.flash(mid.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.4, 0, (Math.random() - 0.5) * 0.3)), 0xff9a50, 0.8); this.shake(160, 0.05);
+          armies.cull(Math.max(0, attLeft), Math.max(0, defLeft));
+          await this.wait(420);
+        }
       }
-      this.removeAll(toks);
+      armies.cull(e.captured ? Math.max(0, e.survivors) : Math.max(0, attLeft), e.captured ? 0 : Math.max(0, defLeft));
+      await this.wait(900);
+      await armies.finish(e.captured);
       arrow.remove();
       if(e.captured){
         const fx = this.captureFx(e.to, att);
