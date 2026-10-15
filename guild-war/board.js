@@ -867,6 +867,21 @@
       if(this.raster){
         const RW = this.RW, RH = this.RH, R = this.raster;
         const oc = this.overlayCanvas.getContext('2d'), im = oc.createImageData(RW, RH), d = im.data;
+        // region edges (worked out once): a band ~2px either side of every line between two regions, each side
+        // painted in its own region's colour so the line reads two-tone
+        const REG_KEYS = Object.keys(WAR_REGIONS), REG_COL = [null].concat(REG_KEYS.map(r => { const h = WAR_REGIONS[r].color || '#d6a940'; return [1, 3, 5].map(j => parseInt(h.slice(j, j + 2), 16)); }));
+        if(!this.regionEdge){
+          const regOf = new Uint8Array(256); WAR_ZONE_ORDER.forEach((k, i) => { regOf[i + 1] = REG_KEYS.indexOf(WAR_ZONES[k].region) + 1; });
+          const E2 = new Uint8Array(RW * RH);
+          for(let y = 0; y < RH; y++) for(let x = 0; x < RW; x++){
+            const z = R[y * RW + x]; if(!isZone(z)) continue; const me = regOf[z]; this.regionOfPx = regOf;
+            search: for(let dy = -3; dy <= 3; dy++) for(let dx = -3; dx <= 3; dx++){
+              const xx = x + dx, yy = y + dy; if(xx < 0 || yy < 0 || xx >= RW || yy >= RH) continue;
+              const q = R[yy * RW + xx]; if(isZone(q) && regOf[q] !== me){ E2[y * RW + x] = me; break search; }
+            }
+          }
+          this.regionEdge = E2;
+        }
         const own = new Array(256).fill(null);
         WAR_ZONE_ORDER.forEach((k, i) => { own[i + 1] = this.ownerOf(k); });
         const sel = this.selected ? this.zoneVal[this.selected] : -1;
@@ -876,9 +891,12 @@
           if(!isZone(z)) continue;
           const r = x + 1 < RW ? R[i + 1] : z, b = y + 1 < RH ? R[i + RW] : z, l = x > 0 ? R[i - 1] : z, t = y > 0 ? R[i - RW] : z;
           const border = (isZone(r) && r !== z) || (isZone(b) && b !== z) || (isZone(l) && l !== z) || (isZone(t) && t !== z);
+          const re = this.regionEdge[i];
+          if(re){ const c = REG_COL[re]; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = border ? 255 : 215; continue; }
           if(border){ d[o] = 40; d[o + 1] = 24; d[o + 2] = 10; d[o + 3] = 200; continue; }
           const c = COL[own[z]] || COL.neutral;
           let a = own[z] === 'neutral' ? 0 : 0.36, cr = c[0], cg = c[1], cb = c[2];
+          if(a === 0){ const rc = REG_COL[this.regionOfPx[z]]; if(rc){ cr = rc[0]; cg = rc[1]; cb = rc[2]; a = 0.1; } }   // unowned land: a faint wash of its region's colour
           if(z === sel){ cr = 255; cg = 225; cb = 150; a += 0.16; }
           else if(hl.has(z)){ cr = 255; cg = 190; cb = 120; a += 0.08; }
           d[o] = cr; d[o + 1] = cg; d[o + 2] = cb; d[o + 3] = Math.round(Math.min(1, a) * 255);

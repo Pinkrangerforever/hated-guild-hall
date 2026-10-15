@@ -17,7 +17,7 @@ const WAR_ZONES = {
   mulgore:         { name: 'Mulgore',             continent: 'kalimdor', region: 'kalimdor_heart', resource: 'food',    capital: 'Thunder Bluff' },
   stonetalon:      { name: 'Stonetalon Mountains', continent: 'kalimdor', region: 'kalimdor_heart', resource: 'ore' },
   dustwallow:      { name: 'Dustwallow Marsh',    continent: 'kalimdor', region: 'kalimdor_heart', resource: 'food' },
-  desolace:        { name: 'Desolace',            continent: 'kalimdor', region: 'southern_wilds', resource: 'gold' },
+  desolace:        { name: 'Desolace',            continent: 'kalimdor', region: 'kalimdor_heart', resource: 'gold' },
   shendralas:      { name: "Shen'Dralas",         continent: 'kalimdor', region: 'southern_wilds', resource: 'ore' },
   feralas:         { name: 'Feralas',             continent: 'kalimdor', region: 'southern_wilds', resource: 'wood' },
   thousand_needles:{ name: 'Thousand Needles',    continent: 'kalimdor', region: 'southern_wilds', resource: 'ore' },
@@ -38,11 +38,11 @@ const WAR_ZONES = {
   loch_modan:      { name: 'Loch Modan',          continent: 'eastern', region: 'khaz_modan', resource: 'gold' },
   badlands:        { name: 'Badlands',            continent: 'eastern', region: 'khaz_modan', resource: 'ore' },
   searing_gorge:   { name: 'Searing Gorge',       continent: 'eastern', region: 'khaz_modan', resource: 'wood' },
-  riverglades:     { name: 'Riverglades',         continent: 'eastern', region: 'khaz_modan', resource: 'food' },
-  elwynn:          { name: 'Elwynn Forest',       continent: 'eastern', region: 'azeroth', resource: 'food',    capital: 'Stormwind' },
+  riverglades:     { name: 'Riverglades',         continent: 'eastern', region: 'azeroth', resource: 'food' },
+  elwynn:          { name: 'Elwynn Forest',       continent: 'eastern', region: 'khaz_modan', resource: 'food',    capital: 'Stormwind' },
   westfall:        { name: 'Westfall',            continent: 'eastern', region: 'azeroth', resource: 'gold' },
   redridge:        { name: 'Redridge Mountains',  continent: 'eastern', region: 'azeroth', resource: 'ore' },
-  burning_steppes: { name: 'Burning Steppes',     continent: 'eastern', region: 'azeroth', resource: 'gold' },
+  burning_steppes: { name: 'Burning Steppes',     continent: 'eastern', region: 'khaz_modan', resource: 'gold' },
   duskwood:        { name: 'Duskwood',            continent: 'eastern', region: 'azeroth', resource: 'wood' },
   stranglethorn:   { name: 'Stranglethorn Vale',  continent: 'eastern', region: 'azeroth', resource: 'food' },
   deadwind:        { name: 'Deadwind Pass',       continent: 'eastern', region: 'azeroth', resource: 'gold' },
@@ -101,12 +101,12 @@ const WAR_ROUTES = [
 ];
 
 const WAR_REGIONS = {
-  north_kalimdor: { name: 'Northern Kalimdor',  troops: 4, points: 3 },
-  kalimdor_heart: { name: 'Kalimdor Heartland', troops: 3, points: 2 },
-  southern_wilds: { name: 'Southern Wilds',     troops: 4, points: 3 },
-  lordaeron:      { name: 'Lordaeron',          troops: 4, points: 3 },
-  khaz_modan:     { name: 'Khaz Modan',         troops: 4, points: 3 },
-  azeroth:        { name: 'Kingdom of Azeroth', troops: 5, points: 4 }
+  north_kalimdor: { name: 'Northern Kalimdor',  troops: 5, points: 4, color: '#3f9a5a' },
+  kalimdor_heart: { name: 'Kalimdor Heartland', troops: 3, points: 2, color: '#c0612b' },
+  southern_wilds: { name: 'Southern Wilds',     troops: 3, points: 2, color: '#d6b13a' },
+  lordaeron:      { name: 'Lordaeron',          troops: 4, points: 3, color: '#8a5fc0' },
+  khaz_modan:     { name: 'Khaz Modan & Elwynn', troops: 5, points: 4, color: '#3a7fd0' },
+  azeroth:        { name: 'Southern Kingdoms',  troops: 5, points: 4, color: '#c03a4a' }
 };
 
 // Stronghold candidates: each week every faction gets 2 per continent from its list
