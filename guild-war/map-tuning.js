@@ -176,6 +176,9 @@ const WAR_TUNING = {
    ]
   },
   "holds": {
+   "tirisfal": {
+    "at": [826, 272]
+   },
    "hillsbrad": {
     "at": [932, 398]
    },
