@@ -437,8 +437,20 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
   }
 
   const warOver = s => s.clock >= RULES.endClock;
+  // Scout reports: the day is split into three 8-hour watches (midnight-8am, 8am-4pm, 4pm-midnight). The first
+  // time a player opens the war room in a watch, their scouts bring in 1 extra reinforcement. No banking: a
+  // missed watch is just missed, so at most 3 a day.
+  const SCOUT_HOURS = 8;
+  function scout(s, pid){
+    const p = s.players[pid];
+    if(!p || s.phase !== 'live' || warOver(s)) return { ok: false };
+    const w = Math.floor(s.clock / SCOUT_HOURS), next = (w + 1) * SCOUT_HOURS - s.clock;
+    if(p.scoutWin === w) return { ok: false, next };
+    p.scoutWin = w; p.reinforce += 1;
+    return { ok: true, next };
+  }
   const isRich = (s, k) => !!(s.rich && s.rich[k]);
   const api = { RULES, isRich, pickRich, warOver, ADJ, PORTS, isSeaLink, adjacent, distances, newGame, signup, startGame, joinLate, beginDay, deploy, move, attack, fortify,
-                build, craft, useShieldWall, trade, tradeRate, endGame, score, reinforcementsFor, deployable, friendlyReach, regionsHeld, zonesOf, day, enemyOf, threat };
+                build, craft, useShieldWall, scout, trade, tradeRate, endGame, score, reinforcementsFor, deployable, friendlyReach, regionsHeld, zonesOf, day, enemyOf, threat };
   if(typeof module !== 'undefined') module.exports = api; else root.WarEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

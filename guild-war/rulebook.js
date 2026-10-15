@@ -25,6 +25,7 @@ const WAR_RULEBOOK = [
     body: `<p>Each day at dawn every player gets reinforcements: <b>3, +1 for every 3 zones</b> your faction holds, <b>+ region bonuses</b>.
       (If one team is bigger, its players get a little less each so both sides grow at about the same rate.)</p>
       <p><b>Deploying</b> is free. You can only deploy to zones linked to one of your <b>strongholds</b> through your own territory. Deploy one at a time, or all at once.</p>
+      <p><b>🔭 Scout reports:</b> the day has three watches (midnight to 8am, 8am to 4pm, 4pm to midnight). The first time you open the war room in each watch you get <b>1 extra troop</b>. Missed watches don't carry over.</p>
       <p>New and moved troops are <b>fresh 💤</b>: they can defend, but can't move or attack until the next dawn. Ready troops show as ⚔.</p>` },
   { id: 'move', icon: '🥾', title: 'Moving', tags: 'move march once per day connected forced',
     body: `<p>Move <b>ready</b> troops between your own zones that are connected through your territory. Costs 1 AP.</p>
