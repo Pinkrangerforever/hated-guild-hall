@@ -24,9 +24,9 @@ const WAR_RULEBOOK = [
   { id: 'troops', icon: '🪖', title: 'Troops & Reinforcements', tags: 'troops reinforcements deploy fresh ready rest sleep stronghold connected',
     body: `<p>Each day at dawn every player gets reinforcements: <b>3, +1 for every 3 zones</b> your faction holds, <b>+ region bonuses</b>.
       (If one team is bigger, its players get a little less each so both sides grow at about the same rate.)</p>
-      <p><b>Deploying</b> is free. You can only deploy to zones linked to one of your <b>strongholds</b> through your own territory. Deploy one at a time, or all at once.</p>
+      <p><b>Deploying</b> is free. You can only deploy to zones linked to one of your <b>strongholds</b> through your own territory. Deploy one at a time, or all at once. <b>Deployed troops are ready ⚔ straight away</b>: you can attack with them the same day.</p>
       <p><b>🔭 Scout reports:</b> the day has three watches (midnight to 8am, 8am to 4pm, 4pm to midnight). The first time you open the war room in each watch you get <b>1 extra troop</b>. Missed watches don't carry over.</p>
-      <p>New and moved troops are <b>fresh 💤</b>: they can defend, but can't move or attack until the next dawn. Ready troops show as ⚔.</p>` },
+      <p>Troops that <b>move</b> or <b>capture a zone</b> arrive <b>fresh 💤</b>: they can defend, but can't move or attack again until the next dawn. Ready troops show as ⚔.</p>` },
   { id: 'pets', icon: '🐾', title: 'Pets', tags: 'pet pets level respawn guard station companion',
     body: `<p>Your hatched site pet fights for your faction. Station it in one of your zones (free, and it can move once a day). Only one pet can guard each zone.</p>
       <ul><li>It counts as <b>one more troop</b> in that zone, and joins attacks made from it.</li>

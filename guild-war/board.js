@@ -2022,7 +2022,7 @@
       }));
       const roar = Math.max(...toks.map(m => m.userData.play('BattleRoar', true) || 0));
       this.pulseRing(e.to, COL[e.faction + 'Hex']);
-      this.applyAfter(e); this.floatText(e.to, `+${e.n} 💤`, e.faction);
+      this.applyAfter(e); this.floatText(e.to, `+${e.n} ⚔`, e.faction);
       await this.wait(Math.max(350, Math.min(1600, roar)));
       await this.animate(300, t => toks.forEach(m => { m.scale.setScalar(1 - t); })); this.removeAll(toks);
     }

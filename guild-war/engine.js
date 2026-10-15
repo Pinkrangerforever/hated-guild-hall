@@ -209,7 +209,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     if(!(n > 0) || n > p.reinforce) return { ok: false, error: 'Not enough reinforcements' };
     if(!deployable(s, p.faction).includes(zone)) return { ok: false, error: 'Deploy to a zone linked to one of your strongholds' };
     const before = snap(s, [zone]);
-    s.zones[zone].fresh += n; p.reinforce -= n; active(s, p);
+    s.zones[zone].ready += n; p.reinforce -= n; active(s, p);   // deployed troops are ready at once, so every player has troops to fight with
     return { ok: true, entry: log(s, { type: 'deploy', pid, faction: p.faction, to: zone, n }, before) };
   }
 
@@ -395,7 +395,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
         if(spots.length){
           const before = snap(s, spots.slice(0, 3));
           let left = p.reinforce, i = 0; const placed = {};
-          while(left > 0){ const k = spots[i % Math.min(3, spots.length)]; s.zones[k].fresh++; placed[k] = (placed[k] || 0) + 1; left--; i++; }
+          while(left > 0){ const k = spots[i % Math.min(3, spots.length)]; s.zones[k].ready++; placed[k] = (placed[k] || 0) + 1; left--; i++; }
           p.reinforce = 0;
           const clock = s.clock; s.clock = at;
           log(s, { type: 'autopilot', pid: p.id, faction: p.faction, placed }, before);

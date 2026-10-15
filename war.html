@@ -875,7 +875,7 @@ function renderZone(){
         h += `<div class="tgt">
           <div class="vs"><span>${info.name}<br><span class="n" style="color:var(--facText)">${max}</span> <span class="lbl">can go</span></span><span style="font-size:18px">${mode === 'attack' ? '⚔' : '➜'}</span>
             <span style="text-align:right">${ZN(target)}<br>${mode === 'attack' ? `<span class="n">${tz.ready + tz.fresh}</span> <span class="lbl">defending</span>` : `<span class="lbl">friendly</span>`}</span></div>
-          ${max < 1 ? '<div class="muted">No ready troops can leave (fresh troops 💤 rest until tomorrow, and one must stay).</div>' :
+          ${max < 1 ? '<div class="muted">No ready troops can leave (troops that moved or captured today 💤 rest until tomorrow, and one must stay).</div>' :
           `<div class="row"><input type="range" id="actN" min="1" max="${max}" value="${max}" oninput="actV.textContent=this.value"><b id="actV">${max}</b></div>
           ${mode === 'attack' ? `<div class="row">${p.cards.warcry ? '<label><input type="checkbox" id="optWar"> 📯 Warcry</label>' : ''}${p.cards.naval && E.isSeaLink(selZone, target) ? '<label><input type="checkbox" id="optNav"> ⛵ Naval</label>' : ''}</div>` :
             (z.movedDay === E.day(G) && p.cards.march ? '<label><input type="checkbox" id="optMarch"> 🥾 Forced March</label>' : '')}
