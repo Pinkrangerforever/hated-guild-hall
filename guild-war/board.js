@@ -668,7 +668,7 @@
           const piece = this.pieces[w.zone], s2 = 0.2 / Math.max(size.y, size.x * 0.6);
           const holder = new THREE.Group(); holder.add(m); m.scale.setScalar(s2);
           m.position.set(-(box.min.x + box.max.x) / 2 * s2, -box.min.y * s2, -(box.min.z + box.max.z) / 2 * s2);
-          if(w.built) holder.position.set((piece.bx || -0.2) + 0.02, 0.002, (piece.bz || -0.06) + 0.17);
+          if(w.built) holder.position.set((piece.bx || -0.2) + 0.02, 0.002, (piece.bz || -0.06) + 0.26);
           else holder.position.set(0.16, 0.002, 0.1);
           holder.rotation.y = -Math.PI / 2 + 0.35;   // turned to the camera
           piece.grp.add(holder); rec.obj = holder;
