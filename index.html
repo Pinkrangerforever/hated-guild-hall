@@ -4294,7 +4294,7 @@
             <button type="button" role="menuitem" data-user-menu="profile">My Profile</button>
             <button type="button" role="menuitem" data-user-menu="settings">Settings</button>
             <button type="button" role="menuitem" data-user-menu="admin" id="nav-menu-admin" hidden>Admin</button>
-            <button type="button" role="menuitem" data-user-menu="war" id="nav-menu-war" hidden>Guild War (test)</button>
+            <button type="button" role="menuitem" data-user-menu="war" id="nav-menu-war" hidden>Guild War</button>
             <div class="nav-user-menu-sep"></div>
             <button type="button" role="menuitem" data-user-menu="signout" class="danger">Sign Out</button>
           </div>
@@ -4494,7 +4494,7 @@ function updateNavbarUserInfo(){
   const navMenuAdmin = document.getElementById('nav-menu-admin');
   if(navMenuAdmin) navMenuAdmin.hidden = !state.profile.protected;
   const navMenuWar = document.getElementById('nav-menu-war');
-  if(navMenuWar) navMenuWar.hidden = !state.profile.protected; // admin-only while Guild War is in testing
+  if(navMenuWar) navMenuWar.hidden = false; // every signed-in member can join the war
   setWalletSeg(navGold, 'GoldIcon.png', 'Gold', gold);
 
   // Update mobile menu
