@@ -14,3 +14,6 @@ upload_guild_board.py
 
 # Local-only files (e.g. trivia answer key) - never commit, the repo is public
 private/
+
+# local working image, not part of the site
+guild-war/zone-regions.png
