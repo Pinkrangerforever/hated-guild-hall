@@ -7,6 +7,11 @@ on:
       - staging
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'guild-war/map-data.js'
+      - 'guild-war/engine.js'
+      - 'guild-war/ai.js'
+      - 'tools/build_war_server.py'
       - '.github/workflows/staging.yml'
 
 concurrency:
@@ -64,6 +69,16 @@ jobs:
             --password ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }} \
             --dry-run=false \
             --include-all
+
+      # The Guild War server: bundle the shared game code (the same files the war room runs) and deploy the
+      # `war` Edge Function. It checks each player's sign-in itself, so the gateway's JWT check is off
+      # (the clock job calls it without one).
+      - name: Deploy Guild War Function
+        run: |
+          python3 tools/build_war_server.py
+          supabase functions deploy war --project-ref ${{ secrets.SUPABASE_STAGING_PROJECT_REF }} --no-verify-jwt
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN }}
 
       - name: Post Success to GitHub
         if: success() && steps.check_migrations.outputs.status == 'has_migrations'

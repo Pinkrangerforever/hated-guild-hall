@@ -17,6 +17,7 @@
 <script src="guild-war/map-tuning.js"></script>
 <script src="guild-war/rulebook.js"></script>
 <script src="guild-war/engine.js"></script>
+<script src="guild-war/ai.js"></script>
 <script>if(/localhost/.test(location.host)) window.WAR_TEX_BASE = "zz_local/tex/";</script>
 <script src="guild-war/board.js"></script>
 <style>
@@ -998,46 +999,6 @@ function startWar(){
 }
 
 // ---------- bots: a simple aggressive AI for sandbox testing ----------
-function botTurn(pid){
-  const p = G.players[pid]; if(!p) return;
-  const f = p.faction, entries = [];
-  const frontier = () => E.zonesOf(G, f).filter(k => [...E.ADJ[k]].some(n => G.zones[n].owner !== f));
-  // deploy everything on the frontier zone with the juiciest target next door
-  if(p.reinforce > 0){
-    const spots = E.deployable(G, f).filter(k => frontier().includes(k));
-    const pick = (spots.length ? spots : E.deployable(G, f)).sort((a, b) => weakest(b, f).score - weakest(a, f).score)[0];
-    if(pick){ const r = E.deploy(G, pid, pick, p.reinforce); if(r.ok) entries.push(r.entry); }
-  }
-  const apLeft = () => G.settings.unlimitedAP || p.ap >= 1;
-  // 1) attacks: any ready stack that outnumbers its target goes for it, strongest odds first
-  for(let guard = 0; guard < 12 && apLeft(); guard++){
-    let best = null;
-    E.zonesOf(G, f).forEach(k => {
-      const z = G.zones[k], can = Math.min(z.ready, z.ready + z.fresh - 1); if(can < 2) return;
-      [...E.ADJ[k]].forEach(n => { const t = G.zones[n]; if(t.owner === f) return; const def = t.ready + t.fresh; const sc = can - def * 1.1 + (t.owner !== 'neutral' ? 0.5 : 0); if(sc > 0 && (!best || sc > best.sc)) best = { from: k, to: n, n: can, sc }; });
-    });
-    if(!best) break;
-    const r = E.attack(G, pid, best.from, best.to, best.n, { warcry: p.cards.warcry > 0 });
-    if(!r.ok) break; entries.push(r.entry);
-  }
-  // 2) march ready troops from quiet inland zones up to the most threatened front
-  for(let guard = 0; guard < 4 && apLeft(); guard++){
-    const fr = frontier();
-    const src = E.zonesOf(G, f).filter(k => !fr.includes(k) && G.zones[k].ready >= 2 && G.zones[k].movedDay !== E.day(G)).sort((a, b) => G.zones[b].ready - G.zones[a].ready)[0];
-    if(!src) break;
-    const dests = fr.slice().sort((a, b) => E.threat(G, b) - E.threat(G, a));
-    let moved = false;
-    for(const d of dests){ const r = E.move(G, pid, src, d, G.zones[src].ready - (G.zones[src].fresh ? 0 : 1)); if(r.ok){ entries.push(r.entry); moved = true; break; } }
-    if(!moved) break;
-  }
-  // 3) build with whatever resources they have
-  ['stronghold', 'outpost'].forEach(kind => { if(!apLeft()) return; const z = frontier().concat(E.zonesOf(G, f)).find(k => G.zones[k].outpost === (kind === 'outpost' ? 0 : 1)); if(z){ const r = E.build(G, pid, z, kind); if(r.ok) entries.push(r.entry); } });
-  // 4) whatever AP is left fortifies the most threatened zones that aren't fortified yet
-  const forts = frontier().concat(E.zonesOf(G, f)).filter((k, i, a) => a.indexOf(k) === i && !(G.zones[k].fortifyUntil > G.clock)).sort((a, b) => E.threat(G, b) - E.threat(G, a));
-  for(const k of forts){ if(G.settings.unlimitedAP || p.ap < 1) break; const r = E.fortify(G, pid, k); if(r.ok) entries.push(r.entry); }
-  return entries;
-}
-function weakest(k, f){ let s = 0; E.ADJ[k].forEach(n => { const t = G.zones[n]; if(t.owner !== f) s = Math.max(s, 10 - (t.ready + t.fresh)); }); return { score: s }; }
 function runBots(){
   const ids = Object.values(G.players).filter(p => p.bot).map(p => p.id).sort(() => Math.random() - 0.5);   // a different bot goes first each time, so no one bot always gets first pick of the ready troops
   if(!ids.length){ toast('No bots in this war'); return; }
@@ -1087,18 +1048,8 @@ function endWar(){ after(E.endGame(G)); setTimeout(showEndScreen, 600); }
 
 // ---------- war over: Victory / Defeat, with each champion's part in it ----------
 // personal score: 5 per zone captured, 1 per enemy troop killed, 3 per outpost, 6 per stronghold, 1 per fortify
-function playerStats(){
-  const st = {};
-  Object.values(G.players).forEach(p => { st[p.id] = { p, caps: 0, kills: 0, builds: 0, forts: 0, score: 0 }; });
-  G.log.forEach(e => {
-    const s = st[e.pid]; if(!s) return;
-    if(e.type === 'attack'){ s.kills += e.defLost || 0; if(e.captured) s.caps++; }
-    else if(e.type === 'build'){ s.builds++; s.score += e.kind === 'stronghold' ? 6 : 3; }
-    else if(e.type === 'fortify'){ s.forts++; s.score += 1; }
-  });
-  Object.values(st).forEach(s => { s.score += s.caps * 5 + s.kills; });
-  return st;
-}
+const playerStats = () => WarAI.playerStats(G, G.log);
+const botTurn = pid => WarAI.botTurn(E, G, pid);
 // ---------- the champion's smash ----------
 // The winning side's top scorer may smash the board any time from the end of the war until the next war starts.
 // Hits are kept with the game (and sent live to everyone watching), so anyone opening the room later sees the wreckage.
