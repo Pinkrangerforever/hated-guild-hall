@@ -223,11 +223,10 @@
   /* the overlay */
   #rulebook{ position:fixed; inset:0; z-index:8; display:none; align-items:center; justify-content:center; background:rgba(6,3,1,0); transition:background .5s; perspective:1800px; }
   #rulebook.show{ display:flex; } #rulebook.dim{ background:rgba(6,3,1,0.62); }
+  .book .leaf > *{ transition:opacity .25s; } .book.blank .leaf > *{ opacity:0; }
 
   /* the flying book: flies from the page to the centre, opens, flips pages */
   .fly{ position:absolute; width:300px; height:400px; left:calc(50% - 150px); top:calc(50% - 200px); transform-style:preserve-3d; display:none; }
-  #rulebook.anim .fly{ display:block; animation:flyIn .7s cubic-bezier(.25,.8,.3,1) both; }
-  @keyframes flyIn{ from{ transform:translate(var(--fx), var(--fy)) scale(.15) rotateY(-20deg) rotateX(10deg); } to{ transform:translateX(150px) scale(1); } }
   .fb-back{ position:absolute; inset:0; border-radius:4px 8px 8px 4px; background:#3a200c; box-shadow:0 30px 60px rgba(0,0,0,0.7); }
   .fb-page{ position:absolute; inset:6px 8px 6px 2px; transform-origin:left center; border-radius:0 4px 4px 0;
     background:linear-gradient(90deg, #d8c290, #f1e4c0 12%, #ecdcb2); box-shadow:inset 6px 0 10px rgba(110,70,20,0.25); }
@@ -241,19 +240,11 @@
   .fb-cover .emb{ font-size:64px; top:38%; }
   .fb-cover .ttl{ position:absolute; bottom:70px; left:0; right:0; text-align:center; font:900 24px/1.25 Cinzel, serif; letter-spacing:2px; color:#e0b44e; text-shadow:0 2px 0 #2a1608; }
   .fb-cover .inside{ transform:rotateY(180deg); background:linear-gradient(90deg, #5a3416, #3a200c); }
-  #rulebook.anim .fb-cover{ animation:coverOpen .8s .75s cubic-bezier(.5,0,.3,1) both; }
-  @keyframes coverOpen{ to{ transform:rotateY(-178deg); } }
-  #rulebook.anim .fb-page{ animation:pageFlip .5s cubic-bezier(.5,0,.4,1) both; }
-  #rulebook.anim .p1{ animation-delay:1.15s; } #rulebook.anim .p2{ animation-delay:1.27s; } #rulebook.anim .p3{ animation-delay:1.39s; }
-  #rulebook.anim .p4{ animation-delay:1.51s; } #rulebook.anim .p5{ animation-delay:1.63s; } #rulebook.anim .p6{ animation-delay:1.75s; }
-  @keyframes pageFlip{ 0%{ transform:rotateY(0); } 100%{ transform:rotateY(-176deg); } }
 
   /* the open book: two parchment pages, a gutter, leather edging */
-  .book{ position:relative; display:none; width:min(1000px, 95vw); height:min(660px, 88vh); padding:14px; border-radius:10px;
+  .book{ position:absolute; display:grid; opacity:0; visibility:hidden; width:min(1000px, 95vw); height:min(660px, 88vh); padding:14px; border-radius:10px;
     background:radial-gradient(ellipse at 50% 30%, #6a3e1c, #3a200c); box-shadow:0 30px 80px rgba(0,0,0,0.8), inset 0 0 0 2px #2a1608, inset 0 0 0 4px rgba(214,169,64,0.35);
     grid-template-columns:minmax(220px, 34%) 22px 1fr; }
-  #rulebook.open .book{ display:grid; animation:spreadIn .45s ease both; } #rulebook.open .fly{ display:none; }
-  @keyframes spreadIn{ from{ opacity:0; transform:scale(.96); } to{ opacity:1; transform:none; } }
   .leaf{ position:relative; overflow:hidden; display:flex; flex-direction:column; color:#2e1d0c;
     background:radial-gradient(ellipse at 50% 40%, #f5e9c8 0%, #ead7a8 70%, #d9c08a 100%); }
   .leaf::after{ content:""; position:absolute; inset:0; pointer-events:none; opacity:.35;
@@ -368,6 +359,7 @@
 <div id="rulebook">
   <div class="fly" id="flyBook">
     <div class="fb-back"></div>
+    <div class="fb-page last"></div>
     <div class="fb-page p1"></div><div class="fb-page p2"></div><div class="fb-page p3"></div><div class="fb-page p4"></div><div class="fb-page p5"></div><div class="fb-page p6"></div>
     <div class="fb-cover"><div class="front"><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i><span class="emb">⚔</span><span class="ttl">The Guild War<br>Codex</span></div><div class="inside"></div></div>
   </div>
@@ -628,21 +620,63 @@ function placePamphlet(){
   const visible = me && getComputedStyle(me).display !== 'none';
   pm.style.top = (visible ? me.offsetTop + me.offsetHeight + 10 : 62) + 'px';
 }
-function openRules(id){
-  const rb = document.getElementById('rulebook'), mini = document.querySelector('#pamphlet .mini').getBoundingClientRect();
-  rb.style.setProperty('--fx', (mini.left + mini.width / 2 - innerWidth / 2 - 150) + 'px');
-  rb.style.setProperty('--fy', (mini.top + mini.height / 2 - innerHeight / 2) + 'px');
+// The book's journey: the little book flies to the centre (300x400, closed), opens its cover, flips six
+// pages, and the open spread grows out of it with the text fading in. Closing runs it all backwards and
+// the book flies home to the little icon.
+let bookBusy = false;
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const anim = (el, frames, ms, easing, delay) => el.animate(frames, { duration: ms, easing: easing || 'cubic-bezier(.4,0,.2,1)', delay: delay || 0, fill: 'forwards' }).finished;
+function bookGeometry(){
+  const mini = document.querySelector('#pamphlet .mini').getBoundingClientRect(), book = document.getElementById('openBook');
+  const home = `translate(${mini.left + mini.width / 2 - innerWidth / 2 - 150}px, ${mini.top + mini.height / 2 - innerHeight / 2}px) scale(${mini.height / 400}) rotateY(-18deg)`;
+  // the open fly-book is 600x400 centred; the spread starts at that size
+  const small = `scale(${600 / book.offsetWidth}, ${400 / book.offsetHeight})`;
+  return { home, small };
+}
+async function openRules(id){
+  if(bookBusy) return; bookBusy = true;
   if(id) ruleOpen = id;
   renderRules();
-  rb.classList.remove('open', 'anim'); void rb.offsetWidth;
-  rb.classList.add('show', 'anim'); requestAnimationFrame(() => rb.classList.add('dim'));
-  clearTimeout(openRules.t);
-  openRules.t = setTimeout(() => { rb.classList.remove('anim'); rb.classList.add('open'); document.getElementById('ruleSearch').focus(); }, 2350);
+  const rb = document.getElementById('rulebook'), fly = document.getElementById('flyBook'), book = document.getElementById('openBook');
+  const cover = fly.querySelector('.fb-cover'), pages = [...fly.querySelectorAll('.fb-page:not(.last)')];
+  rb.classList.add('show'); book.style.visibility = 'hidden'; book.classList.add('blank');
+  fly.style.display = 'block'; fly.style.opacity = 1;
+  pages.forEach(p => p.getAnimations().forEach(a => a.cancel())); cover.getAnimations().forEach(a => a.cancel());
+  const g = bookGeometry();
+  document.getElementById('pamphlet').style.visibility = 'hidden';
+  requestAnimationFrame(() => rb.classList.add('dim'));
+  await anim(fly, [{ transform: g.home }, { transform: 'translateX(150px) scale(1)' }], 700, 'cubic-bezier(.25,.8,.3,1)');
+  await anim(cover, [{ transform: 'rotateY(0)' }, { transform: 'rotateY(-178deg)' }], 650, 'cubic-bezier(.5,0,.3,1)');
+  pages.forEach((p, i) => anim(p, [{ transform: 'rotateY(0)' }, { transform: `rotateY(${-176 + i * 1.5}deg)` }], 420, 'cubic-bezier(.5,0,.4,1)', i * 95));
+  await wait(6 * 95 + 380);
+  // the spread grows out of the open fly-book
+  book.style.visibility = 'visible';
+  anim(fly, [{ opacity: 1 }, { opacity: 0 }], 260);
+  await anim(book, [{ opacity: 0, transform: g.small }, { opacity: 1, transform: 'scale(1)' }], 420, 'cubic-bezier(.2,.7,.25,1)');
+  fly.style.display = 'none';
+  book.classList.remove('blank');
+  document.getElementById('ruleSearch').focus();
+  bookBusy = false;
 }
-function closeRules(){
-  const rb = document.getElementById('rulebook'); clearTimeout(openRules.t);
-  rb.classList.remove('dim'); rb.querySelector('.book').style.opacity = 0;
-  setTimeout(() => { rb.classList.remove('show', 'open', 'anim'); rb.querySelector('.book').style.opacity = ''; }, 300);
+async function closeRules(){
+  const rb = document.getElementById('rulebook'); if(!rb.classList.contains('show') || bookBusy) return; bookBusy = true;
+  const fly = document.getElementById('flyBook'), book = document.getElementById('openBook');
+  const cover = fly.querySelector('.fb-cover'), pages = [...fly.querySelectorAll('.fb-page:not(.last)')], g = bookGeometry();
+  book.classList.add('blank'); await wait(180);
+  // the spread shrinks back into the open fly-book
+  fly.style.display = 'block'; anim(fly, [{ opacity: 0 }, { opacity: 1 }], 240);
+  await anim(book, [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: g.small }], 360, 'cubic-bezier(.5,0,.75,.3)');
+  book.style.visibility = 'hidden';
+  // pages fall back, the cover shuts
+  pages.slice().reverse().forEach((p, i) => anim(p, [{ transform: getComputedStyle(p).transform }, { transform: 'rotateY(0)' }], 300, 'cubic-bezier(.5,0,.4,1)', i * 55));
+  await wait(6 * 55 + 220);
+  await anim(cover, [{ transform: 'rotateY(-178deg)' }, { transform: 'rotateY(0)' }], 480, 'cubic-bezier(.5,0,.3,1)');
+  // and home to the little book
+  rb.classList.remove('dim');
+  await anim(fly, [{ transform: 'translateX(150px) scale(1)' }, { transform: g.home }], 560, 'cubic-bezier(.6,0,.4,1)');
+  document.getElementById('pamphlet').style.visibility = '';
+  rb.classList.remove('show'); fly.style.display = 'none';
+  bookBusy = false;
 }
 document.getElementById('rulebook').addEventListener('click', e => { if(e.target.id === 'rulebook') closeRules(); });
 function renderRules(){
