@@ -73,9 +73,8 @@ function botPet() {
 function stationBotPets(s: any) {
   if(s.phase !== 'live') return;
   Object.values(s.players).forEach((p: any) => {
-    if(!p.bot || !p.pet || !E.petUp(s, p)) return;
-    if(p.petZone && s.zones[p.petZone] && s.zones[p.petZone].owner === p.faction) return;
-    const k = E.zonesOf(s, p.faction).filter((k: string) => !E.petIn(s, k)).sort((a: string, b: string) => E.threat(s, b) - E.threat(s, a))[0];
+    if(!p.bot || !p.pet || !E.petUp(s, p) || E.petOnBoard(s, p)) return;
+    const k = E.deployable(s, p.faction).filter((k: string) => !E.petIn(s, k)).sort((a: string, b: string) => E.threat(s, b) - E.threat(s, a))[0];
     if(k) E.placePet(s, p.id, k);
   });
 }
@@ -277,14 +276,15 @@ Deno.serve(async req => {
       switch(action){
         case 'scout': return E.scout(s, uid);
         case 'deploy': return E.deploy(s, uid, body.zone, body.n);
-        case 'move': return E.move(s, uid, body.from, body.to, body.n, { march: !!body.march });
-        case 'attack': return E.attack(s, uid, body.from, body.to, body.n, { warcry: !!body.warcry, naval: !!body.naval });
+        case 'move': return E.move(s, uid, body.from, body.to, body.n, { march: !!body.march, pet: !!body.pet });
+        case 'attack': return E.attack(s, uid, body.from, body.to, body.n, { warcry: !!body.warcry, naval: !!body.naval, pet: !!body.pet });
         case 'fortify': return E.fortify(s, uid, body.zone);
         case 'build': return E.build(s, uid, body.zone, body.kind);
         case 'craft': return E.craft(s, uid, body.kind);
         case 'shieldwall': return E.useShieldWall(s, uid, body.zone);
         case 'trade': return E.trade(s, uid, body.give, body.get);
         case 'pet': return E.placePet(s, uid, body.zone);
+        case 'petmove': return E.movePet(s, uid, body.to);
       }
       return { ok: false, error: 'Unknown action' };
     }

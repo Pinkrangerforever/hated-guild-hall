@@ -27,12 +27,13 @@ const WAR_RULEBOOK = [
       <p><b>Deploying</b> is free. You can only deploy to zones linked to one of your <b>strongholds</b> through your own territory. Deploy one at a time, or all at once. <b>Deployed troops are ready ⚔ straight away</b>: you can attack with them the same day.</p>
       <p><b>🔭 Scout reports:</b> the day has three watches (midnight to 8am, 8am to 4pm, 4pm to midnight). The first time you open the war room in each watch you get <b>1 extra troop</b>. Missed watches don't carry over.</p>
       <p>Troops that <b>move</b> or <b>capture a zone</b> arrive <b>fresh 💤</b>: they can defend, but can't move or attack again until the next dawn. Ready troops show as ⚔.</p>` },
-  { id: 'pets', icon: '🐾', title: 'Pets', tags: 'pet pets level respawn guard station companion',
-    body: `<p>Your hatched site pet fights for your faction. Station it in one of your zones (free, and it can move once a day). Only one pet can guard each zone.</p>
-      <ul><li>It counts as <b>one more troop</b> in that zone, and joins attacks made from it.</li>
-      <li>In every round of a battle it fights in, it adds <b>+1 to its side's lowest die</b>.</li>
-      <li>It is always the <b>last</b> of its side to fall. If it wins an attack, it moves into the captured zone.</li>
-      <li>A fallen pet recovers in <b>24 hours at level 1</b>, down to <b>12 hours at level 10</b>, then can be stationed again.</li></ul>` },
+  { id: 'pets', icon: '🐾', title: 'Pets', tags: 'pet pets level respawn guard station companion move rest',
+    body: `<p>Your hatched site pet fights for your faction, and follows the same rules as troops.</p>
+      <ul><li><b>Joining:</b> bring it onto the board for free at a zone linked to one of your strongholds (like deploying). Only one pet can be in each zone.</li>
+      <li><b>Moving:</b> take it along with a Move from its zone, or move it on its own for <b>1 AP</b>, through your own territory. After moving it <b>rests 💤 until dawn</b> (it still defends).</li>
+      <li><b>Attacking:</b> tick your pet when you attack from its zone. If you capture the zone it moves in with your troops and rests.</li>
+      <li><b>In battle</b> it counts as one more troop and is always the <b>last</b> of its side to fall. It lifts its side's <b>lowest die by 1</b> (levels 1-4), or the <b>two lowest dice</b> (levels 5-9). At <b>level 10</b> it also shrugs off the first hit that would fell it in each battle.</li>
+      <li>A fallen pet recovers in <b>24 hours at level 1</b>, down to <b>12 hours at level 10</b>, then can join the board again.</li></ul>` },
   { id: 'move', icon: '🥾', title: 'Moving', tags: 'move march once per day connected forced',
     body: `<p>Move <b>ready</b> troops between your own zones that are connected through your territory. Costs 1 AP.</p>
       <ul><li>Each zone can send troops out <b>once a day</b> (a <b>Forced March</b> card lets it go again).</li>

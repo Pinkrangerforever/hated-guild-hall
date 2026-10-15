@@ -21,7 +21,8 @@ function botTurn(E, G, pid){
       [...E.ADJ[k]].forEach(n => { const t = G.zones[n]; if(t.owner === f) return; const def = t.ready + t.fresh; const sc = can - def * 1.1 + (t.owner !== 'neutral' ? 0.5 : 0); if(sc > 0 && (!best || sc > best.sc)) best = { from: k, to: n, n: can, sc }; });
     });
     if(!best) break;
-    const r = E.attack(G, pid, best.from, best.to, best.n, { warcry: p.cards.warcry > 0 });
+    const withPet = p.petZone === best.from && E.petOnBoard(G, p) && !E.petResting(G, p);   // bring the pet along when it's there and fresh
+    const r = E.attack(G, pid, best.from, best.to, best.n, { warcry: p.cards.warcry > 0, pet: withPet });
     if(!r.ok) break; entries.push(r.entry);
   }
   // 2) march ready troops from quiet inland zones up to the most threatened front

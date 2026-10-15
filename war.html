@@ -714,7 +714,7 @@ function describe(e){
     case 'deploy': return `${P(e.pid)} deployed ${e.n} to ${ZN(e.to)}`;
     case 'move': return `${P(e.pid)} marched ${e.n} from ${ZN(e.from)} to ${ZN(e.to)}${e.march ? ' (Forced March)' : ''}`;
     case 'attack': return `${P(e.pid)} attacked ${ZN(e.to)} from ${ZN(e.from)} with ${e.n}: ${e.captured ? '<b>captured it</b>' : 'repelled'} (lost ${e.attLost}, killed ${e.defLost})${e.aPet && e.aPet.fell ? ` · ${P(e.aPet.pid)}'s pet fell` : ''}${e.dPet && e.dPet.fell ? ` · ${P(e.dPet.pid)}'s pet fell` : ''}`;
-    case 'pet': return `${P(e.pid)} stationed ${esc((G.players[e.pid] && G.players[e.pid].pet || {}).name || 'their pet')} in ${ZN(e.to)}`;
+    case 'pet': { const pn = esc((G.players[e.pid] && G.players[e.pid].pet || {}).name || 'their pet'); return e.from ? `${P(e.pid)} moved ${pn} from ${ZN(e.from)} to ${ZN(e.to)}` : `${P(e.pid)} brought ${pn} onto the board at ${ZN(e.to)}`; }
     case 'fortify': return `${P(e.pid)}${e.auto ? ' (autopilot)' : ''} fortified ${ZN(e.to)}`;
     case 'build': return `${P(e.pid)} built ${e.kind === 'stronghold' ? 'a stronghold' : 'an outpost'} in ${ZN(e.to)}`;
     case 'craft': return `${P(e.pid)} crafted ${e.kind}`;
@@ -913,7 +913,7 @@ function renderMeInner(){
     </div>
     <div class="scoutln" data-tip="<b>🔭 Scout reports</b><br>The day has three watches: midnight to 8am, 8am to 4pm and 4pm to midnight. The first time you open the war room in each watch, your scouts bring in <b>1 extra troop</b>.<span class='c'>Missed watches don't carry over.</span>">🔭 Scouts return in ${(() => { const n = 8 - (G.clock % 8); return n >= 1 ? Math.floor(n) + 'h ' + Math.round((n % 1) * 60) + 'm' : Math.round(n * 60) + 'm'; })()}
     </div>
-    ${p.pet ? `<div class="petln">🐾 ${petLabel(p.pet)} · ${!E.petUp(G, p) ? `<span style="color:#ff9a80">recovering, back in ${Math.ceil(p.petDown - G.clock)}h</span>` : p.petZone && G.zones[p.petZone].owner === f ? `guarding ${ZN(p.petZone)}` : '<span style="color:#ffd36a">not stationed: pick one of your zones</span>'}</div>` : ''}
+    ${p.pet ? `<div class="petln">🐾 ${petLabel(p.pet)} · ${!E.petUp(G, p) ? `<span style="color:#ff9a80">recovering, back in ${Math.ceil(p.petDown - G.clock)}h</span>` : p.petZone && G.zones[p.petZone].owner === f ? `guarding ${ZN(p.petZone)}${E.petResting(G, p) ? ' (resting)' : ''}` : '<span style="color:#ffd36a">not on the board: bring it in at a zone your strongholds reach</span>'}</div>` : ''}
     <div class="sec">War chest</div>
     <div class="resg">${['food', 'wood', 'ore', 'gold'].map(r => `<div title="${r}">${RES_ICON[r]}<b>${p.res[r]}</b>${inc[r] ? `<small>+${Math.max(1, Math.round(inc[r] / team))}/day</small>` : ''}</div>`).join('')}</div>
     <div class="sec">Battle cards</div>
@@ -961,6 +961,7 @@ function targetsFor(k, m){
   const p = cur(); if(!p) return [];
   if(m === 'attack') return [...E.ADJ[k]].filter(n => G.zones[n].owner !== p.faction);
   if(m === 'move') return [...E.friendlyReach(G, p.faction, k)].filter(n => n !== k);
+  if(m === 'petmove') return [...E.friendlyReach(G, p.faction, k)].filter(n => n !== k && !E.petIn(G, n));
   return [];
 }
 function setMode(m){
@@ -997,7 +998,11 @@ function renderZone(){
           <div class="act blue ${mode === 'move' ? 'on' : ''}" onclick="setMode('move')" data-tip="<b>🥾 Move</b> · 1 AP<br>March ready troops to another of your zones through your territory. Each zone can send troops once a day; they arrive fresh."><span class="ic">🥾</span>Move</div>
           ${z.fortifyUntil > G.clock ? `<div class="act" style="opacity:.45;cursor:default" title="Already fortified"><span class="ic">🧱</span>${Math.ceil(z.fortifyUntil - G.clock)}h left</div>` : '<div class="act" onclick="doFortify()" data-tip="<b>🧱 Fortify</b> · 1 AP<br>+1 to the defenders&#39; best die for 24 hours. Broken if the zone is captured; can&#39;t be stacked."><span class="ic">🧱</span>Fortify</div>'}
         </div>`;
-      if(p.pet && E.petUp(G, p) && p.petZone !== selZone && !E.petIn(G, selZone)) h += `<div class="row"><button class="btn sm" onclick="doPlacePet()" data-tip="<b>🐾 Station your pet</b> · free<br>${petLabel(p.pet)} guards this zone: it counts as one more troop, adds +1 to your lowest die in every battle it fights, and is always the last to fall. Moves once a day.">🐾 Station ${esc(p.pet.name)} here</button></div>`;
+      // your pet: brought onto the board free where reinforcements can go, then moved like troops
+      if(p.pet && E.petUp(G, p) && !E.petOnBoard(G, p) && canDeploy && !E.petIn(G, selZone)) h += `<div class="row"><button class="btn sm" onclick="doPlacePet()" data-tip="<b>🐾 Bring your pet onto the board</b> · free<br>${petLabel(p.pet)}: counts as one more troop, lifts your ${E.petDice(p) > 1 ? 'two lowest dice' : 'lowest die'} by 1 in every battle it fights${p.pet.level >= 10 ? ', shrugs off the first hit each battle' : ''}, and is always the last to fall.<span class='c'>Pets join at zones linked to your strongholds, like reinforcements, then move like troops.</span>">🐾 Bring ${esc(p.pet.name)} onto the board here</button></div>`;
+      if(E.petOnBoard(G, p) && p.petZone === selZone) h += E.petResting(G, p)
+        ? `<div class="muted" style="margin-top:6px">🐾 ${esc(p.pet.name)} is resting until dawn (it still defends).</div>`
+        : `<div class="row"><button class="btn sm ${mode === 'petmove' ? 'on' : ''}" onclick="setMode('petmove')" data-tip="<b>🐾 Move your pet</b> · 1 AP<br>${petLabel(p.pet)}: counts as one more troop, lifts your ${E.petDice(p) > 1 ? 'two lowest dice' : 'lowest die'} by 1 in every battle it fights${p.pet.level >= 10 ? ', shrugs off the first hit each battle' : ''}, and is always the last to fall.<span class='c'>Through your own territory. It rests until dawn after moving. You can also take it along with a Move or an Attack from here.</span>">🐾 Move ${esc(p.pet.name)} on its own</button></div>`;
       if(p.reinforce > 0 && canDeploy) h += `<div class="sec">Deploy · ${p.reinforce} waiting</div>
         <div class="row"><button class="btn sm" onclick="doDeploy(1)">+1</button>${p.reinforce >= 3 ? '<button class="btn sm" onclick="doDeploy(3)">+3</button>' : ''}<button class="btn sm" onclick="doDeploy(${p.reinforce})">All ${p.reinforce}</button>
           <input type="range" id="depN" min="1" max="${p.reinforce}" value="1" oninput="depV.textContent=this.value"><b id="depV">1</b><button class="btn sm" onclick="doDeploy()">Deploy</button></div>`;
@@ -1007,15 +1012,21 @@ function renderZone(){
         + (p.cards.shieldwall ? `<button class="btn sm" onclick="doShield()" data-tip="${tipFor('shieldwall').replace(/"/g, '&quot;')}">🛡 Shield Wall</button>` : '');
       if(builds) h += `<div class="sec">Build</div><div class="row">${builds}</div>`;
       if(mode && !target) h += `<div class="muted" style="margin-top:6px">Click a ${mode === 'attack' ? 'glowing enemy or neutral' : 'glowing friendly'} zone.</div>`;
-      if(mode && target){
+      if(mode === 'petmove' && target){
+        h += `<div class="tgt"><div class="vs"><span>🐾 ${esc(p.pet.name)}</span><span style="font-size:18px">➜</span><span style="text-align:right">${ZN(target)}</span></div>
+          <button class="btn blue" style="width:100%;margin-top:4px" onclick="doPetMove()">🐾 Move ${esc(p.pet.name)} · 1 AP</button></div>`;
+      }
+      const petHere = E.petOnBoard(G, p) && p.petZone === selZone && !E.petResting(G, p);
+      const petBox = petHere ? `<label data-tip="Your pet goes too: it fights (attacks) or travels (moves), then rests until dawn."><input type="checkbox" id="optPet" checked> 🐾 ${esc(p.pet.name)}</label>` : '';
+      if(mode && mode !== 'petmove' && target){
         const max = Math.max(0, Math.min(z.ready, z.ready + z.fresh - 1)), tz = G.zones[target];
         h += `<div class="tgt">
           <div class="vs"><span>${info.name}<br><span class="n" style="color:var(--facText)">${max}</span> <span class="lbl">can go</span></span><span style="font-size:18px">${mode === 'attack' ? '⚔' : '➜'}</span>
             <span style="text-align:right">${ZN(target)}<br>${mode === 'attack' ? `<span class="n">${tz.ready + tz.fresh}</span> <span class="lbl">defending</span>` : `<span class="lbl">friendly</span>`}</span></div>
           ${max < 1 ? '<div class="muted">No ready troops can leave (troops that moved or captured today 💤 rest until tomorrow, and one must stay).</div>' :
           `<div class="row"><input type="range" id="actN" min="1" max="${max}" value="${max}" oninput="actV.textContent=this.value"><b id="actV">${max}</b></div>
-          ${mode === 'attack' ? `<div class="row">${p.cards.warcry ? '<label><input type="checkbox" id="optWar"> 📯 Warcry</label>' : ''}${p.cards.naval && E.isSeaLink(selZone, target) ? '<label><input type="checkbox" id="optNav"> ⛵ Naval</label>' : ''}</div>` :
-            (z.movedDay === E.day(G) && p.cards.march ? '<label><input type="checkbox" id="optMarch"> 🥾 Forced March</label>' : '')}
+          ${mode === 'attack' ? `<div class="row">${p.cards.warcry ? '<label><input type="checkbox" id="optWar"> 📯 Warcry</label>' : ''}${p.cards.naval && E.isSeaLink(selZone, target) ? '<label><input type="checkbox" id="optNav"> ⛵ Naval</label>' : ''}${petBox}</div>` :
+            `<div class="row">${z.movedDay === E.day(G) && p.cards.march ? '<label><input type="checkbox" id="optMarch"> 🥾 Forced March</label>' : ''}${petBox}</div>`}
           <button class="btn ${mode === 'attack' ? 'red' : 'blue'}" style="width:100%;margin-top:4px" onclick="doAct()">${mode === 'attack' ? '⚔ Charge!' : '🥾 March'}</button>`}
         </div>`;
       }
@@ -1045,13 +1056,17 @@ async function attachPets(){
       else if(p.bot && Math.random() < 0.7){ const lv = 1 + Math.floor(Math.random() * 10); p.pet = { type: PET_TYPES_WAR[Math.floor(Math.random() * 3)], status: lv >= 10 ? 'boss' : lv >= 5 ? 'adult' : 'juvenile', level: lv, name: ['Fluffy', 'Snaps', 'Ember', 'Biscuit', 'Talon', 'Mr. Whiskers'][Math.floor(Math.random() * 6)] }; }
       p.petChecked = true;
       // bots put their pet out straight away, on their faction's most threatened zone
-      if(p.pet && p.bot && G.phase === 'live'){ const k = E.zonesOf(G, p.faction).filter(k => !E.petIn(G, k)).sort((a, b) => E.threat(G, b) - E.threat(G, a))[0]; if(k) E.placePet(G, p.id, k); }
+      if(p.pet && p.bot && G.phase === 'live'){ const k = E.deployable(G, p.faction).filter(k => !E.petIn(G, k)).sort((a, b) => E.threat(G, b) - E.threat(G, a))[0]; if(k) E.placePet(G, p.id, k); }
     });
     save(); refreshUI();
   }catch(e){ console.warn('pets failed to load:', e); }
   petsLoading = false;
 }
 function doPlacePet(){ act('pet', { zone: selZone }, () => E.placePet(G, playAs, selZone)); }
+async function doPetMove(){
+  const to = target, ok = await act('petmove', { to }, () => E.movePet(G, playAs, to));
+  if(ok){ mode = null; target = null; selZone = to; board.select(to, []); renderZone(); }
+}
 const petLabel = pet => `${esc(pet.name)} (level ${pet.level} ${pet.type})`;
 
 function after(r){
@@ -1085,14 +1100,15 @@ function confirmBox(title, body, yes, onYes){
 async function doAct(){
   const n = +document.getElementById('actN').value;
   if(LIVE){
-    const war = !!(document.getElementById('optWar') || {}).checked, naval = !!(document.getElementById('optNav') || {}).checked, march = !!(document.getElementById('optMarch') || {}).checked;
-    const ok = await act(mode === 'attack' ? 'attack' : 'move', mode === 'attack' ? { from: selZone, to: target, n, warcry: war, naval } : { from: selZone, to: target, n, march });
+    const war = !!(document.getElementById('optWar') || {}).checked, naval = !!(document.getElementById('optNav') || {}).checked, march = !!(document.getElementById('optMarch') || {}).checked, pet = !!(document.getElementById('optPet') || {}).checked;
+    const ok = await act(mode === 'attack' ? 'attack' : 'move', mode === 'attack' ? { from: selZone, to: target, n, warcry: war, naval, pet } : { from: selZone, to: target, n, march, pet });
     if(ok){ mode = null; target = null; board.select(selZone, []); renderZone(); }
     return;
   }
   let r;
-  if(mode === 'attack') r = E.attack(G, playAs, selZone, target, n, { warcry: !!(document.getElementById('optWar') || {}).checked, naval: !!(document.getElementById('optNav') || {}).checked, forceDice });
-  else r = E.move(G, playAs, selZone, target, n, { march: !!(document.getElementById('optMarch') || {}).checked });
+  const pet = !!(document.getElementById('optPet') || {}).checked;
+  if(mode === 'attack') r = E.attack(G, playAs, selZone, target, n, { warcry: !!(document.getElementById('optWar') || {}).checked, naval: !!(document.getElementById('optNav') || {}).checked, forceDice, pet });
+  else r = E.move(G, playAs, selZone, target, n, { march: !!(document.getElementById('optMarch') || {}).checked, pet });
   if(after(r)){ const t = target; mode = null; target = null; if(r.entry.captured){ selZone = t; } board.select(selZone, []); renderZone(); }
 }
 function joinNow(){ act('join', {}, () => E.joinLate(G, { id: me.id, name: me.name })).then(() => { playAs = me.id; refreshUI(); }); }
