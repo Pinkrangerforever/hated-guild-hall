@@ -113,6 +113,12 @@
   #feedList .ev.now{ outline:1px solid var(--gold); background:rgba(214,169,64,0.22); }
   .replay .btn.on{ border-color:var(--gold); color:#fff3cc; }
   .panel h3{ font:700 14px Cinzel, serif; color:var(--gold); margin:0 0 6px; }
+  .wb-swing{ position:fixed; z-index:60; font-size:64px; pointer-events:none; transform-origin:80% 80%; translate:-70% -80%; animation:swing .45s ease-in forwards; filter:drop-shadow(0 4px 6px #000); }
+  @keyframes swing{ 0%{ transform:rotate(-70deg); opacity:1; } 55%{ transform:rotate(25deg); } 75%{ transform:rotate(15deg); } 100%{ transform:rotate(20deg); opacity:0; } }
+  #smashBar{ position:fixed; top:58px; left:50%; translate:-50% 0; z-index:40; display:none; align-items:center; gap:12px; padding:8px 16px; border-radius:10px;
+    background:linear-gradient(#3a1a0c,#1c0c05); border:1px solid #d6a940; box-shadow:0 6px 20px rgba(0,0,0,.6); font:700 15px Cinzel, serif; color:#ffd36a; }
+  body.smashing #stage canvas{ cursor:crosshair; }
+  .smashNote{ text-align:center; margin-top:10px; color:#e6d3a8; font-size:14px; }
   .petln{ font-size:12px; color:#e6d3a8; margin-top:4px; }
   .scoutln{ font-size:12px; color:#cdb88a; margin-top:2px; text-align:right; cursor:help; }
   #me{ left:10px; top:62px; width:304px; font-size:14px; }
@@ -401,6 +407,7 @@
 <div id="tip"></div>
 <div class="panel" id="ledger"></div>
 <div id="hover"></div>
+<div id="smashBar"><span id="smashTxt"></span><button class="btn sm" onclick="stopSmash()">Done</button></div>
 <div id="gate"><div class="card"><h2 style="font-family:Cinzel;color:var(--gold)">Guild War</h2><p id="gateMsg">Loading…</p><button class="btn" onclick="location.href='index.html'">← Back to site</button></div></div>
 <div id="signup"><div class="card" id="signupCard"></div></div>
 
@@ -471,7 +478,7 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
   me = { id: profile ? profile.id : 'local-admin', name: profile ? (profile.character_name || 'Admin') : 'Admin', admin, signedIn: !!session };
   initChat();
   document.getElementById('adminBtn').style.display = '';
-  try{ board = new WarBoard(document.getElementById('stage'), { onClick: zoneClicked, onHover: zoneHover, onEgg: (k, msg) => toast(msg) }); }
+  try{ board = new WarBoard(document.getElementById('stage'), { onClick: zoneClicked, onHover: zoneHover, onEgg: (k, msg) => toast(msg), onSmash: smashClick }); }
   catch(e){ showFatal('3D board: ' + e.message + ' (is WebGL / hardware acceleration turned on?)'); return; }
   G = load();
   if(G && (!G.v || !G.zones)) G = null;   // old or broken save
@@ -497,6 +504,8 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
   }, 1800);
   const prog = setInterval(() => { peak = Math.max(peak, board._loading || 0); const done = peak ? 1 - (board._loading || 0) / peak : 0; document.getElementById('curtainBar').style.width = Math.round(Math.max(5, done * 100)) + '%'; }, 150);
   await Promise.all([board.whenLoaded(), new Promise(r => setTimeout(r, 4200))]);   // stay up long enough to read, even on a fast load
+  if(G.phase === 'ended' && G.smash && G.smash.length) board.smashReplay(G.smash);
+  if(G.phase === 'ended') smashChannel();
   clearInterval(tick); clearInterval(prog); document.getElementById('curtainBar').style.width = '100%'; document.getElementById('curtainMsg').textContent = 'To war!';
   await new Promise(r => setTimeout(r, 1400));
   document.getElementById('curtain').classList.add('gone');
@@ -1073,7 +1082,7 @@ function advanceDay(){
 function advanceHours(h){
   if(G.phase === 'live' && G.clock + h >= E.RULES.endClock){ G.clock = E.RULES.endClock; const from = G.seq; E.endGame(G); toast('Sunday 8pm: the war ends'); save(); refreshUI(); G.log.filter(e => e.seq > from).forEach(e => queue.push(e)); runQueue(); return; }
   G.clock += h; if(E.day(G) > E.day({ clock: G.clock - h })){ G.clock -= h; advanceDay(); return; } save(); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
-function jumpPhase(ph){ if(ph === 'signup' && !confirm('Go back to sign-ups? This wipes the board (sign-ups are kept).')) return; const s = G.signups; G = E.newGame({ sandbox: true }); G.signups = s; save(); chatMsgs = []; loadChat(); markSeen(G.seq); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
+function jumpPhase(ph){ if(ph === 'signup' && !confirm('Go back to sign-ups? This wipes the board (sign-ups are kept).')) return; const s = G.signups; G = E.newGame({ sandbox: true }); G.signups = s; save(); if(board.smashed){ location.reload(); return; } chatMsgs = []; loadChat(); markSeen(G.seq); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
 function endWar(){ after(E.endGame(G)); setTimeout(showEndScreen, 600); }
 
 // ---------- war over: Victory / Defeat, with each champion's part in it ----------
@@ -1090,6 +1099,58 @@ function playerStats(){
   Object.values(st).forEach(s => { s.score += s.caps * 5 + s.kills; });
   return st;
 }
+// ---------- the champion's smash ----------
+// The winning side's top scorer may smash the board any time from the end of the war until the next war starts.
+// Hits are kept with the game (and sent live to everyone watching), so anyone opening the room later sees the wreckage.
+function champion(){
+  if(G.phase !== 'ended' || !G.result) return null;
+  const st = Object.values(playerStats()), win = G.result.winner;
+  const pool = win === 'draw' ? st : st.filter(s => s.p.faction === win);
+  const best = pool.sort((a, b) => b.score - a.score)[0];
+  return best && best.score > 0 ? best.p : null;
+}
+const canSmash = () => { const c = champion(); return !!(c && cur() && cur().id === c.id); };
+function smashNote(){
+  const c = champion(); if(!c) return '';
+  const n = (G.smash || []).length;
+  return `<div class="smashNote">👑 ${esc(c.name)} has earned the right to smash the board until the next war begins.${n ? ` (${n} blow${n > 1 ? 's' : ''} landed so far)` : ''}</div>`;
+}
+let smashCh = null;
+function smashChannel(){
+  if(smashCh || !me || !me.signedIn) return smashCh;
+  smashCh = sb.channel('guild-war-smash', { config: { broadcast: { self: false } } })
+    .on('broadcast', { event: 'hit' }, ({ payload }) => {
+      if(!payload || payload.gid !== G.id || !payload.hit) return;
+      (G.smash = G.smash || []).push(payload.hit); save(); board.smashHit(payload.hit, true);
+    }).subscribe();
+  return smashCh;
+}
+function startSmash(){
+  if(!canSmash()) return;
+  document.getElementById('endScreen').classList.remove('show');
+  document.body.classList.add('smashing'); board.smashMode = true;
+  ['me', 'zone', 'feed', 'chat'].forEach(id => { const e = document.getElementById(id); if(e) e.dataset.was = e.style.display, e.style.display = 'none'; });
+  const bar = document.getElementById('smashBar'); bar.style.display = 'flex';
+  document.getElementById('smashTxt').textContent = `${cur().faction === 'alliance' ? '🔨' : '🪓'} Click the board to smash it!`;
+  board.overview(700); smashChannel();
+}
+function stopSmash(){
+  document.body.classList.remove('smashing'); board.smashMode = false;
+  ['me', 'zone', 'feed', 'chat'].forEach(id => { const e = document.getElementById(id); if(e && e.dataset.was !== undefined) e.style.display = e.dataset.was; });
+  document.getElementById('smashBar').style.display = 'none';
+  refreshUI();
+}
+function smashClick(x, y){
+  if(!board.smashMode || !canSmash()) return;
+  const at = board.pointOnTable(x, y); if(!at) return;
+  G.smash = G.smash || []; if(!G.smashStart) G.smashStart = Date.now();
+  const hit = { x: +at.x.toFixed(3), z: +at.z.toFixed(3), power: +(0.8 + Math.random() * 0.5).toFixed(2), seed: Math.floor(Math.random() * 1e9), t: +((Date.now() - G.smashStart) / 1000).toFixed(2) };
+  G.smash.push(hit); save();
+  board.swingAt(x, y, cur().faction);
+  setTimeout(() => board.smashHit(hit, true), 200);   // the blow lands as the weapon comes down
+  const ch = smashChannel(); if(ch) ch.send({ type: 'broadcast', event: 'hit', payload: { gid: G.id, hit } });
+}
+
 function showEndScreen(){
   if(G.phase !== 'ended' || !G.result) return;
   const r = G.result, st = playerStats(), win = r.winner;
@@ -1113,7 +1174,8 @@ function showEndScreen(){
   const el = document.getElementById('endScreen');
   el.innerHTML = `<div class="endWrap"><div class="endTitle">THE WAR IS OVER</div><div class="endHead">${E.day(G) + 1} days of fighting</div>
     <div class="endCols">${order.map(side).join('')}</div>
-    <div class="endBtns"><button class="btn" onclick="document.getElementById('endScreen').classList.remove('show')">View the board</button><button class="btn" onclick="location.href='index.html'">← Back to site</button></div></div>`;
+    ${smashNote()}
+    <div class="endBtns">${canSmash() ? '<button class="btn" style="border-color:#ffd36a;color:#ffd36a" onclick="startSmash()">⚒ Smash the board</button>' : ''}<button class="btn" onclick="document.getElementById('endScreen').classList.remove('show')">View the board</button><button class="btn" onclick="location.href='index.html'">← Back to site</button></div></div>`;
   el.classList.add('show');
   endFlags();
 }
@@ -1159,7 +1221,7 @@ function editZone(){
   z.owner = document.getElementById('edO').value; z.ready = Math.max(0, +document.getElementById('edR').value); z.fresh = Math.max(0, +document.getElementById('edF').value);
   z.outpost = +document.getElementById('edB').value; save(); board.setState(JSON.parse(JSON.stringify(G))); refreshUI();
 }
-function resetWar(){ if(!confirm('Reset the sandbox war completely?')) return; G = E.newGame({ sandbox: true }); save(); markSeen(0); chatMsgs = []; loadChat(); selZone = null; board.select(null, []); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
+function resetWar(){ if(!confirm('Reset the sandbox war completely?')) return; G = E.newGame({ sandbox: true }); save(); if(board.smashed){ location.reload(); return; } markSeen(0); chatMsgs = []; loadChat(); selZone = null; board.select(null, []); board.setState(JSON.parse(JSON.stringify(G))); refreshUI(); }
 function replayAll(){
   // rewind the board to the start and play every move again
   const view = JSON.parse(JSON.stringify(G));

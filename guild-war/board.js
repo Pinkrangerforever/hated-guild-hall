@@ -673,7 +673,7 @@
 
     // ===== pets: every stationed pet stands beside its zone's banner, playing its idle =====
     syncPets(s){
-      if(!THREE.GLTFLoader || !s || !s.players) return;
+      if(!THREE.GLTFLoader || !s || !s.players || this.smashed) return;
       this.petModels = this.petModels || {}; this.petFiles = this.petFiles || {};
       const want = {};
       Object.values(s.players).forEach(p => {
@@ -715,6 +715,83 @@
           holder.scale.setScalar(0.01); this.animate(400, t => holder.scale.setScalar(Math.max(0.01, easeOut(t))));
         }).catch(err => console.warn('pet model failed to load:', w.url, err));
       });
+    }
+
+    // ===== the champion's smash: after the war, the winning side's MVP knocks the pieces off the table =====
+    // Every visible piece on the map (banners, buildings, walls, pets) becomes loose debris with simple physics:
+    // gravity, tumbling, bounces on the tabletop or the floor. A hit is { x, z, power, seed, t } (t = seconds into
+    // the smash); the same hits give the same wreckage, so late visitors see what the champion did.
+    smashBodies(){
+      if(this.debris) return this.debris;
+      this.smashed = true; this.debris = [];
+      Object.values(this.pieces).forEach(p => {
+        p.lab.style.display = 'none';
+        p.grp.updateMatrixWorld(true);
+        p.grp.children.slice().forEach(o => {
+          if(!o.visible || o.geometry && o.geometry.type === 'RingGeometry') return;   // the owner ring stays painted on the map
+          this.scene.attach(o);   // keep its world transform, now loose in the room
+          const box = new THREE.Box3().setFromObject(o), size = box.getSize(new THREE.Vector3());
+          if(!isFinite(size.y) || size.y <= 0) return;
+          this.debris.push({ o, v: new THREE.Vector3(), w: new THREE.Vector3(), r: Math.max(0.03, Math.min(size.x, size.y, size.z) / 2), lift: o.position.y - box.min.y, rest: true });
+        });
+      });
+      return this.debris;
+    }
+    // where a body stops falling: the tabletop over the table, the floor beyond its edge
+    groundAt(x, z){ return Math.abs(x) < 7.4 && Math.abs(z) < 4.6 ? 0 : (this.floor ? this.floor.position.y : -3.1); }
+    smashHit(h, live){
+      const bodies = this.smashBodies(), rng = (() => { let s = h.seed >>> 0 || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; })();
+      const at = new THREE.Vector3(h.x, 0, h.z), R = 0.9 + h.power * 0.6;
+      bodies.forEach(b => {
+        const d = b.o.position.clone().setY(0).sub(at), dist = d.length(); if(dist > R) return;
+        const f = Math.pow(1 - dist / R, 0.7) * h.power;
+        d.y = 0; d.normalize(); if(!isFinite(d.x)) d.set(rng() - 0.5, 0, rng() - 0.5).normalize();
+        b.v.add(new THREE.Vector3(d.x * (2.5 + rng() * 2), 3 + rng() * 3, d.z * (2.5 + rng() * 2)).multiplyScalar(f));
+        b.w.add(new THREE.Vector3(rng() - 0.5, rng() - 0.5, rng() - 0.5).multiplyScalar(18 * f));
+        b.rest = false;
+      });
+      if(live){
+        this.shake(380, 0.08 + h.power * 0.08);
+        this.sparks(at.clone().setY(0.05), 0xffd28a, 24, 0.9);
+        this.flash(at, 0xffc070, 0.9);
+      }
+    }
+    smashStep(dt){
+      const g = -9.8;
+      (this.debris || []).forEach(b => {
+        if(b.rest) return;
+        b.v.y += g * dt; b.o.position.addScaledVector(b.v, dt);
+        b.o.rotation.x += b.w.x * dt; b.o.rotation.y += b.w.y * dt; b.o.rotation.z += b.w.z * dt;
+        const floor = this.groundAt(b.o.position.x, b.o.position.z) + Math.min(b.lift, b.r);
+        if(b.o.position.y < floor){
+          b.o.position.y = floor;
+          if(b.v.y < 0) b.v.y = -b.v.y * 0.32;
+          b.v.x *= 0.7; b.v.z *= 0.7; b.w.multiplyScalar(0.6);
+          if(b.v.length() < 0.15){ b.v.set(0, 0, 0); b.w.set(0, 0, 0); b.rest = true; }
+        }
+      });
+    }
+    // replay a list of hits with no animation (for anyone who opens the room after the smash)
+    smashReplay(hits){
+      if(!hits || !hits.length) return;
+      this.smashBodies(); const dt = 1 / 60; let t = 0;
+      hits.slice().sort((a, b) => a.t - b.t).forEach(h => {
+        while(t < h.t){ this.smashStep(dt); t += dt; }
+        this.smashHit(h, false);
+      });
+      for(let i = 0; i < 60 * 6; i++) this.smashStep(dt);   // let everything settle
+    }
+    // the swing itself: the faction's weapon drops onto the spot and bounces back
+    swingAt(clientX, clientY, faction){
+      const el = document.createElement('div'); el.className = 'wb-swing'; el.textContent = faction === 'alliance' ? '🔨' : '🪓';
+      el.style.left = clientX + 'px'; el.style.top = clientY + 'px'; document.body.appendChild(el);
+      setTimeout(() => el.remove(), 600);
+    }
+    pointOnTable(clientX, clientY){
+      const r = this.renderer.domElement.getBoundingClientRect();
+      this.mouse.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+      const p = new THREE.Vector3(); return this.raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), p) ? p : null;
     }
 
     // ===== easter eggs: Leeroy's chair, a rat on the table, Ragnaros in a lava pool, Onyxia's lair, the cow level =====
@@ -1458,6 +1535,7 @@
     }
     setState(s){
       this.state = s;
+      if(this.smashed){ this.drawMap(); return; }   // the champion knocked the pieces off: leave the wreckage be
       KEYS.forEach(k => this.syncPiece(k));
       this.drawMap();
     }
@@ -2246,6 +2324,7 @@
       const up = e => {
         pts.delete(e.pointerId);
         if(drag && drag.moved < 6 && pts.size === 0){
+          if(this.smashMode && this.opts.onSmash){ this.opts.onSmash(e.clientX, e.clientY); pts.clear(); drag = null; return; }
           if(this.eggs && this.eggs.length){
             const r = this.renderer.domElement.getBoundingClientRect();
             this.mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
@@ -2278,6 +2357,7 @@
       const dt = Math.min(0.1, (now - (this._last || now)) / 1000); this._last = now;
       (this.mixers || []).forEach(m => m.update(dt));
       this.tickEggs(now);
+      if(this.debris){ this.smashAcc = Math.min(0.25, (this.smashAcc || 0) + dt); while(this.smashAcc >= 1 / 60){ this.smashStep(1 / 60); this.smashAcc -= 1 / 60; } }
       if(this.water){ this.water.offset.x = now / 90000; this.water.offset.y = Math.sin(now / 7000) * 0.03; }
       // tweens can start new tweens (a die landing throws sparks): run this frame's batch, then keep anything
       // added meanwhile, or the new ones would be dropped and their effects left frozen on the board

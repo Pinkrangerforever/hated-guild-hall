@@ -159,8 +159,8 @@ const WAR_TUNING = {
     438
    ],
    "stonetalon": [
-    182,
-    646
+    214,
+    612
    ],
    "blasted_lands": [
     1036,
@@ -176,6 +176,9 @@ const WAR_TUNING = {
    ]
   },
   "holds": {
+   "dustwallow": {
+    "at": [410, 822]
+   },
    "tirisfal": {
     "at": [826, 272]
    },
