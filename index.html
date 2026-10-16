@@ -4074,19 +4074,18 @@
   .cf-fire.roaring .fl{ filter:hue-rotate(-12deg) saturate(1.3) drop-shadow(0 0 10px rgba(255,210,90,.9)); }
   /* WoW fire textures (exported from the client): the flames are a 4x4 flipbook (flame8x8), tinted to campfire orange;
      a glow sprite under them, a bed of hot coals on the logs, and a fire burst when it roars */
-  .cf-fire .fl{ border-radius:0; height:96px; width:72px; margin-left:-36px; background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Minigames/Campfire/flame8x8.png') 0 0 / 400% 400% no-repeat;
-    filter:sepia(1) saturate(7) hue-rotate(-18deg) brightness(1.35);
+  .cf-fire .fl{ border-radius:0; height:96px; width:72px; margin-left:-36px; background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Minigames/Campfire/flame8x8_fire.png') 0 0 / 400% 400% no-repeat;
     animation:cfFlipX .36s steps(4) infinite, cfFlipY 1.44s steps(4) infinite, cfFlick .9s ease-in-out infinite alternate; }
   .cf-fire .f2{ margin-left:-58px; width:60px; height:80px; animation-delay:-.1s, -.5s, -.3s; }
   .cf-fire .f3{ margin-left:-4px; width:62px; height:84px; animation-delay:-.2s, -1s, -.5s; }
-  .cf-fire .f4{ margin-left:-26px; width:52px; height:70px; animation-delay:-.27s, -.8s, -.2s; filter:sepia(1) saturate(3) hue-rotate(5deg) brightness(1.9); }
-  .cf-fire.roaring .fl{ filter:sepia(1) saturate(8) hue-rotate(-22deg) brightness(1.55) drop-shadow(0 0 10px rgba(255,190,70,.9)); }
+  .cf-fire .f4{ margin-left:-26px; width:52px; height:70px; animation-delay:-.27s, -.8s, -.2s; filter:brightness(1.3); }
+  .cf-fire.roaring .fl{ filter:brightness(1.2) drop-shadow(0 0 10px rgba(255,190,70,.9)); }
   @keyframes cfFlipX{ to{ background-position-x:133.333%; } }
   @keyframes cfFlipY{ to{ background-position-y:133.333%; } }
-  .cf-fire .cf-glow{ border-radius:0; width:220px; height:160px; bottom:-40px; background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Minigames/Campfire/166449.png') center / contain no-repeat;
+  .cf-fire .cf-glow{ border-radius:0; width:220px; height:160px; bottom:-40px; background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Minigames/Campfire/166449_a.png') center / contain no-repeat;
     opacity:calc(var(--glow) * .9); mix-blend-mode:screen; filter:blur(2px); }
   .cf-fire .cf-coals{ position:absolute; left:50%; bottom:0; width:96px; height:24px; transform:translateX(-50%); border-radius:50%;
-    background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Minigames/Campfire/189230.png') center / 100% 100%; mix-blend-mode:screen; opacity:0; transition:opacity .4s;
+    background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Minigames/Campfire/189230_a.png') center / 100% 100%; mix-blend-mode:screen; opacity:0; transition:opacity .4s;
     mask-image:radial-gradient(ellipse, #000 40%, transparent 72%); -webkit-mask-image:radial-gradient(ellipse, #000 40%, transparent 72%); }
   .cf-fire.lit .cf-coals, .cf-fire.s1 .cf-coals, .cf-fire.s2 .cf-coals, .cf-fire.s3 .cf-coals, .cf-fire.s4 .cf-coals, .cf-fire.s5 .cf-coals{ opacity:calc(.3 + var(--glow) * .7); }
   .cf-fire .cf-burst{ position:absolute; left:50%; bottom:20px; width:220px; height:220px; margin-left:-110px; background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Minigames/Campfire/356034.png') center / contain no-repeat;
@@ -6957,7 +6956,7 @@ function startCampfireEvent(rect, pendingId, params){
         const box = new THREE.Box3().setFromObject(m), top = new THREE.Vector3(0, box.min.y + (box.max.y - box.min.y) * 0.45, 0).project(cam);
         const sceneH = scene.clientHeight, canvasTop = sceneH - H - 10;
         const y = canvasTop + (1 - top.y) / 2 * H, x = (top.x + 1) / 2 * W + (scene.clientWidth - W) / 2;
-        fire.style.left = x + 'px'; fire.style.bottom = Math.max(20, sceneH - y) + 'px';
+        fire.style.left = x + 'px'; fire.style.bottom = Math.max(20, sceneH - y + 62) + 'px';   // up onto the logs (the model's bounds run below its stones)
       }).catch(() => { /* keep the drawn ring */ });
       const loop = () => {
         if(!pit.alive) return;
