@@ -674,6 +674,13 @@
     // ===== pets: every stationed pet stands beside its zone's banner, playing its idle =====
     syncPets(s){
       if(!THREE.GLTFLoader || !s || !s.players || this.smashed) return;
+      // the troop plates show a paw where a pet guards: refresh the plates whose pet changed
+      if(this.state){
+        const zonesOf = st => new Set(Object.values(st.players || {}).filter(q => q.pet && q.petZone && !(q.petDown > st.clock)).map(q => q.petZone));
+        const was = zonesOf(this.state), now = zonesOf(s);
+        this.state.players = JSON.parse(JSON.stringify(s.players));
+        new Set([...was, ...now]).forEach(k => { if(was.has(k) !== now.has(k) && this.pieces[k]) this.syncPiece(k); });
+      }
       this.petModels = this.petModels || {}; this.petFiles = this.petFiles || {};
       const want = {};
       Object.values(s.players).forEach(p => {
@@ -1630,7 +1637,9 @@
       }
       const info = WAR_ZONES[k];
       p.lab.className = 'wb-label ' + z.owner + (this.selected === k ? ' sel' : '');
-      p.lab.innerHTML = `<b>${z.ready}</b>⚔${z.fresh ? `<i>+${z.fresh}💤</i>` : ''}${z.shield ? '<s>🛡</s>' : ''}`;
+      // a pet guarding the zone shows as a paw (it defends as one more troop, but isn't moved with the troop slider)
+      const S = this.state, guard = S && S.players && Object.values(S.players).find(q => q.pet && q.petZone === k && q.faction === z.owner && !(q.petDown > S.clock));
+      p.lab.innerHTML = `<b>${z.ready}</b>⚔${z.fresh ? `<i>+${z.fresh}💤</i>` : ''}${guard ? `<s title="${guard.pet.name || 'Pet'} (level ${guard.pet.level})">🐾</s>` : ''}${z.shield ? '<s>🛡</s>' : ''}`;
       p.lab.title = `${info.name}: ${z.ready} ready, ${z.fresh} fresh`;
     }
     select(k, targets){
