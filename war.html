@@ -333,6 +333,7 @@
   .bc.ghost{ opacity:.25; cursor:default; } .bc.ghost:hover{ transform:none !important; box-shadow:none; }
   .forge{ display:flex; justify-content:space-between; gap:3px; padding:4px 0; }
   .bc.warcry{ --a:#8e2a1c; } .bc.shieldwall{ --a:#2a4c7e; } .bc.march{ --a:#5b4a22; } .bc.naval{ --a:#1d5e66; } .bc.draft{ --a:#3f6a26; }
+  .petpick select{ margin-left:4px; max-width:190px; font-size:12px; padding:2px 4px; background:#1c140c; color:#f1e3c2; border:1px solid #6b5232; border-radius:4px; }
   #rpCaption{ position:fixed; left:50%; top:74px; transform:translate(-50%, -8px); max-width:min(560px, calc(100vw - 32px)); z-index:40;
     padding:8px 14px; border-radius:8px; background:rgba(14,10,6,.88); border:1px solid #6b5232; color:#f1e3c2; font-size:14px; text-align:center;
     box-shadow:0 4px 14px rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
@@ -588,7 +589,7 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
   await board.intro();
   if(pending.length){ toast(`${pending.length} moves since you last looked: replaying`); pending.forEach(e => queue.push(e)); runQueue(); }
   else markSeen(G.seq);
-  if(LIVE){ subscribeLive(); claimScouts(); setInterval(claimScouts, 15 * 60 * 1000); }
+  if(LIVE){ subscribeLive(); claimScouts(); loadMyPets(); setInterval(claimScouts, 15 * 60 * 1000); }
 })();
 
 // ---------- the live war (on the server) ----------
@@ -994,6 +995,7 @@ function renderMeInner(){
     </div>
     ${!p.pet && LIVE && !p.bot ? '<div class="petln muted">🐾 No pet found for you (eggs can&#39;t fight; a new pet joins within 10 minutes)</div>' : ''}
     ${p.pet ? `<div class="petln">🐾 ${petLabel(p.pet)} · ${!E.petUp(G, p) ? `<span style="color:#ff9a80">recovering, back in ${Math.ceil(p.petDown - G.clock)}h</span>` : p.petZone && G.zones[p.petZone].owner === f ? `guarding ${ZN(p.petZone)}${E.petResting(G, p) ? ' (resting)' : ''}` : '<span style="color:#ffd36a">not on the board: bring it in at a zone your strongholds reach</span>'}</div>` : ''}
+    ${petPicker(p)}
     <div class="sec">War chest</div>
     <div class="resg">${['food', 'wood', 'ore', 'gold'].map(r => `<div title="${r}">${RES_ICON[r]}<b>${p.res[r]}</b>${inc[r] ? `<small>+${Math.max(1, Math.round(inc[r] / team))}/day</small>` : ''}</div>`).join('')}</div>
     <div class="sec">Battle cards</div>
@@ -1167,6 +1169,25 @@ async function doPetMove(){
   if(ok){ mode = null; target = null; selZone = to; board.select(to, []); renderZone(); }
 }
 const petLabel = pet => `${esc(pet.name)} (level ${pet.level} ${pet.type})`;
+// Which of your pets fights: pick any hatched pet while yours is off the board (live war, signed-in players)
+let myPets = null;
+async function loadMyPets(){
+  if(!LIVE || !me || !me.id) return;
+  const { data } = await sb.from('pets').select('id,pet_type,name,level,status').eq('user_id', me.id).neq('status', 'egg').order('level', { ascending: false });
+  myPets = data || []; refreshUI();
+}
+function petPicker(p){
+  if(!LIVE || p.bot || !me || p.id !== me.id || !myPets || myPets.length < 2 || G.phase !== 'live') return '';
+  const cur = p.pet && p.pet.id;
+  if(E.petOnBoard(G, p)) return `<div class="petln muted" style="font-size:11px">Switch pets while yours is off the board.</div>`;
+  return `<div class="petln petpick">War pet: <select onchange="pickWarPet(this.value)">${myPets.map(x =>
+    `<option value="${esc(x.id)}" ${x.id === cur ? 'selected' : ''}>${esc(x.name || 'Pet')} · level ${Math.min(10, x.level || 1)} ${esc(x.pet_type)}</option>`).join('')}</select></div>`;
+}
+async function pickWarPet(id){
+  const ok = await act('pickpet', { petId: id });
+  if(ok){ const x = myPets.find(q => q.id === id); toast(`🐾 ${x ? (x.name || 'Your pet') : 'Your pet'} will fight for you`); }
+  else refreshUI();
+}
 
 function after(r){
   if(!r.ok){ toast(r.error); return false; }

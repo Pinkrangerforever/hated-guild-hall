@@ -58,13 +58,16 @@ async function gameById(id: string): Promise<Game | null> {
   return data as Game | null;
 }
 
-// a signed-in player's site pet, if it has hatched (pets cap at level 10)
-// (if they somehow have several, the highest level one fights)
-async function petOf(uid: string) {
-  const { data, error } = await db.from('pets').select('pet_type,name,level,status').eq('user_id', uid).neq('status', 'egg').order('level', { ascending: false }).limit(1);
+// a signed-in player's site pet, if it has hatched (pets cap at level 10): the one they picked for the war (the
+// War Room's pet picker), or else their highest level one
+async function petOf(uid: string, pick?: string) {
+  let q = db.from('pets').select('id,pet_type,name,level,status').eq('user_id', uid).neq('status', 'egg');
+  if(pick) q = q.eq('id', pick);
+  const { data, error } = await q.order('level', { ascending: false }).limit(1);
   if(error){ console.error('pet lookup failed', error); return undefined; }   // undefined = try again later
   const p = data && data[0];
-  return p ? { type: p.pet_type, status: p.status, level: Math.min(10, p.level || 1), name: p.name || 'Pet' } : null;
+  if(!p && pick) return petOf(uid);   // the picked pet is gone (released): back to the best one
+  return p ? { id: p.id, type: p.pet_type, status: p.status, level: Math.min(10, p.level || 1), name: p.name || 'Pet' } : null;
 }
 // test bots: same names and pets as the sandbox
 const BOT_NAMES = ['Thrall', 'Jaina', 'Sylvanas', 'Varian', 'Grommash', 'Tyrande', 'Garrosh', 'Muradin', 'Voljin', 'Genn', 'Baine', 'Velen'];
@@ -104,7 +107,7 @@ async function mutate(fn: (s: any, g: Game) => any, opts: { create?: () => any, 
       const stale = !p.bot && isUuid(p.id) && !(p.petCheckedAt > Date.now() - 10 * 60 * 1000);
       if(p.pet !== undefined && !stale) continue;
       if(p.bot){ p.pet = (s.botPets || {})[p.id] || null; continue; }
-      const pet = isUuid(p.id) ? await petOf(p.id) : null;
+      const pet = isUuid(p.id) ? await petOf(p.id, p.petPick) : null;
       if(pet !== undefined){ p.pet = pet ? Object.assign(p.pet || {}, pet) : null; p.petCheckedAt = Date.now(); }
     }
     stationBotPets(s);
@@ -267,6 +270,13 @@ Deno.serve(async req => {
     // ----- player actions on the active war -----
     // (the reply carries the player's own record - AP, troops to deploy, resources, cards - which only they see change)
     let mine: any = null;
+    // choosing which pet fights: look the pet up first (it must be theirs and hatched)
+    let picked: any = null;
+    if(action === 'pickpet'){
+      if(!isUuid(String(body.petId || ''))) return reply({ ok: false, error: 'Pick one of your pets' });
+      picked = await petOf(uid, body.petId);
+      if(!picked || picked.id !== body.petId) return reply({ ok: false, error: 'That pet can't fight (eggs stay home)' });
+    }
     const res = await mutate(s => {
       const out = playerAction(s);
       mine = s.players[uid] || null;
@@ -299,6 +309,9 @@ Deno.serve(async req => {
         case 'trade': return E.trade(s, uid, body.give, body.get);
         case 'pet': return E.placePet(s, uid, body.zone);
         case 'petmove': return E.movePet(s, uid, body.to);
+        case 'pickpet':   // switch only while your pet is off the board (not guarding a zone); its recovery time stays
+          if(E.petOnBoard(s, me)) return { ok: false, error: 'Your pet is on the board: you can switch while it is off the board' };
+          me.petPick = picked.id; me.pet = picked; me.petCheckedAt = Date.now(); return { ok: true };
       }
       return { ok: false, error: 'Unknown action' };
     }
