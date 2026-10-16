@@ -12777,7 +12777,7 @@ function renderGallery(){
 // The Hated Companion addon (addons/HatedCompanion) records the guild bank and its money log in its SavedVariables
 // file. The Raid Leader imports that file here: the bank's contents replace the last snapshot, and money
 // transactions the site hasn't seen yet are added to the log that feeds the donation leaderboard.
-const gb = { loaded: false, loading: false, snap: null, log: [], links: {}, period: 'week', tab: 0 };
+const gb = { loaded: false, loading: false, snap: null, log: [], links: {}, period: 'all', tab: 0 };
 async function loadGuildBank(){
   if(gb.loading) return; gb.loading = true;
   if(/[?&]gbdemo/.test(location.search)){ const d = gbDemo(); gb.snap = d.snap; gb.log = d.log; gb.loaded = true; gb.loading = false; if(state.tab === 'guildbank') render(); return; }
