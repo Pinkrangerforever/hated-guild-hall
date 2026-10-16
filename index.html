@@ -4072,6 +4072,27 @@
   .cf-fire.s4 .fl{ transform:scale(1.05); } .cf-fire.s4 .f4{ transform:scale(.9); }
   .cf-fire.s5 .fl{ transform:scale(1.4); } .cf-fire.s5 .f2, .cf-fire.s5 .f3{ transform:scale(1.2); }
   .cf-fire.roaring .fl{ filter:hue-rotate(-12deg) saturate(1.3) drop-shadow(0 0 10px rgba(255,210,90,.9)); }
+  /* WoW fire textures (exported from the client): the flames are a 4x4 flipbook (flame8x8), tinted to campfire orange;
+     a glow sprite under them, a bed of hot coals on the logs, and a fire burst when it roars */
+  .cf-fire .fl{ border-radius:0; height:96px; width:72px; margin-left:-36px; background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Minigames/Campfire/flame8x8.png') 0 0 / 400% 400% no-repeat;
+    filter:sepia(1) saturate(7) hue-rotate(-18deg) brightness(1.35);
+    animation:cfFlipX .36s steps(4) infinite, cfFlipY 1.44s steps(4) infinite, cfFlick .9s ease-in-out infinite alternate; }
+  .cf-fire .f2{ margin-left:-58px; width:60px; height:80px; animation-delay:-.1s, -.5s, -.3s; }
+  .cf-fire .f3{ margin-left:-4px; width:62px; height:84px; animation-delay:-.2s, -1s, -.5s; }
+  .cf-fire .f4{ margin-left:-26px; width:52px; height:70px; animation-delay:-.27s, -.8s, -.2s; filter:sepia(1) saturate(3) hue-rotate(5deg) brightness(1.9); }
+  .cf-fire.roaring .fl{ filter:sepia(1) saturate(8) hue-rotate(-22deg) brightness(1.55) drop-shadow(0 0 10px rgba(255,190,70,.9)); }
+  @keyframes cfFlipX{ to{ background-position-x:133.333%; } }
+  @keyframes cfFlipY{ to{ background-position-y:133.333%; } }
+  .cf-fire .cf-glow{ border-radius:0; width:220px; height:160px; bottom:-40px; background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Minigames/Campfire/166449.png') center / contain no-repeat;
+    opacity:calc(var(--glow) * .9); mix-blend-mode:screen; filter:blur(2px); }
+  .cf-fire .cf-coals{ position:absolute; left:50%; bottom:0; width:96px; height:24px; transform:translateX(-50%); border-radius:50%;
+    background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Minigames/Campfire/189230.png') center / 100% 100%; mix-blend-mode:screen; opacity:0; transition:opacity .4s;
+    mask-image:radial-gradient(ellipse, #000 40%, transparent 72%); -webkit-mask-image:radial-gradient(ellipse, #000 40%, transparent 72%); }
+  .cf-fire.lit .cf-coals, .cf-fire.s1 .cf-coals, .cf-fire.s2 .cf-coals, .cf-fire.s3 .cf-coals, .cf-fire.s4 .cf-coals, .cf-fire.s5 .cf-coals{ opacity:calc(.3 + var(--glow) * .7); }
+  .cf-fire .cf-burst{ position:absolute; left:50%; bottom:20px; width:220px; height:220px; margin-left:-110px; background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Minigames/Campfire/356034.png') center / contain no-repeat;
+    mix-blend-mode:screen; opacity:0; pointer-events:none; }
+  .cf-fire.roaring .cf-burst{ animation:cfBurst .9s ease-out forwards; }
+  @keyframes cfBurst{ 0%{ opacity:0; transform:scale(.4); } 25%{ opacity:1; } 100%{ opacity:0; transform:scale(1.5) translateY(-30px); } }
   @keyframes cfFlick{ 0%{ transform-origin:50% 100%; translate:0 0; skew:-3deg 0; } 50%{ skew:3deg 0; } 100%{ translate:0 -3px; skew:-1deg 0; } }
   @keyframes cfPulse{ from{ transform:translateX(-50%) scale(1); } to{ transform:translateX(-50%) scale(1.25); } }
   @keyframes cfScatter{ to{ transform:translateX(-50%) scale(2.4); opacity:0; filter:blur(3px); } }
@@ -6908,7 +6929,7 @@ function startCampfireEvent(rect, pendingId, params){
         ${Array.from({ length: 9 }, (_, i) => { const a = i / 8 * Math.PI, x = 120 + Math.cos(a) * 104, y = 62 + Math.sin(a) * 22; return `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="17" ry="11"/>`; }).join('')}
       </g></svg>
       <div class="cf-fuel"></div>
-      <div class="cf-fire s0"><div class="cf-glow"></div><div class="fl f1"></div><div class="fl f2"></div><div class="fl f3"></div><div class="fl f4"></div><div class="cf-ember"></div></div>
+      <div class="cf-fire s0"><div class="cf-glow"></div><div class="cf-coals"></div><div class="cf-burst"></div><div class="fl f1"></div><div class="fl f2"></div><div class="fl f3"></div><div class="fl f4"></div><div class="cf-ember"></div></div>
       <div class="cf-stage"></div>
     </div>`;
   const scene = enc.body.querySelector('.cf-scene'), fire = scene.querySelector('.cf-fire'), stageEl = scene.querySelector('.cf-stage');
