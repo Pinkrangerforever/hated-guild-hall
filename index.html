@@ -12318,7 +12318,7 @@ function renderDonationLeaderboard(){
           <span style="position:relative; z-index:100;">${esc(name)}</span>
           ${c.nameplateIcon ? `<div class="comp-slot-nameplate-icon"><img src="${esc(c.nameplateIcon)}" alt="Icon"></div>` : ''}
         </div>` : `<div class="vault-name">${esc(name)}</div>`}
-        <div class="vault-alts">${Math.max(1, Math.round(copper / (sum || 1) * 100))}% of ${P[gb.period][1] === 'so far' ? 'all donations' : P[gb.period][1] + "'s donations"}${alts ? ' · ' + esc(alts) : ''}</div>
+        <div class="vault-alts">${Math.max(1, Math.round(copper / (sum || 1) * 100))}% of ${P[gb.period][1] === 'so far' ? 'all donations' : P[gb.period][1] + "'s donations"}</div>
       </div>
       <span class="vault-amt">${money(copper)}</span>
     </div>`;
@@ -12941,7 +12941,7 @@ function renderGuildBank(){
         <div class="panel style-glass">
           <div class="gb-head"><h3>Donation leaderboard</h3>
             <div class="gb-periods">${[['week', 'This week'], ['month', 'This month'], ['all', 'All time']].map(([k, l]) => `<button type="button" class="${gb.period === k ? 'on' : ''}" onclick="gbSetPeriod('${k}')">${l}</button>`).join('')}</div></div>
-          ${ranked.length ? `<ol class="gb-board">${ranked.slice(0, 25).map((d, i) => `<li ${d.profile ? `data-profile-id="${esc(d.profile.id)}" title="View profile" style="cursor:pointer"` : ''}><span class="gb-pos">${medal(i)}</span><span class="gb-who">${esc(d.label)}${gbAlts(d) ? `<small class="gb-alts">${esc(gbAlts(d))}</small>` : ''}</span><span class="gb-amt">${gbGold(d.copper)}</span></li>`).join('')}</ol>`
+          ${ranked.length ? `<ol class="gb-board">${ranked.slice(0, 25).map((d, i) => `<li ${d.profile ? `data-profile-id="${esc(d.profile.id)}" title="View profile" style="cursor:pointer"` : ''}><span class="gb-pos">${medal(i)}</span><span class="gb-who">${esc(d.label)}</span><span class="gb-amt">${gbGold(d.copper)}</span></li>`).join('')}</ol>`
             : emptyState('No gold donations recorded for this period yet.')}
         </div>
         ${isRL ? gbLinkPanel(deposits) : ''}
