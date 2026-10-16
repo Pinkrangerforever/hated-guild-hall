@@ -1052,6 +1052,7 @@
         else { const g = 1 + n * 0.04; o.scale.set(g, g, g); }
       });
       if(this.lavaTick) this.lavaTick(now);
+      (this.domes || []).forEach(d => { d.material.opacity = 0.15 + Math.sin(now / 700) * 0.06; });   // shield domes shimmer
       (this.lairSmoke || []).forEach(o => { const t = ((now / 4200) + o.ph) % 1; o.sp.position.set(Math.sin(t * 6 + o.ph * 9) * 0.03, 0.06 + t * 0.35, 0.08); o.sp.scale.setScalar(0.06 + t * 0.16); o.sp.material.opacity = Math.sin(t * Math.PI) * 0.55; });
     }
     // the cow level: a tauren strolls across Mulgore, roars, and wanders off
@@ -1656,6 +1657,13 @@
         p.fortFor = fm2 ? z.owner : null;
       }
       p.wall.visible = fortified && !fm2;
+      // Shield Wall raised: a faint blue dome over the zone's army until the next attack spends it
+      if(z.shield && !p.dome){
+        const dm = new THREE.MeshBasicMaterial({ color: 0x8fc8ff, transparent: true, opacity: 0.2, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+        p.dome = new THREE.Mesh(new THREE.SphereGeometry(0.24, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), dm);
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.006, 6, 48), new THREE.MeshBasicMaterial({ color: 0xbfe2ff, transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending }));
+        rim.rotation.x = Math.PI / 2; p.dome.add(rim); p.dome.scale.y = 0.75; p.dome.renderOrder = 5; p.grp.add(p.dome); (this.domes = this.domes || new Set()).add(p.dome);
+      } else if(!z.shield && p.dome){ p.grp.remove(p.dome); this.domes.delete(p.dome); p.dome = null; }
       const mobKey = z.owner === 'neutral' ? NEUTRAL_MOBS[WAR_ZONES[k].region] : null, haveMob = mobKey && this.troopProtos && this.troopProtos[mobKey];
       const campN = 0;   // no standing camps (too busy on the map): the monsters only appear to defend in battles
       if(p.campFor !== campN){
