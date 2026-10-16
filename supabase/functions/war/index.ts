@@ -309,6 +309,10 @@ Deno.serve(async req => {
         case 'trade': return E.trade(s, uid, body.give, body.get);
         case 'pet': return E.placePet(s, uid, body.zone);
         case 'petmove': return E.movePet(s, uid, body.to);
+        case 'rat': {   // caught one of the War Room's rats: a tally for the end screen (at most one every 20 s)
+          if(me.ratAt && Date.now() - me.ratAt < 20000) return { ok: false, error: 'That rat got away' };
+          me.rats = (me.rats || 0) + 1; me.ratAt = Date.now(); return { ok: true };
+        }
         case 'pickpet':   // switch only while your pet is off the board (not guarding a zone); its recovery time stays
           if(E.petOnBoard(s, me)) return { ok: false, error: 'Your pet is on the board: you can switch while it is off the board' };
           me.petPick = picked.id; me.pet = picked; me.petCheckedAt = Date.now(); return { ok: true };

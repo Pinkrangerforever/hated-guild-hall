@@ -386,6 +386,10 @@ document.addEventListener('DOMContentLoaded', () => curtainFlags(window.WAR_FLAG
   .forge{ display:flex; justify-content:space-between; gap:3px; padding:4px 0; }
   .bc.warcry{ --a:#8e2a1c; } .bc.shieldwall{ --a:#2a4c7e; } .bc.march{ --a:#5b4a22; } .bc.naval{ --a:#1d5e66; } .bc.draft{ --a:#3f6a26; }
   .petpick select{ margin-left:4px; max-width:190px; font-size:12px; padding:2px 4px; background:#1c140c; color:#f1e3c2; border:1px solid #6b5232; border-radius:4px; }
+  .ratNote{ margin:14px auto 0; max-width:620px; text-align:center; padding:10px 14px; border:1px solid #6b5232; border-radius:8px; background:rgba(20,14,8,.75); }
+  .ratHead{ font:700 14px Cinzel, serif; letter-spacing:2px; color:#ecc867; margin-bottom:6px; }
+  .ratList{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px 14px; font-size:13px; color:#e8d6b0; }
+  .ratList b{ color:#fff3cc; } .ratList .top{ color:#ffd36a; font-weight:700; }
   #rpCaption{ position:fixed; left:50%; top:74px; transform:translate(-50%, -8px); max-width:min(560px, calc(100vw - 32px)); z-index:40;
     padding:8px 14px; border-radius:8px; background:rgba(14,10,6,.88); border:1px solid #6b5232; color:#f1e3c2; font-size:14px; text-align:center;
     box-shadow:0 4px 14px rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
@@ -596,7 +600,7 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
   initChat();
   document.getElementById('adminBtn').style.display = admin ? '' : 'none';
   document.getElementById('mAdmin').style.display = admin ? '' : 'none';
-  try{ board = new WarBoard(document.getElementById('stage'), { onClick: zoneClicked, onHover: zoneHover, onEgg: (k, msg) => toast(msg), onSmash: smashClick }); }
+  try{ board = new WarBoard(document.getElementById('stage'), { onClick: zoneClicked, onHover: zoneHover, onEgg: eggCaught, onSmash: smashClick }); }
   catch(e){ showFatal('3D board: ' + e.message + ' (is WebGL / hardware acceleration turned on?)'); return; }
   if(LIVE){
     if(!(await fetchLive())) return;
@@ -1431,6 +1435,14 @@ async function smashClick(x, y){
   const ch = smashChannel(); if(ch) ch.send({ type: 'broadcast', event: 'hit', payload: { gid: G.id, hit } });
 }
 
+// the easter eggs say something when clicked; a caught rat also counts toward this war's rat-catcher tally
+// (on the server, for players in the live war; anyone else just gets the squeak)
+async function eggCaught(k, msg){
+  if(k !== 'rat' || !LIVE || !me || !G.players || !G.players[me.id]){ toast(msg); return; }
+  const r = await serverAct('rat');
+  if(r && r.ok && r.me){ G.players[me.id] = r.me; toast(`🐀 Squeak! You caught a rat. (${r.me.rats} this war)`); }
+  else toast('🐀 Squeak! You caught a rat.');
+}
 function showEndScreen(){
   if(G.phase !== 'ended' || !G.result) return;
   const r = G.result, st = playerStats(), win = r.winner;
@@ -1454,10 +1466,18 @@ function showEndScreen(){
   const el = document.getElementById('endScreen');
   el.innerHTML = `<div class="endWrap"><div class="endTitle">THE WAR IS OVER</div><div class="endHead">${E.day(G) + 1} days of fighting</div>
     <div class="endCols">${order.map(side).join('')}</div>
+    ${ratNote()}
     ${smashNote()}
     <div class="endBtns">${canSmash() ? '<button class="btn" style="border-color:#ffd36a;color:#ffd36a" onclick="startSmash()">⚒ Smash the board</button>' : ''}<button class="btn" onclick="document.getElementById('endScreen').classList.remove('show')">View the board</button><button class="btn" onclick="location.href='index.html'">← Back to site</button></div></div>`;
   el.classList.add('show');
   endFlags();
+}
+// the rat catchers of this war, most first
+function ratNote(){
+  const rows = Object.values(G.players || {}).filter(p => p.rats > 0).sort((a, b) => b.rats - a.rats);
+  if(!rows.length) return '';
+  return `<div class="ratNote"><div class="ratHead">🐀 Rat Catchers</div><div class="ratList">${rows.slice(0, 10).map((p, i) =>
+    `<span class="${i === 0 ? 'top' : ''} ${FC(p.faction)}">${i === 0 ? '👑 ' : ''}${esc(p.name)} <b>${p.rats}</b></span>`).join('')}</div></div>`;
 }
 // the faction banner models from the board, waving on the result cards: the victor's stand tall in a warm light,
 // the defeated side's droop and hang low
