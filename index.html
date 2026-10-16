@@ -5061,6 +5061,7 @@ function applySiteBackground(){
 
 /* ---------------- auth ---------------- */
 let __authResolveInFlight = false;
+let __authLoadedFor = null;   // whose data is on the page (user id, or 'anon'): auth events for the same person don't reload it
 let __booted = false;
 
 async function boot(){
@@ -5340,10 +5341,14 @@ async function refundPurchase(purchaseId, userName){
 
 async function onAuthResolved(){
   if(__authResolveInFlight) return; // avoid overlapping runs if multiple events fire in quick succession
+  // Supabase fires auth events on every hourly token refresh and again whenever the tab regains focus. Reloading
+  // all the guild data each time multiplied our database traffic, so only load when the person actually changes.
+  const who = (state.session && state.session.user && state.session.user.id) || 'anon';
+  if(who === __authLoadedFor) return;
   __authResolveInFlight = true;
   try{
-    // Load news, roster, and stickers for both logged-in and non-logged-in users
-    try {
+    // Visitors who aren't signed in get the public bits; signed-in members get everything in loadGuildData below
+    if(!state.session) try {
       await loadNews();
       await loadRosterComposition();
       await loadPublicProfiles();
@@ -5383,18 +5388,23 @@ async function onAuthResolved(){
         await loadLayout();
         if(startProfileId) openProfile(startProfileId, true);
         startSparkleSystem();
+        __authLoadedFor = who;
       } else {
         state.view = 'app';
       }
     } else {
       state.view = 'entry';
       await loadGuildEvents();
+      __authLoadedFor = who;
     }
     updateNavbarUserInfo();
     render();
     refreshPetWidget();
   } finally {
     __authResolveInFlight = false;
+    // someone signed in or out while we were loading: load again for them
+    const nowWho = (state.session && state.session.user && state.session.user.id) || 'anon';
+    if(nowWho !== who) setTimeout(onAuthResolved, 0);
   }
 }
 
