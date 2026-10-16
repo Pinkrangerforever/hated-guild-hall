@@ -1053,7 +1053,7 @@ function renderZone(){
       ${z.fortifyUntil > G.clock ? `<span>🧱</span><span>Fortified for ${Math.ceil(z.fortifyUntil - G.clock)}h (+1 to the best defence die)</span>` : ''}
       ${z.shield ? '<span>🛡</span><span>Shield Wall raised</span>' : ''}
       ${E.PORTS.has(selZone) ? '<span>⚓</span><span>Port: trade at 3:1</span>' : ''}
-      ${(() => { const g = E.petIn(G, selZone); return g ? `<span>🐾</span><span>Guarded by ${esc(g.name)}'s pet ${petLabel(g.pet)}: counts as a troop, +1 to the lowest die</span>` : ''; })()}
+      ${(() => { const g = E.petIn(G, selZone); return g ? `<span>🐾</span><span>Guarded by ${esc(g.name)}'s pet ${petLabel(g.pet)}: counts as a troop, +1 to the ${E.petDice(g) > 1 ? 'two lowest dice' : 'lowest die'}${g.pet.level >= 10 ? ', shrugs off the first hit' : ''}${E.petResting(G, g) ? ' (resting)' : ''}</span>` : ''; })()}
     </div>`;
   if(p && G.phase === 'live'){
     if(mine){
@@ -1072,7 +1072,7 @@ function renderZone(){
       if(p.reinforce > 0 && canDeploy) h += `<div class="sec">Deploy · ${p.reinforce} waiting</div>
         <div class="row"><button class="btn sm" onclick="doDeploy(1)">+1</button>${p.reinforce >= 3 ? '<button class="btn sm" onclick="doDeploy(3)">+3</button>' : ''}<button class="btn sm" onclick="doDeploy(${p.reinforce})">All ${p.reinforce}</button>
           <input type="range" id="depN" min="1" max="${p.reinforce}" value="1" oninput="depV.textContent=this.value"><b id="depV">1</b><button class="btn sm" onclick="doDeploy()">Deploy</button></div>`;
-      else if(p.reinforce > 0) h += `<div class="muted" style="margin-top:6px">Cut off from your strongholds: reinforcements can't reach here.</div>`;
+      else if(p.reinforce > 0) h += `<div class="muted" style="margin-top:6px">Cut off from your strongholds: reinforcements can't reach here. Reconnect it to a zone linked to one of your strongholds (🏰), or make it a stronghold.</div>`;
       const builds = (z.outpost === 0 ? `<button class="btn sm" onclick="doBuild('outpost')" data-tip="<b>⛺ Outpost</b> · 1 AP<br>Defenders roll a third die, and a rich deposit here makes +1 a day.<span class='c'>Cost: ${costStr(E.RULES.costs.outpost)}</span>">⛺ Build outpost</button>` : '')
         + (z.outpost === 1 ? `<button class="btn sm" onclick="doBuild('stronghold')" data-tip="<b>🏰 Stronghold</b> · 1 AP<br>Upgrades the outpost: +1 to the best defence die, you can deploy here, and a rich deposit makes +2 a day.<span class='c'>Cost: ${costStr(E.RULES.costs.stronghold)}</span>">🏰 Upgrade to stronghold</button>` : '')
         + (p.cards.shieldwall ? `<button class="btn sm" onclick="doShield()" data-tip="${tipFor('shieldwall').replace(/"/g, '&quot;')}">🛡 Shield Wall</button>` : '');
