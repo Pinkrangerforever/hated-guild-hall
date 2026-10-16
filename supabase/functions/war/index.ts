@@ -119,7 +119,7 @@ async function mutate(fn: (s: any, g: Game) => any, opts: { create?: () => any, 
       if(le) console.error('log insert failed', le);
     }
     await afterSave(s, g, entries);
-    return { ...r, entry: undefined, ok: r.ok !== false, seq: s.seq };
+    return { ...r, entry: undefined, ok: r.ok !== false, seq: s.seq, entries };   // the new moves, so the caller can play them at once
   }
   return { ok: false, error: 'The war is busy, try again' };
 }
@@ -180,9 +180,16 @@ Deno.serve(async req => {
 
     // ----- everything else needs a signed-in member -----
     const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-    const { data: au } = await createClient(URL_, ANON).auth.getUser(token);
+    // check the sign-in and load the profile at the same time: the token says who it claims to be, and the
+    // profile is only used once Supabase Auth has confirmed it
+    let claimed = '';
+    try{ claimed = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub || ''; }catch(_){ /* not a token */ }
+    const [{ data: au }, { data: prof0 }] = await Promise.all([
+      createClient(URL_, ANON).auth.getUser(token),
+      isUuid(claimed) ? db.from('profiles').select('id, character_name, protected, gold_earned_total').eq('id', claimed).maybeSingle() : Promise.resolve({ data: null })
+    ]);
     const uid = au?.user?.id; if(!uid) return reply({ ok: false, error: 'Sign in first' }, 401);
-    const { data: prof } = await db.from('profiles').select('character_name, protected, gold_earned_total').eq('id', uid).maybeSingle();
+    const prof = prof0 && prof0.id === uid ? prof0 : null;
     if(!prof) return reply({ ok: false, error: 'No profile' }, 403);
     const name = prof.character_name || 'Unknown', admin = !!prof.protected;
 

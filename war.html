@@ -121,6 +121,8 @@
   body.smashing #stage canvas{ cursor:crosshair; }
   .smashNote{ text-align:center; margin-top:10px; color:#e6d3a8; font-size:14px; }
   .petln{ font-size:12px; color:#e6d3a8; margin-top:4px; }
+  body.busy, body.busy #stage canvas{ cursor:progress !important; }
+  body.busy .tgt .btn, body.busy .acts .act, body.busy #zone .btn{ opacity:.6; pointer-events:none; }
   .scoutln{ font-size:12px; color:#cdb88a; margin-top:2px; text-align:right; cursor:help; }
   #me{ left:10px; top:62px; width:304px; font-size:14px; }
   #me .big{ font-size:24px; } #me .resg b{ font-size:16px; } #me .resg img.ri{ width:24px; height:24px; } #me .ph .t{ font-size:16px; } #me .ap i{ width:13px; height:13px; }
@@ -636,11 +638,13 @@ async function act(action, args, local){
   if(!LIVE) return local ? after(local()) : false;
   if(acting) return false; acting = true;
   try{
+    document.body.classList.add('busy');
     const r = await serverAct(action, args);
     if(!r.ok){ toast(r.error || 'That did not work'); return false; }
     if(r.me && G.players) G.players[me.id] = r.me;
+    (r.entries || []).forEach(onLiveEntry);   // play it now; the live feed's copy is skipped when it arrives
     refreshUI(); return true;
-  } finally { acting = false; }
+  } finally { acting = false; document.body.classList.remove('busy'); }
 }
 // scouts: the first look in each 8-hour watch brings a free troop (the server knows which watch it is)
 async function claimScouts(){
@@ -652,6 +656,7 @@ async function claimScouts(){
 async function adminAct(action, args){
   const r = await serverAct(action, args);
   if(!r.ok){ toast(r.error); return; }
+  (r.entries || []).forEach(onLiveEntry);
   toast('Done'); refetchSoon();
 }
 function switchMode(m){ try{ localStorage.setItem('gw_mode', m); }catch(e){} location.reload(); }
@@ -1166,6 +1171,7 @@ function confirmBox(title, body, yes, onYes){
 async function doAct(){
   const n = +document.getElementById('actN').value;
   if(LIVE){
+    board.focusZones([selZone, target], 500);
     const war = !!(document.getElementById('optWar') || {}).checked, naval = !!(document.getElementById('optNav') || {}).checked, march = !!(document.getElementById('optMarch') || {}).checked, pet = !!(document.getElementById('optPet') || {}).checked;
     const ok = await act(mode === 'attack' ? 'attack' : 'move', mode === 'attack' ? { from: selZone, to: target, n, warcry: war, naval, pet } : { from: selZone, to: target, n, march, pet });
     if(ok){ mode = null; target = null; board.select(selZone, []); renderZone(); }
