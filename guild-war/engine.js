@@ -261,7 +261,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
   function placePet(s, pid, zone){
     const p = s.players[pid]; if(!p) return { ok: false, error: 'Not in this war' };
     if(s.phase !== 'live' || warOver(s)) return { ok: false, error: 'The war is not running' };
-    if(!p.pet) return { ok: false, error: 'You have no hatched pet' };
+    if(!p.pet) return { ok: false, error: "You have no pet in the war yet (eggs can't fight)" };
     if(!petUp(s, p)) return { ok: false, error: `Your pet is recovering (${Math.ceil(p.petDown - s.clock)}h left)` };
     if(petOnBoard(s, p)) return { ok: false, error: 'Your pet is already on the board: move it like troops' };
     const z = s.zones[zone];

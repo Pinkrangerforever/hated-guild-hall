@@ -28,7 +28,7 @@ const WAR_RULEBOOK = [
       <p><b>🔭 Scout reports:</b> the day has three watches (midnight to 8am, 8am to 4pm, 4pm to midnight). The first time you open the war room in each watch you get <b>1 extra troop</b>. Missed watches don't carry over.</p>
       <p>Troops that <b>move</b> or <b>capture a zone</b> arrive <b>fresh 💤</b>: they can defend, but can't move or attack again until the next dawn. Ready troops show as ⚔.</p>` },
   { id: 'pets', icon: '🐾', title: 'Pets', tags: 'pet pets level respawn guard station companion move rest',
-    body: `<p>Your hatched site pet fights for your faction, and follows the same rules as troops.</p>
+    body: `<p>Your site pet fights for your faction (eggs stay home), and follows the same rules as troops.</p>
       <ul><li><b>Joining:</b> bring it onto the board for free at a zone linked to one of your strongholds (like deploying). Only one pet can be in each zone.</li>
       <li><b>Moving:</b> take it along with a Move from its zone, or move it on its own for <b>1 AP</b>, through your own territory. After moving it <b>rests 💤 until dawn</b> (it still defends).</li>
       <li><b>Attacking:</b> tick your pet when you attack from its zone. If you capture the zone it moves in with your troops and rests.</li>
