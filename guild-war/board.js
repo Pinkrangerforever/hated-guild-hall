@@ -2196,6 +2196,12 @@
         }
         case 'dawn': return this.playDawn(entry);
         case 'start': this.applyAfter(entry); return this.overview(1200);
+        case 'pet': {   // a pet joining or moving: fly to it and mark the spot (the pet itself settles with the board)
+          await this.focusZones(entry.from ? [entry.from, entry.to] : [entry.to], 700, 4.6);
+          this.floatText(entry.to, entry.from ? '🐾 moved here' : '🐾 joins the war', f); this.pulseRing(entry.to, 0xffd36a);
+          return this.wait(900);
+        }
+        case 'craft': case 'trade': case 'join': return this.wait(1100);   // nothing moves on the map: the caption says what happened
         default: this.applyAfter(entry); return;
       }
     }

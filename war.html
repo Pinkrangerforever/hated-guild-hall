@@ -333,6 +333,11 @@
   .bc.ghost{ opacity:.25; cursor:default; } .bc.ghost:hover{ transform:none !important; box-shadow:none; }
   .forge{ display:flex; justify-content:space-between; gap:3px; padding:4px 0; }
   .bc.warcry{ --a:#8e2a1c; } .bc.shieldwall{ --a:#2a4c7e; } .bc.march{ --a:#5b4a22; } .bc.naval{ --a:#1d5e66; } .bc.draft{ --a:#3f6a26; }
+  #rpCaption{ position:fixed; left:50%; top:74px; transform:translate(-50%, -8px); max-width:min(560px, calc(100vw - 32px)); z-index:40;
+    padding:8px 14px; border-radius:8px; background:rgba(14,10,6,.88); border:1px solid #6b5232; color:#f1e3c2; font-size:14px; text-align:center;
+    box-shadow:0 4px 14px rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
+  #rpCaption.on{ opacity:1; transform:translate(-50%, 0); }
+  #rpCaption .ico{ margin-right:4px; }
   .replay{ display:flex; gap:4px; align-items:center; }
   #hover{ position:fixed; z-index:6; pointer-events:none; display:none; background:rgba(14,9,5,0.92); border:1px solid var(--edge); border-radius:6px; padding:4px 8px; font-size:12px; }
   @media (max-width: 820px) and (min-width: 761px){
@@ -752,15 +757,25 @@ async function runQueue(){
     if(paused){ await new Promise(r => setTimeout(r, 150)); continue; }
     const e = queue.shift();
     highlightFeed(e.seq);
+    showCaption(e);
     document.getElementById('rpInfo').textContent = queue.length ? `${queue.length} to go` : '';
     try{ await board.play(e); }catch(err){ console.error(err); board.applyAfter(e); }
     markSeen(e.seq);
   }
-  playing = false;
+  playing = false; showCaption(null);
   if(G.phase === 'ended' && !showEndScreen.shown){ showEndScreen.shown = true; showEndScreen(); }
   board.setState(JSON.parse(JSON.stringify(G)));    // settle on the true state
   document.getElementById('rpInfo').textContent = '';
   refreshUI();
+}
+// while catching up, a caption over the board says which move is playing (some moves, like a craft or a trade,
+// change nothing on the map)
+function showCaption(e){
+  let c = document.getElementById('rpCaption');
+  if(!c){ c = document.createElement('div'); c.id = 'rpCaption'; document.body.appendChild(c); }
+  if(!e){ c.classList.remove('on'); return; }
+  c.innerHTML = `<span class="ico">${e.type === 'attack' && e.captured ? '⚑' : FEED_ICON[e.type] || '•'}</span> ${describe(e)}`;
+  c.className = 'on ' + FC(e.faction);
 }
 function replayToggle(){ paused = !paused; document.getElementById('rpPlay').textContent = paused ? '▶' : '⏸'; }
 function setSpeed(s){ board.speed = s; document.querySelectorAll('.replay .btn').forEach(b => b.classList.toggle('on', b.textContent === s + '×')); }
