@@ -1684,6 +1684,7 @@
           p.dome.add(sp); return { sp, a: Math.random() * Math.PI * 2, el: Math.random() * 1.2, ph: Math.random(), sp0: 0.6 + Math.random() * 0.8 };
         }); p.dome.scale.y = 0.75; p.dome.renderOrder = 5; p.grp.add(p.dome); (this.domes = this.domes || new Set()).add(p.dome);
       } else if(!z.shield && p.dome){ p.grp.remove(p.dome); this.domes.delete(p.dome); p.dome = null; }
+      if(p.dome) p.dome.position.set(p.bx != null ? p.bx : -0.2, 0.002, p.bz != null ? p.bz : -0.06);   // centred on the fortify wall's spot
       const mobKey = z.owner === 'neutral' ? NEUTRAL_MOBS[WAR_ZONES[k].region] : null, haveMob = mobKey && this.troopProtos && this.troopProtos[mobKey];
       const campN = 0;   // no standing camps (too busy on the map): the monsters only appear to defend in battles
       if(p.campFor !== campN){
