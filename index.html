@@ -4080,8 +4080,13 @@
   .cf-strike{ display:flex; flex-direction:column; align-items:center; gap:6px; }
   .cf-flint{ width:110px; filter:drop-shadow(0 3px 3px #000); }
   .cf-meter{ position:relative; width:220px; height:14px; border-radius:7px; background:#1d1712; border:1px solid #5a4630; overflow:hidden; box-shadow:inset 0 1px 3px #000; }
-  .cf-hot{ position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg, #ffd34d, #ff8c1a); box-shadow:0 0 10px #ff9a2a; }
+  .cf-hot{ position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg, #ff8c1a, #ffd34d); box-shadow:0 0 10px #ff9a2a; }
   .cf-mark{ position:absolute; top:-2px; bottom:-2px; width:4px; margin-left:-2px; background:#fff; border-radius:2px; box-shadow:0 0 6px #fff; }
+  .cf-intro{ position:absolute; inset:0; z-index:8; display:flex; align-items:center; justify-content:center; text-align:center; pointer-events:none;
+    font:900 26px Cinzel, Georgia, serif; letter-spacing:2px; color:#ffd36a; text-shadow:0 0 14px rgba(255,140,40,.8), 0 2px 3px #000;
+    background:radial-gradient(ellipse, rgba(0,0,0,.55), transparent 70%); animation:cfIntro .5s ease-out; transition:opacity .35s, transform .35s; }
+  .cf-intro.out{ opacity:0; transform:scale(1.15); }
+  @keyframes cfIntro{ from{ opacity:0; transform:scale(.8); } to{ opacity:1; transform:scale(1); } }
   .cf-tries{ font-size:11px; color:#e8d6b0; text-shadow:0 1px 2px #000; }
   /* blow */
   .cf-blow{ display:flex; align-items:center; gap:18px; }
@@ -6822,7 +6827,7 @@ function campfireJudge(p, strikes, toggles, feeds){
     if(tries >= p.strike_tries || t > p.strike_ms * p.strike_tries) break;
     const cyc = Math.floor(t / p.strike_ms); if(cyc === lastCycle) continue;
     lastCycle = cyc; tries++;
-    if((t % p.strike_ms) / p.strike_ms < p.strike_win){ r.strikeHit = t; break; }
+    if((t % p.strike_ms) / p.strike_ms >= 1 - p.strike_win){ r.strikeHit = t; break; }   // hot zone at the end of the sweep
     r.perfect = false;
   }
   if(r.strikeHit < 0) return r;
@@ -6878,8 +6883,8 @@ function startCampfireEvent(rect, pendingId, params){
     blow_up: 0.012, blow_down: 0.007, feed_decay: 0.16, tray: ['log', 'tinder', 'wet', 'kindling', 'sticks', 'stone'] }, params || {});
   const enc = openEncounterCard(rect, {
     cls: 'enc-campfire', icon: '&#128293;', title: 'Light the Campfire',
-    instruction: 'Strike the flint when the spark is in the <b style="color:#ffb347">hot zone</b>!',
-    reward: '20&ndash;30 gold + food', durationMs: p.strike_ms * p.strike_tries + 400
+    instruction: 'Strike the flint when the spark reaches the <b style="color:#ffb347">hot zone</b> on the right!',
+    reward: '20&ndash;30 gold + food', durationMs: p.strike_ms * p.strike_tries + 1900
   });
   enc.body.innerHTML = `<div class="cf-scene">
       <div class="cf-ground"></div>
@@ -6919,11 +6924,20 @@ function startCampfireEvent(rect, pendingId, params){
   };
 
   // ----- 1) strike -----
-  stageEl.innerHTML = `<div class="cf-strike">${CAMPFIRE_FLINT}<div class="cf-meter"><div class="cf-hot" style="width:${p.strike_win * 100}%"></div><div class="cf-mark"></div></div><div class="cf-tries"></div></div>`;
+  stageEl.innerHTML = `<div class="cf-strike">${CAMPFIRE_FLINT}<div class="cf-meter"><div class="cf-hot" style="left:auto;right:0;width:${p.strike_win * 100}%"></div><div class="cf-mark"></div></div><div class="cf-tries"></div></div>`;
   const mark = stageEl.querySelector('.cf-mark'), triesEl = stageEl.querySelector('.cf-tries');
-  let t0 = performance.now(), lastCycle = -1, tries = 0, stage = 'strike';
+  let t0 = 0, lastCycle = -1, tries = 0, stage = 'intro';
   const showTries = () => { triesEl.textContent = `Tries left: ${p.strike_tries - tries}`; };
-  showTries();
+  showTries(); mark.style.left = '0%';
+  // a moment to read the title first; the strike timer (and the card's timer) start with the bar
+  const intro = document.createElement('div'); intro.className = 'cf-intro'; intro.textContent = 'Build a campfire!';
+  scene.appendChild(intro); enc.stopTimer();
+  setTimeout(() => {
+    intro.classList.add('out'); setTimeout(() => intro.remove(), 400);
+    if(done) return;
+    stage = 'strike'; t0 = performance.now(); enc.restartTimer(p.strike_ms * p.strike_tries + 400);
+    raf = requestAnimationFrame(strikeTick);
+  }, 1500);
   const strikeTick = now => {
     if(stage !== 'strike' || done) return;
     const t = now - t0;
@@ -6931,7 +6945,6 @@ function startCampfireEvent(rect, pendingId, params){
     mark.style.left = ((t % p.strike_ms) / p.strike_ms * 100) + '%';
     raf = requestAnimationFrame(strikeTick);
   };
-  raf = requestAnimationFrame(strikeTick);
   const strike = () => {
     if(stage !== 'strike' || done) return;
     const t = Math.round(performance.now() - t0), cyc = Math.floor(t / p.strike_ms);
@@ -6939,7 +6952,7 @@ function startCampfireEvent(rect, pendingId, params){
     lastCycle = cyc; tries++; strikes.push(t); showTries();
     hhSfx.play('clang');
     const sr = scene.getBoundingClientRect(), fr = fire.getBoundingClientRect();
-    if((t % p.strike_ms) / p.strike_ms < p.strike_win){
+    if((t % p.strike_ms) / p.strike_ms >= 1 - p.strike_win){
       sparkBurst(14, fr.left - sr.left + fr.width / 2, fr.top - sr.top + fr.height * 0.8);
       setFire(0, 0.15); fire.classList.add('lit');
       cancelAnimationFrame(raf); setTimeout(startBlow, 500);
