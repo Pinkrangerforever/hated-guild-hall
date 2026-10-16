@@ -4082,6 +4082,7 @@
   .cf-meter{ position:relative; width:220px; height:14px; border-radius:7px; background:#1d1712; border:1px solid #5a4630; overflow:hidden; box-shadow:inset 0 1px 3px #000; }
   .cf-hot{ position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg, #ff8c1a, #ffd34d); box-shadow:0 0 10px #ff9a2a; }
   .cf-mark{ position:absolute; top:-2px; bottom:-2px; width:4px; margin-left:-2px; background:#fff; border-radius:2px; box-shadow:0 0 6px #fff; }
+  .enc-campfire .enc-stamp{ font-size:24px; line-height:1.15; }   /* the win line is long */
   .cf-intro{ position:absolute; inset:0; z-index:8; display:flex; align-items:center; justify-content:center; text-align:center; pointer-events:none;
     font:900 26px Cinzel, Georgia, serif; letter-spacing:2px; color:#ffd36a; text-shadow:0 0 14px rgba(255,140,40,.8), 0 2px 3px #000;
     background:radial-gradient(ellipse, rgba(0,0,0,.55), transparent 70%); animation:cfIntro .5s ease-out; transition:opacity .35s, transform .35s; }
@@ -6915,7 +6916,7 @@ function startCampfireEvent(rect, pendingId, params){
     const local = campfireJudge(p, strikes, toggles, feeds);
     const timings = [strikes.length, ...strikes, toggles.length, ...toggles, feeds.length, ...feeds.flat()];
     const r = scene.getBoundingClientRect();
-    const label = won => won ? (local.perfect ? 'Roaring!' : 'Fire lit!')
+    const label = won => won ? 'You Lit the fire for Jug!'
       : local.stage === 'strike' ? 'No spark...' : local.stage === 'blow' ? 'It went out...'
       : burnedOut ? 'It burned out...' : 'Smothered...';
     if(pendingId === 'preview'){ enc.finish(local.won, label(local.won), 1700); return; }
