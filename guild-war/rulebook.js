@@ -13,7 +13,7 @@ const WAR_RULEBOOK = [
   { id: 'map', icon: '🗺', title: 'The Map', tags: 'map zones regions capitals ports routes boats zeppelins borders neutral',
     body: `<p>43 zones across Kalimdor and the Eastern Kingdoms. Zones next to each other on the map are connected, and so are the ends of every <b>boat</b> and <b>zeppelin</b> route.</p>
       <ul><li><b>Neutral zones</b> start with 2 to 4 defenders and fly the yellow banner.</li>
-      <li><b>Capitals</b> (Orgrimmar, Thunder Bluff, Undercity, Stormwind, Ironforge, Darnassus) are marked with a crown ♛. They have no special dice bonus.</li>
+      <li><b>Capitals</b> (Orgrimmar, Thunder Bluff, Undercity, Stormwind, Ironforge, Darnassus) are named under their zone on the map. They have no special dice bonus.</li>
       <li><b>Ports</b> (any zone a boat route lands in) let your whole faction trade at 3:1.</li>
       <li><b>Regions:</b> hold every zone in a region for bonus troops each day and bonus points:
         Northern Kalimdor +5 / 4 pts, Kalimdor Heartland +3 / 2 pts, Southern Wilds +3 / 2 pts, Lordaeron +4 / 3 pts, The Heartlands +5 / 4 pts, Southern Kingdoms +5 / 4 pts. Hover over a zone to see its whole region glow.</li></ul>` },

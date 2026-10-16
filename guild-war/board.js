@@ -1630,7 +1630,7 @@
       }
       const info = WAR_ZONES[k];
       p.lab.className = 'wb-label ' + z.owner + (this.selected === k ? ' sel' : '');
-      p.lab.innerHTML = `<b>${z.ready}</b>⚔${z.fresh ? `<i>+${z.fresh}💤</i>` : ''}${info.capital ? '<s>♛</s>' : ''}${z.shield ? '<s>🛡</s>' : ''}`;
+      p.lab.innerHTML = `<b>${z.ready}</b>⚔${z.fresh ? `<i>+${z.fresh}💤</i>` : ''}${z.shield ? '<s>🛡</s>' : ''}`;
       p.lab.title = `${info.name}: ${z.ready} ready, ${z.fresh} fresh`;
     }
     select(k, targets){
