@@ -12661,7 +12661,7 @@ function renderGuildBank(){
     ${pageHeader('Guild Bank', s ? `Last scanned ${new Date(s.scanned_at).toLocaleString()}${s.scanned_by ? ' by ' + esc(s.scanned_by) : ''}` : 'No scan yet', "What's in the guild bank and who's been donating, from the Hated Companion addon.")}
     ${isRL ? `<div class="gb-import">
       <button class="btn primary" type="button" onclick="gbImport()">⤓ Import from Hated Companion</button>
-      <button class="btn secondary" type="button" onclick="gbImport(true)" title="Pick the saved file again">Choose file…</button>
+      ${window.showOpenFilePicker ? `<button class="btn secondary" type="button" onclick="gbImport(true)" title="Chrome/Edge: remember the file so later imports skip the picker. Browsers won't remember files inside Program Files.">Choose &amp; remember file…</button>` : ''}
       <a class="btn secondary" href="addons/HatedCompanion.zip" download>⬇ Download the addon</a>
       <span class="gb-hint">Open the guild bank in game, then /reload or log out. The file is <code>WTF\\Account\\&lt;ACCOUNT&gt;\\SavedVariables\\HatedCompanion.lua</code></span>
     </div>` : ''}
@@ -12752,24 +12752,28 @@ const gbIdb = (mode, fn) => new Promise((res, rej) => {
   open.onerror = () => rej(open.error);
   open.onsuccess = () => { const tx = open.result.transaction('files', mode), st = tx.objectStore('files'), r = fn(st); tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error); };
 });
-async function gbPickFile(again){
-  if(window.showOpenFilePicker){
-    let handle = null;
-    if(!again){ try{ handle = await gbIdb('readonly', st => st.get('saved')); }catch(e){} }
-    if(handle){
-      // the browser asks once per visit whether the site may read the remembered file
-      let perm = await handle.queryPermission({ mode: 'read' });
-      if(perm !== 'granted') perm = await handle.requestPermission({ mode: 'read' });
-      if(perm === 'granted'){ try{ return await handle.getFile(); }catch(e){ /* moved or deleted: pick again */ } }
-    }
+// Import: a remembered file if there is one (Chrome/Edge), otherwise the ordinary file picker, which works in any
+// folder. "Choose & remember" uses the browser's file-handle picker so later imports skip the picker - but browsers
+// refuse to hand out files inside system folders such as Program Files, where WoW is often installed.
+const gbPlainPicker = () => new Promise(res => {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.lua';
+  inp.onchange = () => res(inp.files[0] || null); inp.click();
+});
+async function gbPickFile(remember){
+  if(remember && window.showOpenFilePicker){
     const [h] = await window.showOpenFilePicker({ types: [{ description: 'Hated Companion saved data', accept: { 'text/plain': ['.lua'] } }], multiple: false });
     try{ await gbIdb('readwrite', st => st.put(h, 'saved')); }catch(e){}
     return h.getFile();
   }
-  return new Promise(res => {
-    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.lua';
-    inp.onchange = () => res(inp.files[0] || null); inp.click();
-  });
+  if(window.showOpenFilePicker){
+    let handle = null; try{ handle = await gbIdb('readonly', st => st.get('saved')); }catch(e){}
+    if(handle){
+      let perm = await handle.queryPermission({ mode: 'read' });
+      if(perm !== 'granted') perm = await handle.requestPermission({ mode: 'read' });
+      if(perm === 'granted'){ try{ return await handle.getFile(); }catch(e){ /* moved or deleted: fall through */ } }
+    }
+  }
+  return gbPlainPicker();
 }
 async function gbImport(again){
   let file;
