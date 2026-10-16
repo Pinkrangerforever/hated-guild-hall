@@ -1003,9 +1003,10 @@
         [0, Math.PI].forEach((ry, i) => {
           const m = i ? g.scene.clone(true) : g.scene; this.prepModel(m);
           const holder = new THREE.Group(); holder.rotation.y = ry; holder.add(m);
-          m.scale.setScalar(s); m.position.set(-box.min.x * s, -box.min.y * s - 0.003, -(box.min.z + box.max.z) / 2 * s);
+          m.scale.setScalar(s); m.position.set((-box.min.x - size.x * 0.35) * s, -box.min.y * s - 0.003, -(box.min.z + box.max.z) / 2 * s);   // backs overlap: the halves sit snug
           lair.add(holder);
         });
+        lair.rotation.y = Math.PI / 2;   // mouths facing along the coast
         rock.visible = false; mouth.visible = false;
       }).catch(err => console.warn('Onyxia cave model failed to load:', err));
       const sc = document.createElement('canvas'); sc.width = sc.height = 64; const sx = sc.getContext('2d');

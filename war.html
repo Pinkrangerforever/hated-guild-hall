@@ -19,13 +19,14 @@ function curtainFlags(base){
   if(!host || !window.THREE || !THREE.GLTFLoader) return;
   let renderer;
   try{ renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true }); }catch(e){ return; }
-  const W = 240, H = 190;
+  const W = 320, H = 260;
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); renderer.setSize(W, H); renderer.outputEncoding = THREE.sRGBEncoding;
   const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, W / H, 0.1, 100);
-  cam.position.set(0, 1.5, 7.2); cam.lookAt(0, 1.4, 0);
+  cam.position.set(0, 1.2, 6.0); cam.lookAt(0, 1.05, 0);
   scene.add(new THREE.AmbientLight(0xffffff, 0.75)); const sun = new THREE.DirectionalLight(0xfff0d0, 0.9); sun.position.set(2, 4, 6); scene.add(sun);
-  // the banner cloth and poles are solid; every other texture on these models is a glow (orbs, sheens, shimmer)
-  const SOLID = { '1595060': 1, '1595061': 1, '1595065': 1, '1595066': 1 };
+  // banner cloth, pole and the gold fittings are solid (the gold glows a little); the light-beam texture is the glow,
+  // drawn additively in the faction's colour; the white cloth-sheen layer is a shader mask in WoW, so it's hidden
+  const SOLID = { '1595060': 1, '1595061': 1, '1595065': 1, '1595066': 1, '1380439': 1 }, BEAM = '1024942', MASK = { '1596097': 1, '1596483': 1 };
   const flags = [
     { url: 'Alliance%20Flag/alliancectfflag_warsongscramble.gltf', tint: 0x5ab4ff, x: 1.0, tilt: 0.5, ry: 0 },   // poles cross: bases apart, tops lean in past each other
     { url: 'Horde%20Flag/hordectfflag_warsongscramble.gltf', tint: 0xff5a2a, x: -1.0, tilt: -0.5, ry: Math.PI }
@@ -35,8 +36,10 @@ function curtainFlags(base){
     g.scene.traverse(o => {
       if(!o.isMesh) return; o.frustumCulled = false;
       const m = o.material, name = String(m.name || (m.map && m.map.name) || '');
-      if(SOLID[name]){ m.alphaTest = 0.4; m.transparent = false; m.side = THREE.DoubleSide; }
-      else o.material = new THREE.MeshBasicMaterial({ map: m.map, color: name === '1380439' ? 0xffffff : f.tint, transparent: true, depthWrite: false,
+      if(MASK[name]){ o.visible = false; return; }
+      if(SOLID[name]){ m.alphaTest = 0.4; m.transparent = false; m.side = THREE.DoubleSide;
+        if(name === '1380439'){ m.emissive = new THREE.Color(0xffb030); m.emissiveIntensity = 0.45; } }
+      else o.material = new THREE.MeshBasicMaterial({ map: m.map, color: f.tint, transparent: true, opacity: name === BEAM ? 0.9 : 0.6, depthWrite: false,
         blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
     });
     const holder = new THREE.Group(), tiltG = new THREE.Group();
@@ -45,8 +48,7 @@ function curtainFlags(base){
     if(stand){ const mx = new THREE.AnimationMixer(g.scene); mx.clipAction(stand).play(); mixers.push(mx); }
     return holder;
   }))).then(() => {
-    host.appendChild(renderer.domElement); host.classList.add('on');
-    const crest = document.querySelector('#curtain svg.crest'); if(crest) crest.style.display = 'none';
+    host.appendChild(renderer.domElement); requestAnimationFrame(() => host.classList.add('on'));   // fade in once loaded
     let last = performance.now();
     const loop = now => {
       if(curtain.classList.contains('gone') && getComputedStyle(curtain).opacity < 0.02){ renderer.dispose(); return; }
@@ -76,8 +78,8 @@ document.addEventListener('DOMContentLoaded', () => curtainFlags(window.WAR_FLAG
   #curtain{ position:fixed; inset:0; z-index:7; background:#000; display:flex; align-items:center; justify-content:center; transition:opacity 2.2s ease; }
   #curtain{ background:radial-gradient(ellipse at center, #1a1008 0%, #000 70%); flex-direction:column; }
   #curtain .crest{ width:84px; height:84px; margin-bottom:18px; filter:drop-shadow(0 0 14px rgba(214,169,64,0.45)); animation:breathe 3s ease-in-out infinite; }
-  #curtain .flags{ width:240px; height:190px; margin:-30px 0 4px; display:none; }
-  #curtain .flags.on{ display:block; animation:curtainIn .9s ease both; } #curtain .flags canvas{ display:block; }
+  #curtain .flags{ width:320px; height:260px; max-width:90vw; margin:-40px 0 0; opacity:0; transition:opacity 1.2s ease; }
+  #curtain .flags.on{ opacity:1; } #curtain .flags canvas{ display:block; max-width:100%; height:auto; }
   #curtain .title{ font:900 30px Cinzel, serif; letter-spacing:6px; text-transform:uppercase; text-align:center;
     color:#ecc867; text-shadow:0 1px 0 #fff1c4, 0 2px 3px #000, 0 0 18px rgba(214,169,64,0.45); animation:curtainIn .9s ease both; }
   #curtain .rule{ display:flex; align-items:center; gap:12px; width:min(420px, 80vw); margin:12px 0 10px; color:#d6a940; animation:curtainIn .9s ease both; }
@@ -434,12 +436,6 @@ document.addEventListener('DOMContentLoaded', () => curtainFlags(window.WAR_FLAG
 <body>
 <div id="stage"></div>
 <div id="curtain">
-  <svg class="crest" viewBox="0 0 100 100" aria-hidden="true">
-    <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1c4"/><stop offset=".5" stop-color="#e0b44e"/><stop offset="1" stop-color="#8a5a14"/></linearGradient></defs>
-    <path d="M50 6 L86 20 L86 50 C86 72 70 88 50 96 C30 88 14 72 14 50 L14 20 Z" fill="#140c06" stroke="url(#cg)" stroke-width="4"/>
-    <g stroke="url(#cg)" stroke-width="5" stroke-linecap="round"><path d="M32 30 L68 68"/><path d="M68 30 L32 68"/></g>
-    <g fill="url(#cg)"><circle cx="29" cy="27" r="4"/><circle cx="71" cy="27" r="4"/><path d="M27 64 l10 10 l-6 2 l-6 -6 z"/><path d="M73 64 l-10 10 l6 2 l6 -6 z"/></g>
-  </svg>
   <div class="flags" id="curtainFlags"></div>
   <div class="title">Entering the War Room</div>
   <div class="rule">◆</div>
