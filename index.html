@@ -4037,6 +4037,70 @@
   .trv-a.wrong{ border-color:#e07a6a; background:linear-gradient(180deg, rgba(110,30,22,0.85), rgba(60,14,10,0.9)); }
   @media (max-width:480px){ .trv-answers{ grid-template-columns:1fr; } }
 
+  /* ---- Campfire mini-game ---- */
+  .enc-campfire .enc-body{ padding:0; }
+  .cf-scene{ position:relative; width:300px; max-width:82vw; height:270px; margin:0 auto; overflow:hidden; border-radius:8px; user-select:none; touch-action:none;
+    background:radial-gradient(ellipse at 50% 70%, rgba(255,140,40,calc(.10 + var(--glowA, 0) * .35)), transparent 60%), linear-gradient(#0d1420, #1a1410 55%, #120d09); }
+  .cf-ground{ position:absolute; left:0; right:0; bottom:0; height:46%; opacity:.55;
+    background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgorebasedirt.png') center/180px; mask-image:linear-gradient(transparent, #000 35%); -webkit-mask-image:linear-gradient(transparent, #000 35%); }
+  .cf-ring{ position:absolute; left:50%; bottom:22px; width:240px; transform:translateX(-50%); filter:drop-shadow(0 3px 3px #000); }
+  /* the fire: a glow and four flame tongues that flicker; it grows with each size (s0 ember .. s5 roaring) */
+  .cf-fire{ --glow:0; position:absolute; left:50%; bottom:46px; width:120px; height:150px; transform:translateX(-50%); pointer-events:none; }
+  .cf-fire .cf-glow{ position:absolute; left:50%; bottom:-10px; width:200px; height:120px; transform:translateX(-50%); border-radius:50%;
+    background:radial-gradient(ellipse, rgba(255,170,60,calc(var(--glow) * .55)), transparent 70%); }
+  .cf-fire .cf-ember{ position:absolute; left:50%; bottom:6px; width:26px; height:10px; transform:translateX(-50%); border-radius:50%;
+    background:radial-gradient(ellipse, #fff1b0, #ff8a1e 45%, #7a1e00 80%); opacity:0; box-shadow:0 0 calc(4px + var(--glow) * 18px) rgba(255,140,30,.9); }
+  .cf-fire.lit .cf-ember{ opacity:calc(.35 + var(--glow) * .65); }
+  .cf-fire.blowing .cf-ember{ animation:cfPulse .25s ease-in-out infinite alternate; }
+  .cf-fire.scatter .cf-ember{ animation:cfScatter .5s ease-out forwards; }
+  .cf-fire .fl{ position:absolute; left:50%; bottom:8px; width:44px; height:70px; margin-left:-22px; border-radius:50% 50% 45% 45% / 70% 70% 30% 30%;
+    transform-origin:50% 100%; transform:scale(0); transition:transform .45s cubic-bezier(.2,1.4,.4,1); mix-blend-mode:screen;
+    background:radial-gradient(ellipse at 50% 85%, #fff6c8 0%, #ffd34d 22%, #ff8c1a 48%, rgba(220,50,10,.85) 70%, transparent 74%); animation:cfFlick 0.9s ease-in-out infinite alternate; }
+  .cf-fire .f2{ margin-left:-34px; width:36px; animation-duration:.7s; animation-delay:-.3s; }
+  .cf-fire .f3{ margin-left:-4px; width:38px; animation-duration:.8s; animation-delay:-.5s; }
+  .cf-fire .f4{ margin-left:-16px; width:30px; height:56px; animation-duration:.6s; animation-delay:-.2s; background:radial-gradient(ellipse at 50% 85%, #ffffff 0%, #fff0a0 30%, #ffb030 60%, transparent 74%); }
+  .cf-fire.s1 .fl{ transform:scale(.32); } .cf-fire.s1 .f2, .cf-fire.s1 .f3{ transform:scale(0); }
+  .cf-fire.s2 .fl{ transform:scale(.55); } .cf-fire.s2 .f3{ transform:scale(.35); }
+  .cf-fire.s3 .fl{ transform:scale(.8); }
+  .cf-fire.s4 .fl{ transform:scale(1.05); } .cf-fire.s4 .f4{ transform:scale(.9); }
+  .cf-fire.s5 .fl{ transform:scale(1.4); } .cf-fire.s5 .f2, .cf-fire.s5 .f3{ transform:scale(1.2); }
+  .cf-fire.roaring .fl{ filter:hue-rotate(-12deg) saturate(1.3) drop-shadow(0 0 10px rgba(255,210,90,.9)); }
+  @keyframes cfFlick{ 0%{ transform-origin:50% 100%; translate:0 0; skew:-3deg 0; } 50%{ skew:3deg 0; } 100%{ translate:0 -3px; skew:-1deg 0; } }
+  @keyframes cfPulse{ from{ transform:translateX(-50%) scale(1); } to{ transform:translateX(-50%) scale(1.25); } }
+  @keyframes cfScatter{ to{ transform:translateX(-50%) scale(2.4); opacity:0; filter:blur(3px); } }
+  .cf-spark{ position:absolute; width:3px; height:3px; border-radius:50%; background:#ffe08a; box-shadow:0 0 6px #ff9a2a; pointer-events:none; z-index:6; animation:cfSpark .7s ease-out forwards; }
+  @keyframes cfSpark{ to{ transform:translate(var(--dx), var(--dy)); opacity:0; } }
+  .cf-smoke{ position:absolute; width:26px; height:26px; margin-left:-13px; border-radius:50%; pointer-events:none; z-index:5;
+    background:radial-gradient(circle, rgba(150,150,150,.6), rgba(90,90,90,0) 70%); animation:cfSmoke 1.3s ease-out forwards; }
+  @keyframes cfSmoke{ from{ transform:scale(.6); opacity:.9; } to{ transform:translate(0, -90px) scale(2.6); opacity:0; } }
+  .cf-flying{ position:absolute; width:40px; height:40px; z-index:7; pointer-events:none; animation:cfFly .4s ease-in forwards; }
+  @keyframes cfFly{ to{ transform:translate(var(--tx), var(--ty)) scale(.6) rotate(25deg); opacity:.4; } }
+  .cf-stage{ position:absolute; left:0; right:0; top:8px; display:flex; justify-content:center; z-index:4; }
+  /* strike */
+  .cf-strike{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .cf-flint{ width:110px; filter:drop-shadow(0 3px 3px #000); }
+  .cf-meter{ position:relative; width:220px; height:14px; border-radius:7px; background:#1d1712; border:1px solid #5a4630; overflow:hidden; box-shadow:inset 0 1px 3px #000; }
+  .cf-hot{ position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg, #ffd34d, #ff8c1a); box-shadow:0 0 10px #ff9a2a; }
+  .cf-mark{ position:absolute; top:-2px; bottom:-2px; width:4px; margin-left:-2px; background:#fff; border-radius:2px; box-shadow:0 0 6px #fff; }
+  .cf-tries{ font-size:11px; color:#e8d6b0; text-shadow:0 1px 2px #000; }
+  /* blow */
+  .cf-blow{ display:flex; align-items:center; gap:18px; }
+  .cf-gauge{ position:relative; width:16px; height:110px; border-radius:8px; background:#1d1712; border:1px solid #5a4630; overflow:hidden; }
+  .cf-band{ position:absolute; left:0; right:0; background:rgba(255,190,70,.3); border-top:1px solid #ffc04a; border-bottom:1px solid #ffc04a; }
+  .cf-level{ position:absolute; left:2px; right:2px; bottom:0; border-radius:6px; background:linear-gradient(#ffeb9a, #ff7a1a); opacity:.85; }
+  .cf-level.good{ box-shadow:0 0 8px #ffd34d; }
+  .cf-ring2{ position:relative; width:56px; height:56px; } .cf-ring2 svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  .cf-ring2 .bg{ fill:none; stroke:rgba(255,255,255,.12); stroke-width:4; } .cf-ring2 .fg{ fill:none; stroke:#ffc04a; stroke-width:4; stroke-linecap:round; }
+  .cf-ring2 span{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:700 11px system-ui; color:#f6e2b0; }
+  /* feed */
+  .cf-feed{ display:flex; flex-direction:column; align-items:center; gap:6px; width:100%; }
+  .cf-heat{ width:200px; height:8px; border-radius:4px; background:#1d1712; border:1px solid #5a4630; overflow:hidden; }
+  .cf-heat i{ display:block; height:100%; width:100%; background:linear-gradient(90deg, #ff4a1a, #ffd34d); }
+  .cf-tray{ display:grid; grid-template-columns:repeat(3, 84px); gap:5px; }
+  .cf-piece{ display:flex; flex-direction:column; align-items:center; gap:1px; padding:3px 2px; border-radius:6px; cursor:pointer;
+    background:rgba(20,14,9,.85); border:1px solid #6b5232; color:#e8d6b0; font:600 9.5px system-ui; }
+  .cf-piece svg{ width:34px; height:34px; } .cf-piece:hover{ border-color:#ffc04a; transform:translateY(-1px); }
+  .cf-piece.used{ opacity:.25; pointer-events:none; }
   /* ---- Fishing / Murlocs / Blacksmith inside the Encounter card ---- */
   .enc-body .murloc-event{ position:relative; margin:4px auto 0; max-width:100%; }
   .murloc-bubble{ display:inline-block; margin-bottom:6px; padding:4px 10px; border-radius:12px; font-family:'Cinzel', Georgia, serif;
@@ -6126,6 +6190,8 @@ async function claimSparkle(el){
       return startRareSpawnEvent(rect, data.pending_id, params);
     } else if(data.event === 'mining') {
       return startMiningEvent(rect, data.pending_id, params);
+    } else if(data.event === 'campfire') {
+      return startCampfireEvent(rect, data.pending_id, params);
     }
 
     // normal claim: update gold directly without full render to preserve video
@@ -6725,6 +6791,265 @@ function openEncounterCard(rect, opts){
       setTimeout(() => { card.remove(); dim.remove(); }, (holdMs || 1400) + 450);
     }
   };
+}
+
+/* ---------------- Campfire: Strike, Blow, Feed ----------------
+   Three short stages on one card, judged by the same rules here and in resolve_sparkle_event (campfire):
+   1) Strike: a spark marker sweeps the flint every strike_ms; click while it's in the hot zone at the start of a
+      sweep (one counted strike per sweep, strike_tries tries) to catch a spark.
+   2) Blow: hold to blow on the ember (60 ticks a second). Its glow rises while you blow and sinks when you don't;
+      keep it in the sweet zone for blow_need ticks in total. Blow too hard (glow at the top) and the ember scatters.
+   3) Feed: feed the fire from the tray, smallest to biggest - tinder, kindling, sticks, log. The right piece grows the
+      fire a size and refreshes its heat; a piece too big smothers it, wet wood and leaves choke it, a stone does
+      nothing. The fire's heat fades all the while. Reach full size before the heat runs out.
+   The browser sends [n, strike ms..., n, blow toggle ticks..., n, (feed ms, tray slot)...], each stage timed from
+   its own start. */
+const CAMPFIRE_FUEL = {
+  tinder:   { size: 1, name: 'Dry tinder' },
+  kindling: { size: 2, name: 'Kindling' },
+  sticks:   { size: 3, name: 'Sticks' },
+  log:      { size: 4, name: 'Split log' },
+  wet:      { size: 9, name: 'Wet log' },
+  leaves:   { size: 9, name: 'Green leaves' },
+  stone:    { size: 9, name: 'Stone' }
+};
+// judge a whole game from its inputs (must match the SQL in resolve_sparkle_event)
+function campfireJudge(p, strikes, toggles, feeds){
+  const r = { won: false, stage: 'strike', perfect: true, strikeHit: -1, blowEnd: -1, feedEnd: -1, size: 1, heat: 1 };
+  // strike
+  let lastCycle = -1, tries = 0;
+  for(const t of strikes){
+    if(tries >= p.strike_tries || t > p.strike_ms * p.strike_tries) break;
+    const cyc = Math.floor(t / p.strike_ms); if(cyc === lastCycle) continue;
+    lastCycle = cyc; tries++;
+    if((t % p.strike_ms) / p.strike_ms < p.strike_win){ r.strikeHit = t; break; }
+    r.perfect = false;
+  }
+  if(r.strikeHit < 0) return r;
+  // blow
+  r.stage = 'blow';
+  let g = 0.15, inZone = 0, hold = false, ti = 0;
+  for(let tick = 0; tick < p.blow_ticks; tick++){
+    while(ti < toggles.length && toggles[ti] <= tick){ hold = !hold; ti++; }
+    g = g + (hold ? p.blow_up : -p.blow_down);
+    if(g < 0) g = 0;
+    if(g >= 0.97){ return r; }                     // blown too hard: the ember scatters
+    if(g >= p.blow_lo && g <= p.blow_hi) inZone++;
+    if(inZone >= p.blow_need){ r.blowEnd = tick; break; }
+  }
+  if(r.blowEnd < 0) return r;
+  // feed
+  r.stage = 'feed';
+  let size = 1, heat = 1, lastT = 0; const used = {};
+  for(const [t, slot] of feeds){
+    if(t < lastT || slot < 0 || slot >= p.tray.length || used[slot]) continue;
+    heat = heat - p.feed_decay * (t - lastT) / 1000; lastT = t;
+    if(heat <= 0) break;
+    used[slot] = 1;
+    const f = CAMPFIRE_FUEL[p.tray[slot]] || CAMPFIRE_FUEL.stone, kind = p.tray[slot];
+    if(kind === 'wet'){ size = size - 1; heat = heat - 0.35; r.perfect = false; }
+    else if(kind === 'leaves'){ heat = heat - 0.25; r.perfect = false; }
+    else if(kind === 'stone'){ r.perfect = false; }
+    else if(f.size === size){ size = size + 1; heat = 1; }
+    else if(f.size > size){ size = size - 1; heat = heat - 0.3; r.perfect = false; }
+    else { heat = Math.min(1, heat + 0.2); }       // too small for this fire: a quick flare, no growth
+    if(size <= 0 || heat <= 0){ size = Math.max(0, size); break; }
+    if(size >= 5){ r.won = true; r.feedEnd = t; break; }
+  }
+  r.size = size; r.heat = heat;
+  return r;
+}
+
+const CAMPFIRE_ICONS = {
+  tinder: `<svg viewBox="0 0 40 40"><g stroke="#d9b56a" stroke-width="1.6" stroke-linecap="round" fill="none"><path d="M8 30 Q14 18 20 28"/><path d="M12 31 Q20 14 26 29"/><path d="M16 32 Q24 20 32 30"/><path d="M10 28 Q22 22 30 32"/><path d="M14 26 Q18 16 24 24"/></g><ellipse cx="20" cy="31" rx="12" ry="3" fill="#7a5a26" opacity=".5"/></svg>`,
+  kindling: `<svg viewBox="0 0 40 40"><g stroke-linecap="round"><path d="M7 29 L33 21" stroke="#8a5a2b" stroke-width="3"/><path d="M9 23 L31 30" stroke="#a06a34" stroke-width="2.6"/><path d="M12 32 L28 17" stroke="#7a4b22" stroke-width="2.4"/><path d="M27 21 l4 -5" stroke="#7a4b22" stroke-width="1.6"/></g></svg>`,
+  sticks: `<svg viewBox="0 0 40 40"><g stroke-linecap="round"><path d="M5 30 L35 22" stroke="#6e4520" stroke-width="5"/><path d="M6 22 L34 30" stroke="#86562a" stroke-width="4.6"/><path d="M14 31 l-3 5" stroke="#6e4520" stroke-width="2"/></g></svg>`,
+  log: `<svg viewBox="0 0 40 40"><rect x="5" y="15" width="28" height="13" rx="6" fill="#7a4a22"/><path d="M8 18 h20 M9 24 h18" stroke="#5a3415" stroke-width="1.2"/><ellipse cx="32" cy="21.5" rx="5" ry="6.5" fill="#d9a865" stroke="#7a4a22" stroke-width="1.5"/><ellipse cx="32" cy="21.5" rx="2.6" ry="3.4" fill="none" stroke="#a87a3e"/></svg>`,
+  wet: `<svg viewBox="0 0 40 40"><rect x="5" y="15" width="28" height="13" rx="6" fill="#4a4a3a"/><path d="M8 18 h20 M9 24 h18" stroke="#2e3027" stroke-width="1.2"/><ellipse cx="32" cy="21.5" rx="5" ry="6.5" fill="#8a8a6a" stroke="#4a4a3a" stroke-width="1.5"/><g fill="#7fc4ff"><path d="M12 9 q2 3 0 5 q-2 -2 0 -5z"/><path d="M20 6 q2 3 0 5 q-2 -2 0 -5z"/><path d="M26 10 q2 3 0 5 q-2 -2 0 -5z"/></g></svg>`,
+  leaves: `<svg viewBox="0 0 40 40"><path d="M8 28 Q10 12 26 10 Q24 26 8 28Z" fill="#4f9a3a"/><path d="M8 28 L24 12" stroke="#2f6a22" stroke-width="1.2"/><path d="M16 32 Q22 18 34 20 Q28 32 16 32Z" fill="#67b84a"/><path d="M16 32 L32 21" stroke="#3a7a2a" stroke-width="1.2"/></svg>`,
+  stone: `<svg viewBox="0 0 40 40"><path d="M7 28 Q6 18 15 14 Q24 10 31 16 Q36 22 32 28 Q24 33 14 32 Q8 31 7 28Z" fill="#8c8c86"/><path d="M12 18 Q18 14 24 16" stroke="#b5b5ae" stroke-width="1.5" fill="none"/><path d="M14 28 Q22 30 30 26" stroke="#5f5f5a" stroke-width="1.5" fill="none"/></svg>`
+};
+const CAMPFIRE_FLINT = `<svg viewBox="0 0 120 70" class="cf-flint"><defs><linearGradient id="cfSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6edf2"/><stop offset="1" stop-color="#6c7a86"/></linearGradient></defs>
+  <path d="M14 46 Q8 30 22 22 Q38 14 50 26 Q58 36 50 46 Q36 56 22 54 Z" fill="#3d3f45"/><path d="M20 30 Q30 22 42 26" stroke="#6c707a" stroke-width="2" fill="none"/>
+  <path d="M66 20 h40 q8 0 8 8 v4 q0 8 -8 8 h-40 q-6 0 -6 -10 q0 -10 6 -10z" fill="none" stroke="url(#cfSteel)" stroke-width="7"/></svg>`;
+
+function startCampfireEvent(rect, pendingId, params){
+  const p = Object.assign({ strike_ms: 1100, strike_win: 0.16, strike_tries: 3, blow_ticks: 480, blow_need: 90, blow_lo: 0.45, blow_hi: 0.75,
+    blow_up: 0.012, blow_down: 0.007, feed_decay: 0.16, tray: ['log', 'tinder', 'wet', 'kindling', 'sticks', 'stone'] }, params || {});
+  const enc = openEncounterCard(rect, {
+    cls: 'enc-campfire', icon: '&#128293;', title: 'Light the Campfire',
+    instruction: 'Strike the flint when the spark is in the <b style="color:#ffb347">hot zone</b>!',
+    reward: '20&ndash;30 gold + food', durationMs: p.strike_ms * p.strike_tries + 400
+  });
+  enc.body.innerHTML = `<div class="cf-scene">
+      <div class="cf-ground"></div>
+      <svg class="cf-ring" viewBox="0 0 240 90"><g fill="#77756d" stroke="#3a3833" stroke-width="2">
+        ${Array.from({ length: 11 }, (_, i) => { const a = Math.PI + i / 10 * Math.PI, x = 120 + Math.cos(a) * 100, y = 58 + Math.sin(a) * 26; return `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="15" ry="10"/>`; }).join('')}
+        ${Array.from({ length: 9 }, (_, i) => { const a = i / 8 * Math.PI, x = 120 + Math.cos(a) * 104, y = 62 + Math.sin(a) * 22; return `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="17" ry="11"/>`; }).join('')}
+      </g></svg>
+      <div class="cf-fuel"></div>
+      <div class="cf-fire s0"><div class="cf-glow"></div><div class="fl f1"></div><div class="fl f2"></div><div class="fl f3"></div><div class="fl f4"></div><div class="cf-ember"></div></div>
+      <div class="cf-stage"></div>
+    </div>`;
+  const scene = enc.body.querySelector('.cf-scene'), fire = scene.querySelector('.cf-fire'), stageEl = scene.querySelector('.cf-stage');
+  const strikes = [], toggles = [], feeds = [];
+  let done = false, raf = null, perfect = true, burnedOut = false;
+  const setFire = (size, glow) => { fire.className = 'cf-fire s' + size; if(glow != null) fire.style.setProperty('--glow', glow.toFixed(3)); };
+  const sparkBurst = (n, x, y) => {
+    for(let i = 0; i < n; i++){
+      const s = document.createElement('i'); s.className = 'cf-spark';
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2, d = 30 + Math.random() * 50;
+      s.style.left = x + 'px'; s.style.top = y + 'px';
+      s.style.setProperty('--dx', (Math.cos(a) * d).toFixed(1) + 'px'); s.style.setProperty('--dy', (Math.sin(a) * d).toFixed(1) + 'px');
+      scene.appendChild(s); setTimeout(() => s.remove(), 700);
+    }
+  };
+  const finish = () => {
+    if(done) return; done = true; cancelAnimationFrame(raf); enc.stopTimer();
+    window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKey);
+    const local = campfireJudge(p, strikes, toggles, feeds);
+    const timings = [strikes.length, ...strikes, toggles.length, ...toggles, feeds.length, ...feeds.flat()];
+    const r = scene.getBoundingClientRect();
+    const label = won => won ? (local.perfect ? 'Roaring!' : 'Fire lit!')
+      : local.stage === 'strike' ? 'No spark...' : local.stage === 'blow' ? 'It went out...'
+      : burnedOut ? 'It burned out...' : 'Smothered...';
+    if(pendingId === 'preview'){ enc.finish(local.won, label(local.won), 1700); return; }
+    resolveSparkleEvent(pendingId, local.won, r.left + r.width / 2, r.top + 20, timings, { silent: true })
+      .then(d => enc.finish(!!(d && d.won), label(!!(d && d.won)), 1700));
+  };
+
+  // ----- 1) strike -----
+  stageEl.innerHTML = `<div class="cf-strike">${CAMPFIRE_FLINT}<div class="cf-meter"><div class="cf-hot" style="width:${p.strike_win * 100}%"></div><div class="cf-mark"></div></div><div class="cf-tries"></div></div>`;
+  const mark = stageEl.querySelector('.cf-mark'), triesEl = stageEl.querySelector('.cf-tries');
+  let t0 = performance.now(), lastCycle = -1, tries = 0, stage = 'strike';
+  const showTries = () => { triesEl.textContent = `Tries left: ${p.strike_tries - tries}`; };
+  showTries();
+  const strikeTick = now => {
+    if(stage !== 'strike' || done) return;
+    const t = now - t0;
+    if(t > p.strike_ms * p.strike_tries) return finish();
+    mark.style.left = ((t % p.strike_ms) / p.strike_ms * 100) + '%';
+    raf = requestAnimationFrame(strikeTick);
+  };
+  raf = requestAnimationFrame(strikeTick);
+  const strike = () => {
+    if(stage !== 'strike' || done) return;
+    const t = Math.round(performance.now() - t0), cyc = Math.floor(t / p.strike_ms);
+    if(cyc === lastCycle) return;
+    lastCycle = cyc; tries++; strikes.push(t); showTries();
+    hhSfx.play('clang');
+    const sr = scene.getBoundingClientRect(), fr = fire.getBoundingClientRect();
+    if((t % p.strike_ms) / p.strike_ms < p.strike_win){
+      sparkBurst(14, fr.left - sr.left + fr.width / 2, fr.top - sr.top + fr.height * 0.8);
+      setFire(0, 0.15); fire.classList.add('lit');
+      cancelAnimationFrame(raf); setTimeout(startBlow, 500);
+    } else {
+      perfect = false; sparkBurst(3, fr.left - sr.left + fr.width / 2, fr.top - sr.top + fr.height * 0.8);
+      if(tries >= p.strike_tries) setTimeout(finish, 300);
+    }
+  };
+
+  // ----- 2) blow -----
+  let holding = false, lastHold = false, tick = 0, acc = 0, last = 0, g = 0.15, inZone = 0;
+  function startBlow(){
+    if(done) return;
+    stage = 'blow';
+    enc.setInstruction('Hold to <b>blow</b> on the ember &mdash; keep its glow in the <b style="color:#ffb347">golden band</b>. Too hard and it scatters!');
+    enc.restartTimer(Math.round(p.blow_ticks * 1000 / 60));
+    stageEl.innerHTML = `<div class="cf-blow"><div class="cf-gauge"><div class="cf-band" style="bottom:${p.blow_lo * 100}%;height:${(p.blow_hi - p.blow_lo) * 100}%"></div><div class="cf-level"></div></div>
+      <div class="cf-ring2"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" class="bg"/><circle cx="18" cy="18" r="15" class="fg" stroke-dasharray="94.25" stroke-dashoffset="94.25"/></svg><span>Hold</span></div></div>`;
+    last = performance.now();
+    raf = requestAnimationFrame(blowTick);
+  }
+  function blowTick(now){
+    if(stage !== 'blow' || done) return;
+    acc += Math.min(200, now - last); last = now;
+    while(acc >= 1000 / 60 && stage === 'blow'){
+      acc -= 1000 / 60;
+      if(holding !== lastHold){ toggles.push(tick); lastHold = holding; }
+      g = g + (lastHold ? p.blow_up : -p.blow_down); if(g < 0) g = 0;
+      tick++;
+      if(g >= 0.97){ setFire(0, 1); fire.classList.add('scatter'); return finish(); }
+      if(g >= p.blow_lo && g <= p.blow_hi) inZone++;
+      if(inZone >= p.blow_need){ stage = 'between'; setFire(1, 0.6); setTimeout(startFeed, 450); break; }
+      if(tick >= p.blow_ticks) return finish();
+    }
+    const lv = stageEl.querySelector('.cf-level'), fg = stageEl.querySelector('.cf-ring2 .fg');
+    if(lv) lv.style.height = (Math.min(1, g) * 100) + '%';
+    if(lv) lv.classList.toggle('good', g >= p.blow_lo && g <= p.blow_hi);
+    if(fg) fg.setAttribute('stroke-dashoffset', (94.25 * (1 - inZone / p.blow_need)).toFixed(2));
+    fire.style.setProperty('--glow', Math.min(1, g).toFixed(3));
+    fire.classList.toggle('blowing', lastHold);
+    if(stage === 'blow') raf = requestAnimationFrame(blowTick);
+  }
+  const setHold = h => { holding = h; };
+
+  // ----- 3) feed -----
+  let fsize = 1, heat = 1, fT0 = 0, fLast = 0; const used = {};
+  function startFeed(){
+    if(done) return;
+    stage = 'feed';
+    enc.setInstruction('Feed the fire <b>smallest to biggest</b> before it dies &mdash; tinder, kindling, sticks, then a log!');
+    enc.restartTimer(Math.round(1000 / p.feed_decay));
+    stageEl.innerHTML = `<div class="cf-feed"><div class="cf-heat"><i></i></div><div class="cf-tray">${p.tray.map((k, i) =>
+      `<button type="button" class="cf-piece" data-slot="${i}" title="${(CAMPFIRE_FUEL[k] || {}).name || k}">${CAMPFIRE_ICONS[k] || ''}<span>${(CAMPFIRE_FUEL[k] || {}).name || k}</span></button>`).join('')}</div></div>`;
+    stageEl.querySelectorAll('.cf-piece').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); feed(+b.dataset.slot, b); }));
+    fT0 = performance.now(); fLast = 0;
+    raf = requestAnimationFrame(feedTick);
+  }
+  function feedTick(now){
+    if(stage !== 'feed' || done) return;
+    const h = heat - p.feed_decay * (now - fT0 - fLast) / 1000;
+    const bar = stageEl.querySelector('.cf-heat i'); if(bar) bar.style.width = (Math.max(0, h) * 100) + '%';
+    fire.style.setProperty('--glow', Math.max(0.15, Math.min(1, h)).toFixed(3));
+    if(h <= 0){ burnedOut = true; setFire(0, 0); return finish(); }
+    raf = requestAnimationFrame(feedTick);
+  }
+  function feed(slot, btn){
+    if(stage !== 'feed' || done || used[slot]) return;
+    const t = Math.round(performance.now() - fT0);
+    heat = heat - p.feed_decay * (t - fLast) / 1000; fLast = t;
+    if(heat <= 0){ burnedOut = true; return finish(); }
+    used[slot] = 1; feeds.push([t, slot]); btn.classList.add('used');
+    const kind = p.tray[slot], f = CAMPFIRE_FUEL[kind] || CAMPFIRE_FUEL.stone;
+    const sr = scene.getBoundingClientRect(), fr = fire.getBoundingClientRect(), fx = fr.left - sr.left + fr.width / 2, fy = fr.top - sr.top + fr.height * 0.7;
+    // the piece flies onto the fire
+    const fly = document.createElement('div'); fly.className = 'cf-flying'; fly.innerHTML = CAMPFIRE_ICONS[kind] || '';
+    const br = btn.getBoundingClientRect(); fly.style.left = (br.left - sr.left) + 'px'; fly.style.top = (br.top - sr.top) + 'px';
+    fly.style.setProperty('--tx', (fx - (br.left - sr.left) - 20) + 'px'); fly.style.setProperty('--ty', (fy - (br.top - sr.top) - 20) + 'px');
+    scene.appendChild(fly); setTimeout(() => fly.remove(), 420);
+    setTimeout(() => {
+      if(kind === 'wet'){ fsize--; heat -= 0.35; perfect = false; puff('cf-smoke', 6, fx, fy); }
+      else if(kind === 'leaves'){ heat -= 0.25; perfect = false; puff('cf-smoke', 4, fx, fy); }
+      else if(kind === 'stone'){ perfect = false; }
+      else if(f.size === fsize){ fsize++; heat = 1; sparkBurst(10 + fsize * 3, fx, fy - 10); hhSfx.play('clang'); }
+      else if(f.size > fsize){ fsize--; heat -= 0.3; perfect = false; puff('cf-smoke', 5, fx, fy); }
+      else { heat = Math.min(1, heat + 0.2); sparkBurst(5, fx, fy); }
+      if(fsize >= 5){ stage = 'won'; setFire(5, 1); fire.classList.add('roaring'); sparkBurst(30, fx, fy - 20); setTimeout(finish, 700); return; }
+      if(fsize <= 0 || heat <= 0){ setFire(0, 0); return finish(); }
+      setFire(Math.max(1, fsize));
+    }, 380);
+    if(feeds.length >= p.tray.length && fsize + 1 < 5) setTimeout(() => { if(!done && stage === 'feed') finish(); }, 900);
+  }
+  function puff(cls, n, x, y){
+    for(let i = 0; i < n; i++){
+      const s = document.createElement('i'); s.className = cls;
+      s.style.left = (x + (Math.random() - 0.5) * 30) + 'px'; s.style.top = y + 'px'; s.style.animationDelay = (i * 60) + 'ms';
+      scene.appendChild(s); setTimeout(() => s.remove(), 1400);
+    }
+  }
+
+  // input: click / tap / Space - a strike in the first stage, hold to blow in the second
+  const down = ev => { if(stage === 'strike') strike(); else if(stage === 'blow'){ setHold(true); } if(ev && ev.cancelable && stage === 'blow') ev.preventDefault(); };
+  const up = () => { if(stage === 'blow') setHold(false); };
+  scene.addEventListener('pointerdown', ev => { if(ev.target.closest('.cf-piece')) return; down(ev); });
+  window.addEventListener('pointerup', up);
+  const onKey = ev => {
+    if(ev.code !== 'Space' && ev.key !== ' ') return;
+    ev.preventDefault();
+    if(ev.type === 'keydown' && !ev.repeat) down(); else if(ev.type === 'keyup') up();
+  };
+  window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKey);
 }
 
 /* ---------------- Trivia: a rune-covered book bursts out of smoke with a WoW question ----------------
@@ -7541,6 +7866,8 @@ if(typeof isStaging !== 'undefined' && isStaging){
       lumberjack: () => startLumberjackEvent(rect, 'preview', { sweep_ms: 1300, width: 0.12, hits_needed: 3, max_attempts: 5, game_ms: 9000, notches: [0.25, 0.7, 0.45] }),
       rarespawn: () => startRareSpawnEvent(rect, 'preview', { jump_ms: 650, duration_ms: 3250, radius: 95, hits_needed: 3, positions: [[200, 300], [750, 650], [400, 800], [850, 250], [500, 450]] }),
       mining: () => startMiningEvent(rect, 'preview', { gem_start: 0, reveal_ms: 1600, swap_ms: 310, pick_ms: 6000, swaps: [[0, 1], [1, 2], [0, 2], [0, 1], [1, 2], [0, 1], [0, 2], [1, 2], [0, 1], [0, 2], [1, 2]] }),
+      campfire: () => startCampfireEvent(rect, 'preview', { strike_ms: 1100, strike_win: 0.16, strike_tries: 3, blow_ticks: 480, blow_need: 90, blow_lo: 0.45, blow_hi: 0.75,
+        blow_up: 0.012, blow_down: 0.007, feed_decay: 0.16, tray: ['log', 'tinder', 'wet', 'kindling', 'sticks', 'stone'].sort(() => Math.random() - 0.5) }),
       trivia: () => startTriviaEvent(rect, 'preview', { question: 'Who is the final boss of Molten Core?', category: 'World', time_ms: 15000, answers: ['Ragnaros', 'Golemagg', 'Majordomo Executus', 'Baron Geddon'] })
     };
     (demo[type] || demo.fishing)();
