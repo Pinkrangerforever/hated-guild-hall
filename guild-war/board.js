@@ -24,6 +24,8 @@
   const zoneWorld = k => toWorld(...anchor(k));
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   // which monsters hold the neutral camps in each region (regions without one use plain tokens)
+  // pets are sized by stage, measured by footprint (the larger of length and wingspan) in the zone's piece space
+  const PET_SPAN = { juvenile: 0.3, adult: 0.6, boss: 0.95 };
   const NEUTRAL_MOBS = { khaz_modan: 'mob_gnoll', kalimdor_heart: 'mob_centaur', southern_wilds: 'mob_silithid', north_kalimdor: 'mob_furbolg', lordaeron: 'mob_ghoul', azeroth: 'mob_defias' };
   // the clip each animation request uses, in order of preference (monsters have no weapon stances)
   const CLIP_ALIASES = { Ready1H: ['Ready1H', 'ReadyUnarmed', 'Stand'], Attack1H: ['Attack1H', 'AttackUnarmed'], BattleRoar: ['BattleRoar', 'AttackUnarmed', 'Attack1H'], Run: ['Run'], Death: ['Death'], Stand: ['Stand', 'Ready1H'] };
@@ -697,7 +699,7 @@
       });
       Object.keys(want).forEach(id => {
         if(this.petModels[id]) return;
-        const w = want[id], rec = this.petModels[id] = { url: w.url, zone: w.zone, built: w.built };
+        const w = want[id], rec = this.petModels[id] = { url: w.url, zone: w.zone, built: w.built, stage: w.stage };
         this.petFiles[w.url] = this.petFiles[w.url] || this.loadGltf(w.url);
         this.petFiles[w.url].then(g => {
           if(this.petModels[id] !== rec) return;
@@ -712,11 +714,12 @@
           // stronghold's entrance (buildings face the camera, +z), or beside the banner when there is no building
           // size by stage, measured by footprint (the larger of length and wingspan) so a long-winged gryphon and a
           // stocky dragon of the same stage take up about the same room: juveniles small, adults 2x, bosses 2x adults
-          const STAGE_SPAN = { juvenile: 0.3, adult: 0.6, boss: 0.95 };
-          const piece = this.pieces[w.zone], s2 = (STAGE_SPAN[w.stage] || 0.3) / Math.max(size.x, size.z);
+          const piece = this.pieces[w.zone], s2 = (PET_SPAN[w.stage] || 0.3) / Math.max(size.x, size.z);
           const holder = new THREE.Group(); holder.add(m); m.scale.setScalar(s2);
           m.position.set(-(box.min.x + box.max.x) / 2 * s2, -box.min.y * s2, -(box.min.z + box.max.z) / 2 * s2);
-          if(w.built) holder.position.set((piece.bx || -0.2) + 0.02, 0.002, (piece.bz || -0.06) + 0.26);
+          const spot = piece.petSpot && piece.petSpot[w.stage];   // worked out per zone in fitPieces: clear of the building, inside the zone
+          if(spot) holder.position.set(spot[0], 0.002, spot[1]);
+          else if(w.built) holder.position.set((piece.bx || -0.2) + 0.02, 0.002, (piece.bz || -0.06) + 0.26);
           else holder.position.set(0.16, 0.002, 0.1);
           holder.rotation.y = -Math.PI / 2 + 0.35;   // turned to the camera
           piece.grp.add(holder); rec.obj = holder;
@@ -2047,8 +2050,38 @@
         const hAt = TUNE.holds[k] && TUNE.holds[k].at;   // a hand-placed building spot wins
         if(hAt){ const an = anchor(k); best = [(hAt[0] - an[0]) / MW * PW, (hAt[1] - an[1]) / MH * PH]; }
         this.pieces[k].bx = best[0] / s; this.pieces[k].bz = best[1] / s;   // stored in the group's (scaled) space
+        // where a guarding pet stands, for each size of pet: clear of the building and its fortify wall (and the
+        // banner), inside the zone, preferring the front (toward the camera) and as close in as it fits
+        const share = (wx, wz, rad) => {
+          const px = cx + wx * pxPerUnit, py = cy + wz * (RH / PH), rr = rad * pxPerUnit; let ok = 0, n = 0;
+          for(let a = 0; a < 20; a++) for(const f of [0, 0.6, 1]){
+            n++; const x = Math.round(px + Math.cos(a / 20 * Math.PI * 2) * rr * f), y = Math.round(py + Math.sin(a / 20 * Math.PI * 2) * rr * f);
+            if(x >= 0 && y >= 0 && x < RW && y < RH && R[y * RW + x] === v) ok++;
+          }
+          return ok / n;
+        };
+        this.pieces[k].petSpot = {};
+        Object.keys(PET_SPAN).forEach(stage => {
+          const rad = PET_SPAN[stage] / 2, clearB = (0.34 + rad * 0.8) * s, clearF = (0.1 + rad * 0.7) * s;
+          let pick = null, top = -1e9;
+          for(let i = 0; i < 24; i++){
+            const da = (i % 2 ? 1 : -1) * Math.ceil(i / 2) * (Math.PI / 12), a = Math.PI / 2 + da;   // fanning out from straight in front
+            for(let d = clearB; d <= clearB + 0.5 * s; d += 0.03 * s){
+              const x = best[0] + Math.cos(a) * d, z = best[1] + Math.sin(a) * d;
+              if(Math.hypot(x, z) < clearF) continue;
+              const score = share(x, z, rad * 0.85 * s) * 4 - Math.abs(da) * 0.35 - (d - clearB) / s * 0.8;
+              if(score > top){ top = score; pick = [x, z]; }
+            }
+          }
+          if(pick) this.pieces[k].petSpot[stage] = [pick[0] / s, pick[1] / s];
+        });
         this.pieces[k].holdFor = this.pieces[k].postFor = this.pieces[k].fortFor = this.pieces[k].campFor = undefined;   // re-place on next sync
         if(this.state) this.syncPiece(k);
+      });
+      // pets already standing move to their zone's new spot
+      Object.values(this.petModels || {}).forEach(rec => {
+        const sp = rec.obj && this.pieces[rec.zone] && this.pieces[rec.zone].petSpot && this.pieces[rec.zone].petSpot[rec.stage];
+        if(sp) rec.obj.position.set(sp[0], 0.002, sp[1]);
       });
     }
 
