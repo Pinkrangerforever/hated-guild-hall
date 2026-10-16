@@ -2768,6 +2768,8 @@
   .btn-discord-nav:hover{ background:#4752c4; }
 
   /* WoW-style Construction Banner */
+  #construction-banner.war-banner{ text-decoration:none; cursor:pointer; box-sizing:border-box; }
+  #construction-banner.war-banner:hover{ filter:brightness(1.2); }
   #construction-banner{
     display:none; width:100%; padding:16px 20px; text-align:center;
     background:linear-gradient(135deg, #1a1410 0%, #3d2817 50%, #1a1410 100%);
@@ -4595,7 +4597,7 @@
 <!-- PAGE DIVIDER -->
 <div class="page-divider"></div>
 
-<div id="construction-banner">⚔️ SITE UNDER CONSTRUCTION! ALPHA-CHADS MAKE SURE YOU PURCHASE SOMETHING FROM THE SHOP! ⚔️</div>
+<a id="construction-banner" class="war-banner" href="war.html">⚔️ THE GUILD WAR · ENTER THE WAR ROOM ⚔️</a>
 <div id="bg-layer-texture"></div>
 <div id="bg-layer-image"></div>
 <div id="app"></div>
@@ -4615,8 +4617,21 @@
 const hostname = window.location.hostname;
 const isStaging = hostname.includes('staging');
 
-// Show construction banner on all environments
+// The banner under the header links to the Guild War with its current status (filled in once signed in:
+// only members can read the war)
 document.getElementById('construction-banner').style.display = 'block';
+async function updateWarBanner(){
+  const el = document.getElementById('construction-banner'); if(!el) return;
+  try{
+    const { data, error } = await sb.from('guild_war_games').select('phase:state->>phase, clock:state->>clock').eq('active', true).maybeSingle();
+    if(error) return;
+    const day = data && data.clock != null ? Math.floor(+data.clock / 24) + 1 : null;
+    el.innerHTML = !data ? '⚔️ THE GUILD WAR · THE NEXT WAR IS COMING SOON ⚔️'
+      : data.phase === 'signup' ? '⚔️ GUILD WAR SIGN-UPS ARE OPEN! <u>ENLIST IN THE WAR ROOM</u> ⚔️'
+      : data.phase === 'live' ? `⚔️ THE GUILD WAR HAS BEGUN${day ? ' · DAY ' + day : ''}! NEW RECRUITS CAN STILL <u>JOIN THE FIGHT</u> ⚔️`
+      : '⚔️ THE GUILD WAR IS OVER · <u>SEE WHO WON</u> ⚔️';
+  }catch(e){}
+}
 
 const SUPABASE_CONFIG = isStaging ? {
   url: 'https://jucmmnmnbjrzmjrugggl.supabase.co',
@@ -5314,12 +5329,14 @@ async function boot(){
   sb.auth.onAuthStateChange((_event, newSession)=>{
     state.session = newSession;
     onAuthResolved();
+    if(newSession) updateWarBanner();
   });
 
   const { data: { session } } = await sb.auth.getSession();
   state.session = session;
   await onAuthResolved();
   __booted = true;
+  updateWarBanner(); setInterval(updateWarBanner, 5 * 60 * 1000);
 }
 
 async function loadNews(){
