@@ -1364,19 +1364,27 @@
       // routes: each in its own colour; where routes share water they run side by side, not on top of each other
       if(this.raster){ this.seaPaths = this.seaPaths || this.routeSeaPaths(); }
       const ROUTE_COLOURS = ['#1f5f8b', '#8b2f6b', '#2f7a3a', '#b0641a', '#5a3f9e', '#1b7f7a', '#9e2a2a', '#c9a227', '#f2ead8', '#7a4a1f'];   // all distinct from the sea (the ferry lanes had a navy that vanished into it)
-      const lines = this.routeLines || [];
-      lines.forEach((L, li) => {
+      // with a zone selected, its routes light up (thicker, glowing, drawn on top) and the rest fade back
+      const lines = this.routeLines || [], sel = this.selected, lit = L => sel && (L.rt.a === sel || L.rt.b === sel);
+      lines.map((L, li) => [L, li]).sort((p, q) => lit(p[0]) - lit(q[0])).forEach(([L, li]) => {
         const pts = L.pts; if(pts.length < 2) return;
+        const on = lit(L);
         // sideways offset per point: spread the routes that pass through the same water
         const off = pts.map(() => [0, 0]);
         const P = pts.map((p, i) => [(p[0] + off[i][0]) * sx, (p[1] + off[i][1]) * sy]);
-        g.setLineDash(L.kind === 'zeppelin' ? [8, 12] : [18, 11]); g.lineWidth = L.kind === 'zeppelin' ? 3.5 : 4.5;
-        g.strokeStyle = ROUTE_COLOURS[li % ROUTE_COLOURS.length]; g.globalAlpha = 0.8; g.lineCap = 'round';
-        g.beginPath(); g.moveTo(P[0][0], P[0][1]);
-        for(let i = 1; i < P.length - 1; i++) g.quadraticCurveTo(P[i][0], P[i][1], (P[i][0] + P[i + 1][0]) / 2, (P[i][1] + P[i + 1][1]) / 2);
-        g.lineTo(P[P.length - 1][0], P[P.length - 1][1]); g.stroke();
+        const path = () => { g.beginPath(); g.moveTo(P[0][0], P[0][1]);
+          for(let i = 1; i < P.length - 1; i++) g.quadraticCurveTo(P[i][0], P[i][1], (P[i][0] + P[i + 1][0]) / 2, (P[i][1] + P[i + 1][1]) / 2);
+          g.lineTo(P[P.length - 1][0], P[P.length - 1][1]); };
+        g.lineCap = 'round';
+        if(on){   // a warm glow under the lit route
+          g.setLineDash([]); g.lineWidth = 16; g.strokeStyle = 'rgba(255,214,110,0.55)'; g.globalAlpha = 1;
+          g.shadowColor = 'rgba(255,200,80,0.95)'; g.shadowBlur = 18; path(); g.stroke(); g.shadowBlur = 0;
+        }
+        g.setLineDash(L.kind === 'zeppelin' ? [8, 12] : [18, 11]); g.lineWidth = (L.kind === 'zeppelin' ? 3.5 : 4.5) * (on ? 1.6 : 1);
+        g.strokeStyle = ROUTE_COLOURS[li % ROUTE_COLOURS.length]; g.globalAlpha = on ? 1 : sel ? 0.35 : 0.8;
+        path(); g.stroke();
       });
-      g.setLineDash([]); g.lineCap = 'butt'; g.globalAlpha = 1;
+      g.setLineDash([]); g.lineCap = 'butt'; g.globalAlpha = 1; g.shadowBlur = 0;
       // resource icons: every zone shows its type faintly; this game's rich deposits are bold with a gold ring
       KEYS.forEach(k => {
         const p = WAR_LAYOUT[k], r = WAR_ZONES[k].resource, im = this.resIcons && this.resIcons[r];
