@@ -6953,12 +6953,8 @@ function startCampfireEvent(rect, pendingId, params){
         if(!pit.alive) return;
         m.scale.setScalar(1.0 / m.userData.unitHeight); sc.add(m); pit.model = m;
         scene.querySelector('.cf-ring').style.display = 'none';
-        // sit our flames on the logs: project the top of the log stack into the card
-        m.updateMatrixWorld(true);
-        const box = new THREE.Box3().setFromObject(m), top = new THREE.Vector3(0, box.min.y + (box.max.y - box.min.y) * 0.45, 0).project(cam);
-        const sceneH = scene.clientHeight, canvasTop = sceneH - H - 10;
-        const y = canvasTop + (1 - top.y) / 2 * H, x = (top.x + 1) / 2 * W + (scene.clientWidth - W) / 2;
-        fire.style.left = x + 'px'; fire.style.bottom = Math.max(20, sceneH - y + 62) + 'px';   // up onto the logs (the model's bounds run below its stones)
+        // sit our flames in the pit: the logs are always ~90px above the card's floor with this camera
+        fire.style.left = '50%'; fire.style.bottom = '78px';
       }).catch(() => { /* keep the drawn ring */ });
       const loop = () => {
         if(!pit.alive) return;
