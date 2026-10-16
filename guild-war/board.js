@@ -703,7 +703,9 @@
           const box = new THREE.Box3().setFromObject(g.scene), size = box.getSize(new THREE.Vector3());
           // lives in the zone's piece group (already scaled to the zone), standing just in front of the outpost /
           // stronghold's entrance (buildings face the camera, +z), or beside the banner when there is no building
-          const piece = this.pieces[w.zone], s2 = 0.2 / Math.max(size.y, size.x * 0.6);
+          // size by stage: juveniles small, adults twice that, bosses twice an adult
+          const STAGE_H = { juvenile: 0.12, adult: 0.24, boss: 0.48 };
+          const piece = this.pieces[w.zone], s2 = (STAGE_H[w.stage] || 0.12) / Math.max(size.y, size.x * 0.6);
           const holder = new THREE.Group(); holder.add(m); m.scale.setScalar(s2);
           m.position.set(-(box.min.x + box.max.x) / 2 * s2, -box.min.y * s2, -(box.min.z + box.max.z) / 2 * s2);
           if(w.built) holder.position.set((piece.bx || -0.2) + 0.02, 0.002, (piece.bz || -0.06) + 0.26);
@@ -1762,8 +1764,8 @@
 
     // ----- camera -----
     applyCamera(){
-      const c = this.cam, sp = Math.sin(c.polar);
-      this.camera.position.set(c.target.x + c.dist * sp * Math.sin(c.az), c.target.y + c.dist * Math.cos(c.polar), c.target.z + c.dist * sp * Math.cos(c.az));
+      const c = this.cam, sp = Math.sin(c.polar), dist = c.dist;
+      this.camera.position.set(c.target.x + dist * sp * Math.sin(c.az), c.target.y + dist * Math.cos(c.polar), c.target.z + dist * sp * Math.cos(c.az));
       this.camera.position.add(this.shakeOff);
       this.camera.lookAt(this.shakeOff.clone().add(c.target));
     }
@@ -2379,7 +2381,12 @@
     pinchDist(pts){ const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; }
     resize(){
       const w = this.el.clientWidth, h = this.el.clientHeight;
-      this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
+      this.renderer.setSize(w, h); this.camera.aspect = w / h;
+      // keep at least the desktop's sideways view on a tall phone screen: widen the vertical angle instead of
+      // backing the camera out of the room
+      const HFOV = 2 * Math.atan(Math.tan(42 / 2 * Math.PI / 180) * 1.6);
+      this.camera.fov = Math.min(80, Math.max(42, 2 * Math.atan(Math.tan(HFOV / 2) / this.camera.aspect) * 180 / Math.PI));
+      this.camera.updateProjectionMatrix();
     }
 
     // ----- frame -----
