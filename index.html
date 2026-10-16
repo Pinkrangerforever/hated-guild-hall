@@ -12670,7 +12670,7 @@ function renderGuildBank(){
       <div class="panel style-glass gb-bank">
         <div class="gb-head"><h3>In the bank</h3><div class="gb-money">${s ? gbGold(s.money) : '—'}</div></div>
         ${!tabs.length ? emptyState(isRL ? 'Nothing imported yet: press Import above.' : 'Nothing has been imported yet.') : `
-        <div class="gb-tabs">${tabs.map((t, i) => `<button type="button" class="gb-tab ${t === tab ? 'on' : ''}" onclick="gb.tab=${i};render()">${esc(t.name || 'Tab ' + t.index)} <small>${(t.items || []).length}</small></button>`).join('')}</div>
+        <div class="gb-tabs">${tabs.map((t, i) => `<button type="button" class="gb-tab ${t === tab ? 'on' : ''}" onclick="gbSetTab(${i})">${esc(t.name || 'Tab ' + t.index)} <small>${(t.items || []).length}</small></button>`).join('')}</div>
         <div class="gb-items">${(tab.items || []).slice().sort((a, b) => (b.quality || 0) - (a.quality || 0) || String(a.name).localeCompare(String(b.name))).map(it =>
           `<a class="gb-item" href="https://www.wowhead.com/classic/item=${Number(it.itemId) || 0}" target="_blank" rel="noopener" data-wowhead="item=${Number(it.itemId) || 0}&domain=classic">
             <span class="gb-name" style="color:${GB_QUALITY[it.quality] || '#ffffff'}">${esc(it.name || 'Item ' + it.itemId)}</span>${(it.count || 1) > 1 ? `<span class="gb-count">×${Number(it.count)}</span>` : ''}</a>`).join('') || emptyState('This tab is empty.')}</div>`}
@@ -12678,7 +12678,7 @@ function renderGuildBank(){
       <div class="gb-side">
         <div class="panel style-glass">
           <div class="gb-head"><h3>Donation leaderboard</h3>
-            <div class="gb-periods">${[['week', 'This week'], ['month', 'This month'], ['all', 'All time']].map(([k, l]) => `<button type="button" class="${gb.period === k ? 'on' : ''}" onclick="gb.period='${k}';render()">${l}</button>`).join('')}</div></div>
+            <div class="gb-periods">${[['week', 'This week'], ['month', 'This month'], ['all', 'All time']].map(([k, l]) => `<button type="button" class="${gb.period === k ? 'on' : ''}" onclick="gbSetPeriod('${k}')">${l}</button>`).join('')}</div></div>
           ${ranked.length ? `<ol class="gb-board">${ranked.slice(0, 25).map(([n, c], i) => `<li><span class="gb-pos">${medal(i)}</span><span class="gb-who">${esc(n)}</span><span class="gb-amt">${gbGold(c)}</span></li>`).join('')}</ol>`
             : emptyState('No gold donations recorded for this period yet.')}
         </div>
@@ -12794,6 +12794,10 @@ async function gbImport(again){
   showToast(`Guild bank updated: ${data.items} item stacks, ${data.new_deposits} new donation${data.new_deposits === 1 ? '' : 's'}${gold ? ` (${gold.toLocaleString()}g)` : ''}.`);
   gb.loaded = false; loadGuildBank();
 }
+// the page's code lives inside one closure; the buttons above call these from the global scope
+window.gbImport = gbImport;
+window.gbSetTab = i => { gb.tab = i; render(); };
+window.gbSetPeriod = k => { gb.period = k; render(); };
 
 function renderRaidLogs(){
   return `
