@@ -966,7 +966,7 @@ function renderMeInner(){
     </div>
     <div class="scoutln" data-tip="<b>🔭 Scout reports</b><br>The day has three watches: midnight to 8am, 8am to 4pm and 4pm to midnight. The first time you open the war room in each watch, your scouts bring in <b>1 extra troop</b>.<span class='c'>Missed watches don't carry over.</span>">🔭 Scouts return in ${(() => { const n = 8 - (G.clock % 8); return n >= 1 ? Math.floor(n) + 'h ' + Math.round((n % 1) * 60) + 'm' : Math.round(n * 60) + 'm'; })()}
     </div>
-    ${!p.pet && LIVE && !p.bot ? '<div class="petln muted">🐾 No pet found for you (eggs can't fight; a new pet joins within 10 minutes)</div>' : ''}
+    ${!p.pet && LIVE && !p.bot ? '<div class="petln muted">🐾 No pet found for you (eggs can&#39;t fight; a new pet joins within 10 minutes)</div>' : ''}
     ${p.pet ? `<div class="petln">🐾 ${petLabel(p.pet)} · ${!E.petUp(G, p) ? `<span style="color:#ff9a80">recovering, back in ${Math.ceil(p.petDown - G.clock)}h</span>` : p.petZone && G.zones[p.petZone].owner === f ? `guarding ${ZN(p.petZone)}${E.petResting(G, p) ? ' (resting)' : ''}` : '<span style="color:#ffd36a">not on the board: bring it in at a zone your strongholds reach</span>'}</div>` : ''}
     <div class="sec">War chest</div>
     <div class="resg">${['food', 'wood', 'ore', 'gold'].map(r => `<div title="${r}">${RES_ICON[r]}<b>${p.res[r]}</b>${inc[r] ? `<small>+${Math.max(1, Math.round(inc[r] / team))}/day</small>` : ''}</div>`).join('')}</div>
