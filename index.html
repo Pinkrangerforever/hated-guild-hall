@@ -1413,6 +1413,21 @@
     opacity:0.85;
     z-index:25;
   }
+  .comp-slot.name-custom-paladin::before {
+    content:'';
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    pointer-events:none;
+    background-image:url('https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/paladin-bg.gif');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    opacity:0.85;
+    z-index:25;
+  }
   .comp-slot.name-custom-warlockdemise::before {
     content:'';
     position:absolute;
@@ -5024,6 +5039,7 @@ function getUserNameCustomization(userId){
       else if(meta.effect === 'cozmicdustv') nameCustom = 'name-custom-cozmicdustv';
       else if(meta.effect === 'newworld') nameCustom = 'name-custom-newworld';
       else if(meta.effect === 'matrixmom') nameCustom = 'name-custom-matrixmom';
+      else if(meta.effect === 'paladin') nameCustom = 'name-custom-paladin';
       else if(meta.effect === 'warlockdemise') nameCustom = 'name-custom-warlockdemise';
       else if(meta.effect === 'lifedrain') nameCustom = 'name-custom-lifedrain';
       else if(meta.effect === 'meanbull5years') nameCustom = 'name-custom-meanbull5years';
@@ -5344,6 +5360,13 @@ async function loadPublicShopItems(){
   if(!hasMatrixMom){
     console.log('Seeding Mom! I\'m in the Matrix Mom! nameplate customization...');
     await addNameplateCustomizationItem('Mom!  I\'m in the Matrix Mom!', 2500, 'matrixmom', 'matrix-mom-bg.gif');
+  }
+
+  // Seed "Paladin" nameplate customization if it doesn't exist
+  const hasPaladin = state.shopItems.some(item => item.metadata?.effect === 'paladin');
+  if(!hasPaladin){
+    console.log('Seeding Paladin nameplate customization...');
+    await addNameplateCustomizationItem('Paladin', 2500, 'paladin', 'paladin-bg.gif');
   }
 }
 
@@ -11903,7 +11926,7 @@ function renderShopModal(){
     if(state.editingShopItemId === item.id) return renderEditForm(item);
     const canAfford = gold >= item.cost;
     const owned = state.shopPurchases && state.shopPurchases.some(p => p.item_id === item.id && p.fulfilled);
-    const gifMap = {flame:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/flame-bg.gif', star:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/star-bg.gif', shadow:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/shadow-bg.gif', techno:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/shadow-bg.gif', anime:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/anime-headphones.gif', lightning:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/lightning.gif', gofast:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/go-fast-bg.gif', conecold:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/cone-cold-bg.gif', elune:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/elune-bg.gif', barrenssunset:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/barrens-sunset-bg.gif', hockeynerds:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/hockey-nerds-bg.gif', cozmicdustv:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/cozmic-dust-bg.gif', newworld:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/new-world-bg.gif', warlockdemise:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/warlocks-demise-bg.gif', lifedrain:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/life-drain-bg.gif', meanbull5years:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/meanbull-5-years-bg.gif', matrixmom:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/matrix-mom-bg.gif'};
+    const gifMap = {flame:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/flame-bg.gif', star:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/star-bg.gif', shadow:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/shadow-bg.gif', techno:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/shadow-bg.gif', anime:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/anime-headphones.gif', lightning:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/lightning.gif', gofast:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/go-fast-bg.gif', conecold:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/cone-cold-bg.gif', elune:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/elune-bg.gif', barrenssunset:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/barrens-sunset-bg.gif', hockeynerds:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/hockey-nerds-bg.gif', cozmicdustv:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/cozmic-dust-bg.gif', newworld:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/new-world-bg.gif', warlockdemise:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/warlocks-demise-bg.gif', lifedrain:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/life-drain-bg.gif', meanbull5years:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/meanbull-5-years-bg.gif', matrixmom:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/matrix-mom-bg.gif', paladin:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/paladin-bg.gif'};
     const previewImage = item.image_url || (item.category === 'name_customization' && gifMap[item.metadata?.effect]);
     return `
       <div class="shop-card ${item.active===false?'inactive':''}">
@@ -13570,7 +13593,7 @@ function renderSettings(){
             const item = state.shopItems?.find(i => i.id === p.item_id);
             const isActive = activeId === p.item_id;
             const effect = item?.metadata?.effect || '';
-            const gifMap = {flame:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/flame-bg.gif', star:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/star-bg.gif', shadow:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/shadow-bg.gif', techno:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/shadow-bg.gif', anime:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/anime-headphones.gif', lightning:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/lightning.gif', gofast:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/go-fast-bg.gif', conecold:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/cone-cold-bg.gif', elune:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/elune-bg.gif', barrenssunset:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/barrens-sunset-bg.gif', hockeynerds:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/hockey-nerds-bg.gif', cozmicdustv:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/cozmic-dust-bg.gif', newworld:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/new-world-bg.gif', warlockdemise:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/warlocks-demise-bg.gif', lifedrain:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/life-drain-bg.gif', meanbull5years:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/meanbull-5-years-bg.gif', matrixmom:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/matrix-mom-bg.gif'};
+            const gifMap = {flame:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/flame-bg.gif', star:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/star-bg.gif', shadow:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/shadow-bg.gif', techno:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/shadow-bg.gif', anime:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/anime-headphones.gif', lightning:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/lightning.gif', gofast:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/go-fast-bg.gif', conecold:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/cone-cold-bg.gif', elune:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/elune-bg.gif', barrenssunset:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/barrens-sunset-bg.gif', hockeynerds:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/hockey-nerds-bg.gif', cozmicdustv:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/cozmic-dust-bg.gif', newworld:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/new-world-bg.gif', warlockdemise:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/warlocks-demise-bg.gif', lifedrain:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/life-drain-bg.gif', meanbull5years:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/meanbull-5-years-bg.gif', matrixmom:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/matrix-mom-bg.gif', paladin:'https://pub-c007a47b411542fea8ac2a3ba759194e.r2.dev/paladin-bg.gif'};
             const gifFile = gifMap[effect] || '';
             return `
             <button class="btn ${isActive ? 'primary' : 'secondary'}" type="button" data-set-name-custom="${p.item_id}" style="padding:12px; text-align:left; display:flex; gap:12px; align-items:flex-start;">
