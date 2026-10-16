@@ -991,6 +991,20 @@
       rock.scale.set(1.3, 0.8, 1); rock.castShadow = true; lair.add(rock);
       const mouth = new THREE.Mesh(new THREE.CircleGeometry(0.05, 16, 0, Math.PI), new THREE.MeshBasicMaterial({ color: 0x050302 }));
       mouth.position.set(0, 0.001, 0.105); mouth.scale.y = 1.2; lair.add(mouth);
+      // Onyxia's cave (a WoW cave mouth), two copies back to back so it reads as a cave from every side of the table;
+      // the little rock above stays only if the model can't load
+      const CAVE = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/Game%20Pieces/Onyxia%20Cave/8zul_cavemicro01.gltf';
+      this.loadGltf(CAVE).then(g => {
+        const box = new THREE.Box3().setFromObject(g.scene), size = box.getSize(new THREE.Vector3());
+        const s = 0.3 / Math.max(size.x, size.z);   // about the old rock's footprint
+        [0, Math.PI].forEach((ry, i) => {
+          const m = i ? g.scene.clone(true) : g.scene; this.prepModel(m);
+          const holder = new THREE.Group(); holder.rotation.y = ry; holder.add(m);
+          m.scale.setScalar(s); m.position.set(-(box.min.x + box.max.x) / 2 * s, -box.min.y * s - 0.01, -(box.min.z + box.max.z) / 2 * s);
+          lair.add(holder);
+        });
+        rock.visible = false; mouth.visible = false;
+      }).catch(err => console.warn('Onyxia cave model failed to load:', err));
       const sc = document.createElement('canvas'); sc.width = sc.height = 64; const sx = sc.getContext('2d');
       const sg = sx.createRadialGradient(32, 32, 2, 32, 32, 30); sg.addColorStop(0, 'rgba(70,64,60,0.7)'); sg.addColorStop(1, 'rgba(70,64,60,0)'); sx.fillStyle = sg; sx.fillRect(0, 0, 64, 64);
       const smokeTex = new THREE.CanvasTexture(sc);
@@ -1001,6 +1015,7 @@
       this.egg(lair, () => {
         if(busy) return; busy = true; setTimeout(() => { busy = false; }, 4000);
         this.eggSay('onyxia', 'MANY WHELPS! HANDLE IT!');
+        try{ const vo = new Audio('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/Game%20Pieces/Onyxia%20Cave/Many%20Welps.mp3'); vo.volume = 0.8; vo.play().catch(() => {}); }catch(e){}
         whelpGltf().then(g => {
           const box = new THREE.Box3().setFromObject(g.scene), ws = 0.07 / Math.max(box.max.x - box.min.x, box.max.y - box.min.y, box.max.z - box.min.z);
           const fly = g.animations.find(c => c.name === 'Fly') || g.animations[0];
