@@ -100,12 +100,12 @@ async function mutate(fn: (s: any, g: Game) => any, opts: { create?: () => any, 
     // everyone who has appeared in the war gets their pet (real players: their site pet; bots: their test pet);
     // bots then station theirs (which logs a move, so this happens before the new entries are collected)
     for(const p of Object.values(s.players) as any[]){
-      // real players with no pet yet are looked up again every 10 minutes (a pet can hatch mid-war)
-      const stale = !p.bot && p.pet === null && isUuid(p.id) && !(p.petCheckedAt > Date.now() - 10 * 60 * 1000);
+      // real players' pets are looked up again every 10 minutes: a new pet joins, a levelled-up one gets stronger
+      const stale = !p.bot && isUuid(p.id) && !(p.petCheckedAt > Date.now() - 10 * 60 * 1000);
       if(p.pet !== undefined && !stale) continue;
       if(p.bot){ p.pet = (s.botPets || {})[p.id] || null; continue; }
       const pet = isUuid(p.id) ? await petOf(p.id) : null;
-      if(pet !== undefined){ p.pet = pet; p.petCheckedAt = Date.now(); }
+      if(pet !== undefined){ p.pet = pet ? Object.assign(p.pet || {}, pet) : null; p.petCheckedAt = Date.now(); }
     }
     stationBotPets(s);
     const entries = s.log; delete s.log;
