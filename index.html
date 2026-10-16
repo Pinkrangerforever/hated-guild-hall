@@ -6402,7 +6402,7 @@ function buildFishGaugeMarkup(zoneStart, zoneEnd){
    This simulation must stay identical to the one in resolve_sparkle_event (same constants, same
    order of operations, Park-Miller RNG, 60 ticks per second) - the server replays your inputs. */
 // Bump together with sim_v in claim_sparkle_gold whenever the physics below change
-const FISH_SIM_VERSION = 3;
+const FISH_SIM_VERSION = 4;
 const FISH_BEHAVIOR = {
   mixed:   { chance: 0.025, range: 0.55, bias: 0,     pull: 0.012, damp: 0.9 },
   dart:    { chance: 0.035, range: 0.55, bias: 0,     pull: 0.011, damp: 0.88 },
@@ -6429,14 +6429,15 @@ function makeFishSim(params){
     s.fpos = s.fpos + s.fv;
     if(s.fpos < 0.03){ s.fpos = 0.03; s.fv = 0; }
     if(s.fpos > 0.97){ s.fpos = 0.97; s.fv = 0; }
-    // gentle push / gravity, water drag, and a top speed so the bar glides instead of rocketing
-    s.bv = s.bv + (hold ? 0.0016 : -0.0016);
-    s.bv = s.bv * 0.88;
-    if(s.bv > 0.011) s.bv = 0.011;
-    if(s.bv < -0.011) s.bv = -0.011;
+    // a gentle push / gravity, plenty of momentum, a modest top speed and a soft bounce at the ends, so the bar glides
+    // and has to be feathered (must match resolve_sparkle_event: 20261015001000_fishing_gliding_bar.sql)
+    s.bv = s.bv + (hold ? 0.00075 : -0.0007);
+    s.bv = s.bv * 0.935;
+    if(s.bv > 0.008) s.bv = 0.008;
+    if(s.bv < -0.008) s.bv = -0.008;
     s.bpos = s.bpos + s.bv;
-    if(s.bpos < 0){ s.bpos = 0; s.bv = 0; }
-    if(s.bpos > 1 - s.barH){ s.bpos = 1 - s.barH; s.bv = 0; }
+    if(s.bpos < 0){ s.bpos = 0; s.bv = -s.bv * 0.35; }
+    if(s.bpos > 1 - s.barH){ s.bpos = 1 - s.barH; s.bv = -s.bv * 0.35; }
     s.inside = s.fpos >= s.bpos && s.fpos <= s.bpos + s.barH;
     if(s.inside) s.prog = s.prog + 0.0032; else { s.prog = s.prog - 0.0035; s.perfect = false; }
     if(s.prog >= 1){ s.over = true; s.won = true; }
