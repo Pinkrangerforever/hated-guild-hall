@@ -4,3 +4,35 @@
 /*.js
   ! Content-Type
   Content-Type: application/javascript; charset=utf-8
+  ! Cache-Control
+  Cache-Control: no-cache
+/*.gltf
+  ! Content-Type
+  Content-Type: model/gltf+json
+  ! Cache-Control
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+/*.bin
+  ! Content-Type
+  Content-Type: application/octet-stream
+  ! Cache-Control
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+/*.png
+  ! Content-Type
+  Content-Type: image/png
+  ! Cache-Control
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+/*.webp
+  ! Content-Type
+  Content-Type: image/webp
+  ! Cache-Control
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+/*.jpg
+  ! Content-Type
+  Content-Type: image/jpeg
+  ! Cache-Control
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+/*.gif
+  ! Content-Type
+  Content-Type: image/gif
+  ! Cache-Control
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
