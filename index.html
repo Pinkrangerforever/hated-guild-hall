@@ -4242,6 +4242,34 @@
   .fsh-help b{ color:var(--hh-gold-bright, #f0d27a); }
   .fsh-track .fish-jump{ left:50%; top:20%; width:90px; height:60px; }
 </style>
+<style>
+  /* guild bank page */
+  .gb-import{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:0 0 14px; }
+  .gb-hint{ font-size:12px; opacity:.75; } .gb-hint code{ font-size:11px; }
+  .gb-grid{ display:grid; grid-template-columns:minmax(0, 1.6fr) minmax(280px, 1fr); gap:16px; align-items:start; }
+  @media (max-width: 900px){ .gb-grid{ grid-template-columns:1fr; } }
+  .gb-side{ display:flex; flex-direction:column; gap:16px; }
+  .gb-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .gb-head h3{ margin:0; }
+  .gb-money{ font-size:18px; font-weight:700; }
+  .gb-g{ color:#ffd36a; } .gb-s{ color:#d8d8d8; } .gb-c{ color:#d08a4a; }
+  .gb-tabs{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .gb-tab{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); color:inherit; border-radius:6px; padding:5px 10px; cursor:pointer; font:inherit; font-size:13px; }
+  .gb-tab small{ opacity:.6; margin-left:4px; } .gb-tab.on{ border-color:#d6a940; background:rgba(214,169,64,.18); }
+  .gb-items{ display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:6px; }
+  .gb-item{ display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:6px; background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); text-decoration:none; min-width:0; }
+  .gb-item:hover{ border-color:rgba(214,169,64,.6); }
+  .gb-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+  .gb-count{ font-weight:700; font-size:12px; opacity:.85; }
+  .gb-periods{ display:flex; gap:4px; } .gb-periods button{ background:none; border:1px solid rgba(255,255,255,.15); color:inherit; border-radius:12px; padding:3px 9px; font:inherit; font-size:12px; cursor:pointer; }
+  .gb-periods button.on{ border-color:#d6a940; color:#ffd36a; }
+  .gb-board, .gb-recent{ list-style:none; margin:0; padding:0; }
+  .gb-board li, .gb-recent li{ display:flex; align-items:center; gap:10px; padding:7px 4px; border-bottom:1px solid rgba(255,255,255,.07); }
+  .gb-pos{ width:26px; text-align:center; } .gb-rank{ opacity:.6; font-size:13px; }
+  .gb-who{ flex:1; font-weight:600; } .gb-amt{ white-space:nowrap; font-size:13px; } .gb-when{ font-size:12px; opacity:.6; }
+</style>
+<script>const whTooltips = { colorLinks: false, iconizeLinks: true, renameLinks: false, iconSize: 'small' };</script>
+<script src="https://wow.zamimg.com/js/tooltips.js" async></script>
 </head>
 <body>
 <!-- FOOTPRINT TRAIL SYSTEM -->
@@ -12593,14 +12621,178 @@ function renderGallery(){
   `;
 }
 
-/* ---------------- guild bank tab (placeholder) ---------------- */
+/* ---------------- guild bank tab ---------------- */
+// The Hated Companion addon (addons/HatedCompanion) records the guild bank and its money log in its SavedVariables
+// file. The Raid Leader imports that file here: the bank's contents replace the last snapshot, and money
+// transactions the site hasn't seen yet are added to the log that feeds the donation leaderboard.
+const gb = { loaded: false, loading: false, snap: null, log: [], period: 'week', tab: 0 };
+async function loadGuildBank(){
+  if(gb.loading) return; gb.loading = true;
+  try{
+    const [s, l] = await Promise.all([
+      sb.from('guild_bank_snapshot').select('*').eq('id', 1).maybeSingle(),
+      sb.from('guild_bank_money_log').select('kind, character_name, amount, happened_at').order('happened_at', { ascending: false }).limit(2000)
+    ]);
+    gb.snap = s.data || null; gb.log = l.data || [];
+  }catch(e){ console.error('guild bank load failed', e); }
+  gb.loaded = true; gb.loading = false;
+  if(state.tab === 'guildbank') render();
+}
+const gbGold = copper => {
+  copper = Math.max(0, Math.round(copper || 0));
+  const g = Math.floor(copper / 10000), s = Math.floor(copper / 100) % 100, c = copper % 100;
+  return `${g ? `<span class="gb-g">${g.toLocaleString()}g</span> ` : ''}${g || s ? `<span class="gb-s">${s}s</span> ` : ''}<span class="gb-c">${c}c</span>`;
+};
+const GB_QUALITY = ['#9d9d9d', '#ffffff', '#1eff00', '#0070dd', '#a335ee', '#ff8000', '#e6cc80', '#00ccff'];
+
 function renderGuildBank(){
+  if(!gb.loaded && !gb.loading) loadGuildBank();
+  setTimeout(() => { if(window.$WowheadPower && $WowheadPower.refreshLinks) $WowheadPower.refreshLinks(); }, 60);   // item icons + tooltips
+  const isRL = !!(state.profile && state.profile.protected);
+  const s = gb.snap, tabs = (s && s.tabs) || [];
+  const cut = { week: Date.now() - 7 * 864e5, month: Date.now() - 30 * 864e5, all: 0 }[gb.period];
+  const deposits = gb.log.filter(e => e.kind === 'deposit' && e.character_name);
+  const board = {};
+  deposits.filter(e => new Date(e.happened_at).getTime() >= cut).forEach(e => { board[e.character_name] = (board[e.character_name] || 0) + Number(e.amount || 0); });
+  const ranked = Object.entries(board).sort((a, b) => b[1] - a[1]);
+  const tab = tabs[Math.min(gb.tab, Math.max(0, tabs.length - 1))];
+  const medal = i => ['🥇', '🥈', '🥉'][i] || `<span class="gb-rank">${i + 1}</span>`;
   return `
-    ${pageHeader('Guild Bank', 'Coming Soon', "Guild bank inventory and donation tracking  this page is a placeholder for now.")}
-    <div class="panel style-glass">
-      ${emptyState("This page isn't built out yet. Let's design what you want to track here  inventory, donations, or both  and I'll build it next.")}
-    </div>
+    ${pageHeader('Guild Bank', s ? `Last scanned ${new Date(s.scanned_at).toLocaleString()}${s.scanned_by ? ' by ' + esc(s.scanned_by) : ''}` : 'No scan yet', "What's in the guild bank and who's been donating, from the Hated Companion addon.")}
+    ${isRL ? `<div class="gb-import">
+      <button class="btn primary" type="button" onclick="gbImport()">⤓ Import from Hated Companion</button>
+      <button class="btn secondary" type="button" onclick="gbImport(true)" title="Pick the saved file again">Choose file…</button>
+      <a class="btn secondary" href="addons/HatedCompanion.zip" download>⬇ Download the addon</a>
+      <span class="gb-hint">Open the guild bank in game, then /reload or log out. The file is <code>WTF\\Account\\&lt;ACCOUNT&gt;\\SavedVariables\\HatedCompanion.lua</code></span>
+    </div>` : ''}
+    ${!gb.loaded ? `<div class="panel style-glass">${emptyState('Loading the guild bank…')}</div>` : `
+    <div class="gb-grid">
+      <div class="panel style-glass gb-bank">
+        <div class="gb-head"><h3>In the bank</h3><div class="gb-money">${s ? gbGold(s.money) : '—'}</div></div>
+        ${!tabs.length ? emptyState(isRL ? 'Nothing imported yet: press Import above.' : 'Nothing has been imported yet.') : `
+        <div class="gb-tabs">${tabs.map((t, i) => `<button type="button" class="gb-tab ${t === tab ? 'on' : ''}" onclick="gb.tab=${i};render()">${esc(t.name || 'Tab ' + t.index)} <small>${(t.items || []).length}</small></button>`).join('')}</div>
+        <div class="gb-items">${(tab.items || []).slice().sort((a, b) => (b.quality || 0) - (a.quality || 0) || String(a.name).localeCompare(String(b.name))).map(it =>
+          `<a class="gb-item" href="https://www.wowhead.com/classic/item=${Number(it.itemId) || 0}" target="_blank" rel="noopener" data-wowhead="item=${Number(it.itemId) || 0}&domain=classic">
+            <span class="gb-name" style="color:${GB_QUALITY[it.quality] || '#ffffff'}">${esc(it.name || 'Item ' + it.itemId)}</span>${(it.count || 1) > 1 ? `<span class="gb-count">×${Number(it.count)}</span>` : ''}</a>`).join('') || emptyState('This tab is empty.')}</div>`}
+      </div>
+      <div class="gb-side">
+        <div class="panel style-glass">
+          <div class="gb-head"><h3>Donation leaderboard</h3>
+            <div class="gb-periods">${[['week', 'This week'], ['month', 'This month'], ['all', 'All time']].map(([k, l]) => `<button type="button" class="${gb.period === k ? 'on' : ''}" onclick="gb.period='${k}';render()">${l}</button>`).join('')}</div></div>
+          ${ranked.length ? `<ol class="gb-board">${ranked.slice(0, 25).map(([n, c], i) => `<li><span class="gb-pos">${medal(i)}</span><span class="gb-who">${esc(n)}</span><span class="gb-amt">${gbGold(c)}</span></li>`).join('')}</ol>`
+            : emptyState('No gold donations recorded for this period yet.')}
+        </div>
+        <div class="panel style-glass">
+          <div class="gb-head"><h3>Recent donations</h3></div>
+          ${deposits.length ? `<ul class="gb-recent">${deposits.slice(0, 15).map(e => `<li><span class="gb-who">${esc(e.character_name)}</span><span class="gb-amt">${gbGold(e.amount)}</span><span class="gb-when">${new Date(e.happened_at).toLocaleDateString()}</span></li>`).join('')}</ul>` : emptyState('None yet.')}
+        </div>
+      </div>
+    </div>`}
   `;
+}
+
+// ----- reading the addon's SavedVariables file (a Lua table) -----
+function parseLuaSaved(text){
+  let i = 0;
+  const ws = () => { for(;;){ while(i < text.length && /\s/.test(text[i])) i++; if(text.startsWith('--', i)){ while(i < text.length && text[i] !== '\n') i++; } else break; } };
+  const str = () => {
+    const q = text[i++]; let out = '';
+    while(i < text.length && text[i] !== q){
+      if(text[i] === '\\'){ const n = text[i + 1]; i += 2;
+        if(n === 'n') out += '\n'; else if(n === 't') out += '\t'; else if(n === 'r') out += '\r';
+        else if(/\d/.test(n)){ let d = n; while(d.length < 3 && /\d/.test(text[i])) d += text[i++]; out += String.fromCharCode(+d); }
+        else out += n;
+      } else out += text[i++];
+    }
+    i++; return out;
+  };
+  const value = () => {
+    ws();
+    const c = text[i];
+    if(c === '{') return table();
+    if(c === '"' || c === "'") return str();
+    const m = /^(true|false|nil|-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)/.exec(text.slice(i, i + 40));
+    if(!m) throw new Error('Unexpected "' + text.slice(i, i + 20) + '"');
+    i += m[0].length;
+    return m[0] === 'true' ? true : m[0] === 'false' ? false : m[0] === 'nil' ? null : Number(m[0]);
+  };
+  const table = () => {
+    i++; const obj = {}, arr = []; let isArr = true;
+    for(;;){
+      ws();
+      if(text[i] === '}'){ i++; break; }
+      let key = null;
+      if(text[i] === '['){ i++; key = value(); ws(); i++; ws(); i++; }                      // ["key"] = / [1] =
+      else { const m = /^[A-Za-z_][A-Za-z0-9_]*\s*=/.exec(text.slice(i, i + 80)); if(m){ key = m[0].replace(/\s*=$/, ''); i += m[0].length; } }
+      const v = value();
+      if(key === null) arr.push(v); else { obj[key] = v; isArr = false; }
+      ws(); if(text[i] === ',' || text[i] === ';') i++;
+    }
+    if(isArr) return arr;
+    // numbered keys from Lua arrays ([1] = ..., [2] = ...) come back as a list
+    const keys = Object.keys(obj);
+    if(keys.length && keys.every((k, n) => String(n + 1) === k)) return keys.map(k => obj[k]);
+    Object.assign(obj, arr.reduce((a, v, n) => (a[n + 1] = v, a), {}));
+    return obj;
+  };
+  const out = {};
+  for(;;){
+    ws(); if(i >= text.length) break;
+    const m = /^([A-Za-z_][A-Za-z0-9_]*)\s*=/.exec(text.slice(i, i + 80));
+    if(!m) throw new Error('This does not look like a saved variables file');
+    i += m[0].length; out[m[1]] = value();
+  }
+  return out;
+}
+
+// ----- remembering the file (Chrome / Edge): the file handle lives in IndexedDB; other browsers pick each time -----
+const gbIdb = (mode, fn) => new Promise((res, rej) => {
+  const open = indexedDB.open('hated-companion', 1);
+  open.onupgradeneeded = () => open.result.createObjectStore('files');
+  open.onerror = () => rej(open.error);
+  open.onsuccess = () => { const tx = open.result.transaction('files', mode), st = tx.objectStore('files'), r = fn(st); tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error); };
+});
+async function gbPickFile(again){
+  if(window.showOpenFilePicker){
+    let handle = null;
+    if(!again){ try{ handle = await gbIdb('readonly', st => st.get('saved')); }catch(e){} }
+    if(handle){
+      // the browser asks once per visit whether the site may read the remembered file
+      let perm = await handle.queryPermission({ mode: 'read' });
+      if(perm !== 'granted') perm = await handle.requestPermission({ mode: 'read' });
+      if(perm === 'granted'){ try{ return await handle.getFile(); }catch(e){ /* moved or deleted: pick again */ } }
+    }
+    const [h] = await window.showOpenFilePicker({ types: [{ description: 'Hated Companion saved data', accept: { 'text/plain': ['.lua'] } }], multiple: false });
+    try{ await gbIdb('readwrite', st => st.put(h, 'saved')); }catch(e){}
+    return h.getFile();
+  }
+  return new Promise(res => {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.lua';
+    inp.onchange = () => res(inp.files[0] || null); inp.click();
+  });
+}
+async function gbImport(again){
+  let file;
+  try{ file = await gbPickFile(again); }catch(e){ if(e && e.name === 'AbortError') return; showToast('Could not open the file: ' + e.message, true); return; }
+  if(!file) return;
+  let db;
+  try{ db = parseLuaSaved(await file.text()).HatedCompanionDB; }catch(e){ showToast('That file could not be read: ' + e.message, true); return; }
+  const guilds = db && db.guilds ? Object.entries(db.guilds) : [];
+  if(!guilds.length){ showToast('No guild bank data in that file yet: open the guild bank in game, then /reload.', true); return; }
+  // the guild with the newest scan (an alt in another guild shouldn't win)
+  const [gname, g] = guilds.sort((a, b) => ((b[1].bank || {}).scannedAt || 0) - ((a[1].bank || {}).scannedAt || 0))[0];
+  const bank = g.bank || null, log = Array.isArray(g.moneyLog) ? g.moneyLog : Object.values(g.moneyLog || {});
+  if(bank && !Array.isArray(bank.tabs)) bank.tabs = Object.values(bank.tabs || {});
+  if(bank) bank.tabs.forEach(t => { if(!Array.isArray(t.items)) t.items = Object.values(t.items || {}); });
+  const items = bank ? bank.tabs.reduce((n, t) => n + t.items.length, 0) : 0;
+  const deposits = log.filter(e => e.type === 'deposit').length;
+  const when = bank && bank.scannedAt ? new Date(bank.scannedAt * 1000).toLocaleString() : 'unknown';
+  if(!confirm(`Import the guild bank for ${gname}?\n\nScanned ${when}${bank && bank.scannedBy ? ' by ' + bank.scannedBy : ''}\n${bank ? bank.tabs.length : 0} tabs, ${items} item stacks\n${log.length} money transactions in the file (${deposits} deposits); only ones the site hasn't seen are added.`)) return;
+  const { data, error } = await sb.rpc('import_guild_bank', { p_bank: bank, p_log: log });
+  if(error){ showToast('Import failed: ' + error.message, true); return; }
+  const gold = Math.floor((data.new_deposit_copper || 0) / 10000);
+  showToast(`Guild bank updated: ${data.items} item stacks, ${data.new_deposits} new donation${data.new_deposits === 1 ? '' : 's'}${gold ? ` (${gold.toLocaleString()}g)` : ''}.`);
+  gb.loaded = false; loadGuildBank();
 }
 
 function renderRaidLogs(){
