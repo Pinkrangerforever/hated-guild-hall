@@ -882,9 +882,11 @@
       // --- a rat that now and then scurries along the table's edge between two candles
       this.loadGltf(M.rat).then(g => {
         this.ratProto = { scene: this.prepModel(g.scene), clips: g.animations };
-        const box = new THREE.Box3().setFromObject(g.scene); this.ratScale = 0.42 / (box.max.x - box.min.x); this.ratLift = -box.min.y;
-        const next = first => setTimeout(() => { this.spawnRat(); next(); }, first ? 25000 + Math.random() * 30000 : 70000 + Math.random() * 90000);
+        const box = new THREE.Box3().setFromObject(g.scene); this.ratScale = 0.6 / (box.max.x - box.min.x); this.ratLift = -box.min.y;
+        // the first one 10-25 s after you come in, then one every 45-90 s
+        const next = first => setTimeout(() => { this.spawnRat(); next(); }, first ? 10000 + Math.random() * 15000 : 45000 + Math.random() * 45000);
         next(true);
+        window.spawnRat = () => { this.spawnRat(); return this.ratLive ? 'a rat is out' : 'no rat (one is already running?)'; };   // testing: summon one now
       }).catch(err => console.warn('rat failed to load:', err));
       // --- Ragnaros, half sunk in a little pool of lava on the floor by the table
       Promise.all([this.loadGltf(M.rag), this.loadGltf(M.lava || 'models/war/lava-pool.gltf').catch(() => null)]).then(([g, lp]) => this.placeRagnaros(g, lp)).catch(err => console.warn('ragnaros failed to load:', err));
@@ -996,11 +998,12 @@
       const CAVE = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/Game%20Pieces/Onyxia%20Cave/8zul_cavemicro01.gltf';
       this.loadGltf(CAVE).then(g => {
         const box = new THREE.Box3().setFromObject(g.scene), size = box.getSize(new THREE.Vector3());
-        const s = 0.3 / Math.max(size.x, size.z);   // about the old rock's footprint
+        const s = 0.075 / Math.max(size.x, size.z);   // small: a quarter of the old rock's footprint
+        // its mouth opens toward +x: each copy's back sits on the lair's centre, mouths facing out both ways
         [0, Math.PI].forEach((ry, i) => {
           const m = i ? g.scene.clone(true) : g.scene; this.prepModel(m);
           const holder = new THREE.Group(); holder.rotation.y = ry; holder.add(m);
-          m.scale.setScalar(s); m.position.set(-(box.min.x + box.max.x) / 2 * s, -box.min.y * s - 0.01, -(box.min.z + box.max.z) / 2 * s);
+          m.scale.setScalar(s); m.position.set(-box.min.x * s, -box.min.y * s - 0.003, -(box.min.z + box.max.z) / 2 * s);
           lair.add(holder);
         });
         rock.visible = false; mouth.visible = false;
