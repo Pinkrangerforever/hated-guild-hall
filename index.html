@@ -4284,6 +4284,7 @@
     box-shadow:inset 0 1px 1px rgba(255,255,255,.12), 0 1px 2px rgba(0,0,0,.7); }
   .vault-who{ flex:1; min-width:0; }
   .vault-who .comp-slot{ min-height:0 !important; height:22px !important; }
+  .vault-alts{ font-size:10px; color:#8fa4b6; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .vault-name{ font:700 13px Georgia, serif; color:#e3ebf1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 0 #000; }
   .vault-bar{ height:5px; margin-top:5px; border-radius:3px; background:#0a0d11; box-shadow:inset 0 1px 2px rgba(0,0,0,.8); overflow:hidden; }
   .vault-bar i{ display:block; height:100%; border-radius:3px; background:linear-gradient(90deg, #7a560f, #f0c95a 60%, #fff0b0 80%, #f0c95a), #f0c95a;
@@ -4300,6 +4301,10 @@
   .vault-more span{ transition:transform .15s; } .vault-more:hover{ border-color:#8fc0e6; color:#fff; } .vault-more:hover span{ transform:translateX(3px); }
   @media (prefers-reduced-motion: reduce){ .vault-door, .vault-bar i{ animation:none; } }
   /* guild bank page */
+  .gb-alts{ display:block; font-size:11px; font-weight:400; opacity:.65; }
+  .gb-link-row{ display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.07); }
+  .gb-link-row .gb-who{ flex:1; min-width:0; } .gb-link-row select{ max-width:150px; }
+  .gb-linked summary{ cursor:pointer; margin-top:8px; font-size:13px; opacity:.85; } .gb-arrow{ opacity:.5; } .gb-member{ flex:1; font-weight:600; }
   .gb-import{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:0 0 14px; }
   .gb-hint{ font-size:12px; opacity:.75; } .gb-hint code{ font-size:11px; }
   .gb-grid{ display:grid; grid-template-columns:minmax(0, 1.6fr) minmax(280px, 1fr); gap:16px; align-items:start; }
@@ -12298,17 +12303,12 @@ function renderDonationLeaderboard(){
   const head = `<div class="vault-head">${VAULT_DOOR}<div><div class="vault-title">Guild Vault</div><div class="vault-sub">Top donors</div></div></div>
     <div class="vault-periods" role="tablist">${Object.entries(P).map(([k, [l]]) => `<button type="button" role="tab" aria-selected="${gb.period === k}" class="${gb.period === k ? 'on' : ''}" onclick="gbSetPeriod('${k}')">${l}</button>`).join('')}</div>`;
   if(!gb.loaded) return `<div class="vault-widget"><div class="vault-studs top"></div>${head}<p class="vault-empty">Opening the vault…</p><div class="vault-studs bottom"></div></div>`;
-  const cut = { week: Date.now() - 7 * 864e5, month: Date.now() - 30 * 864e5, all: 0 }[gb.period];
-  const totals = {};
-  gb.log.filter(e => e.kind === 'deposit' && e.character_name && new Date(e.happened_at).getTime() >= cut)
-    .forEach(e => { totals[e.character_name] = (totals[e.character_name] || 0) + Number(e.amount || 0); });
-  const all = Object.entries(totals).sort((a, b) => b[1] - a[1]), ranked = all.slice(0, 10);
-  const top = ranked.length ? ranked[0][1] : 1, sum = all.reduce((s, x) => s + x[1], 0);
-  const byName = {}; Object.values(state.profilesById || {}).forEach(p => { if(p.character_name) byName[p.character_name.toLowerCase()] = p; });
+  const all = gbDonors(), ranked = all.slice(0, 10);
+  const top = ranked.length ? ranked[0].copper : 1, sum = all.reduce((s, x) => s + x.copper, 0);
   const money = c => { const g = Math.floor(c / 10000), s = Math.floor(c / 100) % 100;
     return `<span class="vc g"></span>${g.toLocaleString()}${s ? ` <span class="vc s"></span>${s}` : ''}`; };
-  const rows = ranked.map(([name, copper], i) => {
-    const prof = byName[name.toLowerCase()], c = prof ? getUserNameCustomization(prof.id) : {};
+  const rows = ranked.map((d, i) => {
+    const prof = d.profile, name = d.label, copper = d.copper, alts = gbAlts(d), c = prof ? getUserNameCustomization(prof.id) : {};
     const cls = [c.border, c.nameCustom].filter(Boolean).join(' ');
     const tier = ['gold', 'silver', 'bronze'][i] || '';
     return `<div class="vault-row ${tier}" ${prof ? `data-profile-id="${esc(prof.id)}" title="View profile"` : ''}>
@@ -12318,7 +12318,7 @@ function renderDonationLeaderboard(){
           <span style="position:relative; z-index:100;">${esc(name)}</span>
           ${c.nameplateIcon ? `<div class="comp-slot-nameplate-icon"><img src="${esc(c.nameplateIcon)}" alt="Icon"></div>` : ''}
         </div>` : `<div class="vault-name">${esc(name)}</div>`}
-        <div class="vault-bar"><i style="width:${Math.max(6, Math.round(copper / top * 100))}%"></i></div>
+        <div class="vault-alts">${Math.max(1, Math.round(copper / (sum || 1) * 100))}% of ${P[gb.period][1] === 'so far' ? 'all donations' : P[gb.period][1] + "'s donations"}${alts ? ' · ' + esc(alts) : ''}</div>
       </div>
       <span class="vault-amt">${money(copper)}</span>
     </div>`;
@@ -12776,16 +12776,18 @@ function renderGallery(){
 // The Hated Companion addon (addons/HatedCompanion) records the guild bank and its money log in its SavedVariables
 // file. The Raid Leader imports that file here: the bank's contents replace the last snapshot, and money
 // transactions the site hasn't seen yet are added to the log that feeds the donation leaderboard.
-const gb = { loaded: false, loading: false, snap: null, log: [], period: 'week', tab: 0 };
+const gb = { loaded: false, loading: false, snap: null, log: [], links: {}, period: 'week', tab: 0 };
 async function loadGuildBank(){
   if(gb.loading) return; gb.loading = true;
   if(/[?&]gbdemo/.test(location.search)){ const d = gbDemo(); gb.snap = d.snap; gb.log = d.log; gb.loaded = true; gb.loading = false; if(state.tab === 'guildbank') render(); return; }
   try{
-    const [s, l] = await Promise.all([
+    const [s, l, k] = await Promise.all([
       sb.from('guild_bank_snapshot').select('*').eq('id', 1).maybeSingle(),
-      sb.from('guild_bank_money_log').select('kind, character_name, amount, happened_at').order('happened_at', { ascending: false }).limit(2000)
+      sb.from('guild_bank_money_log').select('kind, character_name, amount, happened_at').order('happened_at', { ascending: false }).limit(2000),
+      sb.from('guild_character_links').select('character_name, profile_id')
     ]);
     gb.snap = s.data || null; gb.log = l.data || [];
+    gb.links = {}; (k.data || []).forEach(r => { gb.links[r.character_name] = r.profile_id; });
   }catch(e){ console.error('guild bank load failed', e); }
   gb.loaded = true; gb.loading = false;
   if(state.tab === 'guildbank' || state.tab === 'news') render();
@@ -12795,6 +12797,22 @@ const gbGold = copper => {
   const g = Math.floor(copper / 10000), s = Math.floor(copper / 100) % 100, c = copper % 100;
   return `${g ? `<span class="gb-g">${g.toLocaleString()}g</span> ` : ''}${g || s ? `<span class="gb-s">${s}s</span> ` : ''}<span class="gb-c">${c}c</span>`;
 };
+// Donations in the chosen period, grouped: a member's linked characters add up under the member; any character not
+// linked to a member stands on its own. [{ profile, label, names: [character names], copper }] biggest first.
+function gbDonors(){
+  const cut = { week: Date.now() - 7 * 864e5, month: Date.now() - 30 * 864e5, all: 0 }[gb.period];
+  const groups = {};
+  gb.log.filter(e => e.kind === 'deposit' && e.character_name && new Date(e.happened_at).getTime() >= cut).forEach(e => {
+    const pid = (gb.links || {})[e.character_name.toLowerCase()], prof = pid && state.profilesById ? state.profilesById[pid] : null;
+    const key = prof ? 'p:' + prof.id : 'c:' + e.character_name.toLowerCase();
+    const g = groups[key] = groups[key] || { profile: prof, label: prof ? (prof.character_name || e.character_name) : e.character_name, names: [], copper: 0 };
+    if(!g.names.includes(e.character_name)) g.names.push(e.character_name);
+    g.copper += Number(e.amount || 0);
+  });
+  return Object.values(groups).sort((a, b) => b.copper - a.copper);
+}
+// the characters a member donated with, when they differ from the name shown
+const gbAlts = d => { const a = d.names.filter(n => n.toLowerCase() !== String(d.label).toLowerCase()); return a.length ? 'as ' + a.join(', ') : ''; };
 const GB_QUALITY = ['#9d9d9d', '#ffffff', '#1eff00', '#0070dd', '#a335ee', '#ff8000', '#e6cc80', '#00ccff'];
 // The bank tab as WoW lays it out: 98 slots, 14 across x 7 down. WoW numbers them in 7 columns of 14: each column is
 // two slot-columns, 7 slots down the left one then 7 down the right one.
@@ -12900,9 +12918,7 @@ function renderGuildBank(){
   const s = gb.snap, tabs = (s && s.tabs) || [];
   const cut = { week: Date.now() - 7 * 864e5, month: Date.now() - 30 * 864e5, all: 0 }[gb.period];
   const deposits = gb.log.filter(e => e.kind === 'deposit' && e.character_name);
-  const board = {};
-  deposits.filter(e => new Date(e.happened_at).getTime() >= cut).forEach(e => { board[e.character_name] = (board[e.character_name] || 0) + Number(e.amount || 0); });
-  const ranked = Object.entries(board).sort((a, b) => b[1] - a[1]);
+  const ranked = gbDonors();
   const tab = tabs[Math.min(gb.tab, Math.max(0, tabs.length - 1))];
   const medal = i => ['🥇', '🥈', '🥉'][i] || `<span class="gb-rank">${i + 1}</span>`;
   return `
@@ -12925,9 +12941,10 @@ function renderGuildBank(){
         <div class="panel style-glass">
           <div class="gb-head"><h3>Donation leaderboard</h3>
             <div class="gb-periods">${[['week', 'This week'], ['month', 'This month'], ['all', 'All time']].map(([k, l]) => `<button type="button" class="${gb.period === k ? 'on' : ''}" onclick="gbSetPeriod('${k}')">${l}</button>`).join('')}</div></div>
-          ${ranked.length ? `<ol class="gb-board">${ranked.slice(0, 25).map(([n, c], i) => `<li><span class="gb-pos">${medal(i)}</span><span class="gb-who">${esc(n)}</span><span class="gb-amt">${gbGold(c)}</span></li>`).join('')}</ol>`
+          ${ranked.length ? `<ol class="gb-board">${ranked.slice(0, 25).map((d, i) => `<li ${d.profile ? `data-profile-id="${esc(d.profile.id)}" title="View profile" style="cursor:pointer"` : ''}><span class="gb-pos">${medal(i)}</span><span class="gb-who">${esc(d.label)}${gbAlts(d) ? `<small class="gb-alts">${esc(gbAlts(d))}</small>` : ''}</span><span class="gb-amt">${gbGold(d.copper)}</span></li>`).join('')}</ol>`
             : emptyState('No gold donations recorded for this period yet.')}
         </div>
+        ${isRL ? gbLinkPanel(deposits) : ''}
         <div class="panel style-glass">
           <div class="gb-head"><h3>Recent donations</h3></div>
           ${deposits.length ? `<ul class="gb-recent">${deposits.slice(0, 15).map(e => `<li><span class="gb-who">${esc(e.character_name)}</span><span class="gb-amt">${gbGold(e.amount)}</span><span class="gb-when">${new Date(e.happened_at).toLocaleDateString()}</span></li>`).join('')}</ul>` : emptyState('None yet.')}
@@ -12935,6 +12952,39 @@ function renderGuildBank(){
       </div>
     </div>`}
   `;
+}
+
+// Raid Leader: link donors' in-game characters to website members (the leaderboards then add alts up per member)
+function gbLinkPanel(deposits){
+  const names = [...new Set(deposits.map(e => e.character_name))].sort((a, b) => a.localeCompare(b));
+  const unlinked = names.filter(n => !gb.links[n.toLowerCase()]);
+  const linked = Object.entries(gb.links).sort((a, b) => a[0].localeCompare(b[0]));
+  const members = Object.values(state.profilesById || {}).filter(p => p.character_name).sort((a, b) => a.character_name.localeCompare(b.character_name));
+  const opts = guess => `<option value="">Choose a member…</option>` + members.map(p => `<option value="${esc(p.id)}" ${guess && p.id === guess ? 'selected' : ''}>${esc(p.character_name)}</option>`).join('');
+  const guessFor = n => { const m = members.find(p => p.character_name.toLowerCase() === n.toLowerCase()); return m ? m.id : ''; };
+  return `<div class="panel style-glass gb-links">
+    <div class="gb-head"><h3>Link characters</h3><span class="gb-hint">Raid Leader only</span></div>
+    <div class="gb-hint" style="margin-bottom:8px">Link donors' in-game characters to website members. A member's characters add up on the leaderboards under their site name.</div>
+    ${unlinked.length ? unlinked.map((n, i) => `<div class="gb-link-row"><span class="gb-who">${esc(n)}</span>
+      <select id="gbl-${i}">${opts(guessFor(n))}</select><button class="btn secondary" type="button" onclick="gbLink(${JSON.stringify(n).replace(/"/g, '&quot;')}, 'gbl-${i}')">Link</button></div>`).join('')
+      : '<div class="gb-hint">Every donor is linked.</div>'}
+    ${linked.length ? `<details class="gb-linked"><summary>Linked (${linked.length})</summary>${linked.map(([n, pid]) => {
+      const p = state.profilesById && state.profilesById[pid];
+      return `<div class="gb-link-row"><span class="gb-who">${esc(n)}</span><span class="gb-arrow">&rarr;</span><span class="gb-member">${esc(p ? p.character_name : 'unknown member')}</span>
+        <button class="btn secondary" type="button" onclick="gbUnlink(${JSON.stringify(n).replace(/"/g, '&quot;')})">Unlink</button></div>`; }).join('')}</details>` : ''}
+  </div>`;
+}
+async function gbLink(name, selectId){
+  const sel = document.getElementById(selectId), pid = sel && sel.value;
+  if(!pid){ showToast('Choose a member to link ' + name + ' to', true); return; }
+  const { error } = await sb.rpc('link_character', { p_character: name, p_profile: pid });
+  if(error){ showToast('Could not link: ' + error.message, true); return; }
+  gb.links[name.toLowerCase()] = pid; showToast(name + ' linked'); render();
+}
+async function gbUnlink(name){
+  const { error } = await sb.rpc('unlink_character', { p_character: name });
+  if(error){ showToast('Could not unlink: ' + error.message, true); return; }
+  delete gb.links[name.toLowerCase()]; showToast(name + ' unlinked'); render();
 }
 
 // ----- reading the addon's SavedVariables file (a Lua table) -----
@@ -13046,6 +13096,8 @@ async function gbImport(again){
 }
 // the page's code lives inside one closure; the buttons above call these from the global scope
 window.gbImport = gbImport;
+window.gbLink = gbLink;
+window.gbUnlink = gbUnlink;
 window.gbSetTab = i => { gb.tab = i; render(); };
 window.gbSetPeriod = k => { gb.period = k; render(); };
 window.gbOpenBank = () => { state.tab = 'guildbank'; state.modal = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
