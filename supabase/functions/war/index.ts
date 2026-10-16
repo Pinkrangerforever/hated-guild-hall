@@ -8,7 +8,7 @@
 //
 // The war clock runs on Pacific time: the game clock is hours since the war's Monday 00:00 PT (weekStart). Before
 // any action we "catch up": run every dawn (with the 11:59pm autopilot) that has passed and end the war at Sunday
-// 8pm. A pg_cron job also calls { action: 'tick' } every few minutes, so days turn even when nobody plays.
+// 8pm. A pg_cron job also calls { action: 'tick' } every 10 minutes, so days turn even when nobody plays.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { E, AI } from './game.js';
 
