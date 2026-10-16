@@ -1808,14 +1808,23 @@
       // stand in the doorway, then sweep down over the table
       this.cam = { target: new THREE.Vector3(0, 0.5, -2), dist: 17, polar: 1.32, az: 0.0 };
       this.applyCamera();
-      await this.tweenCam({ target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 }, 3200);
+      await this.tweenCam(this.homeView(), 3200);
+    }
+    // the resting view of the whole board; on a tall phone screen look down from higher up, so the map fills the
+    // width and as much of the height as a square map can (instead of a strip of table under a lot of room)
+    homeView(){
+      const portrait = (this.camera.aspect || 1.5) < 0.8;
+      return portrait ? { target: new THREE.Vector3(0, 0, 0.2), dist: 12.5, polar: 0.28, az: 0 } : { target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 };
     }
     focusZones(keys, ms, dist){
       const v = new THREE.Vector3(); keys.forEach(k => v.add(zoneWorld(k))); v.multiplyScalar(1 / keys.length);
       let spread = 0; keys.forEach(k => { spread = Math.max(spread, zoneWorld(k).distanceTo(v)); });
-      return this.tweenCam({ target: v, dist: dist || Math.max(3.2, spread * 2.6 + 2.6), polar: 0.78 }, ms || 900);
+      const d = dist || Math.max(3.2, spread * 2.6 + 2.6);
+      // a panel covering the bottom of the screen (phones): aim lower so the zones land in the visible top part
+      if(this.insetBottom) v.z += this.insetBottom * d * 0.55;
+      return this.tweenCam({ target: v, dist: d, polar: 0.78 }, ms || 900);
     }
-    overview(ms){ return this.tweenCam({ target: new THREE.Vector3(0, 0, 0.3), dist: 11.5, polar: 0.62, az: 0 }, ms || 900); }
+    overview(ms){ return this.tweenCam(this.homeView(), ms || 900); }
     continent(which){
       return this.tweenCam({ target: which === 'kalimdor' ? new THREE.Vector3(-PW * 0.25, 0, 0.1) : new THREE.Vector3(PW * 0.25, 0, 0.1), dist: 7.6, polar: 0.62, az: 0 }, 1000);
     }
@@ -2451,7 +2460,8 @@
         p.lab.style.transform = `translate(-50%,-100%) translate(${(v.x + 1) / 2 * w}px,${(1 - v.y) / 2 * h}px)`;
         p.lab.style.opacity = v.z < 1 ? '' : '0';
         const close = this.cam.dist < 13;
-        p.lab.style.fontSize = (close ? Math.max(10, Math.min(15, 120 / this.cam.dist)) : 9) + 'px';
+        const small = (this.camera.aspect || 1.5) < 0.8 ? 0.8 : 1;   // phones: smaller plates over the smaller map
+        p.lab.style.fontSize = Math.round((close ? Math.max(10, Math.min(15, 120 / this.cam.dist)) : 9) * small) + 'px';
       });
       (this.floats || []).forEach(f => {
         const t = (now - f.t0) / (1800 / this.speed);

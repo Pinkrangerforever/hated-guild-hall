@@ -5,7 +5,7 @@ const WAR_RULEBOOK = [
     body: `<p>Every week the guild splits into the <b>Horde</b> and the <b>Alliance</b> and fights over the map of Azeroth.
       Take zones, hold whole regions, build outposts and strongholds, and out-score the other side by the end of the week.</p>
       <ul><li><b>Sign-ups:</b> Sunday 8pm to midnight.</li><li><b>The war:</b> Monday 12:00am to Sunday 8pm.</li>
-      <li>When the war ends the side with the higher <b>war score</b> wins, and both sides earn site rewards.</li></ul>` },
+      <li>When the war ends the side with the higher <b>war score</b> wins, and everyone on the winning side earns a <b>victory medal</b>. (War Games is in beta: rewards may be reset.)</li></ul>` },
   { id: 'teams', icon: '🛡', title: 'Teams & Joining', tags: 'teams draft snake activity join late smaller sign up',
     body: `<p>At midnight on Sunday everyone who signed up is split by a <b>snake draft</b> on activity, so both sides get a fair mix of regulars and casual players.</p>
       <p>You can join at any time during the week: you go to the <b>smaller team</b> and start with that day's <b>5 action points</b> and the same <b>reinforcements</b> your teammates got that morning (region bonuses included). You get your first share of resources at the next dawn.</p>
