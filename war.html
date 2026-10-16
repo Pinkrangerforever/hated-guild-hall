@@ -19,17 +19,17 @@ function curtainFlags(base){
   if(!host || !window.THREE || !THREE.GLTFLoader) return;
   let renderer;
   try{ renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true }); }catch(e){ return; }
-  const W = 320, H = 260;
+  const W = 440, H = 330;
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); renderer.setSize(W, H); renderer.outputEncoding = THREE.sRGBEncoding;
   const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, W / H, 0.1, 100);
-  cam.position.set(0, 1.2, 6.0); cam.lookAt(0, 1.05, 0);
+  cam.position.set(0, 1.2, 6.4); cam.lookAt(0, 1.05, 0);
   scene.add(new THREE.AmbientLight(0xffffff, 0.75)); const sun = new THREE.DirectionalLight(0xfff0d0, 0.9); sun.position.set(2, 4, 6); scene.add(sun);
   // banner cloth, pole and the gold fittings are solid (the gold glows a little); the light-beam texture is the glow,
   // drawn additively in the faction's colour; the white cloth-sheen layer is a shader mask in WoW, so it's hidden
   const SOLID = { '1595060': 1, '1595061': 1, '1595065': 1, '1595066': 1, '1380439': 1 }, BEAM = '1024942', MASK = { '1596097': 1, '1596483': 1 };
   const flags = [
-    { url: 'Alliance%20Flag/alliancectfflag_warsongscramble.gltf', tint: 0x5ab4ff, x: 1.0, tilt: 0.5, ry: 0 },   // poles cross: bases apart, tops lean in past each other
-    { url: 'Horde%20Flag/hordectfflag_warsongscramble.gltf', tint: 0xff5a2a, x: -1.0, tilt: -0.5, ry: Math.PI }
+    { url: 'Alliance%20Flag/alliancectfflag_warsongscramble.gltf', tint: 0x5ab4ff, x: 0.45, tilt: 0.58, ry: 0 },   // poles cross low, so the tops (and their cloth) spread wide apart
+    { url: 'Horde%20Flag/hordectfflag_warsongscramble.gltf', tint: 0xff5a2a, x: -0.45, tilt: -0.58, ry: Math.PI }
   ];
   const mixers = [], loader = new THREE.GLTFLoader();
   Promise.all(flags.map(f => new Promise((res, rej) => loader.load(base + f.url, res, undefined, rej)).then(g => {
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => curtainFlags(window.WAR_FLAG
   #curtain{ position:fixed; inset:0; z-index:7; background:#000; display:flex; align-items:center; justify-content:center; transition:opacity 2.2s ease; }
   #curtain{ background:radial-gradient(ellipse at center, #1a1008 0%, #000 70%); flex-direction:column; }
   #curtain .crest{ width:84px; height:84px; margin-bottom:18px; filter:drop-shadow(0 0 14px rgba(214,169,64,0.45)); animation:breathe 3s ease-in-out infinite; }
-  #curtain .flags{ width:320px; height:260px; max-width:90vw; margin:-40px 0 0; opacity:0; transition:opacity 1.2s ease; }
+  #curtain .flags{ width:440px; height:330px; max-width:94vw; margin:-50px 0 -10px; opacity:0; transition:opacity 1.2s ease; }
   #curtain .flags.on{ opacity:1; } #curtain .flags canvas{ display:block; max-width:100%; height:auto; }
   #curtain .title{ font:900 30px Cinzel, serif; letter-spacing:6px; text-transform:uppercase; text-align:center;
     color:#ecc867; text-shadow:0 1px 0 #fff1c4, 0 2px 3px #000, 0 0 18px rgba(214,169,64,0.45); animation:curtainIn .9s ease both; }
