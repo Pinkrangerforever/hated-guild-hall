@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Guild War</title>
+<title>War Games</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -54,6 +54,11 @@
   .bar{ position:fixed; top:0; left:0; right:0; display:flex; align-items:center; gap:10px; padding:8px 12px; flex-wrap:wrap;
     background:linear-gradient(rgba(10,6,3,0.95), rgba(10,6,3,0.6)); border-bottom:1px solid var(--edge); z-index:5; }
   .bar h1{ font:900 18px Cinzel, serif; margin:0; color:var(--gold); letter-spacing:2px; }
+  .bar h1 .beta{ font:800 10px system-ui, sans-serif; letter-spacing:1px; text-transform:uppercase; vertical-align:middle; margin-left:4px; padding:2px 6px; border-radius:10px;
+    color:#1a0f05; background:linear-gradient(#ffe08a,#d6a940); box-shadow:0 0 8px rgba(214,169,64,.5); }
+  .bar .betaNote{ font:700 13px Cinzel, serif; color:#ffd36a; text-shadow:0 0 8px rgba(214,169,64,.45); white-space:nowrap; }
+  @media (max-width: 1100px){ .bar .betaNote{ font-size:11px; } }
+  @media (max-width: 760px){ .bar .betaNote{ display:none; } }
   .btn{ font:600 13px Cinzel, serif; color:var(--ink); background:linear-gradient(#4a3418,#2a1c0c); border:1px solid var(--edge); border-radius:6px;
     padding:6px 10px; cursor:pointer; white-space:nowrap; }
   .btn:hover{ border-color:var(--gold); color:#fff3cc; }
@@ -381,7 +386,8 @@
 </div>
 <div class="bar">
   <button class="btn back" onclick="location.href='index.html'">←<span class="lbl"> Back to site</span></button>
-  <h1>GUILD WAR</h1>
+  <h1>WAR GAMES <span class="beta">Beta</span></h1>
+  <span class="betaNote">War Games is in Beta! Rewards are not permanent currently!</span>
   <span class="chip" id="clock">—</span>
   <div class="score"><span class="h" id="scH">0</span><span>⚔</span><span class="a" id="scA">0</span></div>
   <span class="spacer"></span>
@@ -429,7 +435,7 @@
 </div>
 <div id="toast"></div>
 <div id="endScreen"></div>
-<div id="pamphlet" onclick="openRules()" title="The Guild War Codex - rules and mechanics">
+<div id="pamphlet" onclick="openRules()" title="The War Games Codex - rules and mechanics">
   <div class="mini"><div class="cov"><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i><span class="emb">⚔</span><span class="ttl">Codex</span></div><div class="pgs"></div></div>
   <b>Rules</b>
 </div>
@@ -438,7 +444,7 @@
     <div class="fb-back"></div>
     <div class="fb-page last"></div>
     <div class="fb-page p1"></div><div class="fb-page p2"></div><div class="fb-page p3"></div><div class="fb-page p4"></div><div class="fb-page p5"></div><div class="fb-page p6"></div>
-    <div class="fb-cover"><div class="front"><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i><span class="emb">⚔</span><span class="ttl">The Guild War<br>Codex</span></div><div class="inside"></div></div>
+    <div class="fb-cover"><div class="front"><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i><span class="emb">⚔</span><span class="ttl">The War Games<br>Codex</span></div><div class="inside"></div></div>
   </div>
   <div class="book" id="openBook">
     <div class="ribbon"></div>
@@ -456,7 +462,7 @@
 <div class="panel" id="ledger"></div>
 <div id="hover"></div>
 <div id="smashBar"><span id="smashTxt"></span><button class="btn sm" onclick="stopSmash()">Done</button></div>
-<div id="gate"><div class="card"><h2 style="font-family:Cinzel;color:var(--gold)">Guild War</h2><p id="gateMsg">Loading…</p><button class="btn" onclick="location.href='index.html'">← Back to site</button></div></div>
+<div id="gate"><div class="card"><h2 style="font-family:Cinzel;color:var(--gold)">War Games</h2><p id="gateMsg">Loading…</p><button class="btn" onclick="location.href='index.html'">← Back to site</button></div></div>
 <div id="signup"><div class="card" id="signupCard"></div></div>
 
 <script>
@@ -1193,7 +1199,7 @@ function renderSignup(){
   if(!S){ el.style.display = 'none'; return; }
   el.style.display = 'flex';
   const mine = S.signups.some(s => s.id === me.id);
-  document.getElementById('signupCard').innerHTML = `<h2 style="font-family:Cinzel;color:var(--gold);margin-top:0">Guild War · Sign-ups</h2>
+  document.getElementById('signupCard').innerHTML = `<h2 style="font-family:Cinzel;color:var(--gold);margin-top:0">War Games · Sign-ups</h2>
     <div class="muted">${S.weekStart ? `The teams are drafted (snake draft by activity) and the war begins <b>${new Date(S.weekStart).toLocaleString([], { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</b>, and runs to Sunday 8pm (Pacific).` : 'Sign-ups are open. The war starts when the Raid Leader starts it.'}</div>
     <div id="signupList">${S.signups.map(s => `<div>• ${esc(s.name)}${s.bot ? '<span class="tag">bot</span>' : ''}</div>`).join('') || '<div class="muted">Nobody yet</div>'}</div>
     <div class="row">${mine ? '<span class="chip">✔ You are signed up</span>' : '<button class="btn" onclick="doSignup()">Sign me up</button>'}
