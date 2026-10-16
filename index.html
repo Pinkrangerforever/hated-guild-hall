@@ -4248,6 +4248,7 @@
   .gb-import{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:0 0 14px; }
   .gb-hint{ font-size:12px; opacity:.75; } .gb-hint code{ font-size:11px; }
   .gb-grid{ display:grid; grid-template-columns:minmax(0, 1.6fr) minmax(280px, 1fr); gap:16px; align-items:start; }
+  .gb-bank{ min-width:0; overflow:hidden; }
   @media (max-width: 900px){ .gb-grid{ grid-template-columns:1fr; } }
   .gb-side{ display:flex; flex-direction:column; gap:16px; }
   .gb-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
@@ -4257,6 +4258,16 @@
   .gb-tabs{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
   .gb-tab{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); color:inherit; border-radius:6px; padding:5px 10px; cursor:pointer; font:inherit; font-size:13px; }
   .gb-tab small{ opacity:.6; margin-left:4px; } .gb-tab.on{ border-color:#d6a940; background:rgba(214,169,64,.18); }
+  .gb-slots{ display:grid; grid-template-columns:repeat(14, minmax(0, 1fr)); gap:3px; padding:8px; box-sizing:border-box; width:100%; max-width:100%; border-radius:8px;
+    background:linear-gradient(#1a120b, #0d0905); border:1px solid rgba(214,169,64,.35); box-shadow:inset 0 0 12px rgba(0,0,0,.8); }
+  .gb-slot{ position:relative; aspect-ratio:1; min-width:0; cursor:pointer; border-radius:4px; background:#0a0705; border:1px solid var(--q, #3a2c1c);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.6), 0 0 4px color-mix(in srgb, var(--q, transparent) 45%, transparent); overflow:hidden; display:block; }
+  .gb-slot.gb-empty{ border-color:#2b2015; box-shadow:inset 0 0 6px rgba(0,0,0,.9); background:radial-gradient(#17100a, #0a0604); }
+  .gb-slot img{ position:absolute; inset:0; width:100%; height:100%; display:block; object-fit:cover; }
+  .gb-slot:not(.gb-empty):hover{ transform:translateY(-1px); border-color:#ffd36a; z-index:1; }
+  .gb-cnt{ position:absolute; right:2px; bottom:0; font:700 11px system-ui, sans-serif; color:#fff; text-shadow:0 0 2px #000, 1px 1px 1px #000, -1px -1px 1px #000; }
+  .gb-noicon{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:700 11px system-ui; color:var(--q); }
+  @media (max-width: 600px){ .gb-slots{ gap:2px; padding:4px; } .gb-cnt{ font-size:9px; } }
   .gb-items{ display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:6px; }
   .gb-item{ display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:6px; background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); text-decoration:none; min-width:0; }
   .gb-item:hover{ border-color:rgba(214,169,64,.6); }
@@ -12651,6 +12662,7 @@ function renderGallery(){
 const gb = { loaded: false, loading: false, snap: null, log: [], period: 'week', tab: 0 };
 async function loadGuildBank(){
   if(gb.loading) return; gb.loading = true;
+  if(/[?&]gbdemo/.test(location.search)){ const d = gbDemo(); gb.snap = d.snap; gb.log = d.log; gb.loaded = true; gb.loading = false; if(state.tab === 'guildbank') render(); return; }
   try{
     const [s, l] = await Promise.all([
       sb.from('guild_bank_snapshot').select('*').eq('id', 1).maybeSingle(),
@@ -12667,6 +12679,60 @@ const gbGold = copper => {
   return `${g ? `<span class="gb-g">${g.toLocaleString()}g</span> ` : ''}${g || s ? `<span class="gb-s">${s}s</span> ` : ''}<span class="gb-c">${c}c</span>`;
 };
 const GB_QUALITY = ['#9d9d9d', '#ffffff', '#1eff00', '#0070dd', '#a335ee', '#ff8000', '#e6cc80', '#00ccff'];
+// The bank tab as WoW lays it out: 98 slots, 14 across x 7 down. WoW numbers them in 7 columns of 14: each column is
+// two slot-columns, 7 slots down the left one then 7 down the right one.
+function gbGrid(tab){
+  const bySlot = {}; (tab.items || []).forEach(it => { bySlot[it.slot] = it; });
+  const cells = new Array(98).fill(null);
+  for(let s = 1; s <= 98; s++){
+    const c = Math.floor((s - 1) / 14), k = (s - 1) % 14, x = c * 2 + Math.floor(k / 7), y = k % 7;
+    cells[y * 14 + x] = bySlot[s] || null;
+  }
+  gbEnsureIcons((tab.items || []).map(it => it.itemId));
+  return `<div class="gb-slots">${cells.map(it => {
+    if(!it) return '<div class="gb-slot gb-empty"></div>';
+    const id = Number(it.itemId) || 0, icon = gbIcons[id], q = GB_QUALITY[it.quality] || '#9d9d9d';
+    // a tile, not a link: Wowhead's script would stamp its own little icon into every link it finds
+    return `<div class="gb-slot" role="link" tabindex="0" style="--q:${q}" data-wowhead="item=${id}&domain=classic" title="" aria-label="${esc(it.name || 'Item ' + id)}${(it.count || 1) > 1 ? ' x' + Number(it.count) : ''}"
+      onclick="window.open('https://www.wowhead.com/classic/item=${id}', '_blank', 'noopener')">
+      ${icon ? `<img src="https://wow.zamimg.com/images/wow/icons/large/${icon}.jpg" alt="" loading="lazy">` : `<span class="gb-noicon">${esc((it.name || '?').slice(0, 2))}</span>`}
+      ${(it.count || 1) > 1 ? `<span class="gb-cnt">${Number(it.count)}</span>` : ''}</div>`;
+  }).join('')}</div>`;
+}
+// item icons come from Wowhead's item data (it allows the site to ask); remembered in this browser
+const gbIcons = (() => { try{ return JSON.parse(localStorage.getItem('gb-icons') || '{}'); }catch(e){ return {}; } })();
+const gbIconWant = new Set();
+let gbIconTimer = null;
+function gbEnsureIcons(ids){
+  ids.forEach(id => { id = Number(id); if(id && !(id in gbIcons)) gbIconWant.add(id); });
+  if(!gbIconWant.size || gbIconTimer) return;
+  gbIconTimer = setTimeout(async () => {
+    const list = [...gbIconWant]; gbIconWant.clear();
+    for(let i = 0; i < list.length; i += 6){
+      await Promise.all(list.slice(i, i + 6).map(id => fetch(`https://nether.wowhead.com/classic/tooltip/item/${id}`).then(r => r.ok ? r.json() : null)
+        .then(d => { gbIcons[id] = d && d.icon ? d.icon : ''; }).catch(() => { gbIcons[id] = ''; })));
+    }
+    try{ localStorage.setItem('gb-icons', JSON.stringify(gbIcons)); }catch(e){}
+    gbIconTimer = null;
+    if(state.tab === 'guildbank') render();
+  }, 30);
+}
+// ?gbdemo in the address: a sample bank so the page can be seen before anything is imported (not saved anywhere)
+function gbDemo(){
+  const T = (name, items) => ({ name, items: items.map(([slot, itemId, name, count, quality]) => ({ slot, itemId, name, count, quality })) });
+  const now = Date.now();
+  return {
+    snap: { scanned_at: new Date(now - 3600e3).toISOString(), scanned_by: 'Pink (demo)', money: 12345678, tabs: [
+      T('Raid Consumables', [[1, 13446, 'Major Healing Potion', 20, 1], [2, 13444, 'Major Mana Potion', 20, 1], [3, 13452, 'Elixir of the Mongoose', 12, 1], [4, 13510, 'Flask of the Titans', 3, 1],
+        [5, 12360, 'Arcanite Bar', 8, 2], [8, 13457, 'Greater Fire Protection Potion', 15, 1], [9, 20007, 'Mageblood Potion', 10, 1], [15, 13468, 'Black Lotus', 2, 2], [22, 12811, 'Righteous Orb', 5, 2]]),
+      T('Cloth & Mats', [[1, 2589, 'Linen Cloth', 20, 1], [2, 2592, 'Wool Cloth', 20, 1], [3, 4306, 'Silk Cloth', 20, 1], [4, 4338, 'Mageweave Cloth', 20, 1], [5, 14047, 'Runecloth', 20, 1],
+        [6, 14047, 'Runecloth', 20, 1], [7, 14047, 'Runecloth', 13, 1], [8, 10620, 'Thorium Ore', 20, 1], [9, 12359, 'Thorium Bar', 17, 1], [10, 7078, 'Essence of Fire', 6, 2], [29, 7082, 'Essence of Air', 4, 2]]),
+      T('Gear', [[1, 19019, 'Thunderfury, Blessed Blade of the Windseeker', 1, 5], [2, 17966, 'Onyxia Hide Backpack', 1, 3], [3, 18814, 'Choker of the Fire Lord', 1, 4], [4, 16922, 'Leggings of Transcendence', 1, 4]])
+    ]},
+    log: [['Buford', 2500000, 1], ['Pink', 1200000, 2], ['Netwurk', 800000, 3], ['Buford', 300000, 9], ['Smurf', 150000, 20], ['Pink', 90000, 40]]
+      .map(([character_name, amount, daysAgo]) => ({ kind: 'deposit', character_name, amount, happened_at: new Date(now - daysAgo * 864e5).toISOString() }))
+  };
+}
 
 function renderGuildBank(){
   if(!gb.loaded && !gb.loading) loadGuildBank();
@@ -12694,9 +12760,7 @@ function renderGuildBank(){
         <div class="gb-head"><h3>In the bank</h3><div class="gb-money">${s ? gbGold(s.money) : '—'}</div></div>
         ${!tabs.length ? emptyState(isRL ? 'Nothing imported yet: press Import above.' : 'Nothing has been imported yet.') : `
         <div class="gb-tabs">${tabs.map((t, i) => `<button type="button" class="gb-tab ${t === tab ? 'on' : ''}" onclick="gbSetTab(${i})">${esc(t.name || 'Tab ' + t.index)} <small>${(t.items || []).length}</small></button>`).join('')}</div>
-        <div class="gb-items">${(tab.items || []).slice().sort((a, b) => (b.quality || 0) - (a.quality || 0) || String(a.name).localeCompare(String(b.name))).map(it =>
-          `<a class="gb-item" href="https://www.wowhead.com/classic/item=${Number(it.itemId) || 0}" target="_blank" rel="noopener" data-wowhead="item=${Number(it.itemId) || 0}&domain=classic">
-            <span class="gb-name" style="color:${GB_QUALITY[it.quality] || '#ffffff'}">${esc(it.name || 'Item ' + it.itemId)}</span>${(it.count || 1) > 1 ? `<span class="gb-count">×${Number(it.count)}</span>` : ''}</a>`).join('') || emptyState('This tab is empty.')}</div>`}
+        ${gbGrid(tab)}`}
       </div>
       <div class="gb-side">
         <div class="panel style-glass">
