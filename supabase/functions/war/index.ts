@@ -59,9 +59,12 @@ async function gameById(id: string): Promise<Game | null> {
 }
 
 // a signed-in player's site pet, if it has hatched (pets cap at level 10)
+// (if they somehow have several, the highest level one fights)
 async function petOf(uid: string) {
-  const { data } = await db.from('pets').select('pet_type,name,level,status').eq('user_id', uid).neq('status', 'egg').maybeSingle();
-  return data ? { type: data.pet_type, status: data.status, level: Math.min(10, data.level || 1), name: data.name || 'Pet' } : null;
+  const { data, error } = await db.from('pets').select('pet_type,name,level,status').eq('user_id', uid).neq('status', 'egg').order('level', { ascending: false }).limit(1);
+  if(error){ console.error('pet lookup failed', error); return undefined; }   // undefined = try again later
+  const p = data && data[0];
+  return p ? { type: p.pet_type, status: p.status, level: Math.min(10, p.level || 1), name: p.name || 'Pet' } : null;
 }
 // test bots: same names and pets as the sandbox
 const BOT_NAMES = ['Thrall', 'Jaina', 'Sylvanas', 'Varian', 'Grommash', 'Tyrande', 'Garrosh', 'Muradin', 'Voljin', 'Genn', 'Baine', 'Velen'];
@@ -97,8 +100,12 @@ async function mutate(fn: (s: any, g: Game) => any, opts: { create?: () => any, 
     // everyone who has appeared in the war gets their pet (real players: their site pet; bots: their test pet);
     // bots then station theirs (which logs a move, so this happens before the new entries are collected)
     for(const p of Object.values(s.players) as any[]){
-      if(p.pet !== undefined) continue;
-      p.pet = p.bot ? ((s.botPets || {})[p.id] || null) : (isUuid(p.id) ? await petOf(p.id) : null);
+      // real players with no pet yet are looked up again every 10 minutes (a pet can hatch mid-war)
+      const stale = !p.bot && p.pet === null && isUuid(p.id) && !(p.petCheckedAt > Date.now() - 10 * 60 * 1000);
+      if(p.pet !== undefined && !stale) continue;
+      if(p.bot){ p.pet = (s.botPets || {})[p.id] || null; continue; }
+      const pet = isUuid(p.id) ? await petOf(p.id) : null;
+      if(pet !== undefined){ p.pet = pet; p.petCheckedAt = Date.now(); }
     }
     stationBotPets(s);
     const entries = s.log; delete s.log;
