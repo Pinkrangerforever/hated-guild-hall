@@ -4245,35 +4245,60 @@
 </style>
 <style>
   /* guild vault donations widget (home page) - deliberately unlike the crimson/gold Gold Leaderboard */
-  .vault-widget{ position:relative; margin-bottom:16px; padding:14px 14px 12px; border-radius:6px;
-    background:radial-gradient(circle at 8px 8px, #8c96a3 1.5px, transparent 2.5px) 0 0 / 100% 100% no-repeat,
-      radial-gradient(circle at calc(100% - 8px) 8px, #8c96a3 1.5px, transparent 2.5px) 0 0 / 100% 100% no-repeat,
-      radial-gradient(circle at 8px calc(100% - 8px), #8c96a3 1.5px, transparent 2.5px) 0 0 / 100% 100% no-repeat,
-      radial-gradient(circle at calc(100% - 8px) calc(100% - 8px), #8c96a3 1.5px, transparent 2.5px) 0 0 / 100% 100% no-repeat,
-      repeating-linear-gradient(90deg, rgba(255,255,255,.015) 0 2px, transparent 2px 6px),
-      linear-gradient(180deg, #232a33, #12161c);
-    border:2px solid #4c6378; box-shadow:0 0 0 1px #0a0d11, inset 0 0 0 1px rgba(160,190,215,.12), inset 0 0 18px rgba(0,0,0,.7), 0 10px 26px rgba(0,0,0,.8); }
-  .vault-head{ display:flex; align-items:center; gap:10px; justify-content:center; }
-  .vault-icon{ font-size:26px; filter:drop-shadow(0 2px 3px #000); }
-  .vault-title{ font:800 17px Cinzel, Georgia, serif; letter-spacing:2px; text-transform:uppercase; color:#cfe0ee; text-shadow:0 1px 0 #000, 0 0 10px rgba(120,170,215,.35); }
-  .vault-sub{ font-size:11px; letter-spacing:1px; color:#8fa4b6; text-transform:uppercase; }
-  .vault-periods{ display:flex; justify-content:center; gap:4px; margin:10px 0 8px; }
-  .vault-periods button{ background:rgba(0,0,0,.4); border:1px solid #3d5163; color:#a9bccc; border-radius:3px; padding:2px 9px; font:inherit; font-size:11px; cursor:pointer; }
-  .vault-periods button.on{ border-color:#8fc0e6; color:#e6f2fb; background:rgba(110,160,205,.2); }
+  .vault-widget{ position:relative; margin-bottom:16px; padding:22px 14px 22px; border-radius:7px; overflow:hidden;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,0) 26%),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 4px),
+      linear-gradient(180deg, #27303a, #151a21 60%, #10141a);
+    border:2px solid #56718a;
+    box-shadow:0 0 0 1px #07090c, 0 0 0 4px #20272f, 0 0 0 5px #3c4c5c, inset 0 1px 0 rgba(220,235,248,.18), inset 0 0 22px rgba(0,0,0,.75), 0 12px 28px rgba(0,0,0,.85); }
+  .vault-studs{ position:absolute; left:10px; right:10px; height:6px;
+    background:radial-gradient(circle at 3px 3px, #c4d2de 0 1px, #6d7f90 1.6px, #232b33 2.6px, transparent 3px) 0 0 / 22px 6px repeat-x; opacity:.9; }
+  .vault-studs.top{ top:6px; } .vault-studs.bottom{ bottom:6px; }
+  .vault-head{ display:flex; align-items:center; gap:10px; justify-content:center; padding-bottom:2px; }
+  .vault-door{ width:40px; height:40px; flex-shrink:0; filter:drop-shadow(0 2px 3px rgba(0,0,0,.8)); animation:vaultSpin 18s linear infinite; }
+  .vault-widget:hover .vault-door{ animation-duration:4s; }
+  @keyframes vaultSpin{ to{ transform:rotate(360deg); } }
+  .vault-title{ font:800 18px Cinzel, Georgia, serif; letter-spacing:2.5px; text-transform:uppercase;
+    background:linear-gradient(180deg, #f2f7fb, #9fb4c6 60%, #6f8597); -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 1px 0 #000) drop-shadow(0 0 8px rgba(120,170,215,.25)); }
+  .vault-sub{ font-size:10px; letter-spacing:2px; color:#8fa4b6; text-transform:uppercase; }
+  .vault-periods{ display:flex; margin:12px auto 10px; width:max-content; border:1px solid #3d5163; border-radius:4px; overflow:hidden; box-shadow:inset 0 1px 3px rgba(0,0,0,.6); }
+  .vault-periods button{ background:linear-gradient(#1c232b, #12171d); border:0; border-right:1px solid #2c3a47; color:#a9bccc; padding:4px 11px; font:inherit; font-size:11px; letter-spacing:.5px; cursor:pointer; }
+  .vault-periods button:last-child{ border-right:0; }
+  .vault-periods button:hover{ color:#e6f2fb; }
+  .vault-periods button.on{ color:#fff; background:linear-gradient(#5a7d99, #36506a); box-shadow:inset 0 1px 0 rgba(255,255,255,.25); }
   .vault-rows{ border-top:1px solid #34424f; }
-  .vault-row{ display:flex; align-items:center; gap:8px; padding:7px 2px; border-bottom:1px solid #2a3540; }
-  .vault-row[data-profile-id]{ cursor:pointer; } .vault-row[data-profile-id]:hover{ background:rgba(120,170,215,.08); }
-  .vault-pos{ width:24px; text-align:center; font:700 13px Georgia, serif; color:#8fa4b6; flex-shrink:0; }
+  .vault-row{ display:flex; align-items:center; gap:9px; padding:8px 6px; border-bottom:1px solid #26313b; border-radius:3px; transition:background .15s, transform .15s; }
+  .vault-row.gold{ background:linear-gradient(90deg, rgba(240,201,90,.16), rgba(240,201,90,0) 70%); }
+  .vault-row.silver{ background:linear-gradient(90deg, rgba(200,214,226,.13), rgba(200,214,226,0) 70%); }
+  .vault-row.bronze{ background:linear-gradient(90deg, rgba(205,127,50,.15), rgba(205,127,50,0) 70%); }
+  .vault-row[data-profile-id]{ cursor:pointer; }
+  .vault-row:hover{ background-color:rgba(120,170,215,.08); transform:translateX(2px); }
+  .vault-coin{ width:24px; height:24px; flex-shrink:0; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font:800 12px Georgia, serif; color:#3a2a08; box-shadow:inset 0 -2px 3px rgba(0,0,0,.35), inset 0 2px 2px rgba(255,255,255,.55), 0 1px 3px rgba(0,0,0,.7); }
+  .vault-coin.gold{ background:radial-gradient(circle at 35% 30%, #fff3c4, #f0c95a 45%, #9c6c16); border:1px solid #7a5410; }
+  .vault-coin.silver{ background:radial-gradient(circle at 35% 30%, #ffffff, #c9d3dc 45%, #7a8794); border:1px solid #5d6974; color:#2a323a; }
+  .vault-coin.bronze{ background:radial-gradient(circle at 35% 30%, #ffd7a8, #cd7f32 50%, #7a4614); border:1px solid #5e3510; color:#3a1c06; }
+  .vault-coin.iron{ width:20px; height:20px; margin:0 2px; font-size:10px; color:#a9bccc; background:radial-gradient(circle at 35% 30%, #4a5866, #232b33); border:1px solid #3d4b58;
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.12), 0 1px 2px rgba(0,0,0,.7); }
   .vault-who{ flex:1; min-width:0; }
   .vault-who .comp-slot{ min-height:0 !important; height:22px !important; }
-  .vault-name{ font:600 13px Georgia, serif; color:#dfe8ef; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .vault-bar{ height:4px; margin-top:4px; border-radius:2px; background:rgba(0,0,0,.5); overflow:hidden; }
-  .vault-bar i{ display:block; height:100%; border-radius:2px; background:linear-gradient(90deg, #8a6416, #f0c95a); box-shadow:0 0 6px rgba(240,201,90,.5); }
-  .vault-amt{ flex-shrink:0; font:700 13px Georgia, serif; color:#f3d27a; white-space:nowrap; }
-  .vault-amt b{ color:#c9a227; font-weight:700; } .vault-amt b.s{ color:#b9c3cc; }
-  .vault-empty{ text-align:center; color:#8fa4b6; font-size:12px; padding:14px 6px; margin:0; }
-  .vault-more{ display:block; width:100%; margin-top:10px; background:none; border:1px solid #3d5163; border-radius:3px; color:#a9cbe6; font:inherit; font-size:12px; padding:5px; cursor:pointer; }
-  .vault-more:hover{ border-color:#8fc0e6; color:#e6f2fb; }
+  .vault-name{ font:700 13px Georgia, serif; color:#e3ebf1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 0 #000; }
+  .vault-bar{ height:5px; margin-top:5px; border-radius:3px; background:#0a0d11; box-shadow:inset 0 1px 2px rgba(0,0,0,.8); overflow:hidden; }
+  .vault-bar i{ display:block; height:100%; border-radius:3px; background:linear-gradient(90deg, #7a560f, #f0c95a 60%, #fff0b0 80%, #f0c95a), #f0c95a;
+    background-size:220% 100%; box-shadow:0 0 6px rgba(240,201,90,.55); animation:vaultShine 3.5s linear infinite; }
+  @keyframes vaultShine{ from{ background-position:120% 0; } to{ background-position:-100% 0; } }
+  .vault-amt{ flex-shrink:0; font:700 13px Georgia, serif; color:#f3d27a; white-space:nowrap; display:flex; align-items:center; gap:3px; text-shadow:0 1px 0 #000; }
+  .vc{ display:inline-block; width:9px; height:9px; border-radius:50%; box-shadow:inset 0 -1px 1px rgba(0,0,0,.4); }
+  .vc.g{ background:radial-gradient(circle at 35% 30%, #fff1b5, #e0b44e 55%, #8a5a14); } .vc.s{ background:radial-gradient(circle at 35% 30%, #fff, #b9c3cc 55%, #6b7681); margin-left:3px; }
+  .vault-total{ text-align:center; margin-top:10px; font-size:11.5px; color:#9fb2c2; letter-spacing:.3px; } .vault-total b{ color:#f3d27a; }
+  .vault-empty{ text-align:center; color:#8fa4b6; font-size:12px; font-style:italic; padding:16px 6px; margin:0; }
+  .vault-more{ display:flex; align-items:center; justify-content:center; gap:6px; width:100%; margin-top:10px; padding:7px; cursor:pointer;
+    background:linear-gradient(#3a4a59, #222b35); border:1px solid #56718a; border-radius:4px; color:#dce9f3; font:600 12px Cinzel, Georgia, serif; letter-spacing:1px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.18), 0 2px 4px rgba(0,0,0,.6); }
+  .vault-more span{ transition:transform .15s; } .vault-more:hover{ border-color:#8fc0e6; color:#fff; } .vault-more:hover span{ transform:translateX(3px); }
+  @media (prefers-reduced-motion: reduce){ .vault-door, .vault-bar i{ animation:none; } }
   /* guild bank page */
   .gb-import{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:0 0 14px; }
   .gb-hint{ font-size:12px; opacity:.75; } .gb-hint code{ font-size:11px; }
@@ -12257,25 +12282,37 @@ function renderComingUp(disableClicks = false){
 }
 
 /* ---- gold leaderboard widget ---- */
-// Guild bank donations (from the Hated Companion import): top donors for the chosen period
+// Guild bank donations (from the Hated Companion import): top donors for the chosen period, as a guild vault
+const VAULT_DOOR = `<svg class="vault-door" viewBox="0 0 64 64" aria-hidden="true">
+  <defs><radialGradient id="vdSteel" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#e3edf5"/><stop offset=".45" stop-color="#8a9bab"/><stop offset="1" stop-color="#3a4654"/></radialGradient>
+    <linearGradient id="vdGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset=".5" stop-color="#e0b44e"/><stop offset="1" stop-color="#8a5a14"/></linearGradient></defs>
+  <circle cx="32" cy="32" r="29" fill="#1b2129" stroke="url(#vdSteel)" stroke-width="4"/>
+  <circle cx="32" cy="32" r="22" fill="none" stroke="#5d6d7c" stroke-width="1.5" stroke-dasharray="2 3.2"/>
+  <g stroke="url(#vdSteel)" stroke-width="3.4" stroke-linecap="round"><path d="M32 14v36"/><path d="M14 32h36"/><path d="M19.3 19.3l25.4 25.4"/><path d="M44.7 19.3L19.3 44.7"/></g>
+  <circle cx="32" cy="32" r="7.5" fill="url(#vdGold)" stroke="#5a3a0c" stroke-width="1.2"/>
+  <circle cx="32" cy="32" r="2.4" fill="#5a3a0c"/>
+</svg>`;
 function renderDonationLeaderboard(){
   if(!gb.loaded && !gb.loading) loadGuildBank();
-  const head = `<div class="vault-head"><span class="vault-icon">🏦</span><div><div class="vault-title">Guild Vault</div><div class="vault-sub">Top donors</div></div></div>
-    <div class="vault-periods">${[['week', 'Week'], ['month', 'Month'], ['all', 'All time']].map(([k, l]) => `<button type="button" class="${gb.period === k ? 'on' : ''}" onclick="gbSetPeriod('${k}')">${l}</button>`).join('')}</div>`;
-  if(!gb.loaded) return `<div class="vault-widget">${head}<p class="vault-empty">Loading...</p></div>`;
+  const P = { week: ['Week', 'this week'], month: ['Month', 'this month'], all: ['All time', 'so far'] };
+  const head = `<div class="vault-head">${VAULT_DOOR}<div><div class="vault-title">Guild Vault</div><div class="vault-sub">Top donors</div></div></div>
+    <div class="vault-periods" role="tablist">${Object.entries(P).map(([k, [l]]) => `<button type="button" role="tab" aria-selected="${gb.period === k}" class="${gb.period === k ? 'on' : ''}" onclick="gbSetPeriod('${k}')">${l}</button>`).join('')}</div>`;
+  if(!gb.loaded) return `<div class="vault-widget"><div class="vault-studs top"></div>${head}<p class="vault-empty">Opening the vault…</p><div class="vault-studs bottom"></div></div>`;
   const cut = { week: Date.now() - 7 * 864e5, month: Date.now() - 30 * 864e5, all: 0 }[gb.period];
   const totals = {};
   gb.log.filter(e => e.kind === 'deposit' && e.character_name && new Date(e.happened_at).getTime() >= cut)
     .forEach(e => { totals[e.character_name] = (totals[e.character_name] || 0) + Number(e.amount || 0); });
-  const ranked = Object.entries(totals).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  const top = ranked.length ? ranked[0][1] : 1;
+  const all = Object.entries(totals).sort((a, b) => b[1] - a[1]), ranked = all.slice(0, 10);
+  const top = ranked.length ? ranked[0][1] : 1, sum = all.reduce((s, x) => s + x[1], 0);
   const byName = {}; Object.values(state.profilesById || {}).forEach(p => { if(p.character_name) byName[p.character_name.toLowerCase()] = p; });
+  const money = c => { const g = Math.floor(c / 10000), s = Math.floor(c / 100) % 100;
+    return `<span class="vc g"></span>${g.toLocaleString()}${s ? ` <span class="vc s"></span>${s}` : ''}`; };
   const rows = ranked.map(([name, copper], i) => {
     const prof = byName[name.toLowerCase()], c = prof ? getUserNameCustomization(prof.id) : {};
     const cls = [c.border, c.nameCustom].filter(Boolean).join(' ');
-    const gold = Math.floor(copper / 10000), silver = Math.floor(copper / 100) % 100;
-    return `<div class="vault-row" ${prof ? `data-profile-id="${esc(prof.id)}" title="View profile"` : ''}>
-      <span class="vault-pos">${['🥇', '🥈', '🥉'][i] || i + 1}</span>
+    const tier = ['gold', 'silver', 'bronze'][i] || '';
+    return `<div class="vault-row ${tier}" ${prof ? `data-profile-id="${esc(prof.id)}" title="View profile"` : ''}>
+      <span class="vault-coin ${tier || 'iron'}">${i + 1}</span>
       <div class="vault-who">
         ${prof ? `<div class="comp-slot ${cls}" style="display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10px; font-weight:600; overflow:visible; position:relative;">
           <span style="position:relative; z-index:100;">${esc(name)}</span>
@@ -12283,12 +12320,15 @@ function renderDonationLeaderboard(){
         </div>` : `<div class="vault-name">${esc(name)}</div>`}
         <div class="vault-bar"><i style="width:${Math.max(6, Math.round(copper / top * 100))}%"></i></div>
       </div>
-      <span class="vault-amt">${gold.toLocaleString()}<b>g</b>${silver ? ` ${silver}<b class="s">s</b>` : ''}</span>
+      <span class="vault-amt">${money(copper)}</span>
     </div>`;
   }).join('');
-  return `<div class="vault-widget">${head}
-    ${rows ? `<div class="vault-rows">${rows}</div>` : `<p class="vault-empty">No donations recorded ${gb.period === 'week' ? 'this week' : gb.period === 'month' ? 'this month' : 'yet'}.</p>`}
-    <button type="button" class="vault-more" onclick="gbOpenBank()">Open the guild bank &rarr;</button>
+  return `<div class="vault-widget"><div class="vault-studs top"></div>${head}
+    ${rows ? `<div class="vault-rows">${rows}</div>
+      <div class="vault-total"><b>${Math.floor(sum / 10000).toLocaleString()}g</b> from ${all.length} donor${all.length === 1 ? '' : 's'} ${P[gb.period][1]}</div>`
+      : `<p class="vault-empty">The vault is quiet: no donations ${gb.period === 'all' ? 'recorded yet' : P[gb.period][1]}.</p>`}
+    <button type="button" class="vault-more" onclick="gbOpenBank()">Open the guild bank <span>&rarr;</span></button>
+    <div class="vault-studs bottom"></div>
   </div>`;
 }
 
