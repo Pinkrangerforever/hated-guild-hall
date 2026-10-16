@@ -9363,7 +9363,8 @@ const HOME_DECOR = {
   thunderfury:      { gltf: 'models/housing/decor-thunderfury.gltf', height: 2.2, orient: [0, 0, -Math.PI / 2], lamps: [[1.2, 0, 0]], lampColor: 0x6fb8ff },
   // hovers above the ground with a soft arcane aura (its own glow cards were dropped)
   floating_book:    { gltf: 'models/housing/decor-floating-book.gltf', height: 0.9, y: 0.9, torches: [[0.07, 1.2, 0]], aura: 0x7fd4ff, flameSize: 0.9, fireLight: 0.9 },
-  flying_broom:     { gltf: 'models/housing/decor-flying-broom.gltf', height: 1.0, npc: true, fun: ['MountSpecial'] },
+  // `height` sizes the model's height; the broom lies flat, so 0.3 tall makes it ~1.6 long (1.0 made it 5.5 long)
+  flying_broom:     { gltf: 'models/housing/decor-flying-broom.gltf', height: 0.3, npc: true, fun: ['MountSpecial'] },
   sinister_squashling: { gltf: 'models/housing/decor-sinister-squashling.gltf', height: 0.9, npc: true, fun: ['SpellCast', 'Emerge'] },
   // its flames are WoW particles too: our flickering flame on top + a warm glow
   jack_o_lantern:   { gltf: 'models/housing/decor-jack-o-lantern.gltf', height: 0.8, torches: [[0, 1.3, 0]], flameSize: 0.5, fireLight: 1.4 },
@@ -9375,7 +9376,7 @@ const HOME_DECOR = {
   sitting_barrel:   { gltf: 'models/housing/decor-sitting-barrel.gltf', height: 1.0 },
   standing_barrel:  { gltf: 'models/housing/decor-standing-barrel.gltf', height: 1.0 },
   filled_chest:     { gltf: 'models/housing/decor-filled-chest.gltf', height: 0.8 },
-  gold_pile:        { gltf: 'models/housing/decor-gold-pile.gltf', height: 0.4 },
+  gold_pile:        { gltf: 'models/housing/decor-gold-pile.gltf', height: 0.25 },   // a flat pile: 0.25 tall is ~1.5 across
   sconce_a:         { gltf: 'models/housing/decor-sconce-a.gltf', height: 0.8, lamps: [], halo: { at: [0, 0.44, 0], size: 1.3 } },
   sconce_b:         { gltf: 'models/housing/decor-sconce-b.gltf', height: 0.8, lamps: [], halo: { at: [0.25, 0.71, 0], size: 1.3 } },
   log_pile:         { gltf: 'models/housing/decor-log-pile.gltf', height: 1.5 },
