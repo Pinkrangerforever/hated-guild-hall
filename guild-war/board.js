@@ -901,6 +901,9 @@
       rat.traverse(o => { if(o.isMesh){ o.material = o.material.clone(); o.material.color.setHex(tint); } });
       const s = this.ratScale; rat.scale.setScalar(s);
       const holder = new THREE.Group(); holder.add(rat); rat.position.y = this.ratLift * s; this.scene.add(holder);
+      // an invisible, generous hit box: clicks test an animated model's rest pose, not the running rat you see
+      const hitBox = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.45, 0.5), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }));
+      hitBox.position.y = 0.18; holder.add(hitBox);
       // from one candle corner to a neighbouring one, keeping clear of the candles themselves
       const C = (this.candleSpots || [[-5.55, -3.55], [5.55, -3.55], [5.55, 3.55], [-5.55, 3.55]]).slice().sort((p, q) => Math.atan2(p[1], p[0]) - Math.atan2(q[1], q[0])), i = Math.floor(Math.random() * C.length), j = (i + (Math.random() < 0.5 ? 1 : C.length - 1)) % C.length;
       const a = new THREE.Vector3(C[i][0], 0.17, C[i][1]), bb = new THREE.Vector3(C[j][0], 0.17, C[j][1]), dir = bb.clone().sub(a).normalize();
