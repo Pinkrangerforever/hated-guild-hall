@@ -2064,6 +2064,7 @@
     0%{ opacity:0.8; transform:translate(0,0) scale(1); }
     100%{ opacity:0; transform:translate(0,-40px) scale(1.5); }
   }
+  @keyframes forgeFlash{ 0%{ transform:scale(.4); opacity:1; } 100%{ transform:scale(1.6); opacity:0; } }
   @keyframes sparkPop{
     0%{ opacity:1; transform:translate(0,0); }
     100%{ opacity:0; transform:translate(var(--tx),var(--ty)); }
@@ -7318,24 +7319,46 @@ function startBlacksmithGame(spawnRect, pendingId, params){
       }
     }
 
+    // A shower of forge sparks where the hammer meets the blade: glowing streaks that fly up and out, arc down
+    // under gravity, stretch along their path and cool from white-hot to orange; a hot flash at the strike.
+    // Each successful hit throws a bigger shower.
     function createSparks(){
-      const swordPos = forge.querySelector('.sword-graphic').getBoundingClientRect();
-      const centerX = swordPos.left + swordPos.width / 2;
-      const centerY = swordPos.top + swordPos.height / 2;
-
-      for(let i = 0; i < 6; i++){
-        const spark = document.createElement('div');
-        const angle = (i / 6) * Math.PI * 2;
-        const dist = 20 + Math.random() * 15;
-        spark.style.cssText = `
-          position:fixed; left:${centerX}px; top:${centerY}px; width:4px; height:4px;
-          background:#ffff99; border-radius:50%; pointer-events:none; z-index:100;
-          --tx:${Math.cos(angle)*dist}px; --ty:${Math.sin(angle)*dist}px;
-          animation:sparkPop 0.6s ease-out forwards;
-        `;
-        document.body.appendChild(spark);
-        setTimeout(()=>spark.remove(), 600);
+      const sword = forge.querySelector('.sword-graphic').getBoundingClientRect();
+      const x0 = sword.left + sword.width * 0.6, y0 = sword.top + sword.height * 0.52;
+      const flash = document.createElement('div');
+      flash.style.cssText = `position:fixed; left:${x0 - 40}px; top:${y0 - 40}px; width:80px; height:80px; border-radius:50%; pointer-events:none; z-index:100;
+        background:radial-gradient(circle, rgba(255,255,230,0.95) 0%, rgba(255,190,80,0.55) 30%, rgba(255,120,20,0) 70%); mix-blend-mode:screen;
+        animation:forgeFlash .28s ease-out forwards;`;
+      document.body.appendChild(flash); setTimeout(() => flash.remove(), 300);
+      const n = 18 + (gameState.hits || 1) * 6, sparks = [];
+      for(let i = 0; i < n; i++){
+        const el = document.createElement('div');
+        el.style.cssText = `position:fixed; left:0; top:0; width:2px; height:2px; border-radius:2px; pointer-events:none; z-index:101; mix-blend-mode:screen;`;
+        document.body.appendChild(el);
+        const a = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.3;   // mostly upward, fanned out
+        const v = 220 + Math.random() * 360;                               // px per second
+        sparks.push({ el, x: x0 + (Math.random() - 0.5) * 10, y: y0 + (Math.random() - 0.5) * 6, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.45 + Math.random() * 0.5, age: 0 });
       }
+      let last = performance.now();
+      const step = now => {
+        const dt = Math.min(0.05, (now - last) / 1000); last = now;
+        let alive = 0;
+        for(const s of sparks){
+          if(s.age >= s.life){ if(s.el){ s.el.remove(); s.el = null; } continue; }
+          alive++;
+          s.age += dt; s.vy += 900 * dt; s.vx *= 0.985; s.x += s.vx * dt; s.y += s.vy * dt;
+          const t = s.age / s.life, speed = Math.hypot(s.vx, s.vy), len = Math.max(3, Math.min(16, speed * 0.025));
+          const hue = 50 - t * 30, light = 92 - t * 40;   // white-yellow cooling to orange
+          s.el.style.width = len + 'px';
+          s.el.style.background = `linear-gradient(90deg, hsla(${hue},100%,${light}%,0), hsl(${hue},100%,${light}%))`;
+          s.el.style.boxShadow = `0 0 6px hsla(${hue},100%,60%,${0.9 - t * 0.6})`;
+          s.el.style.opacity = String(1 - t * t);
+          s.el.style.transform = `translate(${s.x - len}px, ${s.y}px) rotate(${Math.atan2(s.vy, s.vx)}rad)`;
+          s.el.style.transformOrigin = '100% 50%';
+        }
+        if(alive) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
     }
 
     forge.addEventListener('click', handleClick);
