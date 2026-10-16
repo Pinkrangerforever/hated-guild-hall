@@ -4105,6 +4105,8 @@
   .cf-stage{ position:absolute; left:0; right:0; top:8px; display:flex; justify-content:center; z-index:4; }
   /* strike */
   .cf-strike{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .cf-flint-icon{ display:block; width:48px; height:48px; border-radius:6px; overflow:hidden; border:1px solid #000; box-shadow:0 0 0 1px #8a6a3a, 0 3px 6px #000; }
+  .cf-flint-icon img{ width:100%; height:100%; display:block; }
   .cf-flint{ width:110px; filter:drop-shadow(0 3px 3px #000); }
   .cf-meter{ position:relative; width:220px; height:14px; border-radius:7px; background:#1d1712; border:1px solid #5a4630; overflow:hidden; box-shadow:inset 0 1px 3px #000; }
   .cf-hot{ position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg, #ff8c1a, #ffd34d); box-shadow:0 0 10px #ff9a2a; }
@@ -6997,7 +6999,8 @@ function startCampfireEvent(rect, pendingId, params){
   };
 
   // ----- 1) strike -----
-  stageEl.innerHTML = `<div class="cf-strike">${CAMPFIRE_FLINT}<div class="cf-meter"><div class="cf-hot" style="left:auto;right:0;width:${p.strike_win * 100}%"></div><div class="cf-mark"></div></div><div class="cf-tries"></div></div>`;
+  window.CAMPFIRE_FLINT = CAMPFIRE_FLINT;   // the drawn flint, if the icon can't load
+  stageEl.innerHTML = `<div class="cf-strike"><span class="cf-flint-icon"><img src="https://wow.zamimg.com/images/wow/icons/large/inv_stone_11.jpg" alt="Flint and Tinder" onerror="this.parentNode.outerHTML=CAMPFIRE_FLINT"></span><div class="cf-meter"><div class="cf-hot" style="left:auto;right:0;width:${p.strike_win * 100}%"></div><div class="cf-mark"></div></div><div class="cf-tries"></div></div>`;
   const mark = stageEl.querySelector('.cf-mark'), triesEl = stageEl.querySelector('.cf-tries');
   let t0 = 0, lastCycle = -1, tries = 0, stage = 'intro';
   const showTries = () => { triesEl.textContent = `Tries left: ${p.strike_tries - tries}`; };
