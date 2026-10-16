@@ -710,9 +710,10 @@
           const box = new THREE.Box3().setFromObject(g.scene), size = box.getSize(new THREE.Vector3());
           // lives in the zone's piece group (already scaled to the zone), standing just in front of the outpost /
           // stronghold's entrance (buildings face the camera, +z), or beside the banner when there is no building
-          // size by stage: juveniles small, adults twice that, bosses twice an adult
-          const STAGE_H = { juvenile: 0.12, adult: 0.24, boss: 0.48 };
-          const piece = this.pieces[w.zone], s2 = (STAGE_H[w.stage] || 0.12) / Math.max(size.y, size.x * 0.6);
+          // size by stage, measured by footprint (the larger of length and wingspan) so a long-winged gryphon and a
+          // stocky dragon of the same stage take up about the same room: juveniles small, adults 2x, bosses 2x adults
+          const STAGE_SPAN = { juvenile: 0.3, adult: 0.6, boss: 1.2 };
+          const piece = this.pieces[w.zone], s2 = (STAGE_SPAN[w.stage] || 0.3) / Math.max(size.x, size.z);
           const holder = new THREE.Group(); holder.add(m); m.scale.setScalar(s2);
           m.position.set(-(box.min.x + box.max.x) / 2 * s2, -box.min.y * s2, -(box.min.z + box.max.z) / 2 * s2);
           if(w.built) holder.position.set((piece.bx || -0.2) + 0.02, 0.002, (piece.bz || -0.06) + 0.26);
