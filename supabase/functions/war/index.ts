@@ -275,7 +275,7 @@ Deno.serve(async req => {
     if(action === 'pickpet'){
       if(!isUuid(String(body.petId || ''))) return reply({ ok: false, error: 'Pick one of your pets' });
       picked = await petOf(uid, body.petId);
-      if(!picked || picked.id !== body.petId) return reply({ ok: false, error: 'That pet can't fight (eggs stay home)' });
+      if(!picked || picked.id !== body.petId) return reply({ ok: false, error: 'That pet cannot fight (eggs stay home)' });
     }
     const res = await mutate(s => {
       const out = playerAction(s);
