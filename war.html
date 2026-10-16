@@ -998,7 +998,7 @@ function renderMeInner(){
     <div class="resg">${['food', 'wood', 'ore', 'gold'].map(r => `<div title="${r}">${RES_ICON[r]}<b>${p.res[r]}</b>${inc[r] ? `<small>+${Math.max(1, Math.round(inc[r] / team))}/day</small>` : ''}</div>`).join('')}</div>
     <div class="sec">Battle cards</div>
     <div class="hand">${cards}</div>
-    <details class="fold"><summary class="sec" style="margin-top:8px">Forge cards &amp; trade · ${E.tradeRate(G, f)}:1</summary>
+    <details class="fold" ${window.forgeFold ? '' : 'open'} ontoggle="window.forgeFold = !this.open"><summary class="sec" style="margin-top:8px">Forge cards &amp; trade · ${E.tradeRate(G, f)}:1</summary>
       <div class="forge">${['draft', 'warcry', 'shieldwall', 'march', 'naval'].map(k => {
         const c = E.RULES.costs[k], ok = Object.entries(c).every(([r, n]) => p.res[r] >= n);
         return cardFace(k, '', ok ? '' : 'no', `doCraft('${k}')`, `<div class="ft">${Object.entries(c).map(([r, n]) => `<span>${n}${RES_ICON[r]}</span>`).join('')}</div>`);
