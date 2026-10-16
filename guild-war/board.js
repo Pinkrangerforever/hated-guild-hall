@@ -1052,7 +1052,15 @@
         else { const g = 1 + n * 0.04; o.scale.set(g, g, g); }
       });
       if(this.lavaTick) this.lavaTick(now);
-      (this.domes || []).forEach(d => { d.material.opacity = 0.15 + Math.sin(now / 700) * 0.06; });   // shield domes shimmer
+      (this.domes || []).forEach(d => {   // shield domes shimmer; their sparkles drift up over the surface and twinkle
+        d.material.opacity = 0.15 + Math.sin(now / 700) * 0.06;
+        (d.userData.sparks || []).forEach(s => {
+          const t = ((now / 3200) * s.sp0 + s.ph) % 1, el = Math.min(1.45, s.el + t * 0.9), a = s.a + t * 0.8, R = 0.245;
+          s.sp.position.set(Math.cos(a) * Math.cos(el) * R, Math.sin(el) * R, Math.sin(a) * Math.cos(el) * R);
+          const tw = Math.max(0, Math.sin(t * Math.PI)) * (0.6 + 0.4 * Math.sin(now / 90 + s.ph * 20));
+          s.sp.material.opacity = tw; s.sp.scale.setScalar(0.035 + tw * 0.03); s.sp.material.rotation = now / 900 + s.ph * 6;
+        });
+      });
       (this.lairSmoke || []).forEach(o => { const t = ((now / 4200) + o.ph) % 1; o.sp.position.set(Math.sin(t * 6 + o.ph * 9) * 0.03, 0.06 + t * 0.35, 0.08); o.sp.scale.setScalar(0.06 + t * 0.16); o.sp.material.opacity = Math.sin(t * Math.PI) * 0.55; });
     }
     // the cow level: a tauren strolls across Mulgore, roars, and wanders off
@@ -1657,12 +1665,24 @@
         p.fortFor = fm2 ? z.owner : null;
       }
       p.wall.visible = fortified && !fm2;
-      // Shield Wall raised: a faint blue dome over the zone's army until the next attack spends it
+      // Shield Wall raised: a faint golden dome over the zone's army, holy sparkles drifting over it, until the next attack spends it
       if(z.shield && !p.dome){
-        const dm = new THREE.MeshBasicMaterial({ color: 0x8fc8ff, transparent: true, opacity: 0.2, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+        const dm = new THREE.MeshBasicMaterial({ color: 0xffc94a, transparent: true, opacity: 0.2, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
         p.dome = new THREE.Mesh(new THREE.SphereGeometry(0.24, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), dm);
-        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.006, 6, 48), new THREE.MeshBasicMaterial({ color: 0xbfe2ff, transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending }));
-        rim.rotation.x = Math.PI / 2; p.dome.add(rim); p.dome.scale.y = 0.75; p.dome.renderOrder = 5; p.grp.add(p.dome); (this.domes = this.domes || new Set()).add(p.dome);
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.006, 6, 48), new THREE.MeshBasicMaterial({ color: 0xffe9a0, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending }));
+        rim.rotation.x = Math.PI / 2; p.dome.add(rim);
+        // holy sparkles: little four-point stars that twinkle as they drift up over the dome
+        if(!this.sparkTex){
+          const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+          const g = x.createRadialGradient(32, 32, 0, 32, 32, 30); g.addColorStop(0, 'rgba(255,255,235,1)'); g.addColorStop(0.25, 'rgba(255,225,130,0.7)'); g.addColorStop(1, 'rgba(255,200,80,0)');
+          x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+          x.fillStyle = 'rgba(255,250,220,0.95)'; x.beginPath(); x.moveTo(32, 2); x.lineTo(35, 29); x.lineTo(62, 32); x.lineTo(35, 35); x.lineTo(32, 62); x.lineTo(29, 35); x.lineTo(2, 32); x.lineTo(29, 29); x.closePath(); x.fill();
+          this.sparkTex = new THREE.CanvasTexture(c);
+        }
+        p.dome.userData.sparks = Array.from({ length: 14 }, (_, i) => {
+          const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.sparkTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+          p.dome.add(sp); return { sp, a: Math.random() * Math.PI * 2, el: Math.random() * 1.2, ph: Math.random(), sp0: 0.6 + Math.random() * 0.8 };
+        }); p.dome.scale.y = 0.75; p.dome.renderOrder = 5; p.grp.add(p.dome); (this.domes = this.domes || new Set()).add(p.dome);
       } else if(!z.shield && p.dome){ p.grp.remove(p.dome); this.domes.delete(p.dome); p.dome = null; }
       const mobKey = z.owner === 'neutral' ? NEUTRAL_MOBS[WAR_ZONES[k].region] : null, haveMob = mobKey && this.troopProtos && this.troopProtos[mobKey];
       const campN = 0;   // no standing camps (too busy on the map): the monsters only appear to defend in battles
