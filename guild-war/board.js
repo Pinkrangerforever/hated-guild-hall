@@ -712,7 +712,7 @@
           // stronghold's entrance (buildings face the camera, +z), or beside the banner when there is no building
           // size by stage, measured by footprint (the larger of length and wingspan) so a long-winged gryphon and a
           // stocky dragon of the same stage take up about the same room: juveniles small, adults 2x, bosses 2x adults
-          const STAGE_SPAN = { juvenile: 0.3, adult: 0.6, boss: 1.2 };
+          const STAGE_SPAN = { juvenile: 0.3, adult: 0.6, boss: 0.95 };
           const piece = this.pieces[w.zone], s2 = (STAGE_SPAN[w.stage] || 0.3) / Math.max(size.x, size.z);
           const holder = new THREE.Group(); holder.add(m); m.scale.setScalar(s2);
           m.position.set(-(box.min.x + box.max.x) / 2 * s2, -box.min.y * s2, -(box.min.z + box.max.z) / 2 * s2);
