@@ -988,7 +988,7 @@ function renderMeInner(){
   el.innerHTML = `<div class="ph"><div class="crest">${TROOP_ICON(f)}</div><div><div class="t">${esc(p.name)}${p.bot ? ' <span class="tag">bot</span>' : ''}</div><div class="s">${f === 'horde' ? 'For the Horde' : 'For the Alliance'} · Day ${d + 1}</div></div></div>
     <div class="row" style="justify-content:space-between">
       <div><div class="lbl">Action points</div><div class="ap">${ap}</div></div>
-      <div class="stat">${TROOP_ICON(f)}<div><div class="big">${p.reinforce}</div><div class="lbl">to deploy</div>${p.reinforce > 0 && G.phase === 'live' ? '<button class="btn sm" style="margin-top:3px" onclick="showDeploySpots()">🪖 Deploy</button>' : ''}</div></div>
+      <div class="stat">${TROOP_ICON(f)}<div><div class="big">${p.reinforce}</div><div class="lbl">to deploy</div>${p.reinforce > 0 && G.phase === 'live' ? '<button class="btn sm" style="margin-top:3px" onclick="showDeploySpots()">Deploy</button>' : ''}</div></div>
     </div>
     <div class="scoutln" data-tip="<b>🔭 Scout reports</b><br>The day has three watches: midnight to 8am, 8am to 4pm and 4pm to midnight. The first time you open the war room in each watch, your scouts bring in <b>1 extra troop</b>.<span class='c'>Missed watches don't carry over.</span>">🔭 Scouts return in ${(() => { const n = 8 - (G.clock % 8); return n >= 1 ? Math.floor(n) + 'h ' + Math.round((n % 1) * 60) + 'm' : Math.round(n * 60) + 'm'; })()}
     </div>
