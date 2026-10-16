@@ -4043,6 +4043,13 @@
     background:radial-gradient(ellipse at 50% 70%, rgba(255,140,40,calc(.10 + var(--glowA, 0) * .35)), transparent 60%), linear-gradient(#0d1420, #1a1410 55%, #120d09); }
   .cf-ground{ position:absolute; left:0; right:0; bottom:0; height:46%; opacity:.55;
     background:url('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/Housing/Mulgore%20Bluffs/mullgorebasedirt.png') center/180px; mask-image:linear-gradient(transparent, #000 35%); -webkit-mask-image:linear-gradient(transparent, #000 35%); }
+  .cf-3d{ position:absolute; left:50%; bottom:10px; width:300px; height:160px; transform:translateX(-50%); pointer-events:none; }
+  .cf-3d canvas{ display:block; }
+  .cf-wowicon{ position:relative; display:block; width:34px; height:34px; border-radius:5px; overflow:hidden; border:1px solid #000; box-shadow:0 0 0 1px #6b5232; }
+  .cf-wowicon img{ width:100%; height:100%; display:block; }
+  .cf-wowicon.wet img{ filter:hue-rotate(170deg) saturate(.55) brightness(.75); }
+  .cf-wowicon b{ position:absolute; right:-1px; bottom:-3px; font-size:13px; }
+  .cf-flying .cf-wowicon{ width:40px; height:40px; }
   .cf-ring{ position:absolute; left:50%; bottom:22px; width:240px; transform:translateX(-50%); filter:drop-shadow(0 3px 3px #000); }
   /* the fire: a glow and four flame tongues that flicker; it grows with each size (s0 ember .. s5 roaring) */
   .cf-fire{ --glow:0; position:absolute; left:50%; bottom:46px; width:120px; height:150px; transform:translateX(-50%); pointer-events:none; }
@@ -6875,6 +6882,13 @@ const CAMPFIRE_ICONS = {
   leaves: `<svg viewBox="0 0 40 40"><path d="M8 28 Q10 12 26 10 Q24 26 8 28Z" fill="#4f9a3a"/><path d="M8 28 L24 12" stroke="#2f6a22" stroke-width="1.2"/><path d="M16 32 Q22 18 34 20 Q28 32 16 32Z" fill="#67b84a"/><path d="M16 32 L32 21" stroke="#3a7a2a" stroke-width="1.2"/></svg>`,
   stone: `<svg viewBox="0 0 40 40"><path d="M7 28 Q6 18 15 14 Q24 10 31 16 Q36 22 32 28 Q24 33 14 32 Q8 31 7 28Z" fill="#8c8c86"/><path d="M12 18 Q18 14 24 16" stroke="#b5b5ae" stroke-width="1.5" fill="none"/><path d="M14 28 Q22 30 30 26" stroke="#5f5f5a" stroke-width="1.5" fill="none"/></svg>`
 };
+// real WoW item icons for the fuel tray (from Wowhead's icon server, like the guild bank)
+const CAMPFIRE_WOW_ICON = { tinder: 'inv_misc_herb_07', kindling: 'inv_misc_branch_01', sticks: 'inv_tradeskillitem_01', log: 'inv_tradeskillitem_03',
+  wet: 'inv_tradeskillitem_03', leaves: 'inv_misc_herb_10', stone: 'inv_stone_06' };
+const campfireIcon = k => CAMPFIRE_WOW_ICON[k]
+  ? `<span class="cf-wowicon ${k === 'wet' ? 'wet' : ''}"><img src="https://wow.zamimg.com/images/wow/icons/large/${CAMPFIRE_WOW_ICON[k]}.jpg" alt="" onerror="this.parentNode.outerHTML=CAMPFIRE_ICONS['${k}']||''">${k === 'wet' ? '<b>💧</b>' : ''}</span>`
+  : (CAMPFIRE_ICONS[k] || '');
+window.CAMPFIRE_ICONS = CAMPFIRE_ICONS;
 const CAMPFIRE_FLINT = `<svg viewBox="0 0 120 70" class="cf-flint"><defs><linearGradient id="cfSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6edf2"/><stop offset="1" stop-color="#6c7a86"/></linearGradient></defs>
   <path d="M14 46 Q8 30 22 22 Q38 14 50 26 Q58 36 50 46 Q36 56 22 54 Z" fill="#3d3f45"/><path d="M20 30 Q30 22 42 26" stroke="#6c707a" stroke-width="2" fill="none"/>
   <path d="M66 20 h40 q8 0 8 8 v4 q0 8 -8 8 h-40 q-6 0 -6 -10 q0 -10 6 -10z" fill="none" stroke="url(#cfSteel)" stroke-width="7"/></svg>`;
@@ -6898,6 +6912,43 @@ function startCampfireEvent(rect, pendingId, params){
       <div class="cf-stage"></div>
     </div>`;
   const scene = enc.body.querySelector('.cf-scene'), fire = scene.querySelector('.cf-fire'), stageEl = scene.querySelector('.cf-stage');
+  // The Elwynn campfire model as the pit: stones and logs in 3D, lit by a warm light that follows the fire. Its own
+  // fire is a WoW particle effect (not exported), so our flames sit on its logs. Falls back to the drawn ring.
+  const pit = { alive: true };
+  if(window.THREE && typeof loadHomeProp === 'function' && HOME_DECOR && HOME_DECOR.campfire){
+    try{
+      const W = 300, H = 160, wrap = document.createElement('div'); wrap.className = 'cf-3d';
+      scene.insertBefore(wrap, scene.querySelector('.cf-fuel'));
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); renderer.setSize(W, H); renderer.outputEncoding = THREE.sRGBEncoding;
+      wrap.appendChild(renderer.domElement);
+      const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, W / H, 0.05, 50);
+      cam.position.set(0, 1.25, 3.1); cam.lookAt(0, 0.3, 0);
+      sc.add(new THREE.HemisphereLight(0x7d8fb0, 0x1a0d05, 0.5));
+      const fireLight = new THREE.PointLight(0xff8a2a, 0, 6, 2); fireLight.position.set(0, 0.55, 0.25); sc.add(fireLight);
+      Object.assign(pit, { renderer, sc, cam, fireLight, W, H });
+      loadHomeProp(HOME_DECOR.campfire).then(m => {
+        if(!pit.alive) return;
+        m.scale.setScalar(1.0 / m.userData.unitHeight); sc.add(m); pit.model = m;
+        scene.querySelector('.cf-ring').style.display = 'none';
+        // sit our flames on the logs: project the top of the log stack into the card
+        m.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(m), top = new THREE.Vector3(0, box.min.y + (box.max.y - box.min.y) * 0.45, 0).project(cam);
+        const sceneH = scene.clientHeight, canvasTop = sceneH - H - 10;
+        const y = canvasTop + (1 - top.y) / 2 * H, x = (top.x + 1) / 2 * W + (scene.clientWidth - W) / 2;
+        fire.style.left = x + 'px'; fire.style.bottom = Math.max(20, sceneH - y) + 'px';
+      }).catch(() => { /* keep the drawn ring */ });
+      const loop = () => {
+        if(!pit.alive) return;
+        const g = parseFloat(fire.style.getPropertyValue('--glow')) || (fire.className.match(/s(\d)/) ? +fire.className.match(/s(\d)/)[1] / 5 : 0);
+        fireLight.intensity = 0.35 + g * 2.8 + (g > 0 ? Math.random() * 0.25 * g : 0);
+        renderer.render(sc, cam);
+        requestAnimationFrame(loop);
+      };
+      requestAnimationFrame(loop);
+    }catch(e){ console.warn('campfire 3D view unavailable', e); }
+  }
+  const closePit = () => { if(!pit.alive) return; pit.alive = false; setTimeout(() => { try{ pit.renderer && pit.renderer.dispose(); }catch(e){} }, 2600); };
   const strikes = [], toggles = [], feeds = [];
   let done = false, raf = null, perfect = true, burnedOut = false;
   const setFire = (size, glow) => { fire.className = 'cf-fire s' + size; if(glow != null) fire.style.setProperty('--glow', glow.toFixed(3)); };
@@ -6912,6 +6963,7 @@ function startCampfireEvent(rect, pendingId, params){
   };
   const finish = () => {
     if(done) return; done = true; cancelAnimationFrame(raf); enc.stopTimer();
+    setTimeout(closePit, 2400);   // keep the pit lit until the card folds away
     window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKey);
     const local = campfireJudge(p, strikes, toggles, feeds);
     const timings = [strikes.length, ...strikes, toggles.length, ...toggles, feeds.length, ...feeds.flat()];
@@ -7006,7 +7058,7 @@ function startCampfireEvent(rect, pendingId, params){
     enc.setInstruction('Feed the fire <b>smallest to biggest</b> before it dies &mdash; tinder, kindling, sticks, then a log!');
     enc.restartTimer(Math.round(1000 / p.feed_decay));
     stageEl.innerHTML = `<div class="cf-feed"><div class="cf-heat"><i></i></div><div class="cf-tray">${p.tray.map((k, i) =>
-      `<button type="button" class="cf-piece" data-slot="${i}" title="${(CAMPFIRE_FUEL[k] || {}).name || k}">${CAMPFIRE_ICONS[k] || ''}<span>${(CAMPFIRE_FUEL[k] || {}).name || k}</span></button>`).join('')}</div></div>`;
+      `<button type="button" class="cf-piece" data-slot="${i}" title="${(CAMPFIRE_FUEL[k] || {}).name || k}">${campfireIcon(k)}<span>${(CAMPFIRE_FUEL[k] || {}).name || k}</span></button>`).join('')}</div></div>`;
     stageEl.querySelectorAll('.cf-piece').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); feed(+b.dataset.slot, b); }));
     fT0 = performance.now(); fLast = 0;
     raf = requestAnimationFrame(feedTick);
@@ -7028,7 +7080,7 @@ function startCampfireEvent(rect, pendingId, params){
     const kind = p.tray[slot], f = CAMPFIRE_FUEL[kind] || CAMPFIRE_FUEL.stone;
     const sr = scene.getBoundingClientRect(), fr = fire.getBoundingClientRect(), fx = fr.left - sr.left + fr.width / 2, fy = fr.top - sr.top + fr.height * 0.7;
     // the piece flies onto the fire
-    const fly = document.createElement('div'); fly.className = 'cf-flying'; fly.innerHTML = CAMPFIRE_ICONS[kind] || '';
+    const fly = document.createElement('div'); fly.className = 'cf-flying'; fly.innerHTML = campfireIcon(kind);
     const br = btn.getBoundingClientRect(); fly.style.left = (br.left - sr.left) + 'px'; fly.style.top = (br.top - sr.top) + 'px';
     fly.style.setProperty('--tx', (fx - (br.left - sr.left) - 20) + 'px'); fly.style.setProperty('--ty', (fy - (br.top - sr.top) - 20) + 'px');
     scene.appendChild(fly); setTimeout(() => fly.remove(), 420);
