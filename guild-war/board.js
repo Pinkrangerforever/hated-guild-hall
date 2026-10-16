@@ -973,6 +973,10 @@
       this.egg(pool, () => {
         if(busy) return; busy = true;
         this.eggSay('ragnaros', 'TOO SOON! YOU HAVE AWAKENED ME TOO SOON, EXECUTUS!');
+        try{   // his voice line (R2: War Games/War Room/Ragnaros)
+          const vo = new Audio('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/War%20Room/Ragnaros/vo_fl_ragnaros_death_normal.ogg');
+          vo.volume = 0.8; vo.play().catch(() => {});
+        }catch(e){}
         const ms = this.playOnce(mixer, clips, 'EmoteRoar', 'Stand') || 2000;
         this.shake(900, 0.12); light.userData.roar = true;
         this.animate(ms, t => { light.intensity = 1.8 + Math.sin(t * Math.PI) * 4; }).then(() => { light.userData.roar = false; });
