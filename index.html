@@ -4268,6 +4268,17 @@
   .gb-cnt{ position:absolute; right:2px; bottom:0; font:700 11px system-ui, sans-serif; color:#fff; text-shadow:0 0 2px #000, 1px 1px 1px #000, -1px -1px 1px #000; }
   .gb-noicon{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:700 11px system-ui; color:var(--q); }
   @media (max-width: 600px){ .gb-slots{ gap:2px; padding:4px; } .gb-cnt{ font-size:9px; } }
+  .gb-tip{ position:fixed; z-index:10000; display:none; max-width:320px; pointer-events:none; padding:8px 10px; border-radius:5px;
+    background:rgba(9,8,22,.96); border:1px solid #5b5b6e; box-shadow:0 0 0 1px #000, 0 6px 18px rgba(0,0,0,.7);
+    font:13px/1.35 Verdana, 'Segoe UI', sans-serif; color:#fff; }
+  .gb-tip table{ border-collapse:collapse; width:100%; } .gb-tip td, .gb-tip th{ padding:0; vertical-align:top; }
+  .gb-tip th{ text-align:right; font-weight:normal; padding-left:16px; }
+  .gb-tip b{ font-weight:bold; } .gb-tip .q0{ color:#9d9d9d; } .gb-tip .q1{ color:#fff; } .gb-tip .q2{ color:#1eff00; } .gb-tip .q3{ color:#0070dd; }
+  .gb-tip .q4{ color:#a335ee; } .gb-tip .q5{ color:#ff8000; } .gb-tip .q6{ color:#e6cc80; } .gb-tip .q7{ color:#00ccff; }
+  .gb-tip .q{ color:#ffd100; } .gb-tip .whtt-sellprice, .gb-tip .moneygold, .gb-tip .moneysilver, .gb-tip .moneycopper{ color:#fff; }
+  .gb-tip .whtt-extra, .gb-tip .whtt-ilvl{ color:#ffd100; }
+  .gb-tip-foot{ margin-top:6px; padding-top:5px; border-top:1px solid #3a3a4e; color:#ffd100; }
+  .gb-tip-load{ color:#aaa; font-style:italic; margin-top:3px; }
   .gb-items{ display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:6px; }
   .gb-item{ display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:6px; background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); text-decoration:none; min-width:0; }
   .gb-item:hover{ border-color:rgba(214,169,64,.6); }
@@ -12693,7 +12704,7 @@ function gbGrid(tab){
     if(!it) return '<div class="gb-slot gb-empty"></div>';
     const id = Number(it.itemId) || 0, icon = gbIcons[id], q = GB_QUALITY[it.quality] || '#9d9d9d';
     // a tile, not a link: Wowhead's script would stamp its own little icon into every link it finds
-    return `<div class="gb-slot" role="link" tabindex="0" style="--q:${q}" data-wowhead="item=${id}&domain=classic" title="" aria-label="${esc(it.name || 'Item ' + id)}${(it.count || 1) > 1 ? ' x' + Number(it.count) : ''}"
+    return `<div class="gb-slot" role="link" tabindex="0" style="--q:${q}" data-gb-item="${id}" data-gb-count="${Number(it.count) || 1}" data-gb-name="${esc(it.name || '')}" data-gb-q="${Number(it.quality) || 0}" aria-label="${esc(it.name || 'Item ' + id)}${(it.count || 1) > 1 ? ' x' + Number(it.count) : ''}"
       onclick="window.open('https://www.wowhead.com/classic/item=${id}', '_blank', 'noopener')">
       ${icon ? `<img src="https://wow.zamimg.com/images/wow/icons/large/${icon}.jpg" alt="" loading="lazy">` : `<span class="gb-noicon">${esc((it.name || '?').slice(0, 2))}</span>`}
       ${(it.count || 1) > 1 ? `<span class="gb-cnt">${Number(it.count)}</span>` : ''}</div>`;
@@ -12702,6 +12713,49 @@ function gbGrid(tab){
 // item icons come from Wowhead's item data (it allows the site to ask); remembered in this browser
 const gbIcons = (() => { try{ return JSON.parse(localStorage.getItem('gb-icons') || '{}'); }catch(e){ return {}; } })();
 const gbIconWant = new Set();
+// ----- hover tooltips: Wowhead's tooltip for the item (cleaned of anything active), in a WoW-style box -----
+const gbTips = {};
+function gbCleanTip(html){
+  const t = document.createElement('template'); t.innerHTML = String(html);
+  t.content.querySelectorAll('script, style, iframe, object, embed, link, img').forEach(n => n.remove());
+  t.content.querySelectorAll('*').forEach(n => { [...n.attributes].forEach(a => {
+    if(/^on/i.test(a.name) || (a.name === 'href' || a.name === 'src') || a.name === 'style') n.removeAttribute(a.name);
+  }); });
+  t.content.querySelectorAll('a').forEach(a => { const s = document.createElement('span'); s.innerHTML = a.innerHTML; s.className = a.className; a.replaceWith(s); });
+  return t.innerHTML;
+}
+async function gbTipFor(id){
+  if(gbTips[id]) return gbTips[id];
+  try{ const d = await (await fetch(`https://nether.wowhead.com/classic/tooltip/item/${id}`)).json(); if(d && d.icon) gbIcons[id] = d.icon; gbTips[id] = d && d.tooltip ? gbCleanTip(d.tooltip) : ''; }
+  catch(e){ gbTips[id] = ''; }
+  return gbTips[id];
+}
+let gbTipEl = null, gbTipFor_ = null;
+function gbPlaceTip(ev){
+  if(!gbTipEl) return;
+  const pad = 14, w = gbTipEl.offsetWidth, hgt = gbTipEl.offsetHeight;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  if(x + w > innerWidth - 8) x = ev.clientX - w - pad;
+  if(y + hgt > innerHeight - 8) y = Math.max(8, innerHeight - hgt - 8);
+  gbTipEl.style.left = Math.max(8, x) + 'px'; gbTipEl.style.top = y + 'px';
+}
+document.addEventListener('mouseover', async ev => {
+  const tile = ev.target.closest && ev.target.closest('.gb-slot[data-gb-item]');
+  if(!tile){ return; }
+  if(gbTipFor_ === tile) return;
+  gbTipFor_ = tile;
+  if(!gbTipEl){ gbTipEl = document.createElement('div'); gbTipEl.className = 'gb-tip'; document.body.appendChild(gbTipEl); }
+  const id = +tile.dataset.gbItem, count = +tile.dataset.gbCount || 1, q = +tile.dataset.gbQ || 1;
+  const foot = count > 1 ? `<div class="gb-tip-foot">In the bank: <b>${count}</b></div>` : '';
+  gbTipEl.innerHTML = gbTips[id] ? gbTips[id] + foot : `<b class="q${q}">${esc(tile.dataset.gbName || 'Item ' + id)}</b><div class="gb-tip-load">Loading…</div>${foot}`;
+  gbTipEl.style.display = 'block'; gbPlaceTip(ev);
+  if(!gbTips[id]){ const html = await gbTipFor(id); if(gbTipFor_ === tile && html){ gbTipEl.innerHTML = html + foot; gbPlaceTip(ev); } }
+});
+document.addEventListener('mousemove', ev => { if(gbTipFor_ && gbTipEl && gbTipEl.style.display === 'block') gbPlaceTip(ev); });
+document.addEventListener('mouseout', ev => {
+  const tile = ev.target.closest && ev.target.closest('.gb-slot[data-gb-item]');
+  if(tile && !(ev.relatedTarget && tile.contains(ev.relatedTarget))){ gbTipFor_ = null; if(gbTipEl) gbTipEl.style.display = 'none'; }
+});
 let gbIconTimer = null;
 function gbEnsureIcons(ids){
   ids.forEach(id => { id = Number(id); if(id && !(id in gbIcons)) gbIconWant.add(id); });
@@ -12710,7 +12764,7 @@ function gbEnsureIcons(ids){
     const list = [...gbIconWant]; gbIconWant.clear();
     for(let i = 0; i < list.length; i += 6){
       await Promise.all(list.slice(i, i + 6).map(id => fetch(`https://nether.wowhead.com/classic/tooltip/item/${id}`).then(r => r.ok ? r.json() : null)
-        .then(d => { gbIcons[id] = d && d.icon ? d.icon : ''; }).catch(() => { gbIcons[id] = ''; })));
+        .then(d => { gbIcons[id] = d && d.icon ? d.icon : ''; if(d && d.tooltip) gbTips[id] = gbCleanTip(d.tooltip); }).catch(() => { gbIcons[id] = ''; })));
     }
     try{ localStorage.setItem('gb-icons', JSON.stringify(gbIcons)); }catch(e){}
     gbIconTimer = null;
@@ -12736,7 +12790,6 @@ function gbDemo(){
 
 function renderGuildBank(){
   if(!gb.loaded && !gb.loading) loadGuildBank();
-  setTimeout(() => { if(window.$WowheadPower && $WowheadPower.refreshLinks) $WowheadPower.refreshLinks(); }, 60);   // item icons + tooltips
   const isRL = !!(state.profile && state.profile.protected);
   const s = gb.snap, tabs = (s && s.tabs) || [];
   const cut = { week: Date.now() - 7 * 864e5, month: Date.now() - 30 * 864e5, all: 0 }[gb.period];
