@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'guild-war/map-data.js'
+      - 'guild-war/engine.js'
+      - 'guild-war/ai.js'
+      - 'tools/build_war_server.py'
       - '.github/workflows/prod.yml'
 
 concurrency:
@@ -106,6 +111,15 @@ jobs:
             --password ${{ secrets.SUPABASE_PROD_DB_PASSWORD }} \
             --dry-run=false \
             --include-all
+
+      # The Guild War server: bundle the shared game code and deploy the `war` Edge Function (it checks each
+      # player's sign-in itself, so the gateway's JWT check is off - the clock job calls it without one)
+      - name: Deploy Guild War Function
+        run: |
+          python3 tools/build_war_server.py
+          supabase functions deploy war --project-ref ${{ secrets.SUPABASE_PROD_PROJECT_REF }} --no-verify-jwt
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN }}
 
       - name: Post Success Notification
         if: success()
