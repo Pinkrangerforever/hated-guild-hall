@@ -4004,6 +4004,10 @@
     pointer-events:none; animation:encDimIn .3s ease-out both; }
   .encounter-dim.closing{ animation:encDimOut .4s ease-in forwards; }
   @keyframes encDimIn{ from{ opacity:0; } } @keyframes encDimOut{ to{ opacity:0; } }
+  /* mini-games on phones: no text selection, copy/paste callout, tap flash or long-press menu; the play areas also
+     take every touch for themselves (no scrolling or zooming mid-game, which would cancel a held press) */
+  .encounter-card{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+  .fsh-game, .cf-scene, .murloc-stage, .mine-arena, .lj-arena, .blacksmith-forge, .fish-gauge-btn{ touch-action:none; }
   .encounter-card{ position:fixed; width:min(440px, calc(100vw - 24px)); max-height:calc(100vh - 16px); overflow-y:auto; overflow-x:hidden; pointer-events:auto; z-index:2;
     padding:14px 16px 12px; border-radius:6px; color:var(--hh-parchment, #e9dcc0);
     background:
@@ -6559,13 +6563,15 @@ function buildFishGaugeMarkup(zoneStart, zoneEnd){
    This simulation must stay identical to the one in resolve_sparkle_event (same constants, same
    order of operations, Park-Miller RNG, 60 ticks per second) - the server replays your inputs. */
 // Bump together with sim_v in claim_sparkle_gold whenever the physics below change
-const FISH_SIM_VERSION = 4;
+const FISH_SIM_VERSION = 5;
+// The fish glides: it picks a new spot every couple of seconds and eases toward it without overshooting
+// (pull and damp are close to critically damped) at no more than `maxv` a tick.
 const FISH_BEHAVIOR = {
-  mixed:   { chance: 0.025, range: 0.55, bias: 0,     pull: 0.012, damp: 0.9 },
-  dart:    { chance: 0.035, range: 0.55, bias: 0,     pull: 0.011, damp: 0.88 },
-  smooth:  { chance: 0.02,  range: 0.5,  bias: 0,     pull: 0.009, damp: 0.9 },
-  sinker:  { chance: 0.025, range: 0.55, bias: -0.15, pull: 0.012, damp: 0.9 },
-  floater: { chance: 0.025, range: 0.55, bias: 0.15,  pull: 0.012, damp: 0.9 }
+  mixed:   { chance: 0.008, range: 0.4,  bias: 0,     pull: 0.0035, damp: 0.9,  maxv: 0.007 },
+  dart:    { chance: 0.011, range: 0.45, bias: 0,     pull: 0.004,  damp: 0.9,  maxv: 0.009 },
+  smooth:  { chance: 0.006, range: 0.35, bias: 0,     pull: 0.003,  damp: 0.92, maxv: 0.006 },
+  sinker:  { chance: 0.008, range: 0.4,  bias: -0.12, pull: 0.0035, damp: 0.9,  maxv: 0.007 },
+  floater: { chance: 0.008, range: 0.4,  bias: 0.12,  pull: 0.0035, damp: 0.9,  maxv: 0.007 }
 };
 function makeFishSim(params){
   const b = FISH_BEHAVIOR[params.behavior] || FISH_BEHAVIOR.mixed;
@@ -6583,6 +6589,8 @@ function makeFishSim(params){
       if(s.target > 0.95) s.target = 0.95;
     }
     s.fv = s.fv * b.damp + (s.target - s.fpos) * b.pull;
+    if(s.fv > b.maxv) s.fv = b.maxv;
+    if(s.fv < -b.maxv) s.fv = -b.maxv;
     s.fpos = s.fpos + s.fv;
     if(s.fpos < 0.03){ s.fpos = 0.03; s.fv = 0; }
     if(s.fpos > 0.97){ s.fpos = 0.97; s.fv = 0; }
@@ -6679,6 +6687,7 @@ function startFishingEvent(rect, pendingId, params){
     enc.restartTimer(Math.round(maxTicks * 1000 / 60));
     game.addEventListener('pointerdown', down);
     window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);   // a phone taking over the touch counts as letting go
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
     draw();
@@ -6692,6 +6701,7 @@ function startFishingEvent(rect, pendingId, params){
     cancelAnimationFrame(raf);
     game.removeEventListener('pointerdown', down);
     window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', up);
     window.removeEventListener('keydown', down);
     window.removeEventListener('keyup', up);
     enc.stopTimer();
@@ -6823,6 +6833,7 @@ function openEncounterCard(rect, opts){
   dim.className = 'encounter-dim';
   const card = document.createElement('div');
   card.className = 'encounter-card ' + (opts.cls || '');
+  card.addEventListener('contextmenu', e => e.preventDefault());   // no long-press menu on phones
   const w = state.weary;
   const wearyNote = w && w.tier && w.tier !== 'rested' ? ` <span class="enc-weary tier-${w.tier}">${(WEARY_INFO[w.tier] || [''])[0]}</span>` : '';
   card.innerHTML = `
@@ -7195,6 +7206,7 @@ function startCampfireEvent(rect, pendingId, params){
   const up = () => { if(stage === 'blow') setHold(false); };
   scene.addEventListener('pointerdown', ev => { if(ev.target.closest('.cf-piece')) return; down(ev); });
   window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
   const onKey = ev => {
     if(ev.code !== 'Space' && ev.key !== ' ') return;
     ev.preventDefault();
