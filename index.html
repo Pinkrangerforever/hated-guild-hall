@@ -115,16 +115,17 @@
     display: block;
     max-width: 100%;
   }
-  /* Shorter banner: at most 300px tall (the video is 3:1, so it fills the width on screens up to 900px). On wider
-     screens the sides are filled by a blurred, dimmed copy of the same video playing behind it, and the banner's
-     own edges fade into that copy. */
-  .banner-section{ height:min(300px, 33.34vw); overflow:hidden; }
+  /* Shorter banner: at most 360px tall (the video is 3:1, so it fills the width on screens up to 1080px). On wider
+     screens it sits centred and its sides ease out into the dark background (an eased, many-stop fade, so there's
+     no visible edge where it starts). */
+  .banner-section{ height:min(360px, 33.34vw); overflow:hidden;
+    background:radial-gradient(ellipse 60% 120% at 50% 55%, #2a1a10 0%, #1a1410 55%, #120d0a 100%); }
   .banner-section #hated-banner{ position:relative; z-index:2; width:auto; height:100%; max-width:100%; object-fit:cover;
-    -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
-            mask-image:linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%); }
-  .banner-section .banner-fill{ position:absolute; inset:-30px; width:calc(100% + 60px); height:calc(100% + 60px); z-index:1;
-    object-fit:cover; filter:blur(26px) brightness(0.6) saturate(1.25); pointer-events:none; }
-  @media (max-width: 900px){ .banner-section #hated-banner{ -webkit-mask-image:none; mask-image:none; width:100%; } }
+    --fade:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.04) 3%, rgba(0,0,0,.14) 6%, rgba(0,0,0,.32) 9%, rgba(0,0,0,.55) 12%,
+      rgba(0,0,0,.78) 15%, rgba(0,0,0,.93) 18%, #000 21%, #000 79%, rgba(0,0,0,.93) 82%, rgba(0,0,0,.78) 85%, rgba(0,0,0,.55) 88%,
+      rgba(0,0,0,.32) 91%, rgba(0,0,0,.14) 94%, rgba(0,0,0,.04) 97%, transparent 100%);
+    -webkit-mask-image:var(--fade); mask-image:var(--fade); }
+  @media (max-width: 1080px){ .banner-section #hated-banner{ -webkit-mask-image:none; mask-image:none; width:100%; } }
   .hated-banner::after{
     content:''; position:absolute; top:0; left:0; right:0; bottom:0;
     background:radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.7) 100%);
@@ -4599,9 +4600,6 @@
 
 <!-- HATED BANNER SECTION -->
 <div id="banner-section" class="banner-section">
-  <video class="banner-fill" autoplay muted loop playsinline aria-hidden="true" tabindex="-1">
-    <source src="https://assets.hatedforever.com/HatedBanner.mp4" type="video/mp4">
-  </video>
   <video id="hated-banner" class="hated-banner" autoplay muted loop playsinline>
     <source src="https://assets.hatedforever.com/HatedBanner.mp4" type="video/mp4">
   </video>
