@@ -3001,6 +3001,11 @@
     100% { opacity: 0; }
   }
 
+  /* a single shoe print in the walk to the dealer: fades in, lingers, fades out */
+  .foot-step{ position:absolute; pointer-events:none; z-index:999; transform-origin:50% 50%;
+    filter:drop-shadow(0 0 6px rgba(128,0,255,0.9)) drop-shadow(0 0 12px rgba(128,0,255,0.6)); animation:footStep 8s ease-in-out forwards; }
+  @keyframes footStep{ 0%{ opacity:0; } 12%{ opacity:0.75; } 55%{ opacity:0.6; } 100%{ opacity:0; } }
+  @media (prefers-reduced-motion: reduce){ .foot-step{ animation:none; opacity:0.6; } }
   /* DEALER SHADOW - Absolute at page bottom */
   .dealer-shadow {
     position: absolute;
@@ -14729,23 +14734,50 @@ function trailLater(ms, fn) {
   footprintTrail.timers.push(id);
 }
 
-function spawnSingleFootprint(setIndex) {
-  const banner = document.querySelector('.wow-hero') || document.querySelector('[class*="banner"]');
-  const pageBodyStart = (banner ? banner.offsetHeight : 300) + 100;
-  const pageHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-  const size = Math.min(420, Math.round(window.innerWidth * 0.7)); // never wider than the screen
-  const footprint = document.createElement('img');
-  footprint.src = 'https://assets.hatedforever.com/Footprints.png';
-  footprint.alt = '';
-  footprint.className = 'footprint';
-  footprint.style.width = footprint.style.height = size + 'px';
-  footprint.style.left = Math.random() * Math.max(window.innerWidth - size - 8, 0) + 'px';
-  footprint.style.top = (setIndex === 0 ? pageBodyStart : pageHeight * (setIndex === 1 ? 0.5 : 0.75)) + 'px';
-  document.body.appendChild(footprint);
-  setTimeout(() => footprint.remove(), 7000);
+// Where the dealer's shadow stands (page coordinates of its centre), placing it if it hasn't been shown yet
+function dealerShadowSpot() {
+  const shadow = ensureDealerShadow();
+  const footer = document.querySelector('.site-footer') || document.querySelector('footer');
+  shadow.style.top = (footer ? footer.offsetTop + footer.offsetHeight / 2 - 66 : document.body.scrollHeight - 150) + 'px';
+  const was = shadow.style.display; shadow.style.visibility = 'hidden'; shadow.style.display = 'block';
+  const r = shadow.getBoundingClientRect();
+  shadow.style.display = was; shadow.style.visibility = '';
+  return { x: r.left + r.width / 2 + window.scrollX, y: r.top + window.scrollY };
+}
+// One walk: alternating left and right shoe prints down a winding path from just under the banner to the spot where
+// the shadow will appear. Each print points the way it's walking and sits a little to its own side of the path; they
+// appear one after another over `ms` and each fades out a few seconds later. Returns when the last one lands.
+function walkFootprints(ms) {
+  const banner = document.querySelector('.banner-section') || document.querySelector('[class*="banner"]');
+  const W = document.documentElement.clientWidth, top = (banner ? banner.getBoundingClientRect().bottom + window.scrollY : 300) + 60;
+  const end = dealerShadowSpot();
+  const P0 = { x: W * (0.15 + Math.random() * 0.3), y: top }, P3 = { x: end.x, y: end.y - 30 };
+  const P1 = { x: W * (0.1 + Math.random() * 0.8), y: P0.y + (P3.y - P0.y) * 0.33 }, P2 = { x: W * (0.1 + Math.random() * 0.8), y: P0.y + (P3.y - P0.y) * 0.66 };
+  const at = t => { const u = 1 - t; return { x: u*u*u*P0.x + 3*u*u*t*P1.x + 3*u*t*t*P2.x + t*t*t*P3.x, y: u*u*u*P0.y + 3*u*u*t*P1.y + 3*u*t*t*P2.y + t*t*t*P3.y }; };
+  const pts = []; let len = 0, prev = at(0);
+  for (let i = 0; i <= 400; i++) { const p = at(i / 400); len += Math.hypot(p.x - prev.x, p.y - prev.y); pts.push({ p, len }); prev = p; }
+  const small = W < 600, stride = Math.max(small ? 60 : 80, len / 34), n = Math.floor(len / stride);
+  const fw = small ? 20 : 26, fh = Math.round(fw * 241 / 102), gap = fw * 0.55;
+  let j = 0;
+  for (let k = 0; k <= n; k++) {
+    const d = k * stride; while (j < pts.length - 2 && pts[j + 1].len < d) j++;
+    const p = pts[j].p, q = pts[Math.min(pts.length - 1, j + 4)].p, dx = q.x - p.x, dy = q.y - p.y, L = Math.hypot(dx, dy) || 1;
+    const left = k % 2 === 0, side = left ? 1 : -1;            // a walker facing down the page has their left on screen-right
+    const x = p.x + (dy / L) * gap * side, y = p.y - (dx / L) * gap * side;
+    const rot = Math.atan2(dy, dx) * 180 / Math.PI - 90;       // the prints are drawn walking down the page
+    trailLater(ms * k / Math.max(1, n), () => {
+      const f = document.createElement('img');
+      f.src = 'https://assets.hatedforever.com/Footprints/foot-' + (left ? 'left' : 'right') + '.png?v=2';
+      f.alt = ''; f.className = 'foot-step';
+      f.style.width = fw + 'px'; f.style.height = fh + 'px'; f.style.left = (x - fw / 2) + 'px'; f.style.top = (y - fh / 2) + 'px';
+      f.style.transform = 'rotate(' + rot.toFixed(1) + 'deg)';
+      document.body.appendChild(f);
+      setTimeout(() => f.remove(), 8200);
+    });
+  }
 }
 
-function spawnDealerShadow() {
+function ensureDealerShadow() {
   let shadow = document.getElementById('dealer-shadow');
   if (!shadow) {
     shadow = document.createElement('div');
@@ -14760,6 +14792,10 @@ function spawnDealerShadow() {
     });
     document.body.appendChild(shadow);
   }
+  return shadow;
+}
+function spawnDealerShadow() {
+  const shadow = ensureDealerShadow();
   const footer = document.querySelector('.site-footer') || document.querySelector('footer');
   shadow.style.top = (footer ? footer.offsetTop + footer.offsetHeight / 2 - 66 : document.body.scrollHeight - 150) + 'px';
   // Restart the fade every appearance (it ends at opacity 0, so a reused element would stay invisible)
@@ -14773,7 +14809,7 @@ function stopFootprintTrail() {
   footprintTrail.running = false;
   footprintTrail.timers.forEach(clearTimeout);
   footprintTrail.timers = [];
-  document.querySelectorAll('.footprint').forEach(fp => fp.remove());
+  document.querySelectorAll('.footprint, .foot-step').forEach(fp => fp.remove());
   const shadow = document.getElementById('dealer-shadow');
   if (shadow) shadow.style.display = 'none';
 }
@@ -14783,15 +14819,13 @@ function startFootprintTrail() {
   if (footprintTrail.running) return; // already going: redraws don't start another
   footprintTrail.running = true;
   const cycle = () => {
-    spawnSingleFootprint(0);
-    trailLater(12000, () => spawnSingleFootprint(1));
-    trailLater(24000, () => spawnSingleFootprint(2));
-    trailLater(36000, spawnDealerShadow);
+    walkFootprints(30000);                     // the walk down the page takes 30 s...
+    trailLater(31000, spawnDealerShadow);      // ...and he appears where it ends
     // next lap (if the tab was hidden, the steps were skipped but the lap still repeats)
     const id = setTimeout(() => {
       footprintTrail.timers = footprintTrail.timers.filter(t => t !== id);
       if (footprintTrail.running && shouldShowFootprints()) cycle(); else stopFootprintTrail();
-    }, 41000);
+    }, 43000);
     footprintTrail.timers.push(id);
   };
   if (document.hidden) { // don't start drawing in a background tab; begin when it's visible
