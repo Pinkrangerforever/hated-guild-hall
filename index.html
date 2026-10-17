@@ -9493,7 +9493,8 @@ const HOME_ZONES = {
     props: [
       { gltf: 'models/housing/darkshire-archway.gltf', x: -0.09, z: 3.16, height: 3.6, rotY: -1.571 },     // sign archway over the path
       { gltf: 'models/housing/darkshire-lamppost.gltf', x: -5.55, z: 2.29, height: 2.8, rotY: 0.262,
-        light: { at: [0.93, 1.55, 0], color: 0xffb050, intensity: 2.2, distance: 7 } }
+        light: { at: [0.93, 1.55, 0], color: 0xffb050, intensity: 2.2, distance: 7 },
+        halo: { at: [0.93, 1.55, 0], size: 1.4 } }   // the lantern itself glows too (its panes are painted into the post's texture)
     ],
     houses: {
       1: { gltf: 'models/housing/darkshire-house-t1.gltf', x: 0.44, z: -3.2, height: 3.2, rotY: 0 },
