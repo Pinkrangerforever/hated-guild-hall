@@ -6568,37 +6568,34 @@ function buildFishGaugeMarkup(zoneStart, zoneEnd){
    This simulation must stay identical to the one in resolve_sparkle_event (same constants, same
    order of operations, Park-Miller RNG, 60 ticks per second) - the server replays your inputs. */
 // Bump together with sim_v in claim_sparkle_gold whenever the physics below change
-const FISH_SIM_VERSION = 5;
-// The fish glides: it picks a new spot every couple of seconds and eases toward it without overshooting
-// (pull and damp are close to critically damped) at no more than `maxv` a tick.
+const FISH_SIM_VERSION = 6;
+// The fish swims from the very first tick: a slow up-and-down sweep (period `t1` seconds, size `a1`) layered with a
+// quicker smaller one (`t2`, `a2`) and a little bobble, each game's speeds and phases drawn from its seed.
+// sinker/floater drift toward the bottom/top over the first few seconds.
 const FISH_BEHAVIOR = {
-  mixed:   { chance: 0.008, range: 0.4,  bias: 0,     pull: 0.0035, damp: 0.9,  maxv: 0.007 },
-  dart:    { chance: 0.011, range: 0.45, bias: 0,     pull: 0.004,  damp: 0.9,  maxv: 0.009 },
-  smooth:  { chance: 0.006, range: 0.35, bias: 0,     pull: 0.003,  damp: 0.92, maxv: 0.006 },
-  sinker:  { chance: 0.008, range: 0.4,  bias: -0.12, pull: 0.0035, damp: 0.9,  maxv: 0.007 },
-  floater: { chance: 0.008, range: 0.4,  bias: 0.12,  pull: 0.0035, damp: 0.9,  maxv: 0.007 }
+  mixed:   { a1: 0.28, t1: 5.5, a2: 0.07, t2: 3.2, bias: 0 },
+  dart:    { a1: 0.26, t1: 5,   a2: 0.08, t2: 2.6, bias: 0 },
+  smooth:  { a1: 0.26, t1: 6.5, a2: 0.05, t2: 3.6, bias: 0 },
+  sinker:  { a1: 0.26, t1: 5.5, a2: 0.07, t2: 3.2, bias: -0.12 },
+  floater: { a1: 0.26, t1: 5.5, a2: 0.07, t2: 3.2, bias: 0.12 }
 };
 function makeFishSim(params){
   const b = FISH_BEHAVIOR[params.behavior] || FISH_BEHAVIOR.mixed;
   const s = { seed: Number(params.seed) || 12345, barH: params.bar_h || 0.26, fpos: 0.5, fv: 0, target: 0.5,
               bpos: 0, bv: 0, prog: 0.3, perfect: true, tick: 0, over: false, won: false };
+  // this game's swim: four draws from the seed (Park-Miller, as the server does)
+  const draw = () => { s.seed = (s.seed * 48271) % 2147483647; return s.seed / 2147483647; };
+  const u1 = draw(), u2 = draw(), u3 = draw(), u4 = draw();
+  const w1 = 2 * Math.PI / (60 * b.t1 * (0.85 + u1 * 0.3)) * (u2 < 0.5 ? -1 : 1);   // per tick, either direction first
+  const w2 = 2 * Math.PI / (60 * b.t2 * (0.85 + u3 * 0.3)), p2 = u4 * 2 * Math.PI;
+  const w3 = 2 * Math.PI / 36;   // the bobble: 0.6 s
   s.bpos = 0.5 - s.barH / 2; // the bar starts around the fish (as in Stardew)
   s.step = hold => {
-    s.seed = (s.seed * 48271) % 2147483647;
-    const u = s.seed / 2147483647;
-    if(u < b.chance){
-      s.seed = (s.seed * 48271) % 2147483647;
-      const v = s.seed / 2147483647;
-      s.target = s.fpos + (v * 2 - 1) * b.range + b.bias;
-      if(s.target < 0.05) s.target = 0.05;
-      if(s.target > 0.95) s.target = 0.95;
-    }
-    s.fv = s.fv * b.damp + (s.target - s.fpos) * b.pull;
-    if(s.fv > b.maxv) s.fv = b.maxv;
-    if(s.fv < -b.maxv) s.fv = -b.maxv;
-    s.fpos = s.fpos + s.fv;
-    if(s.fpos < 0.03){ s.fpos = 0.03; s.fv = 0; }
-    if(s.fpos > 0.97){ s.fpos = 0.97; s.fv = 0; }
+    const t = s.tick;
+    let f = 0.5 + b.bias * Math.min(1, t / 240) + b.a1 * Math.sin(w1 * t) + b.a2 * (Math.sin(w2 * t + p2) - Math.sin(p2)) + 0.008 * Math.sin(w3 * t);
+    if(f < 0.03) f = 0.03;
+    if(f > 0.97) f = 0.97;
+    s.fpos = Math.floor(f * 1000000 + 0.5) / 1000000;   // rounded the same way on the server
     // a gentle push / gravity, plenty of momentum, a modest top speed and a soft bounce at the ends, so the bar glides
     // and has to be feathered (must match resolve_sparkle_event: 20261015001000_fishing_gliding_bar.sql)
     s.bv = s.bv + (hold ? 0.00075 : -0.0007);
