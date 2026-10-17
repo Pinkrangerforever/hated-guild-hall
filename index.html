@@ -15197,12 +15197,12 @@ const CAT_BOSS_MODEL = {
 const PHOENIX_JUVENILE_MODEL = {
   gltf: 'models/phoenix-juvenile.gltf',
   camY: 0.2, camZ: 1.8, alphaCutout: true,
+  offsetY: 0.25,   // even its idle hovers above its perch: the whole bird sits lower in the window
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
-    recenter: true,   // its hover/flight lifts the body far above where it perches: keep it in frame
     routine: [{ once: 'StandAlt' }, { once: 'SitDown' }, { loop: 'Sit', ms: 4000 }, { once: 'SitUp' }, { loop: 'Hover', ms: 3000 }],
-    squawk: ['MountSpecial', 'AttackUnarmed'], airSquawk: 'MountSpecial', airLoops: ['Hover'],
+    squawk: 'AttackUnarmed', airSquawk: 'AttackUnarmed', airLoops: ['Hover'],   // (its MountSpecial leaps far out of frame)
     feed: 'Loot'
   }
 };
@@ -15363,6 +15363,7 @@ async function loadOBJModel(model){
   model3D.model = object;
   model3D.modelConfig = model;
   if(model.spin === false) object.rotation.y = model.facing || 0;
+  if(model.offsetY) model3D.model.position.y -= model.offsetY;   // a model whose idle floats high sits lower in the frame
   model3D.scene.add(model3D.model);
   if(object.userData.animations && object.userData.animations.length) setupPetAnimations(object, model.anims);
   else stopPetAnimations();
