@@ -15202,7 +15202,7 @@ const PHOENIX_JUVENILE_MODEL = {
     // (fraction of the window, from how far each clip lifts the body compared with sitting)
     clipY: { Stand: 0.3, StandAlt: 0.36, Hover: 0.32, Fly: 0.34, AttackUnarmed: 0.3, Loot: 0.1 },
     routine: [{ once: 'StandAlt' }, { once: 'SitDown' }, { loop: 'Sit', ms: 4000 }, { once: 'SitUp' }, { loop: 'Hover', ms: 3000 }],
-    squawk: 'AttackUnarmed', airSquawk: 'AttackUnarmed', airLoops: ['Hover'],   // (its MountSpecial leaps far out of frame)
+    squawk: 'StandAlt', airSquawk: 'StandAlt', airLoops: ['Hover'],   // (its MountSpecial and AttackUnarmed leap out of frame)
     feed: 'Loot'
   }
 };
@@ -15215,8 +15215,9 @@ const PHOENIX_ADULT_MODEL = {
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
-    routine: [{ loop: 'Hover', ms: 3000 }, { loop: 'Fly', ms: 4000 }, { once: 'FlyMountSpecial' }],
-    squawk: ['MountSpecial', 'Whirlwind']
+    // only clips that keep him in the window (Whirlwind drops far below it; MountSpecial/FlyMountSpecial climb far above)
+    routine: [{ loop: 'Hover', ms: 3000 }, { loop: 'Fly', ms: 4000 }, { loop: 'Hover', ms: 2000 }],
+    squawk: 'AttackUnarmed'
   }
 };
 // Phoenix boss = Al'ar-style phoenix (R2: Phoenix-Boss/; its three fire-ring effects trimmed out). Wing glows and
@@ -15228,7 +15229,7 @@ const PHOENIX_BOSS_MODEL = {
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
-    routine: [{ once: 'StandAlt' }, { loop: 'Fly', ms: 4000 }, { once: 'Whirlwind' }],
+    routine: [{ once: 'StandAlt' }, { once: 'Whirlwind' }, { once: 'StandAlt' }],   // (his Fly sinks far below the window)
     squawk: ['AttackUnarmed', 'Whirlwind'],
     evolve: 'Birth'
   }
