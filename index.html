@@ -9494,7 +9494,7 @@ const HOME_ZONES = {
       { gltf: 'models/housing/darkshire-archway.gltf', x: -0.09, z: 3.16, height: 3.6, rotY: -1.571 },     // sign archway over the path
       { gltf: 'models/housing/darkshire-lamppost.gltf', x: -5.55, z: 2.29, height: 2.8, rotY: 0.262,
         light: { at: [0.93, 1.55, 0], color: 0xffb050, intensity: 2.2, distance: 7 },
-        halo: { at: [0.93, 1.55, 0], size: 1.4 } }   // the lantern itself glows too (its panes are painted into the post's texture)
+        halo: { at: [0.93, 1.55, 0], size: 1.4 }, lamps: [] }   // halo round the lantern; its glass panes are self-lit (glow texture in the model) and flicker with it
     ],
     houses: {
       1: { gltf: 'models/housing/darkshire-house-t1.gltf', x: 0.44, z: -3.2, height: 3.2, rotY: 0 },
@@ -15202,6 +15202,8 @@ const PHOENIX_JUVENILE_MODEL = {
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
+    // every clip is brought down to its sitting height (which looks right), keeping a fifth of its own lift
+    recenter: 'body', recenterTo: 'Sit', recenterKeep: 0.2,
     routine: [{ once: 'StandAlt' }, { once: 'SitDown' }, { loop: 'Sit', ms: 4000 }, { once: 'SitUp' }, { loop: 'Hover', ms: 3000 }],
     squawk: 'AttackUnarmed', airSquawk: 'AttackUnarmed', airLoops: ['Hover'],   // (its MountSpecial leaps far out of frame)
     feed: 'Loot'
@@ -15537,12 +15539,45 @@ function setupPetAnimations(object, config){
   petAnim.root = root;
   petAnim.basePos = root.position.clone();
   petAnim.targetPos = petAnim.basePos.clone();
-  petAnim.offsets = petAnim.config.recenter ? measureClipOffsets(object, root, object.userData.animations, petAnim.config.idle) : {};
+  petAnim.offsets = petAnim.config.recenter === 'body'
+    ? measureBodyOffsets(object, root, object.userData.animations, petAnim.config.recenterTo || petAnim.config.idle, petAnim.config.recenterKeep || 0)
+    : petAnim.config.recenter ? measureClipOffsets(object, root, object.userData.animations, petAnim.config.idle) : {};
   petAnim.mixer.addEventListener('finished', onPetAnimFinished);
   playPetLoop(petAnim.config.idle);
   schedulePetRoutine(true);
 }
 
+// recenter: 'body' - like measureClipOffsets, but measures the drawn body (skinned vertices) rather than the bones,
+// and only up/down. For birds whose spread wings fool the bone average. Each clip is lined up with `refName`'s
+// height, keeping `keep` (0..1) of its own lift so flying still reads as flying.
+function measureBodyOffsets(pivot, root, clips, refName, keep){
+  const mixer = petAnim.mixer, meshes = [];
+  root.traverse(o => { if(o.isSkinnedMesh) meshes.push(o); });
+  if(!meshes.length) return {};
+  const tmp = new THREE.Vector3();
+  const height = clip => {
+    let sum = 0, n = 0;
+    for(const f of [0.2, 0.5, 0.8]){
+      mixer.stopAllAction();
+      mixer.clipAction(clip).reset().play();
+      mixer.setTime(clip.duration * f);
+      pivot.updateMatrixWorld(true);
+      meshes.forEach(m => {
+        m.skeleton.update();
+        const pos = m.geometry.attributes.position, step = Math.max(1, Math.floor(pos.count / 400));
+        for(let i = 0; i < pos.count; i += step){
+          tmp.fromBufferAttribute(pos, i); m.boneTransform(i, tmp); tmp.applyMatrix4(m.matrixWorld); pivot.worldToLocal(tmp);
+          sum += tmp.y; n++;
+        }
+      });
+    }
+    return n ? sum / n : 0;
+  };
+  const ref = clips.find(c => c.name === refName) || clips[0], base = height(ref), offsets = {};
+  clips.forEach(c => { offsets[c.name] = new THREE.Vector3(0, (height(c) - base) * (1 - keep), 0); });
+  mixer.stopAllAction();
+  return offsets;
+}
 // How far each clip moves the skeleton away from the idle pose (average bone position, in the
 // model's own space). Used to slide models whose clips drift (e.g. Onyxia's flying) back into frame.
 function measureClipOffsets(pivot, root, clips, idleName){
