@@ -174,7 +174,7 @@
       key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004;
       S.add(key, key.target); this.keyLight = key;
       // ---- the hall: an eight-sided orc garrison keep with a snowy doorway at the back ----
-      const R2W = window.WAR_TEX_BASE || 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/';
+      const R2W = window.WAR_TEX_BASE || 'https://assets.hatedforever.com/War%20Games/';
       const tl = new THREE.TextureLoader(); tl.setCrossOrigin('anonymous');
       const tex = (f, rx, ry) => { const t = tl.load(R2W + f + '.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; return t; };
       const A = 15, SIDE = 2 * A * Math.tan(Math.PI / 8), FLOOR_Y = -3.1, WALL_H = 17, TILE = 2.6;   // apothem, wall width, tile size
@@ -197,7 +197,7 @@
           piece('6or_garrison_stonewall_snow', DOOR_W, WALL_H - DOOR_H, 0, DOOR_H);
           // a timber door frame
           // frame cut from the Shadowfang door's own textures so it matches the door
-          const DT = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/War%20Room/Door/';
+          const DT = 'https://assets.hatedforever.com/War%20Games/War%20Room/Door/';
           const dtex = (f, rx, ry) => { const t = tl.load(DT + f + '.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.encoding = THREE.sRGBEncoding; return t; };
           const jamb = new THREE.MeshStandardMaterial({ map: dtex('127757', 0.25, 2.2), roughness: 0.85 });
           const lintel = new THREE.MeshStandardMaterial({ map: dtex('129746', 1.6, 0.25), roughness: 0.7, metalness: 0.15 });
@@ -982,7 +982,7 @@
         if(busy) return; busy = true;
         this.eggSay('ragnaros', 'TOO SOON! YOU HAVE AWAKENED ME TOO SOON, EXECUTUS!');
         try{   // his voice line (R2: War Games/War Room/Ragnaros)
-          const vo = new Audio('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/War%20Room/Ragnaros/vo_fl_ragnaros_death_normal.ogg');
+          const vo = new Audio('https://assets.hatedforever.com/War%20Games/War%20Room/Ragnaros/vo_fl_ragnaros_death_normal.ogg');
           vo.volume = 0.8; vo.play().catch(() => {});
         }catch(e){}
         const ms = this.playOnce(mixer, clips, 'EmoteRoar', 'Stand') || 2000;
@@ -1001,7 +1001,7 @@
       mouth.position.set(0, 0.001, 0.105); mouth.scale.y = 1.2; lair.add(mouth);
       // Onyxia's cave (a WoW cave mouth), two copies back to back so it reads as a cave from every side of the table;
       // the little rock above stays only if the model can't load
-      const CAVE = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/Game%20Pieces/Onyxia%20Cave/8zul_cavemicro01.gltf';
+      const CAVE = 'https://assets.hatedforever.com/War%20Games/Game%20Pieces/Onyxia%20Cave/8zul_cavemicro01.gltf';
       this.loadGltf(CAVE).then(g => {
         const box = new THREE.Box3().setFromObject(g.scene), size = box.getSize(new THREE.Vector3());
         const s = 0.075 / Math.max(size.x, size.z);   // small: a quarter of the old rock's footprint
@@ -1025,7 +1025,7 @@
       this.egg(lair, () => {
         if(busy) return; busy = true; setTimeout(() => { busy = false; }, 4000);
         this.eggSay('onyxia', 'MANY WHELPS! HANDLE IT!');
-        try{ const vo = new Audio('https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/Game%20Pieces/Onyxia%20Cave/Many%20Welps.mp3'); vo.volume = 0.8; vo.play().catch(() => {}); }catch(e){}
+        try{ const vo = new Audio('https://assets.hatedforever.com/War%20Games/Game%20Pieces/Onyxia%20Cave/Many%20Welps.mp3'); vo.volume = 0.8; vo.play().catch(() => {}); }catch(e){}
         whelpGltf().then(g => {
           const box = new THREE.Box3().setFromObject(g.scene), ws = 0.07 / Math.max(box.max.x - box.min.x, box.max.y - box.min.y, box.max.z - box.min.z);
           const fly = g.animations.find(c => c.name === 'Fly') || g.animations[0];
@@ -1161,7 +1161,7 @@
       const c = document.createElement('canvas'); c.width = W; c.height = H;
       this.mapCanvas = c; this.mapCtx = c.getContext('2d');
       // resource icons (the site's 2D icons)
-      const R2 = 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/';
+      const R2 = 'https://assets.hatedforever.com/';
       this.resIcons = {};
       Object.entries({ food: 'FoodIcon.png', wood: 'WoodIcon.png', ore: 'War%20Games/CopperOre.png', gold: 'GoldIcon.png' }).forEach(([r, f]) => {
         const im = new Image(); im.crossOrigin = 'anonymous';

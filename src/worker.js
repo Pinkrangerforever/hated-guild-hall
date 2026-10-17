@@ -52,7 +52,7 @@ export default {
         },
       })
 
-      const publicUrl = `https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/${fileName}`
+      const publicUrl = `https://assets.hatedforever.com/${fileName}`
 
       return new Response(
         JSON.stringify({ publicUrl }),

@@ -14,7 +14,7 @@
 // The loading screen's crest: the Alliance and Horde capture-the-flag banners (WoW models), crossed, waving, with
 // their glows drawn additively. The drawn crest stays if WebGL or the models aren't available.
 function curtainFlags(base){
-  base = base || 'https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/Intro%20Flags/';
+  base = base || 'https://assets.hatedforever.com/War%20Games/Intro%20Flags/';
   const host = document.getElementById('curtainFlags'), curtain = document.getElementById('curtain');
   if(!host || !window.THREE || !THREE.GLTFLoader) return;
   let renderer;
@@ -560,8 +560,8 @@ const FC = f => f === 'horde' ? 'h' : f === 'alliance' ? 'a' : 'n';
 // the site's resource icons (same art as the board)
 const RES_IMG = { food: 'FoodIcon.png', wood: 'WoodIcon.png', ore: 'War%20Games/CopperOre.png', gold: 'GoldIcon.png' };
 // troop icon by faction: Horde orc portrait, Alliance footman helm
-const TROOP_ICON = f => `<img class="ri" src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/War%20Games/${f === 'horde' ? 'achievement_character_orc_male' : 'inv_helmet_02'}.png" alt="troops" title="troops">`;
-const RES_ICON = Object.fromEntries(Object.entries(RES_IMG).map(([r, f]) => [r, `<img class="ri" src="https://pub-6e84ce0976e04eda9d12b0c6c34019e3.r2.dev/${f}" alt="${r}" title="${r}">`]));
+const TROOP_ICON = f => `<img class="ri" src="https://assets.hatedforever.com/War%20Games/${f === 'horde' ? 'achievement_character_orc_male' : 'inv_helmet_02'}.png" alt="troops" title="troops">`;
+const RES_ICON = Object.fromEntries(Object.entries(RES_IMG).map(([r, f]) => [r, `<img class="ri" src="https://assets.hatedforever.com/${f}" alt="${r}" title="${r}">`]));
 
 let G = null;            // the sandbox game state (source of truth)
 let me = null;           // { id, name, admin }
