@@ -15227,7 +15227,7 @@ const PHOENIX_ADULT_MODEL = {
 // looks bigger. It rises out of flame (Birth) when it evolves.
 const PHOENIX_BOSS_MODEL = {
   gltf: 'models/phoenix-boss.gltf?v=3',   // ?v: browsers may hold an earlier version
-  camY: 0.12, camZ: 1.0, alphaCutout: true,
+  camY: 0.12, camZ: 1.3, alphaCutout: true, srgb: true,
   additiveMaterials: ['166232'],
   blendMaterials: ['125411'],
   tints: { '166232': '#ff6a5a' },
@@ -15302,6 +15302,7 @@ function getAnimatedPetModel(model){
           m.material.transparent = true;
           m.material.blending = THREE.AdditiveBlending;
           m.material.depthWrite = false;
+          m.material.alphaTest = 0;   // soft glow, not a hard-edged disc
         }
         if((model.blendMaterials || []).includes(m.material.name)){   // soft see-through edges (e.g. flame feathers)
           m.material.transparent = true;
@@ -15379,6 +15380,7 @@ async function loadOBJModel(model){
   if(petUI.pendingEvolution) finishPetEvolution(model);
   model3D.camera.position.set(0, model.camY ?? PET_CAMERA.y, model.camZ ?? PET_CAMERA.z);
   model3D.camera.lookAt(0, 0, 0);
+  model3D.renderer.outputEncoding = model.srgb ? THREE.sRGBEncoding : THREE.LinearEncoding;   // srgb: in-game colours
   positionEggGlow();
 }
 
