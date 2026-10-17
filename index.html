@@ -1432,7 +1432,7 @@
     right:0;
     bottom:0;
     pointer-events:none;
-    background-image:url('https://nameplates.hatedforever.com/paladin-bg.gif');
+    background-image:url('https://nameplates.hatedforever.com/paladin-bg.webp');
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
@@ -5408,7 +5408,7 @@ async function loadPublicShopItems(){
   const hasPaladin = state.shopItems.some(item => item.metadata?.effect === 'paladin');
   if(!hasPaladin){
     console.log('Seeding Paladin nameplate customization...');
-    await addNameplateCustomizationItem('Paladin', 2500, 'paladin', 'paladin-bg.gif');
+    await addNameplateCustomizationItem('Paladin', 2500, 'paladin', 'paladin-bg.webp');
   }
 }
 
@@ -11986,7 +11986,7 @@ function renderShopModal(){
     if(state.editingShopItemId === item.id) return renderEditForm(item);
     const canAfford = gold >= item.cost;
     const owned = state.shopPurchases && state.shopPurchases.some(p => p.item_id === item.id && p.fulfilled);
-    const gifMap = {flame:'https://nameplates.hatedforever.com/flame-bg.gif', star:'https://nameplates.hatedforever.com/star-bg.gif', shadow:'https://nameplates.hatedforever.com/shadow-bg.gif', techno:'https://nameplates.hatedforever.com/shadow-bg.gif', anime:'https://nameplates.hatedforever.com/anime-headphones.gif', lightning:'https://nameplates.hatedforever.com/lightning.gif', gofast:'https://nameplates.hatedforever.com/go-fast-bg.gif', conecold:'https://nameplates.hatedforever.com/cone-cold-bg.gif', elune:'https://nameplates.hatedforever.com/elune-bg.gif', barrenssunset:'https://nameplates.hatedforever.com/barrens-sunset-bg.gif', hockeynerds:'https://nameplates.hatedforever.com/hockey-nerds-bg.gif', cozmicdustv:'https://nameplates.hatedforever.com/cozmic-dust-bg.gif', newworld:'https://nameplates.hatedforever.com/new-world-bg.gif', warlockdemise:'https://nameplates.hatedforever.com/warlocks-demise-bg.gif', lifedrain:'https://nameplates.hatedforever.com/life-drain-bg.gif', meanbull5years:'https://nameplates.hatedforever.com/meanbull-5-years-bg.gif', matrixmom:'https://nameplates.hatedforever.com/matrix-mom-bg.gif', paladin:'https://nameplates.hatedforever.com/paladin-bg.gif'};
+    const gifMap = {flame:'https://nameplates.hatedforever.com/flame-bg.gif', star:'https://nameplates.hatedforever.com/star-bg.gif', shadow:'https://nameplates.hatedforever.com/shadow-bg.gif', techno:'https://nameplates.hatedforever.com/shadow-bg.gif', anime:'https://nameplates.hatedforever.com/anime-headphones.gif', lightning:'https://nameplates.hatedforever.com/lightning.gif', gofast:'https://nameplates.hatedforever.com/go-fast-bg.gif', conecold:'https://nameplates.hatedforever.com/cone-cold-bg.gif', elune:'https://nameplates.hatedforever.com/elune-bg.gif', barrenssunset:'https://nameplates.hatedforever.com/barrens-sunset-bg.gif', hockeynerds:'https://nameplates.hatedforever.com/hockey-nerds-bg.gif', cozmicdustv:'https://nameplates.hatedforever.com/cozmic-dust-bg.gif', newworld:'https://nameplates.hatedforever.com/new-world-bg.gif', warlockdemise:'https://nameplates.hatedforever.com/warlocks-demise-bg.gif', lifedrain:'https://nameplates.hatedforever.com/life-drain-bg.gif', meanbull5years:'https://nameplates.hatedforever.com/meanbull-5-years-bg.gif', matrixmom:'https://nameplates.hatedforever.com/matrix-mom-bg.gif', paladin:'https://nameplates.hatedforever.com/paladin-bg.webp'};
     const previewImage = item.image_url || (item.category === 'name_customization' && gifMap[item.metadata?.effect]);
     return `
       <div class="shop-card ${item.active===false?'inactive':''}">
@@ -13653,7 +13653,7 @@ function renderSettings(){
             const item = state.shopItems?.find(i => i.id === p.item_id);
             const isActive = activeId === p.item_id;
             const effect = item?.metadata?.effect || '';
-            const gifMap = {flame:'https://nameplates.hatedforever.com/flame-bg.gif', star:'https://nameplates.hatedforever.com/star-bg.gif', shadow:'https://nameplates.hatedforever.com/shadow-bg.gif', techno:'https://nameplates.hatedforever.com/shadow-bg.gif', anime:'https://nameplates.hatedforever.com/anime-headphones.gif', lightning:'https://nameplates.hatedforever.com/lightning.gif', gofast:'https://nameplates.hatedforever.com/go-fast-bg.gif', conecold:'https://nameplates.hatedforever.com/cone-cold-bg.gif', elune:'https://nameplates.hatedforever.com/elune-bg.gif', barrenssunset:'https://nameplates.hatedforever.com/barrens-sunset-bg.gif', hockeynerds:'https://nameplates.hatedforever.com/hockey-nerds-bg.gif', cozmicdustv:'https://nameplates.hatedforever.com/cozmic-dust-bg.gif', newworld:'https://nameplates.hatedforever.com/new-world-bg.gif', warlockdemise:'https://nameplates.hatedforever.com/warlocks-demise-bg.gif', lifedrain:'https://nameplates.hatedforever.com/life-drain-bg.gif', meanbull5years:'https://nameplates.hatedforever.com/meanbull-5-years-bg.gif', matrixmom:'https://nameplates.hatedforever.com/matrix-mom-bg.gif', paladin:'https://nameplates.hatedforever.com/paladin-bg.gif'};
+            const gifMap = {flame:'https://nameplates.hatedforever.com/flame-bg.gif', star:'https://nameplates.hatedforever.com/star-bg.gif', shadow:'https://nameplates.hatedforever.com/shadow-bg.gif', techno:'https://nameplates.hatedforever.com/shadow-bg.gif', anime:'https://nameplates.hatedforever.com/anime-headphones.gif', lightning:'https://nameplates.hatedforever.com/lightning.gif', gofast:'https://nameplates.hatedforever.com/go-fast-bg.gif', conecold:'https://nameplates.hatedforever.com/cone-cold-bg.gif', elune:'https://nameplates.hatedforever.com/elune-bg.gif', barrenssunset:'https://nameplates.hatedforever.com/barrens-sunset-bg.gif', hockeynerds:'https://nameplates.hatedforever.com/hockey-nerds-bg.gif', cozmicdustv:'https://nameplates.hatedforever.com/cozmic-dust-bg.gif', newworld:'https://nameplates.hatedforever.com/new-world-bg.gif', warlockdemise:'https://nameplates.hatedforever.com/warlocks-demise-bg.gif', lifedrain:'https://nameplates.hatedforever.com/life-drain-bg.gif', meanbull5years:'https://nameplates.hatedforever.com/meanbull-5-years-bg.gif', matrixmom:'https://nameplates.hatedforever.com/matrix-mom-bg.gif', paladin:'https://nameplates.hatedforever.com/paladin-bg.webp'};
             const gifFile = gifMap[effect] || '';
             return `
             <button class="btn ${isActive ? 'primary' : 'secondary'}" type="button" data-set-name-custom="${p.item_id}" style="padding:12px; text-align:left; display:flex; gap:12px; align-items:flex-start;">
