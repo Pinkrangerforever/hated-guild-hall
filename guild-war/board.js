@@ -1948,7 +1948,7 @@
           const kind = (cf.kind = cf.kind || (Math.random() < 0.5 ? 'tall' : 'cluster')), P = protos[kind] || protos.tall || protos.cluster; if(!P) return;
           const m = P.clone(); m.position.set(cf.x, 0, cf.z); m.rotation.y = Math.random() * Math.PI * 2; this.scene.add(m);
           if(this.drawnCandles[i]) this.drawnCandles[i].visible = false;
-          const top = (H[kind] || H.tall || H.cluster) * 0.95; cf.f.position.y = top; cf.f.scale.set(0.22, 0.36, 1); cf.l.position.y = top + 0.1;
+          const top = (H[kind] || H.tall || H.cluster) * 0.95; cf.f.position.y = top - 0.14; cf.f.scale.set(0.24, 0.3, 1); cf.l.position.y = top;   // the glow sits round the flame, not above it
         });
       };
       Object.keys(M).forEach(kind => new THREE.GLTFLoader().load(M[kind], gltf => {
@@ -2536,7 +2536,7 @@
       });
       this.flames.forEach(f => {
         const k = 0.8 + 0.12 * Math.sin(now / 90 + f.seed) + 0.08 * Math.sin(now / 37 + f.seed * 3);
-        f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.4 : 2.2) * (0.9 + 0.15 * k);
+        f.l.intensity = f.base * k; f.f.scale.y = (f.s === 1 ? 0.3 : 2.2) * (0.9 + 0.15 * k);
       });
       if(this.selGlow){ this.selGlow.material.opacity = 0.85 + 0.15 * Math.sin(now / 600); this.tgtGlow.material.opacity = 0.45 + 0.4 * Math.sin(now / 260); }
       this.moveVehicles(now, dt);
