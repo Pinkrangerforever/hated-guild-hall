@@ -15200,6 +15200,7 @@ const PHOENIX_JUVENILE_MODEL = {
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
+    recenter: true,   // its hover/flight lifts the body far above where it perches: keep it in frame
     routine: [{ once: 'StandAlt' }, { once: 'SitDown' }, { loop: 'Sit', ms: 4000 }, { once: 'SitUp' }, { loop: 'Hover', ms: 3000 }],
     squawk: ['MountSpecial', 'AttackUnarmed'], airSquawk: 'MountSpecial', airLoops: ['Hover'],
     feed: 'Loot'
