@@ -15202,8 +15202,9 @@ const PHOENIX_JUVENILE_MODEL = {
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
-    // every clip is brought down to its sitting height (which looks right), keeping a fifth of its own lift
-    recenter: 'body', recenterTo: 'Sit', recenterKeep: 0.2,
+    // its sitting height looks right; the airborne clips float above it, so the bird is eased down while they play
+    // (fraction of the window, from how far each clip lifts the body compared with sitting)
+    clipY: { Stand: 0.3, StandAlt: 0.36, Hover: 0.16, Fly: 0.18, AttackUnarmed: 0.3, Loot: 0.1 },
     routine: [{ once: 'StandAlt' }, { once: 'SitDown' }, { loop: 'Sit', ms: 4000 }, { once: 'SitUp' }, { loop: 'Hover', ms: 3000 }],
     squawk: 'AttackUnarmed', airSquawk: 'AttackUnarmed', airLoops: ['Hover'],   // (its MountSpecial leaps far out of frame)
     feed: 'Loot'
@@ -15447,6 +15448,7 @@ function animate3DModel(){
 
   if(petAnim.mixer) petAnim.mixer.update(petAnim.clock.getDelta());
   if(petAnim.root && petAnim.targetPos) petAnim.root.position.lerp(petAnim.targetPos, 0.06); // ease clip re-centering
+  if(petAnim.outer && petAnim.outerTargetY != null) petAnim.outer.position.y += (petAnim.outerTargetY - petAnim.outer.position.y) * 0.06;
 
   // Follow the pet area as it grows/shrinks between stages
   const box = model3D.container;
@@ -15539,45 +15541,13 @@ function setupPetAnimations(object, config){
   petAnim.root = root;
   petAnim.basePos = root.position.clone();
   petAnim.targetPos = petAnim.basePos.clone();
-  petAnim.offsets = petAnim.config.recenter === 'body'
-    ? measureBodyOffsets(object, root, object.userData.animations, petAnim.config.recenterTo || petAnim.config.idle, petAnim.config.recenterKeep || 0)
-    : petAnim.config.recenter ? measureClipOffsets(object, root, object.userData.animations, petAnim.config.idle) : {};
+  petAnim.offsets = petAnim.config.recenter ? measureClipOffsets(object, root, object.userData.animations, petAnim.config.idle) : {};
+  petAnim.outer = object; petAnim.outerBaseY = object.position.y; petAnim.outerTargetY = object.position.y;
   petAnim.mixer.addEventListener('finished', onPetAnimFinished);
   playPetLoop(petAnim.config.idle);
   schedulePetRoutine(true);
 }
 
-// recenter: 'body' - like measureClipOffsets, but measures the drawn body (skinned vertices) rather than the bones,
-// and only up/down. For birds whose spread wings fool the bone average. Each clip is lined up with `refName`'s
-// height, keeping `keep` (0..1) of its own lift so flying still reads as flying.
-function measureBodyOffsets(pivot, root, clips, refName, keep){
-  const mixer = petAnim.mixer, meshes = [];
-  root.traverse(o => { if(o.isSkinnedMesh) meshes.push(o); });
-  if(!meshes.length) return {};
-  const tmp = new THREE.Vector3();
-  const height = clip => {
-    let sum = 0, n = 0;
-    for(const f of [0.2, 0.5, 0.8]){
-      mixer.stopAllAction();
-      mixer.clipAction(clip).reset().play();
-      mixer.setTime(clip.duration * f);
-      pivot.updateMatrixWorld(true);
-      meshes.forEach(m => {
-        m.skeleton.update();
-        const pos = m.geometry.attributes.position, step = Math.max(1, Math.floor(pos.count / 400));
-        for(let i = 0; i < pos.count; i += step){
-          tmp.fromBufferAttribute(pos, i); m.boneTransform(i, tmp); tmp.applyMatrix4(m.matrixWorld); pivot.worldToLocal(tmp);
-          sum += tmp.y; n++;
-        }
-      });
-    }
-    return n ? sum / n : 0;
-  };
-  const ref = clips.find(c => c.name === refName) || clips[0], base = height(ref), offsets = {};
-  clips.forEach(c => { offsets[c.name] = new THREE.Vector3(0, (height(c) - base) * (1 - keep), 0); });
-  mixer.stopAllAction();
-  return offsets;
-}
 // How far each clip moves the skeleton away from the idle pose (average bone position, in the
 // model's own space). Used to slide models whose clips drift (e.g. Onyxia's flying) back into frame.
 function measureClipOffsets(pivot, root, clips, idleName){
@@ -15609,6 +15579,8 @@ function measureClipOffsets(pivot, root, clips, idleName){
 function stopPetAnimations(){
   clearTimeout(petAnim.timer);
   if(petAnim.root && petAnim.basePos) petAnim.root.position.copy(petAnim.basePos);
+  if(petAnim.outer && petAnim.outerBaseY != null) petAnim.outer.position.y = petAnim.outerBaseY;   // undo any clipY shift
+  petAnim.outer = null;
   if(petAnim.mixer){
     petAnim.mixer.removeEventListener('finished', onPetAnimFinished);
     petAnim.mixer.stopAllAction();
@@ -15630,6 +15602,9 @@ function playPetClip(name, once){
   petAnim.current = next;
   const offset = petAnim.offsets && petAnim.offsets[name];
   if(petAnim.basePos) petAnim.targetPos = offset ? petAnim.basePos.clone().sub(offset) : petAnim.basePos.clone();
+  // clipY: how far down to shift the whole model while a clip plays (same units as offsetY), for clips that fly high
+  const dy = petAnim.config.clipY && petAnim.config.clipY[name];
+  if(petAnim.outer) petAnim.outerTargetY = petAnim.outerBaseY - (dy || 0);
   return next;
 }
 
