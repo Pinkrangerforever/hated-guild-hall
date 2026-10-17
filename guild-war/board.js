@@ -2445,6 +2445,9 @@
     }
     bindInput(){
       const el = this.renderer.domElement;
+      // the board takes every touch itself: without this a phone treats a drag as a page scroll/zoom and cancels
+      // the pointer after a few pixels, so the camera only twitched
+      el.style.touchAction = 'none'; el.style.webkitUserSelect = el.style.userSelect = 'none'; el.style.webkitTouchCallout = 'none';
       let drag = null; const pts = new Map();
       el.addEventListener('contextmenu', e => e.preventDefault());
       el.addEventListener('pointerleave', () => { if(this.hoverRegion){ this.hoverRegion = null; this.drawMap(); } });
