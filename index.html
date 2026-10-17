@@ -15220,15 +15220,17 @@ const PHOENIX_ADULT_MODEL = {
     squawk: 'AttackUnarmed'
   }
 };
-// Phoenix boss = Al'ar-style phoenix (R2: Phoenix-Boss/; its three fire-ring effects trimmed out). Its glow sprites,
-// flame tail and flame wing feathers draw additively, tinted pink-orange like the in-game fire (the glow texture is
-// plain white - the game colours it); the body a touch rosier. Framed closer than the adult so he looks bigger.
-// It rises out of flame (Birth) when it evolves.
+// Phoenix boss = Al'ar-style phoenix (R2: Phoenix-Boss/; its three fire-ring effects trimmed out). 125647 is his head
+// and body: like the adult, its left half had a glow-mask alpha that cut the head away, so it uses 125647-body.png
+// with that half solid. 125411 is his pink-to-orange wing feathers with soft see-through edges (blended). Only the
+// white glow sprites (166232) glow, tinted pink-orange as the game colours them. Framed closer than the adult so he
+// looks bigger. It rises out of flame (Birth) when it evolves.
 const PHOENIX_BOSS_MODEL = {
-  gltf: 'models/phoenix-boss.gltf',
+  gltf: 'models/phoenix-boss.gltf?v=2',   // ?v: browsers may hold the first version
   camY: 0.12, camZ: 1.0, alphaCutout: true,
-  additiveMaterials: ['166232', '125647', '125411'],
-  tints: { '166232': '#ff6a5a', '125647': '#ffb070', '125646': '#ffc8b0' },
+  additiveMaterials: ['166232'],
+  blendMaterials: ['125411'],
+  tints: { '166232': '#ff6a5a' },
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
@@ -15299,6 +15301,11 @@ function getAnimatedPetModel(model){
         if((model.additiveMaterials || []).includes(m.material.name)){
           m.material.transparent = true;
           m.material.blending = THREE.AdditiveBlending;
+          m.material.depthWrite = false;
+        }
+        if((model.blendMaterials || []).includes(m.material.name)){   // soft see-through edges (e.g. flame feathers)
+          m.material.transparent = true;
+          m.material.alphaTest = 0.02;
           m.material.depthWrite = false;
         }
       });

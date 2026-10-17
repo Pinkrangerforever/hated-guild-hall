@@ -688,7 +688,7 @@
       Object.values(s.players).forEach(p => {
         if(!p.pet || !p.petZone || !(s.zones[p.petZone] && s.zones[p.petZone].owner === p.faction) || p.petDown > s.clock) return;
         const stage = ['juvenile', 'adult', 'boss'].includes(p.pet.status) ? p.pet.status : 'juvenile';
-        want[p.id] = { zone: p.petZone, url: `models/${p.pet.type}-${stage}.gltf?v=2`, type: p.pet.type, stage, built: (s.zones[p.petZone].outpost || 0) >= 1 };
+        want[p.id] = { zone: p.petZone, url: `models/${p.pet.type}-${stage}.gltf?v=3`, type: p.pet.type, stage, built: (s.zones[p.petZone].outpost || 0) >= 1 };
       });
       // drop pets that fell, moved or changed model
       Object.keys(this.petModels).forEach(id => {
