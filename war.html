@@ -1192,7 +1192,7 @@ function renderZone(){
 function selectFrom(n){ const t = selZone; selZone = n; mode = 'attack'; target = t; board.select(n, targetsFor(n, 'attack')); renderZone(); }
 
 // ---------- pets: everyone's site pet (once it's out of the egg) fights for their faction ----------
-const PET_TYPES_WAR = ['gryphon', 'dragon', 'cat'], PET_STAGES = ['juvenile', 'adult', 'boss'];
+const PET_TYPES_WAR = ['gryphon', 'dragon', 'cat', 'phoenix'], PET_STAGES = ['juvenile', 'adult', 'boss'];
 let petsLoading = false;
 async function attachPets(){
   if(LIVE || petsLoading || !G || !G.players) return;

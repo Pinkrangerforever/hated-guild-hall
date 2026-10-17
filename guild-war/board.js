@@ -705,7 +705,7 @@
           if(this.petModels[id] !== rec) return;
           const m = THREE.SkeletonUtils ? THREE.SkeletonUtils.clone(g.scene) : g.scene.clone();
           // the boss gryphon's alpha is a shading mask (render opaque); fx materials glow additively
-          const cutout = !(w.type === 'gryphon' && w.stage === 'boss'), additive = /fx_blue|eyeglow/i;
+          const cutout = !(w.type === 'gryphon' && w.stage === 'boss'), additive = /fx_blue|eyeglow|^5905220$|^166232$|^125647$/i;   // gryphon/cat glows, phoenix wing glows + flame tail
           m.traverse(o => { if(!o.isMesh) return; o.castShadow = true; o.frustumCulled = false; o.material = o.material.clone(); o.material.side = THREE.DoubleSide;
             if(additive.test(o.material.name || '')){ o.material.blending = THREE.AdditiveBlending; o.material.transparent = true; o.material.depthWrite = false; }
             else { o.material.alphaTest = cutout ? 0.4 : 0; o.material.transparent = false; } });

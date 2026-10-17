@@ -14910,7 +14910,8 @@ const PET_ASSETS = {
 const PET_TYPES = {
   gryphon: { label: 'Gryphon', icon: PET_R2 + '/GryphonIcon.png', emoji: '🦅' },
   dragon:  { label: 'Dragon',  icon: null, emoji: '🐉', snapshot: () => DRAGON_JUVENILE_MODEL },
-  cat:     { label: 'Cat',     icon: null, emoji: '🐯', snapshot: () => CAT_JUVENILE_MODEL }
+  cat:     { label: 'Cat',     icon: null, emoji: '🐯', snapshot: () => CAT_JUVENILE_MODEL },
+  phoenix: { label: 'Phoenix', icon: null, emoji: '🔥', snapshot: () => PHOENIX_JUVENILE_MODEL }
 };
 // Species without an icon image get a one-time 3D snapshot of their juvenile model as their icon
 const petIconSnapshots = {};
@@ -15033,15 +15034,20 @@ const GRYPHON_EGG_MTL = PET_R2 + '/Gryphon-Egg/phoenixegg01-v3.mtl';   // its te
 // Dragon egg: animated glTF (models/dragon-egg.gltf, R2: Dragon-Egg/) with an Open clip the
 // shell plays when it hatches. Its shockwave effect geoset (missing texture) was trimmed out.
 const DRAGON_EGG_GLTF = 'models/dragon-egg.gltf';
+// Phoenix egg: the gryphon egg's model in its red/gold skin (phoenix-shell/overlay.png are the texture sheets with
+// the red quarter moved into the quarter the shell uses)
+const PHOENIX_EGG_MTL = PET_R2 + '/Gryphon-Egg/phoenix-egg.mtl';
 const PET_EGG_MODELS = {
   gryphon: { obj: GRYPHON_EGG_OBJ, mtl: GRYPHON_EGG_MTL, keep: ['Geoset0'], camY: 0.1 },
   dragon: { gltf: DRAGON_EGG_GLTF, camY: 0.1 },
-  cat: { gltf: 'models/cat-juvenile.gltf', camY: 0.1, camZ: 1.9 } // kitten is sold as-is
+  cat: { gltf: 'models/cat-juvenile.gltf', camY: 0.1, camZ: 1.9 }, // kitten is sold as-is
+  phoenix: { obj: GRYPHON_EGG_OBJ, mtl: PHOENIX_EGG_MTL, keep: ['Geoset0'], camY: 0.1 }
 };
 // Pet window shows the egg sitting in its nest
 const PET_EGG_NEST_MODELS = {
   gryphon: { obj: GRYPHON_EGG_OBJ, mtl: GRYPHON_EGG_MTL, keep: ['Geoset0', 'Geoset18'], camY: 0.45, camZ: 1.6 },
-  dragon: { gltf: DRAGON_EGG_GLTF, camY: 0.3, camZ: 2.3, anims: { idle: 'Stand', hatch: 'Open' } }
+  dragon: { gltf: DRAGON_EGG_GLTF, camY: 0.3, camZ: 2.3, anims: { idle: 'Stand', hatch: 'Open' } },
+  phoenix: { obj: GRYPHON_EGG_OBJ, mtl: PHOENIX_EGG_MTL, keep: ['Geoset0', 'Geoset18'], camY: 0.45, camZ: 1.6 }
 };
 // Hatched gryphon models by stage: animated glTFs trimmed by tools/trim_gltf.py (models/*.gltf);
 // their .bin/.png files stay on R2. `anims` drives the behavior:
@@ -15168,10 +15174,51 @@ const CAT_BOSS_MODEL = {
   tints: {},
   anims: CAT_ANIMS
 };
+// Phoenix juvenile = WoW phoenix hatchling pet (R2: Phoenix-Juvenile/): perches, sits, hovers
+const PHOENIX_JUVENILE_MODEL = {
+  gltf: 'models/phoenix-juvenile.gltf',
+  camY: 0.2, camZ: 1.8, alphaCutout: true,
+  spin: false, facing: -Math.PI / 2 + 0.6,
+  anims: {
+    idle: 'Stand',
+    routine: [{ once: 'StandAlt' }, { once: 'SitDown' }, { loop: 'Sit', ms: 4000 }, { once: 'SitUp' }, { loop: 'Hover', ms: 3000 }],
+    squawk: ['MountSpecial', 'AttackUnarmed'], airSquawk: 'MountSpecial', airLoops: ['Hover'],
+    feed: 'Loot'
+  }
+};
+// Phoenix adult = WoW riding phoenix (R2: Phoenix-Adult/; its saddle geoset trimmed out). Always airborne;
+// the soft glow sprites on its wings draw additively.
+const PHOENIX_ADULT_MODEL = {
+  gltf: 'models/phoenix-adult.gltf',
+  camY: 0.2, camZ: 1.6, alphaCutout: true,
+  additiveMaterials: ['5905220'],
+  spin: false, facing: -Math.PI / 2 + 0.6,
+  anims: {
+    idle: 'Stand',
+    routine: [{ loop: 'Hover', ms: 3000 }, { loop: 'Fly', ms: 4000 }, { once: 'FlyMountSpecial' }],
+    squawk: ['MountSpecial', 'Whirlwind'],
+    evolve: 'MountSpecial'
+  }
+};
+// Phoenix boss = Al'ar-style phoenix (R2: Phoenix-Boss/; its three fire-ring effects trimmed out). Wing glows and
+// the flame tail draw additively; it rises out of flame (Birth) when it evolves.
+const PHOENIX_BOSS_MODEL = {
+  gltf: 'models/phoenix-boss.gltf',
+  camY: 0.15, camZ: 1.3, alphaCutout: true,
+  additiveMaterials: ['166232', '125647'],
+  spin: false, facing: -Math.PI / 2 + 0.6,
+  anims: {
+    idle: 'Stand',
+    routine: [{ once: 'StandAlt' }, { loop: 'Fly', ms: 4000 }, { once: 'Whirlwind' }],
+    squawk: ['AttackUnarmed', 'Whirlwind'],
+    evolve: 'Birth'
+  }
+};
 const PET_STAGE_MODELS = {
   gryphon: { juvenile: GRYPHON_JUVENILE_MODEL, adult: GRYPHON_ADULT_MODEL, boss: GRYPHON_BOSS_MODEL },
   dragon: { juvenile: DRAGON_JUVENILE_MODEL, adult: DRAGON_ADULT_MODEL, boss: DRAGON_BOSS_MODEL },
-  cat: { juvenile: CAT_JUVENILE_MODEL, adult: CAT_ADULT_MODEL, boss: CAT_BOSS_MODEL }
+  cat: { juvenile: CAT_JUVENILE_MODEL, adult: CAT_ADULT_MODEL, boss: CAT_BOSS_MODEL },
+  phoenix: { juvenile: PHOENIX_JUVENILE_MODEL, adult: PHOENIX_ADULT_MODEL, boss: PHOENIX_BOSS_MODEL }
 };
 function petModelFor(pet){
   if(!pet) return null;
@@ -15180,7 +15227,7 @@ function petModelFor(pet){
   return stages ? (stages[pet.status] || stages.juvenile) : null;
 }
 function petModelKey(model){
-  return model ? (model.gltf || model.obj) + '|' + (model.keep || []).join(',') : 'portrait';
+  return model ? (model.gltf || model.obj) + '|' + (model.mtl || '') + '|' + (model.keep || []).join(',') : 'portrait';
 }
 const PET_CAMERA = { fov: 35, y: 0.1, z: 2.1 };
 const PET_SPIN_PER_FRAME = 0.008; // shared so the shop egg and pet window spin at the same rate
@@ -15189,18 +15236,20 @@ const PET_SPIN_PER_FRAME = 0.008; // shared so the shop egg and pet window spin 
 const petModelFiles = {};
 const petModelCache = {};
 function loadPetModelFile(model){
-  if(!petModelFiles[model.obj]){
-    petModelFiles[model.obj] = new Promise((resolve, reject) => {
+  const fileKey = model.obj + '|' + model.mtl;   // the phoenix egg is the gryphon egg's model in another skin
+  if(!petModelFiles[fileKey]){
+    petModelFiles[fileKey] = new Promise((resolve, reject) => {
       const mtlLoader = new THREE.MTLLoader();
       mtlLoader.load(model.mtl, (materials) => {
         materials.preload();
+        Object.values(materials.materials).forEach(m => { if(m.map) m.map.encoding = THREE.sRGBEncoding; });   // colour textures
         const objLoader = new THREE.OBJLoader();
         objLoader.setMaterials(materials);
         objLoader.load(model.obj, resolve, undefined, reject);
       }, undefined, reject);
-    }).catch(err => { delete petModelFiles[model.obj]; throw err; });
+    }).catch(err => { delete petModelFiles[fileKey]; throw err; });
   }
-  return petModelFiles[model.obj];
+  return petModelFiles[fileKey];
 }
 
 // Animated glTF: loaded once, sized by the body rather than the wingspan. Each caller gets its own
@@ -15248,7 +15297,7 @@ function getAnimatedPetModel(model){
 
 function getPetModel(model){
   if(model.gltf) return getAnimatedPetModel(model);
-  const key = model.obj + '|' + (model.keep || []).join(',');
+  const key = model.obj + '|' + model.mtl + '|' + (model.keep || []).join(',');
   if(!petModelCache[key]){
     petModelCache[key] = loadPetModelFile(model).then(file => {
       const obj = file.clone();

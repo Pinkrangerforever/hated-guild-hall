@@ -73,7 +73,7 @@ async function petOf(uid: string, pick?: string) {
 const BOT_NAMES = ['Thrall', 'Jaina', 'Sylvanas', 'Varian', 'Grommash', 'Tyrande', 'Garrosh', 'Muradin', 'Voljin', 'Genn', 'Baine', 'Velen'];
 function botPet() {
   if(Math.random() >= 0.7) return null; const lv = 1 + Math.floor(Math.random() * 10);
-  return { type: ['gryphon', 'dragon', 'cat'][Math.floor(Math.random() * 3)], status: lv >= 10 ? 'boss' : lv >= 5 ? 'adult' : 'juvenile', level: lv, name: ['Fluffy', 'Snaps', 'Ember', 'Biscuit', 'Talon', 'Mr. Whiskers'][Math.floor(Math.random() * 6)] };
+  return { type: ['gryphon', 'dragon', 'cat', 'phoenix'][Math.floor(Math.random() * 4)], status: lv >= 10 ? 'boss' : lv >= 5 ? 'adult' : 'juvenile', level: lv, name: ['Fluffy', 'Snaps', 'Ember', 'Biscuit', 'Talon', 'Mr. Whiskers'][Math.floor(Math.random() * 6)] };
 }
 // bots put their pet on their most threatened zone whenever it's free to go
 function stationBotPets(s: any) {
