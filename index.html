@@ -15204,7 +15204,7 @@ const PHOENIX_JUVENILE_MODEL = {
     idle: 'Stand',
     // its sitting height looks right; the airborne clips float above it, so the bird is eased down while they play
     // (fraction of the window, from how far each clip lifts the body compared with sitting)
-    clipY: { Stand: 0.3, StandAlt: 0.36, Hover: 0.16, Fly: 0.18, AttackUnarmed: 0.3, Loot: 0.1 },
+    clipY: { Stand: 0.3, StandAlt: 0.36, Hover: 0.32, Fly: 0.34, AttackUnarmed: 0.3, Loot: 0.1 },
     routine: [{ once: 'StandAlt' }, { once: 'SitDown' }, { loop: 'Sit', ms: 4000 }, { once: 'SitUp' }, { loop: 'Hover', ms: 3000 }],
     squawk: 'AttackUnarmed', airSquawk: 'AttackUnarmed', airLoops: ['Hover'],   // (its MountSpecial leaps far out of frame)
     feed: 'Loot'
