@@ -15220,12 +15220,15 @@ const PHOENIX_ADULT_MODEL = {
     squawk: 'AttackUnarmed'
   }
 };
-// Phoenix boss = Al'ar-style phoenix (R2: Phoenix-Boss/; its three fire-ring effects trimmed out). Wing glows and
-// the flame tail draw additively; it rises out of flame (Birth) when it evolves.
+// Phoenix boss = Al'ar-style phoenix (R2: Phoenix-Boss/; its three fire-ring effects trimmed out). Its glow sprites,
+// flame tail and flame wing feathers draw additively, tinted pink-orange like the in-game fire (the glow texture is
+// plain white - the game colours it); the body a touch rosier. Framed closer than the adult so he looks bigger.
+// It rises out of flame (Birth) when it evolves.
 const PHOENIX_BOSS_MODEL = {
   gltf: 'models/phoenix-boss.gltf',
-  camY: 0.15, camZ: 1.3, alphaCutout: true,
-  additiveMaterials: ['166232', '125647'],
+  camY: 0.12, camZ: 1.0, alphaCutout: true,
+  additiveMaterials: ['166232', '125647', '125411'],
+  tints: { '166232': '#ff6a5a', '125647': '#ffb070', '125646': '#ffc8b0' },
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
