@@ -15210,7 +15210,7 @@ const PHOENIX_JUVENILE_MODEL = {
 // texture's left half (head, face, body) had a glow-mask alpha that cut them away, so it uses 5905218-body.png
 // with that half solid. Always airborne; no evolve flourish (its mount flourish carried it out of the window).
 const PHOENIX_ADULT_MODEL = {
-  gltf: 'models/phoenix-adult.gltf',
+  gltf: 'models/phoenix-adult.gltf?v=2',   // ?v: browsers may hold the first (glowing, faceless) version
   camY: 0.2, camZ: 1.6, alphaCutout: true,
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
