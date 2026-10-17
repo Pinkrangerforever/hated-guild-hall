@@ -3004,8 +3004,8 @@
   /* a single shoe print in the walk to the dealer: fades in, lingers, fades out */
   .foot-step{ position:absolute; pointer-events:none; z-index:999; transform-origin:50% 50%;
     filter:drop-shadow(0 0 2px rgba(190,120,255,1)) drop-shadow(0 0 6px rgba(150,60,255,0.95)) drop-shadow(0 0 14px rgba(128,0,255,0.7)); animation:footStep 8s ease-in-out forwards; }   /* black prints, purple glow */
-  @keyframes footStep{ 0%{ opacity:0; } 12%{ opacity:0.95; } 55%{ opacity:0.8; } 100%{ opacity:0; } }
-  @media (prefers-reduced-motion: reduce){ .foot-step{ animation:none; opacity:0.85; } }
+  @keyframes footStep{ 0%{ opacity:0; } 15%{ opacity:0.38; } 55%{ opacity:0.3; } 100%{ opacity:0; } }   /* faint: something you notice, not something that shouts */
+  @media (prefers-reduced-motion: reduce){ .foot-step{ animation:none; opacity:0.32; } }
   /* DEALER SHADOW - Absolute at page bottom */
   .dealer-shadow {
     position: absolute;
