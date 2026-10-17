@@ -3004,7 +3004,7 @@
   /* a single shoe print in the walk to the dealer: fades in, lingers, fades out */
   .foot-step{ position:absolute; pointer-events:none; z-index:999; transform-origin:50% 50%;
     filter:drop-shadow(0 0 2px rgba(190,120,255,1)) drop-shadow(0 0 6px rgba(150,60,255,0.95)) drop-shadow(0 0 14px rgba(128,0,255,0.7)); animation:footStep 8s ease-in-out forwards; }   /* black prints, purple glow */
-  @keyframes footStep{ 0%{ opacity:0; } 15%{ opacity:0.38; } 55%{ opacity:0.3; } 100%{ opacity:0; } }   /* faint: something you notice, not something that shouts */
+  @keyframes footStep{ 0%{ opacity:0; } 20%{ opacity:0.38; } 55%{ opacity:0.3; } 100%{ opacity:0; } }   /* faint: something you notice, not something that shouts */
   @media (prefers-reduced-motion: reduce){ .foot-step{ animation:none; opacity:0.32; } }
   /* DEALER SHADOW - Absolute at page bottom */
   .dealer-shadow {
@@ -14758,6 +14758,7 @@ function walkFootprints(ms) {
   for (let i = 0; i <= 400; i++) { const p = at(i / 400); len += Math.hypot(p.x - prev.x, p.y - prev.y); pts.push({ p, len }); prev = p; }
   const small = W < 600, stride = Math.max(small ? 60 : 80, len / 34), n = Math.floor(len / stride);
   const fw = small ? 20 : 26, fh = Math.round(fw * 241 / 102), gap = fw * 0.55;
+  const every = ms / Math.max(1, n), life = Math.round(every * 3);   // each print lasts 3 steps: 3 on show at a time
   let j = 0;
   for (let k = 0; k <= n; k++) {
     const d = k * stride; while (j < pts.length - 2 && pts[j + 1].len < d) j++;
@@ -14770,9 +14771,9 @@ function walkFootprints(ms) {
       f.src = 'https://assets.hatedforever.com/Footprints/foot-' + (left ? 'left' : 'right') + '.png?v=3';
       f.alt = ''; f.className = 'foot-step';
       f.style.width = fw + 'px'; f.style.height = fh + 'px'; f.style.left = (x - fw / 2) + 'px'; f.style.top = (y - fh / 2) + 'px';
-      f.style.transform = 'rotate(' + rot.toFixed(1) + 'deg)';
+      f.style.transform = 'rotate(' + rot.toFixed(1) + 'deg)'; f.style.animationDuration = life + 'ms';
       document.body.appendChild(f);
-      setTimeout(() => f.remove(), 8200);
+      setTimeout(() => f.remove(), life + 100);
     });
   }
 }
