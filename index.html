@@ -11217,7 +11217,7 @@ function renderPetRoster(p, isMe){
     }
     return `
       <div class="pet-roster-card stage-${esc(pet.status)}" data-roster-pet="${esc(pet.id)}">
-        <div class="pet-roster-icon">${pet.status === 'egg' ? '&#129370;' : petIconHtml(pet.pet_type, 48)}</div>
+        <div class="pet-roster-icon">${petIconHtml(pet.pet_type, 48, pet.status)}</div>
         <div class="pet-roster-info">
           <div class="pet-roster-name">${esc(petDisplayName(pet))}</div>
           ${stats}
@@ -14913,23 +14913,34 @@ const PET_TYPES = {
   cat:     { label: 'Cat',     icon: null, emoji: '🐯', snapshot: () => CAT_JUVENILE_MODEL },
   phoenix: { label: 'Phoenix', icon: null, emoji: '🔥', snapshot: () => PHOENIX_JUVENILE_MODEL }
 };
-// Species without an icon image get a one-time 3D snapshot of their juvenile model as their icon
+// Pet icons are snapshots of the pet's actual model - one per species and stage (egg, juvenile, adult, boss) -
+// rendered once on a shared offscreen renderer (one at a time) and reused everywhere the pet appears.
 const petIconSnapshots = {};
-function ensurePetIconSnapshot(type){
-  const info = petTypeInfo(type);
-  if(info.icon || !info.snapshot || petIconSnapshots[type] || typeof THREE === 'undefined') return;
-  petIconSnapshots[type] = 'pending';
-  const model = info.snapshot();
+const petIconQueue = [];
+let petIconRenderer = null, petIconBusy = false;
+function ensurePetIconSnapshot(type, status){
+  const key = type + '|' + status;
+  if(petIconSnapshots[key] || typeof THREE === 'undefined') return;
+  const model = petModelFor({ pet_type: type, status });
+  if(!model) return;
+  petIconSnapshots[key] = 'pending';
+  petIconQueue.push({ key, model });
+  pumpPetIcons();
+}
+function pumpPetIcons(){
+  if(petIconBusy || !petIconQueue.length) return;
+  petIconBusy = true;
+  const { key, model } = petIconQueue.shift();
+  const done = () => { petIconBusy = false; pumpPetIcons(); };
   getPetModel(model).then(obj => {
-    const size = 160;
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
-    renderer.setSize(size, size);
+    const size = 192;
+    if(!petIconRenderer){ petIconRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true }); petIconRenderer.setSize(size, size); petIconRenderer.outputEncoding = THREE.sRGBEncoding; }
     const scene = new THREE.Scene();
     addPetLights(scene);
     obj.rotation.y = model.facing || 0;
     scene.add(obj);
     const clips = obj.userData.animations || [];
-    if(clips.length){
+    if(clips.length){   // its idle pose, a moment in
       const mixer = new THREE.AnimationMixer(obj.children[0]);
       const idle = clips.find(c => c.name === (model.anims && model.anims.idle)) || clips[0];
       mixer.clipAction(idle).play();
@@ -14937,27 +14948,35 @@ function ensurePetIconSnapshot(type){
     }
     scene.updateMatrixWorld(true);
     obj.traverse(m => { if(m.isSkinnedMesh) m.skeleton.update(); });
-    const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
-    camera.position.set(0, 0.15, 1.55);
-    camera.lookAt(0, 0, 0);
-    renderer.render(scene, camera);
-    petIconSnapshots[type] = renderer.domElement.toDataURL('image/png');
-    renderer.dispose();
-    renderer.forceContextLoss();
-    const barIcon = document.getElementById('pet-bar-icon');
-    if(barIcon) barIcon.dataset.type = ''; // re-render with the new icon
-    refreshPetWidget();
-  }).catch(() => { delete petIconSnapshots[type]; });
+    // frame what's actually drawn in that pose (wings and all), a little padding round it
+    const box = new THREE.Box3();
+    obj.traverse(m => { if(m.isMesh && m.visible){ if(m.isSkinnedMesh){ m.geometry.computeBoundingBox(); } box.expandByObject(m); } });
+    const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+    const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100), fit = Math.max(s.x, s.y, s.z * 0.6) / (2 * Math.tan(15 * Math.PI / 180)) * 1.08;
+    camera.position.set(c.x, c.y + s.y * 0.08, c.z + Math.max(fit, 0.5));
+    camera.lookAt(c);
+    petIconRenderer.clear();
+    petIconRenderer.render(scene, camera);
+    const url = petIconRenderer.domElement.toDataURL('image/png');
+    petIconSnapshots[key] = url;
+    // swap the placeholder wherever this icon is already on the page
+    document.querySelectorAll(`[data-pet-icon="${key}"]`).forEach(el => {
+      const img = document.createElement('img'); img.src = url; img.alt = ''; img.style.cssText = el.dataset.style; el.replaceWith(img);
+    });
+    done();
+  }).catch(() => { delete petIconSnapshots[key]; done(); });
 }
 function petTypeInfo(type){
   return PET_TYPES[type] || { label: 'Pet', icon: null, emoji: '🐾' };
 }
-function petIconHtml(type, size){
-  const t = petTypeInfo(type);
-  const src = t.icon || (petIconSnapshots[type] !== 'pending' && petIconSnapshots[type]);
-  if(src) return `<img src="${src}" alt="" style="width:${size}px; height:${size}px; object-fit:contain;">`;
-  ensurePetIconSnapshot(type);
-  return `<span class="pet-emoji-icon" style="font-size:${Math.round(size * 0.8)}px; line-height:${size}px;">${t.emoji}</span>`;
+// `status` is the pet's stage ('egg', 'juvenile', 'adult', 'boss'); the icon is that stage's model
+function petIconHtml(type, size, status){
+  const t = petTypeInfo(type), st = status || 'juvenile', key = type + '|' + st;
+  const style = `width:${size}px; height:${size}px; object-fit:contain;`;
+  const src = petIconSnapshots[key] !== 'pending' && petIconSnapshots[key];
+  if(src) return `<img src="${src}" alt="" style="${style}">`;
+  ensurePetIconSnapshot(type, st);
+  return `<span class="pet-emoji-icon" data-pet-icon="${esc(key)}" data-style="${style}" style="font-size:${Math.round(size * 0.8)}px; line-height:${size}px;">${st === 'egg' ? '🥚' : t.emoji}</span>`;
 }
 const PET_COOLDOWN_MS = 3600000;
 const PET_FEED_COST = 5;
@@ -15018,7 +15037,7 @@ async function init3DViewer(model){
     } else {
       container.style.display = 'none';
       const portrait = document.getElementById('pet-portrait');
-      portrait.innerHTML = petIconHtml(pet && pet.pet_type, 104);
+      portrait.innerHTML = petIconHtml(pet && pet.pet_type, 104, pet && pet.status);
       portrait.style.display = 'block';
     }
   }
@@ -15773,9 +15792,9 @@ function renderPetBar(pet){
   if(!nameEl || !subEl || !pet) return;
   nameEl.textContent = petDisplayName(pet);
   const iconEl = document.getElementById('pet-bar-icon');
-  if(iconEl && iconEl.dataset.type !== pet.pet_type){
-    iconEl.dataset.type = pet.pet_type;
-    iconEl.innerHTML = petIconHtml(pet.pet_type, 40);
+  if(iconEl && iconEl.dataset.type !== pet.pet_type + '|' + pet.status){
+    iconEl.dataset.type = pet.pet_type + '|' + pet.status;
+    iconEl.innerHTML = petIconHtml(pet.pet_type, 40, pet.status);
   }
   if(pet.status === 'egg'){
     const left = pet.hatch_time - Date.now();
@@ -15796,7 +15815,7 @@ function renderPetTabs(){
   tabsContainer.style.display = 'flex';
   tabsContainer.innerHTML = pets.map(pet => `
     <button type="button" class="pet-tab ${pet.id === state.currentPetId ? 'active' : ''}" data-pet-id="${esc(pet.id)}">
-      ${pet.status === 'egg' ? '🥚' : petIconHtml(pet.pet_type, 14)} ${esc(petDisplayName(pet))}
+      ${petIconHtml(pet.pet_type, 14, pet.status)} ${esc(petDisplayName(pet))}
     </button>
   `).join('');
 }
@@ -15857,7 +15876,7 @@ function setPetDisplayMode(pet){
   } else {
     if(model3D.isLoaded) dispose3DModel();
     canvas.style.display = 'none';
-    portrait.innerHTML = petIconHtml(pet && pet.pet_type, 104);
+    portrait.innerHTML = petIconHtml(pet && pet.pet_type, 104, pet && pet.status);
     portrait.style.display = 'block';
   }
 }
