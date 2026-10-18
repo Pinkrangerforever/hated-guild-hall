@@ -688,7 +688,7 @@
       Object.values(s.players).forEach(p => {
         if(!p.pet || !p.petZone || !(s.zones[p.petZone] && s.zones[p.petZone].owner === p.faction) || p.petDown > s.clock) return;
         const stage = ['juvenile', 'adult', 'boss'].includes(p.pet.status) ? p.pet.status : 'juvenile';
-        want[p.id] = { zone: p.petZone, url: `models/${p.pet.type}-${stage}.gltf?v=4`, type: p.pet.type, stage, built: (s.zones[p.petZone].outpost || 0) >= 1 };
+        want[p.id] = { zone: p.petZone, url: `models/${p.pet.type}-${stage}.gltf?v=5`, type: p.pet.type, stage, built: (s.zones[p.petZone].outpost || 0) >= 1 };
       });
       // drop pets that fell, moved or changed model
       Object.keys(this.petModels).forEach(id => {
@@ -705,7 +705,7 @@
           if(this.petModels[id] !== rec) return;
           const m = THREE.SkeletonUtils ? THREE.SkeletonUtils.clone(g.scene) : g.scene.clone();
           // the boss gryphon's alpha is a shading mask (render opaque); fx materials glow additively
-          const cutout = !(w.type === 'gryphon' && w.stage === 'boss'), additive = /fx_blue|eyeglow|^5905220$|^166232$|^125647$/i;   // gryphon/cat glows, phoenix wing glows + flame tail
+          const cutout = !(w.type === 'gryphon' && w.stage === 'boss'), additive = /fx_blue|eyeglow|^1046089$/i;   // gryphon/cat glows, the phoenix boss's glow sprites
           m.traverse(o => { if(!o.isMesh) return; o.castShadow = true; o.frustumCulled = false; o.material = o.material.clone(); o.material.side = THREE.DoubleSide;
             if(additive.test(o.material.name || '')){ o.material.blending = THREE.AdditiveBlending; o.material.transparent = true; o.material.depthWrite = false; }
             else { o.material.alphaTest = cutout ? 0.4 : 0; o.material.transparent = false; } });

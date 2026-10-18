@@ -15220,23 +15220,20 @@ const PHOENIX_ADULT_MODEL = {
     squawk: 'AttackUnarmed'
   }
 };
-// Phoenix boss = Al'ar-style phoenix (R2: Phoenix-Boss/; its three fire-ring effects trimmed out). 125647 is his head
-// and body: like the adult, its left half had a glow-mask alpha that cut the head away, so it uses 125647-body.png
-// with that half solid. 125411 is his pink-to-orange wing feathers with soft see-through edges (blended). Only the
-// white glow sprites (166232) glow, tinted pink-orange as the game colours them. Framed closer than the adult so he
-// looks bigger. It rises out of flame (Birth) when it evolves.
+// Phoenix boss = Ashes of Al'ar (WoW ridingphoenix, R2: Phoenix-Boss/). Its feather saddle (Geoset3), an unused
+// alternate body piece and a stray spark were trimmed out. Its soft glow sprites draw additively, tinted pink-orange
+// (the texture is plain white; the game colours it). In-game colour output; framed closer than the adult so he looks
+// bigger. Only clips that stay in the window (like the adult's).
 const PHOENIX_BOSS_MODEL = {
-  gltf: 'models/phoenix-boss.gltf?v=3',   // ?v: browsers may hold an earlier version
-  camY: 0.12, camZ: 1.3, alphaCutout: true, srgb: true,
-  additiveMaterials: ['166232'],
-  blendMaterials: ['125411'],
-  tints: { '166232': '#ff6a5a' },
+  gltf: 'models/phoenix-boss.gltf?v=4',   // ?v: browsers may hold an earlier boss
+  camY: 0.12, camZ: 1.35, alphaCutout: true, srgb: true,
+  additiveMaterials: ['1046089'],
+  tints: { '1046089': '#ff7a50' },
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
-    routine: [{ once: 'StandAlt' }, { once: 'Whirlwind' }, { once: 'StandAlt' }],   // (his Fly sinks far below the window)
-    squawk: ['AttackUnarmed', 'Whirlwind'],
-    evolve: 'Birth'
+    routine: [{ loop: 'Hover', ms: 3000 }, { loop: 'Fly', ms: 4000 }, { loop: 'Hover', ms: 2000 }],
+    squawk: 'AttackUnarmed'
   }
 };
 const PET_STAGE_MODELS = {
