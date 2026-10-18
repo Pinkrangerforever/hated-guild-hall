@@ -12822,7 +12822,7 @@ const ROLE_OF_SPEC = {
   'warrior:arms': 'melee', 'warrior:fury': 'melee', 'paladin:retribution': 'melee', 'rogue:assassination': 'melee', 'rogue:combat': 'melee',
   'rogue:subtlety': 'melee', 'shaman:enhancement': 'melee', 'druid:cat': 'melee'
 };
-const ROLE_GROUPS = [['tank', 'Tanks'], ['melee', 'Melee'], ['caster', 'Casters'], ['healer', 'Healers'], ['none', 'Unassigned']];
+const ROLE_GROUPS = [['tank', 'Tanks'], ['melee', 'Melee'], ['caster', 'Ranged'], ['healer', 'Healers'], ['none', 'Unassigned']];
 const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 function raidNights(){
   const today = new Date(); today.setHours(0, 0, 0, 0);
