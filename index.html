@@ -15221,13 +15221,16 @@ const PHOENIX_ADULT_MODEL = {
   }
 };
 // Phoenix boss = Ashes of Al'ar (WoW ridingphoenix, R2: Phoenix-Boss/). Its feather saddle (Geoset3), an unused
-// alternate body piece and a stray spark were trimmed out. Its soft glow sprites draw additively, tinted pink-orange
+// alternate body piece and a stray spark were trimmed out. As with the adult, its body texture's alpha is a glow
+// mask (it cut his head away): 125646-body.png is solid. Its wings (orange fading to pink/purple tips) have a soft
+// alpha fade: 1046092-wing.png strengthens it and they blend softly instead of being cut at 50%. Its soft glow sprites draw additively, tinted pink-orange
 // (the texture is plain white; the game colours it). In-game colour output; framed closer than the adult so he looks
 // bigger. Only clips that stay in the window (like the adult's).
 const PHOENIX_BOSS_MODEL = {
-  gltf: 'models/phoenix-boss.gltf?v=4',   // ?v: browsers may hold an earlier boss
+  gltf: 'models/phoenix-boss.gltf?v=5',   // ?v: browsers may hold an earlier boss
   camY: 0.12, camZ: 1.35, alphaCutout: true, srgb: true,
   additiveMaterials: ['1046089'],
+  blendMaterials: ['1046092'],
   tints: { '1046089': '#ff7a50' },
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
