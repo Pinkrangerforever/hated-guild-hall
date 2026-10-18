@@ -2780,6 +2780,31 @@
 
   /* WoW-style Construction Banner */
   /* guild anthem player: leather and gold, like the banners and panels */
+  /* raid attendance grid (Roster page): dark sheet, role column, class-coloured names, rotated dates */
+  .att-scroll{ overflow-x:auto; padding-bottom:6px; }
+  .att-table{ border-collapse:separate; border-spacing:0; font-size:13px; }
+  .att-table th, .att-table td{ border-bottom:1px solid #2c241b; }
+  .att-role{ width:34px; min-width:34px; border-right:2px solid #6b5232; vertical-align:middle; }
+  .att-role span{ display:block; writing-mode:vertical-rl; transform:rotate(180deg); margin:auto; font:700 13px Cinzel, Georgia, serif; letter-spacing:0.1em; color:#c8b48a; }
+  .att-group-start td, .att-group-start th{ border-top:2px solid #6b5232; }
+  .att-h-name, .att-name{ text-align:left; padding:3px 10px; white-space:nowrap; }
+  .att-name{ background:rgba(20,15,10,0.6); font-weight:700; text-shadow:0 1px 1px #000; min-width:150px; }
+  .att-icon{ display:inline-flex; width:20px; height:20px; margin-right:7px; vertical-align:middle; }
+  .att-icon > span{ display:inline-flex; width:20px; height:20px; align-items:center; justify-content:center; border-radius:3px; }
+  .att-icon svg{ width:16px; height:16px; }
+  .att-h-pct, .att-pct{ text-align:center; padding:3px 10px; white-space:nowrap; }
+  .att-h-name, .att-h-pct{ font:700 12px Cinzel, Georgia, serif; color:#ecc867; vertical-align:bottom; }
+  .att-h-pct small{ font-weight:400; color:#a8875a; }
+  .att-pct{ background:rgba(20,15,10,0.6); font-weight:700; color:#e8d6b0; }
+  .att-pct.good{ color:#7ed97e; } .att-pct.ok{ color:#ffd36a; } .att-pct.low{ color:#ff7b6a; }
+  .att-night{ height:62px; width:24px; padding:0 0 4px; vertical-align:bottom; }
+  .att-night span{ display:block; writing-mode:vertical-rl; transform:rotate(180deg); margin:auto; font:600 11px Cinzel, Georgia, serif; color:#c8b48a; }
+  .att-night.today span{ color:#ffd36a; } .att-night.future span{ color:#7f6f55; }
+  .att-cell{ width:24px; height:22px; text-align:center; color:#ff4a3a; font-weight:900; border-left:1px solid #2c241b; background:#221a13; }
+  .att-cell.future{ background:#1a1510; color:#c0605a; }
+  .att-cell.today{ box-shadow:inset 0 0 0 1px rgba(255,211,106,0.5); }
+  .att-cell.off{ background:#2c1612; }
+  .att-cell.edit{ cursor:pointer; } .att-cell.edit:hover{ background:#3a2c1c; }
   .anthem{ display:flex; align-items:center; gap:12px; max-width:640px; margin:10px auto 0; padding:8px 14px 8px 8px; box-sizing:border-box;
     background:linear-gradient(135deg, #1a1410 0%, #2e1f12 50%, #1a1410 100%); border:1px solid #6b5232; border-radius:999px;
     box-shadow:0 0 0 1px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,215,140,0.12), 0 4px 10px rgba(0,0,0,0.45); position:relative; z-index:5; }
@@ -12702,6 +12727,7 @@ function renderRoster(){
       `).join('') : emptyState('No members yet.') }
     </div>
 
+    ${ renderAttendance() }
   `;
 }
 
@@ -12780,6 +12806,97 @@ async function loadGoldLeaderboard(){
       updateTrophyCaseDisplay();
     }
   } catch(e){ console.error('Leaderboard fetch failed:', e); }
+}
+
+/* ---------------- Raid attendance (Roster page) ----------------
+   Raiders, Officers and the Raid Leader, grouped by role (from their Raid Composition spec), with a 45-day attendance
+   % and every raid night (Sundays and Mondays) from 8 weeks back to 8 weeks ahead. A row in raid_attendance = absent
+   that night; no row = attended. Officers / the Raid Leader click a night to mark or clear an absence (future nights
+   too, for planned absences). */
+const RAID_START = '2026-12-16';            // first raid week
+const RAID_WEEKDAYS = [0, 1];               // Sunday, Monday
+const ATT_WINDOW_DAYS = 56, ATT_PCT_DAYS = 45;
+const ROLE_OF_SPEC = {
+  'warrior:protection': 'tank', 'paladin:protection': 'tank', 'druid:feral': 'tank',
+  'paladin:holy': 'healer', 'priest:discipline': 'healer', 'priest:holy': 'healer', 'shaman:restoration': 'healer', 'druid:restoration': 'healer',
+  'warrior:arms': 'melee', 'warrior:fury': 'melee', 'paladin:retribution': 'melee', 'rogue:assassination': 'melee', 'rogue:combat': 'melee',
+  'rogue:subtlety': 'melee', 'shaman:enhancement': 'melee', 'druid:cat': 'melee'
+};
+const ROLE_GROUPS = [['tank', 'Tanks'], ['melee', 'Melee'], ['caster', 'Casters'], ['healer', 'Healers'], ['none', 'Unassigned']];
+const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function raidNights(){
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const start = new Date(RAID_START + 'T00:00:00');
+  const from = new Date(Math.max(start, today - ATT_WINDOW_DAYS * 864e5));
+  const to = new Date(Math.max(today, start).valueOf() + ATT_WINDOW_DAYS * 864e5);   // before raiding starts: its first 8 weeks
+  const out = [];
+  for(const d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) if(RAID_WEEKDAYS.includes(d.getDay())) out.push(ymd(d));
+  return { nights: out, today: ymd(today) };
+}
+async function loadAttendance(){
+  if(state.attendanceLoading) return;
+  state.attendanceLoading = true;
+  const { data, error } = await sb.from('raid_attendance').select('raid_date, user_id, absent');
+  state.attendanceLoading = false;
+  if(error){ console.error('attendance load failed:', error); state.attendance = {}; return; }
+  state.attendance = {};
+  (data || []).forEach(r => { if(r.absent) state.attendance[r.raid_date + '|' + r.user_id] = true; });
+  if(state.tab === 'roster') render();
+}
+function renderAttendance(){
+  if(!state.session) return '';
+  if(!state.attendance){ loadAttendance(); return `<div class="panel style-glass"><h3>Raid Attendance</h3><p class="muted sans">Loading…</p></div>`; }
+  const canEdit = testCanManage();
+  const { nights, today } = raidNights();
+  const pctFrom = ymd(new Date(Date.now() - ATT_PCT_DAYS * 864e5));
+  const counted = nights.filter(n => n < today && n >= pctFrom);   // raid nights already played in the last 45 days
+  const raiders = Object.values(state.profilesById || {}).filter(p => p.role === 'raider' || p.role === 'officer' || p.protected);
+  const specOf = p => (state.compSlots || []).find(s => s.character_name && p.character_name && s.character_name.toLowerCase() === p.character_name.toLowerCase());
+  const rows = raiders.map(p => {
+    const slot = specOf(p), role = slot ? (ROLE_OF_SPEC[slot.class_key + ':' + slot.spec_key] || 'caster') : 'none';
+    const missed = counted.filter(n => state.attendance[n + '|' + p.id]).length;
+    return { p, slot, role, pct: counted.length ? Math.round((counted.length - missed) / counted.length * 100) : null };
+  });
+  const head = nights.map(n => `<th class="att-night ${n < today ? 'past' : n === today ? 'today' : 'future'}"><span>${n.slice(5).replace('-', '/')}</span></th>`).join('');
+  const body = ROLE_GROUPS.map(([role, label]) => {
+    const list = rows.filter(r => r.role === role).sort((a, b) => (a.p.character_name || '').localeCompare(b.p.character_name || ''));
+    if(!list.length) return '';
+    return list.map((r, i) => {
+      const cls = r.slot && CLASS_SPECS[r.slot.class_key], color = cls ? cls.color : '#e8d6b0';
+      const pctCls = r.pct == null ? '' : r.pct >= 90 ? 'good' : r.pct >= 75 ? 'ok' : 'low';
+      return `<tr class="${i === 0 ? 'att-group-start' : ''}">
+        ${ i === 0 ? `<th class="att-role" rowspan="${list.length}"><span>${label}</span></th>` : '' }
+        <td class="att-name"><span class="att-icon">${ r.slot ? `<span style="${specIconStyle(r.slot.class_key)}">${specIconHtml(r.slot.class_key, r.slot.spec_key)}</span>` : '' }</span><span style="color:${color}">${esc(r.p.character_name || r.p.discord_username || 'Member')}</span></td>
+        <td class="att-pct ${pctCls}">${r.pct == null ? '&mdash;' : r.pct + '%'}</td>
+        ${ nights.map(n => {
+          const off = !!state.attendance[n + '|' + r.p.id], when = n < today ? 'past' : n === today ? 'today' : 'future';
+          return `<td class="att-cell ${when} ${off ? 'off' : ''} ${canEdit ? 'edit' : ''}" ${canEdit ? `data-att="${n}|${r.p.id}" title="${off ? 'Clear the absence' : 'Mark absent'}"` : ''}>${off ? '&#10007;' : ''}</td>`;
+        }).join('') }
+      </tr>`;
+    }).join('');
+  }).join('');
+  return `
+    <div class="panel style-glass att-panel">
+      <h3 style="margin-bottom:4px;">Raid Attendance</h3>
+      <p class="muted sans" style="margin-bottom:12px;">Raiders, Officers and the Raid Leader. Raid nights are Sundays and Mondays from December 16. A &#10007; is an absence; the % covers the last ${ATT_PCT_DAYS} days.${ canEdit ? ' Click a night to mark someone absent, or click again to clear it (future nights too, for planned absences).' : '' }</p>
+      ${ rows.length ? `<div class="att-scroll"><table class="att-table">
+        <thead><tr><th></th><th class="att-h-name">Name</th><th class="att-h-pct">Attendance<br><small>${ATT_PCT_DAYS} days</small></th>${head}</tr></thead>
+        <tbody>${body}</tbody>
+      </table></div>` : emptyState('Nobody has the Raider rank yet.') }
+    </div>`;
+}
+async function toggleAttendance(key){
+  const [date, uid] = key.split('|');
+  const was = !!state.attendance[key];
+  if(was) delete state.attendance[key]; else state.attendance[key] = true;   // show it straight away
+  render();
+  const { error } = was
+    ? await sb.from('raid_attendance').delete().eq('raid_date', date).eq('user_id', uid)
+    : await sb.from('raid_attendance').upsert({ raid_date: date, user_id: uid, absent: true });
+  if(error){
+    if(was) state.attendance[key] = true; else delete state.attendance[key];
+    render(); showToast('Could not update attendance: ' + error.message, true);
+  }
 }
 
 /* ---- render roster groups (for home page) ---- */
@@ -14334,6 +14451,7 @@ function bindApp(){
   document.querySelectorAll('[data-reset-earned-gold]').forEach(b=>b.addEventListener('click', ()=>resetMemberEarnedGold(b.dataset.resetEarnedGold)));
   document.querySelectorAll('[data-rename-member]').forEach(b=>b.addEventListener('click', ()=>openRenameMemberModal(b.dataset.renameMember)));
   document.querySelectorAll('.spec-btn').forEach(b=>b.addEventListener('click', ()=>selectSpec(b.dataset.class, b.dataset.spec)));
+  document.querySelectorAll('[data-att]').forEach(el => el.addEventListener('click', () => toggleAttendance(el.dataset.att)));
   document.querySelectorAll('[data-slot-click]').forEach(el=>el.addEventListener('click', ()=>{
     const [gi,si] = el.dataset.slotClick.split('|').map(Number);
     openCompSlotModal(gi,si);
