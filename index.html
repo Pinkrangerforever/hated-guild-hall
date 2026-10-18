@@ -10379,7 +10379,7 @@ async function loadMyDecor(){
   if(state.tab === 'profile') render();
 }
 function decorItemsFor(zone){
-  return (state.shopItems || []).filter(i => i.category === 'home_decor' && i.metadata && HOME_DECOR[i.metadata.key]
+  return (state.shopItems || []).filter(i => i.category === 'home_decor' && i.active !== false && i.metadata && HOME_DECOR[i.metadata.key]
     && (!i.metadata.zone || i.metadata.zone === zone)).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 }
 function homeEditViewer(){
