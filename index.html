@@ -8509,6 +8509,7 @@ function setupStickerDragHandlers(){
     if(!stickerGroup || stickerGroup.dataset.draggable !== 'true') return;
 
     draggingSticker = stickerGroup;
+    draggingSticker._from = { left: stickerGroup.style.left, top: stickerGroup.style.top };
     const stickersContainer = stickerGroup.closest('.corkboard-stickers');
     containerRect = stickersContainer ? stickersContainer.getBoundingClientRect() : null;
     dragStart = { x: e.clientX, y: e.clientY };
@@ -8547,6 +8548,16 @@ function setupStickerDragHandlers(){
     const posX = parseFloat(draggingSticker.style.left) || 50;
     const posY = parseFloat(draggingSticker.style.top) || 50;
     const stickerId = draggingSticker.dataset.stickerId;
+    const moved = draggingSticker, snapBack = () => { if(moved._from){ moved.style.left = moved._from.left; moved.style.top = moved._from.top; } };
+    // Members move only their own sticker, and not on top of another (closer than 12% - the server's rule too)
+    if(!testCanManage()){
+      const onTop = (state.stickers || []).some(s => s.id !== stickerId
+        && Math.hypot((s.position_x ?? 50) - posX, (s.position_y ?? 50) - posY) < 12);
+      if(onTop){
+        snapBack(); showToast("Can't place your sticker on top of another one", true);
+        draggingSticker = null; containerRect = null; return;
+      }
+    }
 
     console.log('Saving sticker position:', { stickerId, posX, posY });
 
@@ -8558,12 +8569,13 @@ function setupStickerDragHandlers(){
 
     if(error) {
       console.error('Sticker position RPC error:', error);
-      showToast('Failed to save sticker position  ' + (error.message || 'try again'), true);
+      snapBack(); showToast('Failed to save sticker position  ' + (error.message || 'try again'), true);
     } else if(data === true || data?.success === true) {
-      console.log(' Sticker position saved:', { posX, posY });
+      const st = (state.stickers || []).find(s => s.id === stickerId);   // keep the overlap check current
+      if(st){ st.position_x = Math.round(posX * 100) / 100; st.position_y = Math.round(posY * 100) / 100; }
     } else {
       console.error('Sticker position update returned failure:', data);
-      showToast('Failed to save sticker position', true);
+      snapBack(); showToast("Couldn't move that sticker there", true);
     }
 
     draggingSticker = null;
@@ -9203,11 +9215,11 @@ function renderLanding(){
                   <div class="sticker-pin-group"
                        data-sticker-id="${esc(s.id)}"
                        data-owned="${isOwner}"
-                       data-draggable="${isAuthenticated}"
+                       data-draggable="${canManage || isOwner}"
                        style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
                     <div class="sticker-pin"></div>
                     <div class="sticker-pin-shadow"></div>
-                    ${ canManage ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">&times;</button>` : '' }
+                    ${ testIsRaidLeader() ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}" title="Delete this sticker">&times;</button>` : '' }
                     <img src="${esc(s.image_url)}" alt="" loading="lazy" class="corkboard-sticker">
                     ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
                     <div class="sticker-placer">${esc(s.placed_by_name)}</div>
@@ -12991,10 +13003,10 @@ function renderGuildBoardModule(){
                 const canManage = testCanManage();
                 const isAuthenticated = !!state.session?.user?.id;
                 return `
-                <div class="sticker-pin-group" data-sticker-id="${esc(s.id)}" data-owned="${isOwner}" data-draggable="${isAuthenticated}" style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
+                <div class="sticker-pin-group" data-sticker-id="${esc(s.id)}" data-owned="${isOwner}" data-draggable="${testCanManage() || isOwner}" style="left: ${posX}%; top: ${posY}%; transform: translate(-50%, -50%) rotate(${rotation}deg);">
                   <div class="sticker-pin"></div>
                   <div class="sticker-pin-shadow"></div>
-                  ${ canManage ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}">&times;</button>` : '' }
+                  ${ testIsRaidLeader() ? `<button type="button" class="sticker-delete-btn" data-delete-sticker="${esc(s.id)}">&times;</button>` : '' }
                   <img src="${esc(s.image_url)}" alt="" class="corkboard-sticker">
                   ${ s.note ? `<div class="sticker-note">${esc(s.note)}</div>` : '' }
                   <div class="sticker-placer">${esc(s.placed_by_name)}</div>
