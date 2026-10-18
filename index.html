@@ -15227,11 +15227,12 @@ const PHOENIX_ADULT_MODEL = {
 // (the texture is plain white; the game colours it). In-game colour output; framed closer than the adult so he looks
 // bigger. Only clips that stay in the window (like the adult's).
 const PHOENIX_BOSS_MODEL = {
-  gltf: 'models/phoenix-boss.gltf?v=5',   // ?v: browsers may hold an earlier boss
+  gltf: 'models/phoenix-boss.gltf?v=6',   // ?v: browsers may hold an earlier boss
   camY: 0.12, camZ: 1.35, alphaCutout: true, srgb: true,
-  additiveMaterials: ['1046089'],
   blendMaterials: ['1046092'],
-  tints: { '1046089': '#ff7a50' },
+  // pink-to-purple sparks streaming from the long tail feathers' tips (the in-game particle trail)
+  trail: { bones: ['bone_45', 'bone_47', 'bone_49', 'bone_51', 'bone_53', 'bone_55', 'bone_139', 'bone_141'], origin: 'bone_EXP_C1_Tail2',
+           from: '#ff6ab4', to: '#8a3cff', rate: 18, life: 1.1, size: 0.055, speed: 0.5 },
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
     idle: 'Stand',
@@ -15378,6 +15379,7 @@ async function loadOBJModel(model){
   if(object.userData.animations && object.userData.animations.length) setupPetAnimations(object, model.anims);
   else stopPetAnimations();
   if(petUI.pendingEvolution) finishPetEvolution(model);
+  setupPetTrail(object, model.trail);
   model3D.camera.position.set(0, model.camY ?? PET_CAMERA.y, model.camZ ?? PET_CAMERA.z);
   model3D.camera.lookAt(0, 0, 0);
   model3D.renderer.outputEncoding = model.srgb ? THREE.sRGBEncoding : THREE.LinearEncoding;   // srgb: in-game colours
@@ -15448,12 +15450,63 @@ function resizePetViewer(){
   positionEggGlow();
 }
 
+// Trail: soft glowing sparks shed from a few bones (e.g. the phoenix's tail-feather tips) that drift and fade, like
+// WoW's particle trails (which the export doesn't include). They live in the scene, so they hang behind as he moves.
+let petTrailTex = null;
+function setupPetTrail(object, cfg){
+  if(model3D.trail){ model3D.scene && model3D.scene.remove(model3D.trail.group); model3D.trail = null; }
+  if(!cfg || !object) return;
+  const bones = []; let origin = null;
+  object.traverse(o => { if(o.isBone && cfg.bones.includes(o.name)) bones.push(o); if(o.isBone && o.name === cfg.origin) origin = o; });
+  if(!bones.length) return;
+  if(!petTrailTex){
+    const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+    const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.35, 'rgba(255,255,255,0.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64); petTrailTex = new THREE.CanvasTexture(c);
+  }
+  const group = new THREE.Group(); model3D.scene.add(group);
+  model3D.trail = { cfg, bones, origin, group, parts: [], acc: 0, from: new THREE.Color(cfg.from || '#ff5aa8'), to: new THREE.Color(cfg.to || '#8a3cff') };
+}
+function tickPetTrail(dt){
+  const t = model3D.trail; if(!t) return;
+  const cfg = t.cfg, life = cfg.life || 1.2, size = cfg.size || 0.05, tmp = new THREE.Vector3();
+  t.acc += dt * (cfg.rate || 7) * t.bones.length;
+  while(t.acc >= 1){
+    t.acc -= 1;
+    const b = t.bones[Math.floor(Math.random() * t.bones.length)];
+    b.getWorldPosition(tmp);
+    // stream outward along the feather (from the tail's base through this bone), like a ribbon of fire
+    const dir = new THREE.Vector3();
+    if(t.origin){ t.origin.getWorldPosition(dir); dir.subVectors(tmp, dir).normalize(); }
+    const sp = t.parts.find(p => !p.alive) || (() => {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: petTrailTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      t.group.add(s); const p = { s, alive: false }; t.parts.push(p); return p;
+    })();
+    sp.alive = true; sp.age = 0; sp.life = life * (0.75 + Math.random() * 0.5);
+    sp.s.position.copy(tmp).add(new THREE.Vector3((Math.random() - 0.5) * 0.02, (Math.random() - 0.5) * 0.02, (Math.random() - 0.5) * 0.02));
+    sp.v = dir.multiplyScalar((cfg.speed || 0.25) * (0.7 + Math.random() * 0.6))
+      .add(new THREE.Vector3((Math.random() - 0.5) * 0.05, -0.04 - Math.random() * 0.04, (Math.random() - 0.5) * 0.05));
+    sp.s.visible = true;
+  }
+  t.parts.forEach(p => {
+    if(!p.alive) return;
+    p.age += dt; const k = p.age / p.life;
+    if(k >= 1){ p.alive = false; p.s.visible = false; return; }
+    p.s.position.addScaledVector(p.v, dt);
+    p.s.material.color.copy(t.from).lerp(t.to, k);           // pink fading to purple
+    p.s.material.opacity = (1 - k) * (k < 0.15 ? k / 0.15 : 1) * 0.9;
+    p.s.scale.setScalar(size * (1 - k * 0.6));
+  });
+}
+
 function animate3DModel(){
   if(!model3D.isLoaded || !model3D.renderer) return;
 
   model3D.animationId = requestAnimationFrame(animate3DModel);
 
-  if(petAnim.mixer) petAnim.mixer.update(petAnim.clock.getDelta());
+  const petDt = petAnim.clock ? petAnim.clock.getDelta() : 0.016;
+  if(petAnim.mixer) petAnim.mixer.update(petDt);
+  tickPetTrail(Math.min(0.05, petDt));
   if(petAnim.root && petAnim.targetPos) petAnim.root.position.lerp(petAnim.targetPos, 0.06); // ease clip re-centering
   if(petAnim.shiftTargetY != null) petAnim.shiftY = (petAnim.shiftY || 0) + (petAnim.shiftTargetY - (petAnim.shiftY || 0)) * 0.06;   // ease clipY
 
