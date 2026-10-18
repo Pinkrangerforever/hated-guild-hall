@@ -1074,6 +1074,37 @@
   }
 
   /* ---- boss strategy tree ---- */
+  /* raid plan (Boss Strategies) */
+  .rp-grid{ display:grid; grid-template-columns:1.4fr 1fr 1.2fr; gap:14px; align-items:start; }
+  @media (max-width: 1000px){ .rp-grid{ grid-template-columns:1fr; } }
+  .rp-grid .panel{ margin:0; }
+  .rp-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+  .rp-head h3{ margin:0; }
+  .rp-count{ font:700 12px Cinzel, Georgia, serif; color:#c8b48a; margin-left:6px; }
+  .rp-group{ margin-bottom:10px; }
+  .rp-group-title{ font:700 12px Cinzel, Georgia, serif; letter-spacing:0.08em; color:#c8b48a; text-transform:uppercase; margin-bottom:6px; }
+  .rp-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .rp-chip{ display:inline-flex; align-items:center; gap:5px; padding:3px 6px 3px 4px; border-radius:4px; background:rgba(20,15,10,0.6); border:1px solid #3a2d20; font-weight:700; font-size:13px; text-shadow:0 1px 1px #000; }
+  .rp-icon{ display:inline-flex; width:18px; height:18px; align-items:center; justify-content:center; border-radius:3px; margin-right:4px; vertical-align:middle; }
+  .rp-icon svg{ width:14px; height:14px; }
+  .rp-pug{ font:700 9px system-ui; letter-spacing:0.06em; color:#1a1208; background:#c8b48a; border-radius:3px; padding:1px 4px; margin-left:4px; vertical-align:middle; }
+  .rp-x, .rp-mini{ background:none; border:none; color:#a8875a; cursor:pointer; font-size:15px; line-height:1; padding:0 3px; }
+  .rp-x:hover{ color:#ff7b6a; } .rp-mini:hover{ color:#ffd36a; }
+  .rp-add{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .rp-add input, .rp-add select{ flex:1; min-width:120px; }
+  .rp-tanks{ list-style:none; margin:0; padding:0; }
+  .rp-tanks li{ display:flex; align-items:center; gap:6px; padding:5px 0; border-bottom:1px solid #2c241b; font-weight:700; }
+  .rp-tag{ font:700 10px Cinzel, Georgia, serif; color:#ecc867; min-width:66px; }
+  .rp-tools{ margin-left:auto; display:flex; gap:2px; }
+  .rp-hint{ font-size:12px; margin:-4px 0 8px; }
+  .rp-heal{ display:flex; align-items:center; gap:7px; padding:5px 0; border-bottom:1px solid #2c241b; font-weight:700; flex-wrap:wrap; }
+  .rp-heal select, .rp-heal input{ flex:1; min-width:110px; }
+  .rp-heal.changed{ background:linear-gradient(90deg, rgba(255,200,90,0.08), transparent); }
+  .rp-arrow{ color:#a8875a; }
+  .rp-target{ font-weight:600; }
+  .rp-changed{ font:700 10px system-ui; color:#ffd36a; border:1px solid rgba(255,211,106,0.45); border-radius:3px; padding:1px 5px; }
+  .rp-cols{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width: 800px){ .rp-cols{ grid-template-columns:1fr; } }
   .strat-breadcrumb{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); margin-bottom:4px; }
   .strat-breadcrumb button{ background:none; border:none; color:var(--text-muted); font-size:12px; padding:2px 0; text-decoration:underline; }
   .strat-breadcrumb button:hover{ color:var(--blurple); }
@@ -12454,6 +12485,8 @@ function renderStrategies(){
       <h2 class="page-title" style="margin-top:8px;">${esc(boss.name)}</h2>
       <p class="page-sub sans">${esc(raid.name)}</p>
 
+      ${ renderBossAssignments(boss) }
+
       <div class="panel style-glass">
         <h3 style="margin-bottom:12px;">Strategy notes</h3>
         ${ officer ? `
@@ -12509,7 +12542,9 @@ function renderStrategies(){
   }
 
   return `
-    ${pageHeader('Boss Strategies', 'Strategy', "Pick a raid instance, then a boss, to see notes and the RaidPlan screenshot.")}
+    ${pageHeader('Boss Strategies', 'Strategy', "Tonight's raid, tanks and healer assignments, then each boss's strategy and fight assignments.")}
+
+    ${ renderRaidSetup() }
 
     ${ officer ? `
     <div class="panel style-glass">
@@ -12564,6 +12599,182 @@ function renderStrategies(){
       `).join('') : emptyState('No RaidPlan links yet.') }
     </div>
   `;
+}
+
+/* ---------------- Raid plan (Boss Strategies) ----------------
+   One shared plan (raid_plan.data): tonight's roster (the raid roster plus PUGs), the tanks, and each healer's default
+   tank. Each boss keeps its own fight assignments in bosses.plan: tank jobs, healer overrides (only those that differ
+   from the defaults), interrupt / crowd-control jobs and kill order. The Hated Companion addon will show all of it. */
+const PLAN_ROLE_LABEL = { tank: 'Tanks', healer: 'Healers', melee: 'Melee', caster: 'Ranged', none: 'Unassigned' };
+function planRoleOf(m){ return m.class_key ? (ROLE_OF_SPEC[m.class_key + ':' + m.spec_key] || 'caster') : 'none'; }
+function planDefaultRoster(){
+  const slotFor = name => (state.compSlots || []).find(s => s.character_name && name && s.character_name.toLowerCase() === name.toLowerCase());
+  return Object.values(state.profilesById || {})
+    .filter(p => (p.role === 'raider' || p.role === 'officer' || p.protected) && p.character_name)
+    .map(p => { const s = slotFor(p.character_name); return { name: p.character_name, class_key: s ? s.class_key : null, spec_key: s ? s.spec_key : null, pug: false }; })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+function planData(){ return (state.raidPlan && state.raidPlan.data) || {}; }
+function planRoster(){ const d = planData(); return d.roster || planDefaultRoster(); }
+function planTanks(){ const d = planData(); return d.tanks || planRoster().filter(m => planRoleOf(m) === 'tank').map(m => m.name); }
+function planHealers(){
+  const d = planData();
+  if(d.healers) return d.healers;
+  const tanks = planTanks();
+  return planRoster().filter(m => planRoleOf(m) === 'healer').map((m, i) => ({ name: m.name, tank: tanks.length ? tanks[i % tanks.length] : '' }));
+}
+function planMember(name){ return planRoster().find(m => m.name === name) || null; }
+function planNameHtml(name){
+  const m = planMember(name), cls = m && m.class_key && CLASS_SPECS[m.class_key];
+  const icon = m && m.class_key ? `<span class="rp-icon" style="${specIconStyle(m.class_key)}">${specIconHtml(m.class_key, m.spec_key)}</span>` : '';
+  return `${icon}<span style="color:${cls ? cls.color : '#e8d6b0'}">${esc(name)}</span>${ m && m.pug ? ' <span class="rp-pug">PUG</span>' : '' }`;
+}
+async function loadRaidPlan(){
+  if(state.raidPlanLoading) return;
+  state.raidPlanLoading = true;
+  const { data, error } = await sb.from('raid_plan').select('*').eq('id', 1).maybeSingle();
+  state.raidPlanLoading = false;
+  state.raidPlan = error ? { data: {} } : (data || { data: {} });
+  if(error) console.error('raid plan load failed:', error);
+  if(state.tab === 'strategies') render();
+}
+async function saveRaidPlan(patch){
+  let next = Object.assign({}, planData(), patch);
+  if(next._reset){ next = {}; next.roster = planDefaultRoster(); state.raidPlan = Object.assign({}, state.raidPlan, { data: { roster: next.roster } });
+    next.tanks = planTanks(); next.healers = planHealers(); }
+  // freeze the computed defaults on the first edit, so later roster changes don't silently reshuffle them
+  if(!('roster' in next)) next.roster = planRoster();
+  if(!('tanks' in next)) next.tanks = planTanks();
+  if(!('healers' in next)) next.healers = planHealers();
+  state.raidPlan = Object.assign({}, state.raidPlan, { data: next });
+  render();
+  const { error } = await sb.from('raid_plan').upsert({ id: 1, data: next, updated_at: new Date().toISOString() });
+  if(error) showToast('Could not save the raid plan: ' + error.message, true);
+}
+function planSpecOptions(selected){
+  return '<option value="">Class / spec…</option>' + Object.entries(CLASS_SPECS).map(([ck, c]) =>
+    c.specs.map(s => `<option value="${ck}:${s.key}" ${selected === ck + ':' + s.key ? 'selected' : ''}>${esc(c.label)} - ${esc(s.label)}</option>`).join('')).join('');
+}
+function planPickOptions(selected, names, blank){
+  return `<option value="">${blank || 'Choose…'}</option>` + names.map(n => `<option value="${esc(n)}" ${n === selected ? 'selected' : ''}>${esc(n)}</option>`).join('');
+}
+
+// Raid Setup: tonight's roster, tanks, healer -> tank defaults (top of the Boss Strategies page)
+function renderRaidSetup(){
+  if(!state.raidPlan){ loadRaidPlan(); return `<div class="panel style-glass"><h3>Raid Setup</h3><p class="muted sans">Loading…</p></div>`; }
+  const edit = testCanManage();
+  const roster = planRoster(), tanks = planTanks(), healers = planHealers();
+  const groups = ['tank', 'healer', 'melee', 'caster', 'none'].map(r => [r, roster.filter(m => planRoleOf(m) === r)]).filter(g => g[1].length);
+  const names = roster.map(m => m.name);
+  return `
+    <div class="rp-grid">
+      <div class="panel style-glass rp-roster">
+        <div class="rp-head"><h3>Tonight's Raid <span class="rp-count">${roster.length}</span></h3>
+          ${ edit ? `<button class="btn secondary" type="button" id="rp-reset" title="Back to the guild's raid roster (Raiders, Officers, Raid Leader)">Reset to roster</button>` : '' }</div>
+        ${ groups.map(([r, list]) => `<div class="rp-group"><div class="rp-group-title">${PLAN_ROLE_LABEL[r]}</div>
+          <div class="rp-chips">${ list.map(m => `<span class="rp-chip">${planNameHtml(m.name)}${ edit ? `<button type="button" class="rp-x" data-rp-remove="${esc(m.name)}" title="Not raiding tonight">&times;</button>` : '' }</span>`).join('') }</div></div>`).join('') || emptyState('Nobody on the roster yet.') }
+        ${ edit ? `<div class="rp-add">
+          <input id="rp-pug-name" placeholder="PUG name" maxlength="24">
+          <select id="rp-pug-spec">${planSpecOptions('')}</select>
+          <button class="btn" type="button" id="rp-pug-add">Add PUG</button>
+          ${ (() => { const missing = planDefaultRoster().filter(d => !names.includes(d.name)); return missing.length ? `<select id="rp-readd"><option value="">Add back a raider…</option>${missing.map(d => `<option>${esc(d.name)}</option>`).join('')}</select>` : ''; })() }
+        </div>` : '' }
+      </div>
+      <div class="panel style-glass">
+        <h3>Tanks</h3>
+        ${ tanks.length ? `<ol class="rp-tanks">${ tanks.map((t, i) => `<li><span class="rp-tag">${i === 0 ? 'Main tank' : i === 1 ? 'Off tank' : 'Tank ' + (i + 1)}</span> ${planNameHtml(t)}
+          ${ edit ? `<span class="rp-tools">${ i ? `<button type="button" class="rp-mini" data-rp-tank-up="${i}" title="Move up">&#9650;</button>` : '' }<button type="button" class="rp-x" data-rp-tank-del="${esc(t)}">&times;</button></span>` : '' }</li>`).join('') }</ol>` : emptyState('No tanks picked.') }
+        ${ edit ? `<div class="rp-add"><select id="rp-tank-pick">${planPickOptions('', names.filter(n => !tanks.includes(n)), 'Add a tank…')}</select></div>` : '' }
+      </div>
+      <div class="panel style-glass">
+        <h3>Healers &rarr; Tank</h3>
+        <p class="muted sans rp-hint">Each healer's default tank. Boss pages start from these and can change them per fight.</p>
+        ${ healers.length ? healers.map(hl => `<div class="rp-heal">${planNameHtml(hl.name)}
+          <span class="rp-arrow">&rarr;</span>
+          ${ edit ? `<select data-rp-heal="${esc(hl.name)}">${planPickOptions(hl.tank, tanks, 'Raid healing')}</select><button type="button" class="rp-x" data-rp-heal-del="${esc(hl.name)}">&times;</button>`
+                  : `<span class="rp-target">${hl.tank ? planNameHtml(hl.tank) : 'Raid healing'}</span>` }</div>`).join('') : emptyState('No healers picked.') }
+        ${ edit ? `<div class="rp-add"><select id="rp-heal-pick">${planPickOptions('', names.filter(n => !healers.some(x => x.name === n)), 'Add a healer…')}</select></div>` : '' }
+      </div>
+    </div>`;
+}
+
+// A boss's fight assignments (on its page): starts from the raid setup, changes highlighted
+function bossPlan(boss){ return Object.assign({ tankJobs: {}, heal: {}, jobs: [], killOrder: '' }, boss.plan || {}); }
+function renderBossAssignments(boss){
+  if(!state.raidPlan){ loadRaidPlan(); return ''; }
+  const edit = testCanManage(), bp = bossPlan(boss), tanks = planTanks(), names = planRoster().map(m => m.name);
+  const healRows = planHealers().map(hl => {
+    const own = Object.prototype.hasOwnProperty.call(bp.heal, hl.name), tank = own ? bp.heal[hl.name] : hl.tank;
+    return `<div class="rp-heal ${own ? 'changed' : ''}">${planNameHtml(hl.name)}<span class="rp-arrow">&rarr;</span>
+      ${ edit ? `<select data-bp-heal="${esc(hl.name)}">${planPickOptions(tank, tanks, 'Raid healing')}</select>` : `<span class="rp-target">${tank ? planNameHtml(tank) : 'Raid healing'}</span>` }
+      ${ own ? `<span class="rp-changed" title="Default: ${esc(hl.tank || 'Raid healing')}">this fight</span>${ edit ? `<button type="button" class="rp-mini" data-bp-heal-reset="${esc(hl.name)}" title="Back to the default">&#8634;</button>` : '' }` : '' }</div>`;
+  }).join('');
+  return `
+    <div class="panel style-glass">
+      <div class="rp-head"><h3>Assignments</h3>${ edit && Object.keys(bp.heal).length ? `<button class="btn secondary" type="button" id="bp-heal-reset-all">Healers back to defaults</button>` : '' }</div>
+      <div class="rp-cols">
+        <div>
+          <div class="rp-group-title">Tanks</div>
+          ${ tanks.length ? tanks.map(t => `<div class="rp-heal">${planNameHtml(t)}<span class="rp-arrow">&rarr;</span>
+            ${ edit ? `<input data-bp-tankjob="${esc(t)}" value="${esc(bp.tankJobs[t] || '')}" placeholder="Boss, adds, kiting…" maxlength="60">` : `<span class="rp-target">${esc(bp.tankJobs[t] || '-')}</span>` }</div>`).join('') : emptyState('Pick tanks on the Boss Strategies page.') }
+        </div>
+        <div>
+          <div class="rp-group-title">Healers</div>
+          ${ healRows || emptyState('Pick healers on the Boss Strategies page.') }
+        </div>
+      </div>
+      <div class="rp-group-title" style="margin-top:14px;">Interrupts, crowd control &amp; other jobs</div>
+      ${ bp.jobs.length ? bp.jobs.map((j, i) => `<div class="rp-heal">
+          ${ edit ? `<select data-bp-job-who="${i}">${planPickOptions(j.who, names, 'Who…')}</select><input data-bp-job-what="${i}" value="${esc(j.what || '')}" placeholder="Interrupt Shadow Bolt, sheep skull 2…" maxlength="80"><button type="button" class="rp-x" data-bp-job-del="${i}">&times;</button>`
+                  : `${planNameHtml(j.who || '?')}<span class="rp-arrow">&rarr;</span><span class="rp-target">${esc(j.what || '')}</span>` }</div>`).join('') : (edit ? '' : emptyState('No extra jobs for this fight.')) }
+      ${ edit ? `<button class="btn secondary" type="button" id="bp-job-add" style="margin-top:6px;">+ Add a job</button>` : '' }
+      <div class="rp-group-title" style="margin-top:14px;">Kill order</div>
+      ${ edit ? `<input id="bp-kill" value="${esc(bp.killOrder || '')}" placeholder="e.g. Skull healer > X caster > boss" maxlength="120" style="width:100%;">` : `<div class="muted">${esc(bp.killOrder || '-')}</div>` }
+    </div>`;
+}
+async function saveBossPlan(bossId, patch){
+  const boss = state.bosses.find(b => b.id === bossId); if(!boss) return;
+  boss.plan = Object.assign(bossPlan(boss), patch);
+  render();
+  const { error } = await sb.from('bosses').update({ plan: boss.plan }).eq('id', bossId);
+  if(error) showToast('Could not save assignments: ' + error.message, true);
+}
+function wireRaidPlan(){
+  const $ = id => document.getElementById(id);
+  const roster = () => planRoster(), tanks = () => planTanks(), healers = () => planHealers();
+  $('rp-reset') && ($('rp-reset').onclick = () => { if(confirm('Reset tonight\'s raid to the guild raid roster? PUGs are removed and tanks / healers go back to their defaults.')) saveRaidPlan({ roster: undefined, tanks: undefined, healers: undefined, _reset: true }); });
+  document.querySelectorAll('[data-rp-remove]').forEach(b => b.onclick = () => { const n = b.dataset.rpRemove;
+    saveRaidPlan({ roster: roster().filter(m => m.name !== n), tanks: tanks().filter(t => t !== n), healers: healers().filter(x => x.name !== n).map(x => x.tank === n ? Object.assign({}, x, { tank: '' }) : x) }); });
+  $('rp-pug-add') && ($('rp-pug-add').onclick = () => {
+    const name = $('rp-pug-name').value.trim(), spec = $('rp-pug-spec').value;
+    if(!name || !spec){ showToast('Give the PUG a name and a class / spec', true); return; }
+    if(roster().some(m => m.name.toLowerCase() === name.toLowerCase())){ showToast(name + ' is already in the raid', true); return; }
+    const [ck, sk] = spec.split(':'), m = { name, class_key: ck, spec_key: sk, pug: true }, role = planRoleOf(m);
+    saveRaidPlan({ roster: roster().concat(m), tanks: role === 'tank' ? tanks().concat(name) : tanks(),
+                   healers: role === 'healer' ? healers().concat({ name, tank: tanks()[0] || '' }) : healers() });
+  });
+  $('rp-readd') && ($('rp-readd').onchange = e => { const d = planDefaultRoster().find(x => x.name === e.target.value); if(d) saveRaidPlan({ roster: roster().concat(d) }); });
+  $('rp-tank-pick') && ($('rp-tank-pick').onchange = e => { if(e.target.value) saveRaidPlan({ tanks: tanks().concat(e.target.value) }); });
+  document.querySelectorAll('[data-rp-tank-del]').forEach(b => b.onclick = () => { const n = b.dataset.rpTankDel;
+    saveRaidPlan({ tanks: tanks().filter(t => t !== n), healers: healers().map(x => x.tank === n ? Object.assign({}, x, { tank: '' }) : x) }); });
+  document.querySelectorAll('[data-rp-tank-up]').forEach(b => b.onclick = () => { const i = +b.dataset.rpTankUp, t = tanks().slice(); [t[i - 1], t[i]] = [t[i], t[i - 1]]; saveRaidPlan({ tanks: t }); });
+  $('rp-heal-pick') && ($('rp-heal-pick').onchange = e => { if(e.target.value) saveRaidPlan({ healers: healers().concat({ name: e.target.value, tank: tanks()[0] || '' }) }); });
+  document.querySelectorAll('[data-rp-heal]').forEach(s => s.onchange = () => saveRaidPlan({ healers: healers().map(x => x.name === s.dataset.rpHeal ? Object.assign({}, x, { tank: s.value }) : x) }));
+  document.querySelectorAll('[data-rp-heal-del]').forEach(b => b.onclick = () => saveRaidPlan({ healers: healers().filter(x => x.name !== b.dataset.rpHealDel) }));
+  // boss page
+  const bossId = state.stratNav && state.stratNav.bossId, boss = bossId && state.bosses.find(b => b.id === bossId);
+  if(!boss) return;
+  const bp = () => bossPlan(boss);
+  document.querySelectorAll('[data-bp-heal]').forEach(s => s.onchange = () => { const heal = Object.assign({}, bp().heal), def = (healers().find(x => x.name === s.dataset.bpHeal) || {}).tank || '';
+    if(s.value === def) delete heal[s.dataset.bpHeal]; else heal[s.dataset.bpHeal] = s.value; saveBossPlan(boss.id, { heal }); });
+  document.querySelectorAll('[data-bp-heal-reset]').forEach(b => b.onclick = () => { const heal = Object.assign({}, bp().heal); delete heal[b.dataset.bpHealReset]; saveBossPlan(boss.id, { heal }); });
+  $('bp-heal-reset-all') && ($('bp-heal-reset-all').onclick = () => saveBossPlan(boss.id, { heal: {} }));
+  document.querySelectorAll('[data-bp-tankjob]').forEach(inp => inp.onchange = () => saveBossPlan(boss.id, { tankJobs: Object.assign({}, bp().tankJobs, { [inp.dataset.bpTankjob]: inp.value.trim() }) }));
+  $('bp-job-add') && ($('bp-job-add').onclick = () => saveBossPlan(boss.id, { jobs: bp().jobs.concat({ who: '', what: '' }) }));
+  document.querySelectorAll('[data-bp-job-who]').forEach(s => s.onchange = () => { const jobs = bp().jobs.slice(); jobs[+s.dataset.bpJobWho] = Object.assign({}, jobs[+s.dataset.bpJobWho], { who: s.value }); saveBossPlan(boss.id, { jobs }); });
+  document.querySelectorAll('[data-bp-job-what]').forEach(inp => inp.onchange = () => { const jobs = bp().jobs.slice(); jobs[+inp.dataset.bpJobWhat] = Object.assign({}, jobs[+inp.dataset.bpJobWhat], { what: inp.value.trim() }); saveBossPlan(boss.id, { jobs }); });
+  document.querySelectorAll('[data-bp-job-del]').forEach(b => b.onclick = () => saveBossPlan(boss.id, { jobs: bp().jobs.filter((_, i) => i !== +b.dataset.bpJobDel) }));
+  $('bp-kill') && ($('bp-kill').onchange = e => saveBossPlan(boss.id, { killOrder: e.target.value.trim() }));
 }
 
 function renderStratBreadcrumb(raid, boss){
@@ -14424,6 +14635,7 @@ function bindApp(){
     state.stratNav = { raidId: el.dataset.crumbRaid, bossId:null };
     render();
   }));
+  if(state.tab === 'strategies') wireRaidPlan();
   const raidAddBtn = document.getElementById('raid-add-btn');
   if(raidAddBtn) raidAddBtn.addEventListener('click', addRaidInstance);
   document.querySelectorAll('[data-del-raid]').forEach(b=>b.addEventListener('click', (ev)=>{ ev.stopPropagation(); deleteRaidInstance(b.dataset.delRaid); }));
