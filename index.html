@@ -15230,12 +15230,12 @@ const PHOENIX_BOSS_MODEL = {
   gltf: 'models/phoenix-boss.gltf?v=6',   // ?v: browsers may hold an earlier boss
   camY: 0.12, camZ: 1.35, alphaCutout: true, srgb: true,
   blendMaterials: ['1046092'],
-  // boss effects: warm key + hot magenta rim light, embers rising off him, a pulsing fire aura behind him
+  // boss effects: warm key + hot magenta rim light, pink and purple embers rising off his tail
   fx: {
     key: { color: '#ffb066', intensity: 0.9, at: [1.5, 2, 3] },
     rim: { color: '#ff3fa8', intensity: 1.6, at: [-1.5, 1.2, -2.5] },
-    embers: { rate: 28, life: 1.8, size: 0.028, rise: 0.2, color: '#ff9a30', color2: '#ffe08a' },
-    aura: { inner: '#ff7a2a', outer: '#c2208a', size: 1.1, y: 0.02, opacity: 0.5 }
+    embers: { rate: 34, life: 1.8, size: 0.045, rise: 0.2, color: '#ff2f9a', color2: '#9a2fff',
+              bones: ['bone_EXP_C1_Tail1', 'bone_EXP_C1_Tail2', 'bone_27', 'bone_39', 'bone_45', 'bone_47', 'bone_49', 'bone_51', 'bone_53', 'bone_55', 'bone_139', 'bone_141'] }
   },
   spin: false, facing: -Math.PI / 2 + 0.6,
   anims: {
@@ -15477,8 +15477,8 @@ function setupPetFx(object, fx){
     const mk = (color, size) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: petGlowTexture(), color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); s.scale.setScalar(size); s.position.set(0, fx.aura.y || 0, -0.5); s.renderOrder = -1; group.add(s); return s; };
     state.auraOuter = mk(fx.aura.outer, fx.aura.size * 1.6); state.auraInner = mk(fx.aura.inner, fx.aura.size);
   }
-  // 2) embers: from random points across the skeleton, so they come off body, wings and tail alike
-  if(fx.embers) object.traverse(o => { if(o.isBone) state.bones.push(o); });
+  // 2) embers: from the listed bones (e.g. just the tail), or from the whole skeleton
+  if(fx.embers) object.traverse(o => { if(o.isBone && (!fx.embers.bones || fx.embers.bones.includes(o.name))) state.bones.push(o); });
   model3D.fx = state;
 }
 function tickPetFx(dt){
