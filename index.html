@@ -10082,8 +10082,15 @@ function homePetBezier(p, t){
   return new THREE.Vector3().addScaledVector(p.from, it * it).addScaledVector(p.ctrl, 2 * it * t).addScaledVector(p.to, t * t);
 }
 function homePetPathClear(v, path, h){
-  for(let i = 1; i <= 16; i++) if(homePetBlocked(v, homePetBezier(path, i / 17), h)) return false;
-  return true;
+  // a roamer placed by its owner can start inside something's footprint (decor next to a house): let it walk out -
+  // the stretch until it's first clear doesn't count
+  let leaving = homePetBlocked(v, path.from, h);
+  for(let i = 1; i <= 16; i++){
+    const blocked = homePetBlocked(v, homePetBezier(path, i / 17), h);
+    if(leaving){ if(!blocked) leaving = false; continue; }
+    if(blocked) return false;
+  }
+  return !leaving;
 }
 
 function createHomePetActor(v, pet, holder){
@@ -10188,10 +10195,14 @@ function homePetNext(v, a, now){
       return;
     }
   }
-  if(a.kind === 'walker' && a.state === 'idle' && Math.random() < 0.6
-     && homePetStartPath(v, a, homePetGroundPoint(v, a.height), a.walkSpeed || HOME_PET_WALK_SPEED, 0)){
-    homePetPlay(a, a.walk); a.state = 'walk'; a.until = Infinity;
-    return;
+  if(a.kind === 'walker' && a.state === 'idle' && Math.random() < 0.6){
+    // a few destinations, in case the first route is blocked
+    for(let i = 0; i < 4; i++){
+      if(homePetStartPath(v, a, homePetGroundPoint(v, a.height), a.walkSpeed || HOME_PET_WALK_SPEED, 0)){
+        homePetPlay(a, a.walk); a.state = 'walk'; a.until = Infinity;
+        return;
+      }
+    }
   }
   // Idle, with an occasional flourish
   if(a.fun.length && Math.random() < 0.35){
