@@ -723,6 +723,12 @@
           else holder.position.set(0.16, 0.002, 0.1);
           holder.rotation.y = -Math.PI / 2 + 0.35;   // turned to the camera
           piece.grp.add(holder); rec.obj = holder;
+          // a phoenix is lit from within: a small warm light travelling with it lights the map round its zone
+          if(w.type === 'phoenix'){
+            const glow = new THREE.PointLight(0xff8a3a, { juvenile: 0.9, adult: 1.2, boss: 1.6 }[w.stage] || 1, 0.9 + (PET_SPAN[w.stage] || 0.3), 2);
+            glow.position.set(0, (box.max.y - box.min.y) * s2 * 0.5, 0); holder.add(glow);
+            (this.flames = this.flames || []).push({ f: { scale: { y: 0 } }, l: glow, s: 1, seed: Math.random() * 100, base: glow.intensity });   // flickers like the candles
+          }
           const idle = g.animations.find(c => c.name === 'Stand');
           if(idle){ rec.mixer = new THREE.AnimationMixer(m); const act = rec.mixer.clipAction(idle); act.play(); act.time = Math.random() * idle.duration; (this.mixers = this.mixers || []).push(rec.mixer); }
           holder.scale.setScalar(0.01); this.animate(400, t => holder.scale.setScalar(Math.max(0.01, easeOut(t))));
