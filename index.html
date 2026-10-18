@@ -12690,6 +12690,9 @@ function renderRoster(){
       </div>
     </div>
 
+    ${ renderAttendance() }
+
+
     <div class="panel style-glass">
       <h3 style="margin-bottom:14px;">Guild Members</h3>
       <p class="muted sans" style="margin-bottom:14px;">Officer/Member status is managed by officers.</p>
@@ -12727,7 +12730,6 @@ function renderRoster(){
       `).join('') : emptyState('No members yet.') }
     </div>
 
-    ${ renderAttendance() }
   `;
 }
 
