@@ -12516,7 +12516,8 @@ function renderStrategies(){
       </div>
 
       <div class="panel style-glass">
-        <h3 style="margin-bottom:12px;">RaidPlan Screenshot</h3>
+        <h3 style="margin-bottom:4px;">RaidPlan Screenshot</h3>
+        ${ officer ? '<p class="muted sans" style="margin-bottom:12px; font-size:12px;">Tip: copy an image and press Ctrl+V anywhere on this page to save it here.</p>' : '<div style="height:8px"></div>' }
         ${ boss.screenshot_url ? `
           <img src="${esc(boss.screenshot_url)}" alt="${esc(boss.name)} raid plan screenshot" class="boss-screenshot">
           ${ officer ? `<div style="margin-top:12px; display:flex; gap:10px;">
@@ -14715,6 +14716,21 @@ function bindApp(){
   if(screenshotInput) screenshotInput.addEventListener('change', (ev)=>{ handleScreenshotFile(state.stratNav.bossId, ev.target.files[0]); });
   const screenshotRemoveBtn = document.getElementById('boss-screenshot-remove-btn');
   if(screenshotRemoveBtn) screenshotRemoveBtn.addEventListener('click', ()=>removeBossScreenshot(state.stratNav.bossId));
+  // paste a copied image on a boss page (officers / RL) to save it as the boss's screenshot
+  if(!window.__bossPaste){ window.__bossPaste = true;
+    document.addEventListener('paste', ev => {
+      if(state.tab !== 'strategies' || !state.stratNav || !state.stratNav.bossId || !testCanManage()) return;
+      const item = [...((ev.clipboardData && ev.clipboardData.items) || [])].find(i => i.kind === 'file' && i.type.startsWith('image/'));
+      if(!item) return;   // plain text pastes into notes etc. work as usual
+      ev.preventDefault();
+      const f = item.getAsFile(); if(!f) return;
+      const boss = state.bosses.find(b => b.id === state.stratNav.bossId);
+      if(boss && boss.screenshot_url && !confirm('Replace the current screenshot with the pasted image?')) return;
+      const ext = (f.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+      showToast('Uploading pasted image…');
+      handleScreenshotFile(state.stratNav.bossId, new File([f], 'pasted.' + ext, { type: f.type }));
+    });
+  }
 
   const raidplanBtn = document.getElementById('raidplan-form-btn');
   if(raidplanBtn) raidplanBtn.addEventListener('click', addRaidplan);
