@@ -311,6 +311,13 @@ local function build()
     GameTooltip:AddLine("Click any row to change it. Changes save straight away; send them with Send boss or Send plan to guild.", 1, 1, 1, true); GameTooltip:Show() end)
   editBtn:SetScript("OnLeave", GameTooltip_Hide)
   UI.editBtn = editBtn
+  local adminBtn = button(mid, "Admin", 64)
+  adminBtn:SetPoint("RIGHT", editBtn, "LEFT", -8, 0)
+  adminBtn:SetScript("OnClick", function() UI.Admin() end)
+  adminBtn:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_BOTTOM"); GameTooltip:AddLine("Admin", 1, 0.82, 0.3)
+    GameTooltip:AddLine("Swap a player everywhere (e.g. a PUG healer for a missing raider), or go back to the website plan.", 1, 1, 1, true); GameTooltip:Show() end)
+  adminBtn:SetScript("OnLeave", GameTooltip_Hide)
+  UI.adminBtn = adminBtn
 
   local ms = CreateFrame("ScrollFrame", "HatedPlanBody", mid, "UIPanelScrollFrameTemplate")
   ms:SetPoint("TOPLEFT", 12, -44); ms:SetPoint("BOTTOMRIGHT", -18, 10); slim(ms)
@@ -685,7 +692,7 @@ Show = function(b, raidName, keepScroll)
   f:Show()
   local lead = iAmLeader() and b ~= nil and findBoss(b.id) ~= nil
   if not lead then UI.editing = false end
-  UI.editBtn:SetShown(lead); UI.bossBtn:SetShown(lead)
+  UI.editBtn:SetShown(lead); UI.bossBtn:SetShown(lead); UI.adminBtn:SetShown(iAmLeader() and HatedPlan ~= nil)
   UI.editBtn.text:SetText(UI.editing and "Done" or "Edit")
   UI.mid.name:SetText((b and b.name or "") .. (UI.editing and "  |cff4dff88editing|r" or ""))
   renderPage(b)
@@ -843,6 +850,9 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
   if event == "PLAYER_LOGIN" then
     C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
     filePlan = HatedPlan
+    -- work on a copy, so in-game edits and swaps never touch the website's plan ("Back to the website plan")
+    local function copy(v) if type(v) ~= "table" then return v end local c = {}; for k, x in pairs(v) do c[k] = copy(x) end return c end
+    HatedPlan = copy(filePlan)
     local synced = HatedCompanionDB and HatedCompanionDB.syncedPlan
     -- use the plan the raid leader sent, unless the plan file has been replaced since it arrived
     local fileStamp = (HatedPlan and HatedPlan.updated) or ""
@@ -1217,6 +1227,88 @@ function UI.SendBoss()
   local _, n = send("U", { boss = c, raid = currentRaid, updated = HatedPlan.updated, by = HatedPlan.by, leader = HatedPlan.leader, classes = HatedPlan.classes }, channels)
   progress = current.name
   say(string.format("sending %s to the guild (%d piece%s).", current.name, n, n == 1 and "" or "s"))
+end
+
+-- ---------- Admin: swap a player everywhere / go back to the website plan ----------
+local function everyBoss(fn)
+  for _, raid in ipairs((HatedPlan and HatedPlan.raids) or {}) do
+    for _, b in ipairs(raid.bosses or {}) do fn(b, raid) end
+  end
+end
+-- names used anywhere in the plan, plus the roster and the group
+local function planNames()
+  local set, list = {}, {}
+  local function add(n) if n and n ~= "" and not set[n] then set[n] = true; list[#list + 1] = n end end
+  everyBoss(function(b)
+    for _, x in ipairs(b.tanks or {}) do add(x.n) end
+    for _, x in ipairs(b.heals or {}) do add(x.n); add(x.t) end
+    for _, x in ipairs(b.jobs or {}) do add(x.n) end
+    for _, set2 in ipairs({ b.marks or {}, b.floor or {} }) do for _, m in ipairs(set2) do for _, w in ipairs(m.who or {}) do add(w) end end end
+  end)
+  table.sort(list, function(a, c) return a:lower() < c:lower() end)
+  return list
+end
+-- replace one name with another in every boss: tanks, healers (and who they heal), markers, jobs
+local function swapPlayer(old, new)
+  local count = 0
+  local function sw(v) if v == old then count = count + 1; return new end return v end
+  everyBoss(function(b)
+    for _, x in ipairs(b.tanks or {}) do x.n = sw(x.n) end
+    for _, x in ipairs(b.heals or {}) do x.n = sw(x.n); x.t = sw(x.t) end
+    for _, x in ipairs(b.jobs or {}) do x.n = sw(x.n) end
+    for _, set2 in ipairs({ b.marks or {}, b.floor or {} }) do
+      for _, m in ipairs(set2) do
+        local seen, keep = {}, {}
+        for _, w in ipairs(m.who or {}) do w = sw(w); if not seen[w] then seen[w] = true; keep[#keep + 1] = w end end
+        m.who = keep
+      end
+    end
+  end)
+  -- the newcomer gets the old player's class colour if we don't know theirs (same role, near enough)
+  if HatedPlan.classes and not HatedPlan.classes[new] then
+    local _, cls = UnitClass(new); HatedPlan.classes[new] = cls or HatedPlan.classes[old]
+  end
+  return count
+end
+
+function UI.Admin()
+  if not iAmLeader() then return end
+  openMenu({
+    { text = "Admin", title = true },
+    { text = "Swap a player everywhere...", func = function()
+      local items = { { text = "Who's out?", title = true } }
+      for _, old in ipairs(planNames()) do
+        items[#items + 1] = { text = nameText(old), func = function()
+          local any = current or {}
+          pickName(any, "Who replaces " .. old .. "?", { old }, function(new)
+            local n = swapPlayer(old, new)
+            HatedPlan.updated, HatedPlan.by, HatedPlan.edited = nowStamp(), UnitName("player"), true
+            persist()
+            say(string.format("%s replaces %s in %d spot%s across every boss. Send plan to guild to share it; \"Back to the website plan\" undoes it.", new, old, n, n == 1 and "" or "s"))
+            Show(current and findBoss(current.id) or current, currentRaid, true)
+          end)
+        end }
+      end
+      openMenu(items)
+    end },
+    { text = "Back to the website plan", func = function()
+      StaticPopupDialogs.HATED_PLAN_RESET = StaticPopupDialogs.HATED_PLAN_RESET or {
+        text = "Throw away every change made in game (edits, swaps, plans received) and go back to the plan from the website?",
+        button1 = YES, button2 = NO, timeout = 0, whileDead = true, hideOnEscape = true,
+        OnAccept = function()
+          HatedCompanionDB = HatedCompanionDB or {}
+          HatedCompanionDB.syncedPlan, HatedCompanionDB.syncedOver = nil, nil
+          local function copy(v) if type(v) ~= "table" then return v end local c = {}; for k, x in pairs(v) do c[k] = copy(x) end return c end
+          HatedPlan = copy(filePlan)
+          UI.editing = false
+          say("back to the website plan" .. ((filePlan and filePlan.updated) and (" (saved " .. filePlan.updated .. ")") or "") .. ". Send plan to guild so everyone has it again.")
+          local b = current and findBoss(current.id)
+          Show(b, b and currentRaid or nil)
+        end,
+      }
+      StaticPopup_Show("HATED_PLAN_RESET")
+    end },
+  })
 end
 
 function UI.ToggleEdit()
