@@ -12897,6 +12897,7 @@ function wireRaidPlan(){
   $('rp-readd') && ($('rp-readd').onchange = e => { const d = planDefaultRoster().find(x => x.name === e.target.value); if(d) saveRaidPlan({ roster: roster().concat(d) }); });
   $('addon-save') && ($('addon-save').onclick = exportAddonPlan);
   $('addon-zip') && ($('addon-zip').onclick = downloadAddonZip);
+  $('addon-publish') && ($('addon-publish').onclick = publishAddon);
   $('addon-forget') && ($('addon-forget').onclick = forgetAddonFolder);
   // pick / select / drag
   const bossFor = scope => state.bosses.find(b => String(b.id) === String(scope));
@@ -13120,32 +13121,66 @@ async function makeZip(files){   // files: [{ name, data: Uint8Array | string }]
   return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: 'application/zip' });
 }
 window.downloadAddonZip = (...a) => downloadAddonZip(...a);
+// the whole addon as a zip: addon files + current plan + full screenshots. `stamp` adds a release suffix to the version
+async function buildAddonZip(stamp){
+  const files = [];
+  let version = '';
+  for(const f of ADDON_FILES){
+    const r = await fetch('addons/HatedCompanion/' + f, { cache: 'no-store' });
+    if(!r.ok) throw new Error(f + ': HTTP ' + r.status);
+    let data = new Uint8Array(await r.arrayBuffer());
+    if(f.endsWith('.toc')){
+      let text = new TextDecoder().decode(data);
+      const m = text.match(/^## Version:\s*(\S+)/m); version = m ? m[1] : '1.0';
+      if(stamp){ version = version + '-' + stamp; text = text.replace(/^## Version:.*$/m, '## Version: ' + version); }
+      data = new TextEncoder().encode(text);
+    }
+    files.push({ name: 'HatedCompanion/' + f, data });
+  }
+  const plan = await buildAddonPlan();
+  let failed = 0;
+  for(const raid of plan.raids) for(const b of raid.bosses){
+    const boss = state.bosses.find(x => String(x.id) === b.id);
+    if(!boss || !boss.screenshot_url) continue;
+    const file = 'Boss_' + b.id.replace(/[^A-Za-z0-9_-]/g, '');
+    try{ const t = await screenshotToTga(boss.screenshot_url); files.push({ name: 'HatedCompanion/Plan/' + file + '.tga', data: t.bytes }); b.image = { file, src: boss.screenshot_url, w: t.w, h: t.h, u: t.u, v: t.v }; }
+    catch(e){ console.error('screenshot for', b.name, e); failed++; }
+  }
+  files.push({ name: 'HatedCompanion/Plan/HatedPlan.lua', data: '-- From hatedforever.com > Boss Strategies.\nHatedPlan = ' + toLua(plan) + '\n' });
+  return { blob: await makeZip(files), failed, version };
+}
 async function downloadAddonZip(){
   if(state.addonZipBusy) return;
   state.addonZipBusy = true; render();
   try{
-    const files = [];
-    for(const f of ADDON_FILES){
-      const r = await fetch('addons/HatedCompanion/' + f, { cache: 'no-store' });
-      if(!r.ok) throw new Error(f + ': HTTP ' + r.status);
-      files.push({ name: 'HatedCompanion/' + f, data: new Uint8Array(await r.arrayBuffer()) });
-    }
-    const plan = await buildAddonPlan();
-    let failed = 0;
-    for(const raid of plan.raids) for(const b of raid.bosses){
-      const boss = state.bosses.find(x => String(x.id) === b.id);
-      if(!boss || !boss.screenshot_url) continue;
-      const file = 'Boss_' + b.id.replace(/[^A-Za-z0-9_-]/g, '');
-      try{ const t = await screenshotToTga(boss.screenshot_url); files.push({ name: 'HatedCompanion/Plan/' + file + '.tga', data: t.bytes }); b.image = { file, src: boss.screenshot_url, w: t.w, h: t.h, u: t.u, v: t.v }; }
-      catch(e){ console.error('screenshot for', b.name, e); failed++; }
-    }
-    files.push({ name: 'HatedCompanion/Plan/HatedPlan.lua', data: '-- From hatedforever.com > Boss Strategies > Download addon.\nHatedPlan = ' + toLua(plan) + '\n' });
-    const blob = await makeZip(files);
+    const { blob, failed } = await buildAddonZip();
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'HatedCompanion.zip'; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 10000);
     showToast('Downloaded HatedCompanion.zip - see the steps under the button.' + (failed ? ` (${failed} screenshot${failed === 1 ? '' : 's'} left out.)` : ''), !!failed);
   }catch(e){ console.error(e); showToast('Could not build the addon download: ' + e.message, true); }
   state.addonZipBusy = false; render();
+}
+// Raid Leader: release the addon (with the current plan + screenshots) on CurseForge, so raiders get it with "Update all"
+async function publishAddon(){
+  if(state.addonPubBusy) return;
+  const note = prompt('What changed? (shown on CurseForge)', 'Updated boss plans and screenshots.');
+  if(note === null) return;
+  state.addonPubBusy = true; render();
+  try{
+    const d = new Date(), pad = n => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}`;
+    const { blob, failed, version } = await buildAddonZip(stamp);
+    if(failed && !confirm(`${failed} screenshot${failed === 1 ? '' : 's'} could not be added. Publish anyway?`)) throw new Error('cancelled');
+    const { data: { session } } = await sb.auth.getSession();
+    if(!session) throw new Error('sign in first');
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/addon-release?version=${encodeURIComponent(version)}&changelog=${encodeURIComponent(note)}`, {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/zip' }, body: blob
+    });
+    const out = await res.json().catch(() => ({}));
+    if(!res.ok || !out.ok) throw new Error(out.error || ('HTTP ' + res.status));
+    showToast(`Published Hated Companion ${version} to CurseForge. Raiders get it with "Update all" once CurseForge approves it (usually minutes).`);
+  }catch(e){ if(e.message !== 'cancelled') showToast('Could not publish: ' + e.message, true); }
+  state.addonPubBusy = false; render();
 }
 
 async function exportAddonPlan(){
@@ -13228,6 +13263,7 @@ function renderAddonBar(){
         <button class="btn" type="button" id="addon-zip" ${state.addonZipBusy ? 'disabled' : ''}>${state.addonZipBusy ? 'Building…' : '&#11015; Download addon'}</button>
         ${ lead && window.showDirectoryPicker ? `<button class="btn secondary" type="button" id="addon-save" ${state.addonBusy ? 'disabled' : ''} title="Writes the addon + plan straight into your linked folder">${state.addonBusy ? 'Updating…' : 'Update my addon'}</button>
           <button class="btn secondary" type="button" id="addon-forget" title="Pick a different folder next time">Change folder</button>` : '' }
+        ${ testIsRaidLeader() ? `<button class="btn secondary" type="button" id="addon-publish" ${state.addonPubBusy ? 'disabled' : ''} title="Release this version (addon + plan + screenshots) on CurseForge">${state.addonPubBusy ? 'Publishing…' : 'Publish to CurseForge'}</button>` : '' }
       </div>
     </div>
     <details class="addon-help" ${state.addonZipBusy ? 'open' : ''}><summary>How to install (2 minutes)</summary>
