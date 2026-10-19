@@ -12784,7 +12784,7 @@ async function loadRaidPlan(){
   state.raidPlanLoading = false;
   state.raidPlan = error ? { data: {} } : (data || { data: {} });
   if(error) console.error('raid plan load failed:', error);
-  if(state.tab === 'strategies') render();
+  if(state.tab === 'strategies' || state.tab === 'news') render();
 }
 async function saveRaidPlan(patch){
   let next = Object.assign({}, planData(), patch);
@@ -13207,6 +13207,7 @@ async function publishAddon(){
     });
     const out = await res.json().catch(() => ({}));
     if(!res.ok || !out.ok) throw new Error(out.error || ('HTTP ' + res.status));
+    if(out.fileId) await saveRaidPlan({ cfFileId: out.fileId });
     showToast(`Published Hated Companion ${version} to CurseForge. Raiders get it with "Update all" once CurseForge approves it (usually minutes).`);
   }catch(e){ if(e.message !== 'cancelled') showToast('Could not publish: ' + e.message, true); }
   state.addonPubBusy = false; render();
@@ -13846,21 +13847,29 @@ const VAULT_DOOR = `<svg class="vault-door" viewBox="0 0 64 64" aria-hidden="tru
 </svg>`;
 // Home page: a small card to grab the Hated Companion addon (same zip as Boss Strategies > Download addon)
 const CURSEFORGE_URL = 'https://www.curseforge.com/wow/addons/hated-companion';
+const CF_PROJECT_ID = 1753653;
+// opens the CurseForge app's installer (the newest file we published, when we know it)
+function cfInstallUrl(){
+  const f = state.raidPlan && state.raidPlan.data && state.raidPlan.data.cfFileId;
+  return `curseforge://install?addonId=${CF_PROJECT_ID}${ f ? `&fileId=${f}` : '' }`;
+}
 // CurseForge's anvil, simplified, in their orange
 const CF_ICON = '<svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M3 9h11.5c.6-1.5 2-2.5 3.7-2.5H29l-1 3.2c-.6 1.8-2.2 3-4.1 3h-2.6c-.8 1.8-1.2 3.3-1.2 4.3 0 1.4.9 2.4 2.4 2.9V22H9.5v-2.1c1.6-.6 2.6-1.6 2.6-3 0-1.2-.6-2.3-1.6-3.1C8 13.2 4.8 12.4 3 9z" fill="#f16436"/><path d="M9 23.5h14V26H9z" fill="#f16436"/></svg>';
 // Home page: get the Hated Companion addon (CurseForge keeps it updated; the zip is the fallback)
 function renderAddonCard(){
+  if(state.session && !state.raidPlan) loadRaidPlan();
   return `<div class="addon-card">
     <div class="addon-card-head">
       <span class="addon-card-h">H</span>
       <div><div class="addon-card-title">Hated Companion</div><div class="addon-card-sub">WoW addon</div></div>
     </div>
     <p class="addon-card-text">Boss plans in game: your jobs highlighted, the strategy screenshots, and the newest plan sent straight from the raid leader.</p>
-    <a class="addon-card-cf" href="${CURSEFORGE_URL}" target="_blank" rel="noopener">${CF_ICON}<span>Get it on <b>CurseForge</b></span></a>
+    <a class="addon-card-cf" href="${cfInstallUrl()}" title="Opens the CurseForge app to install it">${CF_ICON}<span>Install with <b>CurseForge</b></span></a>
+    <div class="addon-card-alt" style="text-align:center;">Nothing happened? <a href="${CURSEFORGE_URL}" target="_blank" rel="noopener">Open the CurseForge page</a> (get the app there).</div>
     <details class="addon-card-help"><summary>How to install</summary>
       <ol>
-        <li>Open the link above and click <b>Install</b> (it opens the CurseForge app).</li>
-        <li>In the app, pick <b>World of Warcraft</b> &rarr; <b>Forever Beta</b>, then check <b>My Addons</b>.</li>
+        <li>Click <b>Install with CurseForge</b> and let your browser open the CurseForge app. It installs Hated Companion for you.</li>
+        <li>If it asks which game version, pick <b>Forever Beta</b>. You'll find it under <b>My Addons</b>.</li>
         <li>Start WoW and type <b>/hated</b>, or click the <b>H</b> on your minimap.</li>
         <li>Before raid, click <b>Update all</b> in CurseForge so you have the newest plans and screenshots.</li>
       </ol>
