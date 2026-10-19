@@ -13018,7 +13018,8 @@ async function buildAddonPlan(){
   if(!state.raidPlan){ await loadRaidPlan(); }
   const roster = planRoster(), classes = {};
   roster.forEach(m => { if(m.class_key) classes[m.name] = m.class_key.toUpperCase(); });
-  const plan = { updated: new Date().toISOString().slice(0, 16).replace('T', ' '), by: myName(), classes, raids: [] };
+  const rl = Object.values(state.profilesById || {}).find(p => p.protected);   // the Raid Leader: the only one who sends plans in game
+  const plan = { updated: new Date().toISOString().slice(0, 16).replace('T', ' '), by: myName(), leader: rl ? (rl.character_name || '') : '', classes, raids: [] };
   const bossesOf = r => state.bosses.filter(b => b.raid_id === r.id);
   state.raids.forEach(r => plan.raids.push({ name: r.name, bosses: bossesOf(r).map(addonBossData) }));
   return plan;

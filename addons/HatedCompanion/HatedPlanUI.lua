@@ -10,8 +10,8 @@
 
   /hated        open or close the window
   /hated show   (raid leader / assistant) push the boss you're viewing to the raid
-  /hated send   (raid leader / assistant) send your whole plan to everyone in the raid (text; screenshots stay
-                each player's own files). Players keep it until they get a newer plan.
+  /hated send   (Raid Leader only) send your whole plan to everyone online in the guild with the addon, and the raid
+                if you're in one (text; screenshots stay each player's own files). Players keep it until the next one.
   /hated me X   also highlight assignments for the website name X (/hated me on its own clears it)
 ]]
 
@@ -41,16 +41,28 @@ local function myNames()
   if db then for _, n in ipairs(db) do add(n) end end
   return list
 end
-local function isMe(name)
+local function matches(name, words)
   if not name or name == "" then return false end
-  local mine = myNames()
   for site in name:lower():gmatch("[^%s%-]+") do            -- every word of the website name
-    for _, w in ipairs(mine) do                              -- against my first name, last name (and extras)
+    for _, w in ipairs(words) do                             -- against a first name, last name (and extras)
       if site == w then return true end
       if #site >= 3 and w:find(site, 1, true) then return true end
     end
   end
   return false
+end
+local function isMe(name) return matches(name, myNames()) end
+local function wordsOf(charName)
+  local list = {}
+  for w in (charName or ""):lower():gmatch("[^%s%-]+") do list[#list + 1] = w end
+  return list
+end
+-- the Raid Leader (from the website's plan) is the only one who gets "Send plan to guild"
+local function leaderName() return HatedPlan and HatedPlan.leader end
+local function iAmLeader()
+  local l = leaderName()
+  if l and l ~= "" then return isMe(l) end
+  return IsGuildLeader and IsGuildLeader() or false
 end
 
 -- class colour: from the raid if they're in it, else the website's roster
@@ -173,6 +185,22 @@ local function build()
   f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
   f:SetScript("OnDragStart", f.StartMoving); f:SetScript("OnDragStop", f.StopMovingOrSizing)
   f:SetClampedToScreen(true)
+  f:SetResizable(true)
+  if f.SetResizeBounds then f:SetResizeBounds(900, 560, 1900, 1200) elseif f.SetMinResize then f:SetMinResize(900, 560); f:SetMaxResize(1900, 1200) end
+  local saved = HatedCompanionDB and HatedCompanionDB.planSize
+  if saved and saved.w then f:SetSize(saved.w, saved.h) end
+  local grip = CreateFrame("Button", nil, f)
+  grip:SetSize(18, 18); grip:SetPoint("BOTTOMRIGHT", -6, 6); grip:SetFrameLevel(f:GetFrameLevel() + 12)
+  grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+  grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+  grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+  grip:SetScript("OnMouseDown", function() f:StartSizing("BOTTOMRIGHT") end)
+  grip:SetScript("OnMouseUp", function()
+    f:StopMovingOrSizing()
+    HatedCompanionDB = HatedCompanionDB or {}
+    HatedCompanionDB.planSize = { w = math.floor(f:GetWidth()), h = math.floor(f:GetHeight()) }
+    if current then Show(current, currentRaid) end      -- re-flow the text and screenshot
+  end)
   f:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", edgeSize = 26,
     insets = { left = 7, right = 7, top = 7, bottom = 7 } })
   f:SetBackdropColor(0.035, 0.024, 0.016, 0.97)
@@ -183,6 +211,7 @@ local function build()
   -- the website banner across the top, fading into the window
   local banner = f:CreateTexture(nil, "ARTWORK")
   banner:SetPoint("TOPLEFT", 7, -7); banner:SetPoint("TOPRIGHT", -7, -7); banner:SetHeight(BANNER_H)
+  UI.banner = banner
   banner:SetTexture(MEDIA .. "Banner"); banner:SetTexCoord(0, 1, 0, 171 / 256)
   local fade = f:CreateTexture(nil, "ARTWORK", nil, 2)
   fade:SetPoint("BOTTOMLEFT", banner, "BOTTOMLEFT"); fade:SetPoint("BOTTOMRIGHT", banner, "BOTTOMRIGHT"); fade:SetHeight(70)
@@ -209,10 +238,12 @@ local function build()
   close:SetPoint("TOPRIGHT", -4, -4); close:SetFrameLevel(f:GetFrameLevel() + 11)
 
   local TOP = -(7 + BANNER_H + 8)
+  UI.leftAnchorY = TOP
 
   -- left: bosses
   local left = CreateFrame("Frame", nil, f, "BackdropTemplate")
   left:SetPoint("TOPLEFT", 14, TOP); left:SetPoint("BOTTOMLEFT", 14, 34); left:SetWidth(196)
+  UI.left = left
   backdrop(left); panelTitle(left, "BOSSES")
   local ls = CreateFrame("ScrollFrame", nil, left, "UIPanelScrollFrameTemplate")
   ls:SetPoint("TOPLEFT", 6, -28); ls:SetPoint("BOTTOMRIGHT", -26, 6)
@@ -250,6 +281,15 @@ local function build()
   ms:SetPoint("BOTTOMRIGHT", -28, 42)
   UI.scroll = ms
   local mc = CreateFrame("Frame", nil, ms); mc:SetSize(424, 10); ms:SetScrollChild(mc)
+  UI.layout = function()
+    local w, h = f:GetWidth(), f:GetHeight()
+    local bh = math.max(120, math.min(BANNER_H, (w - 14) * 171 / 1024, h * 0.26))
+    banner:SetHeight(bh)
+    left:ClearAllPoints(); left:SetPoint("TOPLEFT", 14, -(7 + bh + 8)); left:SetPoint("BOTTOMLEFT", 14, 34)
+    local mw = math.max(380, math.floor((w - 14 - 196 - 8 - 8 - 14) * 0.52))
+    mid:SetWidth(mw); mc:SetWidth(mw - 52); mc.text:SetWidth(mw - 56)
+  end
+  f:SetScript("OnSizeChanged", function() UI.layout() end)
   mc.text = mc:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   mc.text:SetPoint("TOPLEFT", 4, 0); mc.text:SetWidth(420); mc.text:SetJustifyH("LEFT"); mc.text:SetSpacing(4)
   UI.body = mc
@@ -261,7 +301,7 @@ local function build()
   push:SetScript("OnClick", function() UI.Push() end)
   UI.pushBtn = push
   local sendAll = CreateFrame("Button", nil, mid, "UIPanelButtonTemplate")
-  sendAll:SetSize(160, 24); sendAll:SetPoint("RIGHT", push, "LEFT", -6, 0); sendAll:SetText("Send plan to raid")
+  sendAll:SetSize(170, 24); sendAll:SetPoint("BOTTOMLEFT", 10, 9); sendAll:SetText("Send plan to guild")
   sendAll:SetScript("OnClick", function() UI.SendPlan() end)
   UI.sendBtn = sendAll
 
@@ -351,6 +391,7 @@ end
 
 Show = function(b, raidName)
   build()
+  UI.layout()
   current, currentRaid = b, raidName
   local f = UI.frame
   f.title:SetText("BOSS PLAN" .. (raidName and ("   |cffc8b48a" .. safe(raidName) .. "|r") or ""))
@@ -358,7 +399,7 @@ Show = function(b, raidName)
     ((HatedPlan and HatedPlan.updated) and ("Plan saved " .. HatedPlan.updated .. (HatedPlan.by and (" by " .. HatedPlan.by) or "")) or ""))
   refreshList()
   UI.pushBtn:SetShown(b ~= nil and canPush())
-  UI.sendBtn:SetShown(canPush() and HatedPlan ~= nil and HatedPlan.raids ~= nil and #HatedPlan.raids > 0)
+  UI.sendBtn:SetShown(iAmLeader() and HatedPlan ~= nil and HatedPlan.raids ~= nil and #HatedPlan.raids > 0)
 
   if not b then
     UI.mid.name:SetText(""); UI.mine:Hide(); UI.body.text:SetText(DIM .. "Pick a boss on the left.|r")
@@ -466,14 +507,16 @@ local function pump()
   if ok then table.remove(queue, 1) end
   C_Timer.After(ok and 0.12 or 1, pump)
 end
-local function send(kind, payload)
-  local channel = IsInRaid() and "RAID" or "PARTY"
+local function send(kind, payload, channels)
+  channels = channels or { IsInRaid() and "RAID" or "PARTY" }
   local data = table.concat(ser(payload, {}))
   local id, CH = tostring(math.random(100000, 999999)), 220
   local n = math.ceil(#data / CH)
-  for i = 1, n do queue[#queue + 1] = { kind .. id .. "|" .. i .. "|" .. n .. "|" .. data:sub((i - 1) * CH + 1, i * CH), channel } end
+  for _, channel in ipairs(channels) do
+    for i = 1, n do queue[#queue + 1] = { kind .. id .. "|" .. i .. "|" .. n .. "|" .. data:sub((i - 1) * CH + 1, i * CH), channel } end
+  end
   if not sending then pump() end
-  return channel == "RAID" and "raid" or "party", n
+  return channels[1] == "RAID" and "raid" or channels[1] == "GUILD" and "guild" or "party", n * #channels
 end
 
 function UI.Push()
@@ -486,8 +529,9 @@ end
 -- the whole plan (every raid and boss, text only: screenshots stay each player's own files)
 function UI.SendPlan()
   if not HatedPlan or not HatedPlan.raids or #HatedPlan.raids == 0 then say("no plan to send: update the addon on hatedforever.com first."); return end
-  if not canPush() then say("only the raid leader or an assistant can send the plan."); return end
-  local copy = { updated = HatedPlan.updated, by = HatedPlan.by, classes = HatedPlan.classes, raids = {} }
+  if not iAmLeader() then say("only the Raid Leader can send the plan."); return end
+  if not IsInGuild() then say("you're not in a guild."); return end
+  local copy = { updated = HatedPlan.updated, by = HatedPlan.by, leader = HatedPlan.leader, classes = HatedPlan.classes, raids = {} }
   for _, raid in ipairs(HatedPlan.raids) do
     local r = { name = raid.name, bosses = {} }
     for _, b in ipairs(raid.bosses or {}) do
@@ -496,9 +540,11 @@ function UI.SendPlan()
     end
     copy.raids[#copy.raids + 1] = r
   end
-  local who, n = send("P", copy)
+  local channels = { "GUILD" }
+  if IsInRaid() then channels[2] = "RAID" end     -- PUGs in the raid get it too
+  local _, n = send("P", copy, channels)
   progress = "Plan (saved " .. (HatedPlan.updated or "?") .. ")"
-  say(string.format("sending the plan to the %s (%d pieces, about %d seconds).", who, n, math.ceil(n * 0.15)))
+  say(string.format("sending the plan to everyone online in the guild%s with the addon (about %d seconds).", IsInRaid() and " and the raid" or "", math.ceil(n * 0.15)))
 end
 
 -- use a plan received in game when it's newer than the one the website saved, keeping my own screenshots
@@ -515,7 +561,7 @@ local function adopt(plan)
   if current then current = findBoss(current.id) or current end
 end
 
-local incoming = {}
+local incoming, done = {}, {}
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("CHAT_MSG_ADDON"); ev:RegisterEvent("PLAYER_LOGIN")
 ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
@@ -527,11 +573,22 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
     if type(synced) == "table" and HatedCompanionDB.syncedOver == ((HatedPlan and HatedPlan.updated) or "") then adopt(synced) end
     return
   end
-  if prefix ~= PREFIX or (channel ~= "RAID" and channel ~= "PARTY") then return end
+  if prefix ~= PREFIX or (channel ~= "RAID" and channel ~= "PARTY" and channel ~= "GUILD") then return end
   local short = Ambiguate(sender or "", "short")
-  -- only the leader / assistants may send plans or pop windows open on people's screens
   local ok = false
-  if IsInRaid() then
+  if channel == "GUILD" then
+    -- guild plans only from the Raid Leader (the website names them in the plan); without a plan yet, from the guild master
+    if msg:sub(1, 1) ~= "P" then return end
+    local l = leaderName()
+    if l and l ~= "" then ok = matches(l, wordsOf(short))
+    else
+      for gi = 1, GetNumGuildMembers() do
+        local gname, _, rankIndex = GetGuildRosterInfo(gi)
+        if gname and Ambiguate(gname, "short") == short then ok = rankIndex == 0; break end
+      end
+    end
+  elseif IsInRaid() then
+    -- in a raid, the leader / assistants may send plans or pop windows open on people's screens
     for i = 1, GetNumGroupMembers() do
       local name, rank = GetRaidRosterInfo(i)
       if name and Ambiguate(name, "short") == short then ok = (rank or 0) > 0; break end
@@ -545,15 +602,17 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
   i, n = tonumber(i), tonumber(n)
   if n > 3000 then return end
   if kind == "P" and short == UnitName("player") then return end     -- my own plan coming back
+  if done[kind .. id] then return end                                 -- already got it on another channel
   local key = short .. kind .. id
   local box = incoming[key]
   if not box then
     box = { parts = {}, got = 0 }; incoming[key] = box
-    if kind == "P" then say(short .. " is sending the raid plan...") end
+    if kind == "P" then say(short .. " is sending the newest raid plan...") end
   end
   if not box.parts[i] then box.parts[i] = part; box.got = box.got + 1 end
   if box.got < n then return end
   incoming[key] = nil
+  done[kind .. id] = true
   local okDe, t = pcall(de, table.concat(box.parts), 1)
   if not okDe or type(t) ~= "table" then return end
 
