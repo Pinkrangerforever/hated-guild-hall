@@ -1151,6 +1151,14 @@
   .ko-step b{ position:absolute; top:-6px; left:-4px; font:700 10px system-ui; color:#1a1208; background:#ecc867; border-radius:8px; min-width:14px; height:14px; line-height:14px; text-align:center; }
   .ko-step.edit{ cursor:pointer; border-radius:4px; } .ko-step.edit:hover{ background:rgba(255,80,60,0.25); }
   .ko-arrow{ color:#ecc867; font-size:22px; line-height:1; }
+  .addon-bar{ margin-bottom:14px; }
+  .addon-row{ display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  .addon-text{ flex:1; min-width:240px; } .addon-text h3{ margin:0 0 4px; } .addon-text p{ margin:0; font-size:13px; }
+  .addon-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  .addon-help{ margin-top:10px; font-size:13px; } .addon-help summary{ cursor:pointer; color:#ecc867; font-weight:700; }
+  .addon-help ol{ margin:8px 0; padding-left:20px; line-height:1.6; }
+  .addon-help code{ background:rgba(0,0,0,0.45); padding:1px 5px; border-radius:3px; font-size:12px; word-break:break-all; }
+  .addon-cmd{ display:block; margin:6px 0; padding:6px 8px !important; user-select:all; }
   .strat-breadcrumb{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); margin-bottom:4px; }
   .strat-breadcrumb button{ background:none; border:none; color:var(--text-muted); font-size:12px; padding:2px 0; text-decoration:underline; }
   .strat-breadcrumb button:hover{ color:var(--blurple); }
@@ -12593,6 +12601,7 @@ function renderStrategies(){
   return `
     ${pageHeader('Boss Strategies', 'Strategy', "Tonight's raid, tanks and healer assignments, then each boss's strategy and fight assignments.")}
 
+    ${ renderAddonBar() }
     ${ renderRaidSetup() }
 
     ${ officer ? `
@@ -12865,6 +12874,8 @@ function wireRaidPlan(){
                    healers: role === 'healer' ? healers().concat({ name, tank: tanks()[0] || '' }) : healers() });
   });
   $('rp-readd') && ($('rp-readd').onchange = e => { const d = planDefaultRoster().find(x => x.name === e.target.value); if(d) saveRaidPlan({ roster: roster().concat(d) }); });
+  $('addon-save') && ($('addon-save').onclick = exportAddonPlan);
+  $('addon-forget') && ($('addon-forget').onclick = forgetAddonFolder);
   // pick / select / drag
   const bossFor = scope => state.bosses.find(b => String(b.id) === String(scope));
   const assign = (scope, name, tank) => {
@@ -12947,6 +12958,134 @@ function wireRaidPlan(){
   document.querySelectorAll('[data-ko-del]').forEach(s => s.onclick = () => saveBossPlan(boss.id, { killMarks: (bp().killMarks || []).filter((_, i) => i !== +s.dataset.koDel) }));
   $('ko-clear') && ($('ko-clear').onclick = () => saveBossPlan(boss.id, { killMarks: [] }));
   $('bp-kill') && ($('bp-kill').onchange = e => saveBossPlan(boss.id, { killOrder: e.target.value.trim() }));
+}
+
+/* ---------------- Boss plan -> Hated Companion addon ----------------
+   "Save to my addon" writes Plan\HatedPlan.lua (every raid's bosses, resolved and ready to show) and each boss
+   screenshot as a .tga (the image format WoW loads) into the addon's Plan folder. Chrome / Edge only (File System
+   Access); the chosen folder is remembered. Browsers won't open folders inside Program Files, so for a WoW install
+   there the Plan folder is a link to Documents\HatedPlan (one command, see the help on the page). */
+const ADDON_DB = 'hated-addon';
+function addonIdb(){ return new Promise((res, rej) => { const r = indexedDB.open(ADDON_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function addonGet(k){ try{ const db = await addonIdb(); return await new Promise(res => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(undefined); }); }catch(e){ return undefined; } }
+async function addonSet(k, v){ try{ const db = await addonIdb(); await new Promise(res => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = res; }); }catch(e){} }
+const luaStr = s => '"' + String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, '\\n').replace(/\r/g, '') + '"';
+function toLua(v, ind){
+  ind = ind || '';
+  if(v == null) return 'nil';
+  if(typeof v === 'number') return isFinite(v) ? String(v) : '0';
+  if(typeof v === 'boolean') return v ? 'true' : 'false';
+  if(typeof v === 'string') return luaStr(v);
+  const i2 = ind + '  ';
+  if(Array.isArray(v)) return v.length ? '{\n' + v.map(x => i2 + toLua(x, i2)).join(',\n') + '\n' + ind + '}' : '{}';
+  const keys = Object.keys(v).filter(k => v[k] != null);
+  return keys.length ? '{\n' + keys.map(k => i2 + '[' + luaStr(k) + '] = ' + toLua(v[k], i2)).join(',\n') + '\n' + ind + '}' : '{}';
+}
+function addonBossData(boss){
+  const bp = bossPlan(boss), tanks = planTanks();
+  const markList = set => RAID_MARKS.map(([k, label], i) => { const m = (bp[set] || {})[k]; return m && ((m.who || []).length || m.note) ? { m: i + 1, label, note: m.note || '', who: m.who || [] } : null; }).filter(Boolean);
+  return {
+    id: String(boss.id), name: boss.name, notes: boss.notes || '',
+    tanks: tanks.map(t => ({ n: t, job: bp.tankJobs[t] || '' })),
+    heals: planHealers().map(hl => { const own = Object.prototype.hasOwnProperty.call(bp.heal, hl.name); return { n: hl.name, t: own ? bp.heal[hl.name] : hl.tank, c: own }; }),
+    marks: markList('marks'), floor: markList('floor'),
+    jobs: (bp.jobs || []).filter(j => j.who || j.what).map(j => ({ n: j.who || '', what: j.what || '' })),
+    kill: (bp.killMarks || []).map(k => RAID_MARKS.findIndex(x => x[0] === k) + 1).filter(i => i > 0),
+    killNote: bp.killOrder || ''
+  };
+}
+// a screenshot -> 32-bit uncompressed TGA, fitted into 1024x512 (or 1024x1024 for tall images), power-of-two for WoW
+async function screenshotToTga(url){
+  const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const bmp = await createImageBitmap(await res.blob());
+  const W = 1024, H = bmp.height / bmp.width > 0.5 ? 1024 : 512;
+  const s = Math.min(W / bmp.width, H / bmp.height), dw = Math.round(bmp.width * s), dh = Math.round(bmp.height * s);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(bmp, 0, 0, dw, dh);
+  const px = g.getImageData(0, 0, W, H).data, out = new Uint8Array(18 + W * H * 4);
+  out[2] = 2; out[12] = W & 255; out[13] = W >> 8; out[14] = H & 255; out[15] = H >> 8; out[16] = 32; out[17] = 8;   // bottom-up rows
+  let o = 18;
+  for(let y = H - 1; y >= 0; y--) for(let x = 0; x < W; x++){ const i = (y * W + x) * 4; out[o++] = px[i + 2]; out[o++] = px[i + 1]; out[o++] = px[i]; out[o++] = px[i + 3]; }
+  return { bytes: out, w: dw, h: dh, u: dw / W, v: dh / H };
+}
+async function writeFile(dir, name, data){ const fh = await dir.getFileHandle(name, { create: true }); const w = await fh.createWritable(); await w.write(data); await w.close(); }
+async function exportAddonPlan(){
+  if(!state.raidPlan){ await loadRaidPlan(); }
+  const roster = planRoster(), classes = {};
+  roster.forEach(m => { if(m.class_key) classes[m.name] = m.class_key.toUpperCase(); });
+  const plan = { updated: new Date().toISOString().slice(0, 16).replace('T', ' '), by: myName(), classes, raids: [] };
+  const bossesOf = r => state.bosses.filter(b => b.raid_id === r.id);
+  state.raids.forEach(r => plan.raids.push({ name: r.name, bosses: bossesOf(r).map(addonBossData) }));
+  if(!window.showDirectoryPicker){
+    // no folder access (Firefox / Safari / phones): download the text plan; screenshots need Chrome or Edge
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['HatedPlan = ' + toLua(plan) + '\n'], { type: 'text/plain' }));
+    a.download = 'HatedPlan.lua'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    showToast('Downloaded HatedPlan.lua - put it in HatedCompanion\\Plan. Use Chrome or Edge to include the screenshots.');
+    return;
+  }
+  let dir = await addonGet('planDir');
+  try{
+    if(dir && (await dir.requestPermission({ mode: 'readwrite' })) !== 'granted') dir = null;
+  }catch(e){ dir = null; }
+  if(!dir){
+    try{ dir = await window.showDirectoryPicker({ id: 'hatedplan', mode: 'readwrite' }); }
+    catch(e){ if(e.name !== 'AbortError') showToast('Could not open that folder: ' + e.message, true); return; }
+    await addonSet('planDir', dir);
+  }
+  state.addonBusy = true; render();
+  const done = (await addonGet('planImages')) || {};
+  let imgs = 0, failed = 0;
+  try{
+    for(const raid of plan.raids) for(const b of raid.bosses){
+      const boss = state.bosses.find(x => String(x.id) === b.id);
+      if(!boss || !boss.screenshot_url) continue;
+      const file = 'Boss_' + b.id.replace(/[^A-Za-z0-9_-]/g, '');
+      const prev = done[b.id];
+      if(prev && prev.url === boss.screenshot_url){
+        let exists = true; try{ await dir.getFileHandle(file + '.tga'); }catch(e){ exists = false; }
+        if(exists){ b.image = Object.assign({ file }, prev.dims); continue; }
+      }
+      try{
+        const t = await screenshotToTga(boss.screenshot_url);
+        await writeFile(dir, file + '.tga', t.bytes);
+        b.image = { file, w: t.w, h: t.h, u: t.u, v: t.v };
+        done[b.id] = { url: boss.screenshot_url, dims: { w: t.w, h: t.h, u: t.u, v: t.v } };
+        imgs++;
+      }catch(e){ console.error('screenshot for', b.name, e); failed++; }
+    }
+    await writeFile(dir, 'HatedPlan.lua', '-- Written by hatedforever.com > Boss Strategies > Save to my addon. Do not edit; it is replaced each save.\nHatedPlan = ' + toLua(plan) + '\n');
+    await addonSet('planImages', done);
+    state.addonSavedAt = new Date();
+    showToast(`Saved the plan to your addon${imgs ? ` (${imgs} new screenshot${imgs === 1 ? '' : 's'})` : ''}. Type /reload in game.` + (failed ? ` ${failed} screenshot${failed === 1 ? '' : 's'} could not be read.` : ''), !!failed);
+  }catch(e){
+    console.error(e); showToast('Could not save to the addon folder: ' + e.message, true);
+  }
+  state.addonBusy = false; render();
+}
+async function forgetAddonFolder(){ await addonSet('planDir', null); await addonSet('planImages', {}); showToast('Folder forgotten - the next save asks for it again.'); }
+function renderAddonBar(){
+  if(!state.session) return '';
+  return `<div class="panel style-glass addon-bar">
+    <div class="addon-row">
+      <div class="addon-text"><h3>In game</h3><p class="muted sans">Save the plan (every boss, assignments and screenshots) into the <b>Hated Companion</b> addon, then <b>/reload</b> in game and type <b>/hated</b>. ${ testCanManage() ? "Save after changing the plan; in game the raid leader can push a boss to everyone's screen." : '' }</p></div>
+      <div class="addon-actions">
+        <button class="btn" type="button" id="addon-save" ${state.addonBusy ? 'disabled' : ''}>${state.addonBusy ? 'Saving…' : 'Save to my addon'}</button>
+        <button class="btn secondary" type="button" id="addon-forget" title="Pick a different folder next time">Change folder</button>
+      </div>
+    </div>
+    <details class="addon-help"><summary>First time? Setting up the folder</summary>
+      <ol class="sans">
+        <li>Install the addon: copy the <b>HatedCompanion</b> folder into <code>World of Warcraft\\_anniversary_\\Interface\\AddOns</code> (or <code>_classic_era_</code>, whichever you play).</li>
+        <li>If WoW is <b>not</b> under Program Files: click <b>Save to my addon</b> and pick <code>Interface\\AddOns\\HatedCompanion\\Plan</code> (make the Plan folder if it isn't there).</li>
+        <li>If WoW <b>is</b> under Program Files, browsers aren't allowed to write there, so link it once. Open the Start menu, type <b>cmd</b>, open it and paste (with your WoW path):<br>
+          <code class="addon-cmd">mkdir "%USERPROFILE%\\Documents\\HatedPlan" &amp; mklink /J "C:\\Program Files (x86)\\World of Warcraft\\_anniversary_\\Interface\\AddOns\\HatedCompanion\\Plan" "%USERPROFILE%\\Documents\\HatedPlan"</code>
+          Then click <b>Save to my addon</b> and pick <code>Documents\\HatedPlan</code>.</li>
+        <li>Restart WoW once (new addon files are only found on start-up). After that, save and <b>/reload</b> is enough.</li>
+      </ol>
+      <p class="muted sans">Needs Chrome or Edge on a PC. Other browsers download just the text plan (no screenshots).</p>
+    </details>
+  </div>`;
 }
 
 function renderStratBreadcrumb(raid, boss){

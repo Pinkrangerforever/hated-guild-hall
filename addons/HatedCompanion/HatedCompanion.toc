@@ -1,8 +1,10 @@
 ## Interface: 16001
 ## Title: Hated Companion
-## Notes: Records the guild bank's contents and gold deposits for the Hated guild website. Open the guild bank, then /reload or log out to save.
+## Notes: Hated guild: boss plans from hatedforever.com (/hated), and guild bank records for the website.
 ## Author: Hated
-## Version: 1.0.0
+## Version: 1.1.0
 ## SavedVariables: HatedCompanionDB
 
 HatedCompanion.lua
+Plan\HatedPlan.lua
+HatedPlanUI.lua
