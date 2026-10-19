@@ -12767,17 +12767,19 @@ function healBoard(scope, list, edit){
     </div>`; }).join('') }</div>`;
 }
 
-// WoW raid target markers (in-game order 1-8), drawn as SVG so they stay crisp
+// WoW raid target markers in the guild's order (Skull first), drawn as SVG so they stay crisp
 const RAID_MARKS = [
+  ['skull', 'Skull', '<path d="M12 2.5c-5 0-8.5 3.4-8.5 8 0 2.6 1.2 4.4 2.8 5.5V20h2.2v-2h1.6v2h3.8v-2h1.6v2h2.2v-4c1.6-1.1 2.8-2.9 2.8-5.5 0-4.6-3.5-8-8.5-8z" fill="#f4f1ea" stroke="#5a554c" stroke-width="1"/><circle cx="8.7" cy="11" r="2.1" fill="#222"/><circle cx="15.3" cy="11" r="2.1" fill="#222"/><path d="M12 13.3l-1.2 2.2h2.4z" fill="#222"/>'],
+  ['cross', 'Cross', '<path d="M5 3.5 12 10.5 19 3.5 20.5 5 13.5 12 20.5 19 19 20.5 12 13.5 5 20.5 3.5 19 10.5 12 3.5 5z" fill="#ff3a2a" stroke="#7a0f08" stroke-width="1"/>'],
   ['star', 'Star', '<polygon points="12,2 14.9,8.6 22,9.3 16.6,14 18.2,21 12,17.3 5.8,21 7.4,14 2,9.3 9.1,8.6" fill="#ffe14a" stroke="#8a6a00" stroke-width="1"/>'],
-  ['circle', 'Circle', '<circle cx="12" cy="12" r="9" fill="#ff8a1e" stroke="#7a3a00" stroke-width="1.2"/><circle cx="9.5" cy="9" r="2.5" fill="#ffc98a" opacity=".7"/>'],
-  ['diamond', 'Diamond', '<polygon points="12,2 21,12 12,22 3,12" fill="#c04dff" stroke="#55107a" stroke-width="1.2"/>'],
-  ['triangle', 'Triangle', '<polygon points="12,3 22,20.5 2,20.5" fill="#3ee03e" stroke="#126612" stroke-width="1.2"/>'],
   ['moon', 'Moon', '<path d="M15.5 3a9 9 0 1 0 5.5 15.6A7.5 7.5 0 0 1 15.5 3z" fill="#dfe8f2" stroke="#6b7a8a" stroke-width="1"/>'],
   ['square', 'Square', '<rect x="3.5" y="3.5" width="17" height="17" rx="1.5" fill="#2a8cff" stroke="#0b3f80" stroke-width="1.2"/>'],
-  ['cross', 'Cross', '<path d="M5 3.5 12 10.5 19 3.5 20.5 5 13.5 12 20.5 19 19 20.5 12 13.5 5 20.5 3.5 19 10.5 12 3.5 5z" fill="#ff3a2a" stroke="#7a0f08" stroke-width="1"/>'],
-  ['skull', 'Skull', '<path d="M12 2.5c-5 0-8.5 3.4-8.5 8 0 2.6 1.2 4.4 2.8 5.5V20h2.2v-2h1.6v2h3.8v-2h1.6v2h2.2v-4c1.6-1.1 2.8-2.9 2.8-5.5 0-4.6-3.5-8-8.5-8z" fill="#f4f1ea" stroke="#5a554c" stroke-width="1"/><circle cx="8.7" cy="11" r="2.1" fill="#222"/><circle cx="15.3" cy="11" r="2.1" fill="#222"/><path d="M12 13.3l-1.2 2.2h2.4z" fill="#222"/>']
+  ['triangle', 'Triangle', '<polygon points="12,3 22,20.5 2,20.5" fill="#3ee03e" stroke="#126612" stroke-width="1.2"/>'],
+  ['diamond', 'Diamond', '<polygon points="12,2 21,12 12,22 3,12" fill="#c04dff" stroke="#55107a" stroke-width="1.2"/>'],
+  ['circle', 'Circle', '<circle cx="12" cy="12" r="9" fill="#ff8a1e" stroke="#7a3a00" stroke-width="1.2"/><circle cx="9.5" cy="9" r="2.5" fill="#ffc98a" opacity=".7"/>']
 ];
+// WoW's own marker numbers (UI-RaidTargetingIcon_N), independent of the display order above
+const MARK_NUM = { star: 1, circle: 2, diamond: 3, triangle: 4, moon: 5, square: 6, cross: 7, skull: 8 };
 function markIcon(key, size){ const m = RAID_MARKS.find(x => x[0] === key); return m ? `<svg class="mk-icon" viewBox="0 0 24 24" width="${size || 22}" height="${size || 22}" aria-label="${m[1]}">${m[2]}</svg>` : ''; }
 // Tonight's raid laid out like the Raid Composition: groups 1-4 of 5, then anyone not in the comp (PUGs, extras)
 function planGroupsHtml(used){
@@ -12984,14 +12986,14 @@ function toLua(v, ind){
 }
 function addonBossData(boss){
   const bp = bossPlan(boss), tanks = planTanks();
-  const markList = set => RAID_MARKS.map(([k, label], i) => { const m = (bp[set] || {})[k]; return m && ((m.who || []).length || m.note) ? { m: i + 1, label, note: m.note || '', who: m.who || [] } : null; }).filter(Boolean);
+  const markList = set => RAID_MARKS.map(([k, label]) => { const m = (bp[set] || {})[k]; return m && ((m.who || []).length || m.note) ? { m: MARK_NUM[k], label, note: m.note || '', who: m.who || [] } : null; }).filter(Boolean);
   return {
     id: String(boss.id), name: boss.name, notes: boss.notes || '',
     tanks: tanks.map(t => ({ n: t, job: bp.tankJobs[t] || '' })),
     heals: planHealers().map(hl => { const own = Object.prototype.hasOwnProperty.call(bp.heal, hl.name); return { n: hl.name, t: own ? bp.heal[hl.name] : hl.tank, c: own }; }),
     marks: markList('marks'), floor: markList('floor'),
     jobs: (bp.jobs || []).filter(j => j.who || j.what).map(j => ({ n: j.who || '', what: j.what || '' })),
-    kill: (bp.killMarks || []).map(k => RAID_MARKS.findIndex(x => x[0] === k) + 1).filter(i => i > 0),
+    kill: (bp.killMarks || []).map(k => MARK_NUM[k]).filter(Boolean),
     killNote: bp.killOrder || ''
   };
 }

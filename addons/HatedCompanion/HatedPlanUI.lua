@@ -58,12 +58,16 @@ local function classOf(name)
   if UnitExists(name) then local _, c = UnitClass(name); if c then return c end end
   return HatedPlan and HatedPlan.classes and HatedPlan.classes[name]
 end
+-- your own name blinks: the text is redrawn twice a second, switching between bright green and dim
+local blinkOn = true
 local function nameText(name)
   if not name or name == "" then return DIM .. "?|r" end
-  if isMe(name) then return ME_COLOR .. ">> " .. safe(name) .. " <<|r" end
+  if isMe(name) then return (blinkOn and ME_COLOR or "|cff1f5a33") .. safe(name) .. "|r" end
   local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classOf(name) or ""]
   return (c and ("|c" .. (c.colorStr or "ffffffff")) or "|cffe8d6b0") .. safe(name) .. "|r"
 end
+local TANK_ICON = "|TInterface\\Icons\\Ability_Defend:16:16:0:0:64:64:5:59:5:59|t "
+local HEAL_ICON = "|TInterface\\Icons\\Spell_Holy_Heal:16:16:0:0:64:64:5:59:5:59|t "
 local function names(list)
   local out = {}
   for _, n in ipairs(list or {}) do out[#out + 1] = nameText(n) end
@@ -74,7 +78,7 @@ end
 local function bossText(b)
   local L, mine = {}, {}
   local function add(s) L[#L + 1] = s end
-  local function head(s) add(" "); add(GOLD .. s:upper() .. "|r") end
+  local function head(s, ic) add(" "); add((ic or "") .. GOLD .. s:upper() .. "|r") end
 
   for _, t in ipairs(b.tanks or {}) do
     if isMe(t.n) then mine[#mine + 1] = "Tank: " .. (t.job ~= "" and safe(t.job) or "see the plan") end
@@ -96,11 +100,11 @@ local function bossText(b)
 
   if b.notes and b.notes ~= "" then head("Notes"); add(safe(b.notes)) end
   if b.tanks and #b.tanks > 0 then
-    head("Tanks")
+    head("Tanks", TANK_ICON)
     for i, t in ipairs(b.tanks) do add((i == 1 and "MT " or i == 2 and "OT " or ("T" .. i .. " ")) .. nameText(t.n) .. (t.job ~= "" and (DIM .. "  -  |r" .. safe(t.job)) or "")) end
   end
   if b.heals and #b.heals > 0 then
-    head("Healers")
+    head("Healers", HEAL_ICON)
     for _, h in ipairs(b.heals) do
       add(nameText(h.n) .. DIM .. "  ->  |r" .. ((h.t and h.t ~= "") and nameText(h.t) or "Raid healing") .. (h.c and (GOLD .. "  (this fight)|r") or ""))
     end
@@ -326,6 +330,14 @@ Show = function(b, raidName)
   end
   f:Show()
 end
+
+local function redraw()
+  if not current or not UI.frame or not UI.frame:IsShown() then return end
+  local body, mine = bossText(current)
+  UI.body.text:SetText(body)
+  if #mine > 0 then UI.mine.text:SetText(ME_COLOR .. "YOUR JOBS|r\n" .. table.concat(mine, "\n")) end
+end
+C_Timer.NewTicker(0.5, function() blinkOn = not blinkOn; redraw() end)
 
 local function findBoss(id)
   for _, raid in ipairs((HatedPlan and HatedPlan.raids) or {}) do
