@@ -237,6 +237,10 @@ local function build()
   f.raid:SetPoint("TOPLEFT", crest, "RIGHT", 8, -4); f.raid:SetTextColor(0.85, 0.78, 0.65)
   f.sub = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   f.sub:SetPoint("BOTTOMLEFT", 14, 11)
+  f.ver = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  f.ver:SetPoint("BOTTOMRIGHT", -24, 11)
+  local meta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+  f.ver:SetText("Hated Companion v" .. ((meta and meta("HatedCompanion", "Version")) or "?"))
 
   local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
   close:SetPoint("TOPRIGHT", 2, 2); close:SetFrameLevel(f:GetFrameLevel() + 11)
