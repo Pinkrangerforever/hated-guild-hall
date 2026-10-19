@@ -58,11 +58,10 @@ local function classOf(name)
   if UnitExists(name) then local _, c = UnitClass(name); if c then return c end end
   return HatedPlan and HatedPlan.classes and HatedPlan.classes[name]
 end
--- your own name blinks: the text is redrawn twice a second, switching between bright green and dim
-local blinkOn = true
+local meHex = "ff4dff88"   -- your name gently pulses: a soft fade between bright and calmer green
 local function nameText(name)
   if not name or name == "" then return DIM .. "?|r" end
-  if isMe(name) then return (blinkOn and ME_COLOR or "|cff1f5a33") .. safe(name) .. "|r" end
+  if isMe(name) then return "|c" .. meHex .. safe(name) .. "|r" end
   local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classOf(name) or ""]
   return (c and ("|c" .. (c.colorStr or "ffffffff")) or "|cffe8d6b0") .. safe(name) .. "|r"
 end
@@ -337,7 +336,15 @@ local function redraw()
   UI.body.text:SetText(body)
   if #mine > 0 then UI.mine.text:SetText(ME_COLOR .. "YOUR JOBS|r\n" .. table.concat(mine, "\n")) end
 end
-C_Timer.NewTicker(0.5, function() blinkOn = not blinkOn; redraw() end)
+do
+  local t0 = GetTime()
+  C_Timer.NewTicker(0.08, function()
+    if not current or not UI.frame or not UI.frame:IsShown() then return end
+    local k = 0.72 + 0.28 * (0.5 + 0.5 * math.sin((GetTime() - t0) * math.pi * 2 / 2.2))   -- 2.2s breath, 72-100%
+    meHex = string.format("ff%02x%02x%02x", math.floor(77 + (180 - 77) * (1 - k)), math.floor(255 * k), math.floor(136 * k + 60 * (1 - k)))
+    redraw()
+  end)
+end
 
 local function findBoss(id)
   for _, raid in ipairs((HatedPlan and HatedPlan.raids) or {}) do
