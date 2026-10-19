@@ -12966,6 +12966,7 @@ function wireRaidPlan(){
    Access); the chosen folder is remembered. Browsers won't open folders inside Program Files, so for a WoW install
    there the Plan folder is a link to Documents\HatedPlan (one command, see the help on the page). */
 const ADDON_DB = 'hated-addon';
+const ADDON_FILES = ['HatedCompanion.toc', 'HatedCompanion.lua', 'HatedPlanUI.lua'];
 function addonIdb(){ return new Promise((res, rej) => { const r = indexedDB.open(ADDON_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 async function addonGet(k){ try{ const db = await addonIdb(); return await new Promise(res => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(undefined); }); }catch(e){ return undefined; } }
 async function addonSet(k, v){ try{ const db = await addonIdb(); await new Promise(res => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = res; }); }catch(e){} }
@@ -13024,16 +13025,33 @@ async function exportAddonPlan(){
     showToast('Downloaded HatedPlan.lua - put it in HatedCompanion\\Plan. Use Chrome or Edge to include the screenshots.');
     return;
   }
-  let dir = await addonGet('planDir');
+  let dir = await addonGet('addonDir');
   try{
     if(dir && (await dir.requestPermission({ mode: 'readwrite' })) !== 'granted') dir = null;
   }catch(e){ dir = null; }
   if(!dir){
-    try{ dir = await window.showDirectoryPicker({ id: 'hatedplan', mode: 'readwrite' }); }
+    try{ dir = await window.showDirectoryPicker({ id: 'hatedaddon', mode: 'readwrite' }); }
     catch(e){ if(e.name !== 'AbortError') showToast('Could not open that folder: ' + e.message, true); return; }
-    await addonSet('planDir', dir);
+    const nm = dir.name.toLowerCase();
+    if(nm === 'addons') dir = await dir.getDirectoryHandle('HatedCompanion', { create: true });
+    else if(nm === 'plan' || nm === 'interface'){ showToast('Pick the Interface\\AddOns folder (or the HatedCompanion folder inside it).', true); return; }
+    else if(nm !== 'hatedcompanion' && !confirm(`Install the addon into "${dir.name}"? It should be Interface\\AddOns\\HatedCompanion (or the Documents\\HatedCompanion folder it's linked to).`)) return;
+    await addonSet('addonDir', dir);
   }
   state.addonBusy = true; render();
+  // the addon itself: always the newest files from this site
+  let restart = false;
+  try{
+    for(const f of ADDON_FILES){
+      const r = await fetch('addons/HatedCompanion/' + f, { cache: 'no-store' });
+      if(!r.ok) throw new Error(f + ': HTTP ' + r.status);
+      const text = await r.text();
+      if(f.endsWith('.toc') && text !== (await addonGet('tocText'))){ restart = true; await addonSet('tocText', text); }
+      await writeFile(dir, f, text);
+    }
+  }catch(e){ console.error(e); showToast('Could not install the addon files: ' + e.message, true); state.addonBusy = false; render(); return; }
+  const top = dir;
+  dir = await top.getDirectoryHandle('Plan', { create: true });
   const done = (await addonGet('planImages')) || {};
   let imgs = 0, failed = 0;
   try{
@@ -13057,33 +13075,32 @@ async function exportAddonPlan(){
     await writeFile(dir, 'HatedPlan.lua', '-- Written by hatedforever.com > Boss Strategies > Save to my addon. Do not edit; it is replaced each save.\nHatedPlan = ' + toLua(plan) + '\n');
     await addonSet('planImages', done);
     state.addonSavedAt = new Date();
-    showToast(`Saved the plan to your addon${imgs ? ` (${imgs} new screenshot${imgs === 1 ? '' : 's'})` : ''}. Type /reload in game.` + (failed ? ` ${failed} screenshot${failed === 1 ? '' : 's'} could not be read.` : ''), !!failed);
+    showToast(`Hated Companion is up to date with the latest plan${imgs ? ` (${imgs} new screenshot${imgs === 1 ? '' : 's'})` : ''}. ` + (restart ? 'Restart WoW to load it (first install or new files).' : 'Type /reload in game.') + (failed ? ` ${failed} screenshot${failed === 1 ? '' : 's'} could not be read.` : ''), !!failed);
   }catch(e){
     console.error(e); showToast('Could not save to the addon folder: ' + e.message, true);
   }
   state.addonBusy = false; render();
 }
-async function forgetAddonFolder(){ await addonSet('planDir', null); await addonSet('planImages', {}); showToast('Folder forgotten - the next save asks for it again.'); }
+async function forgetAddonFolder(){ await addonSet('addonDir', null); await addonSet('planImages', {}); showToast('Folder forgotten - the next save asks for it again.'); }
 function renderAddonBar(){
   if(!state.session) return '';
   return `<div class="panel style-glass addon-bar">
     <div class="addon-row">
-      <div class="addon-text"><h3>In game</h3><p class="muted sans">Save the plan (every boss, assignments and screenshots) into the <b>Hated Companion</b> addon, then <b>/reload</b> in game and type <b>/hated</b>. ${ testCanManage() ? "Save after changing the plan; in game the raid leader can push a boss to everyone's screen." : '' }</p></div>
+      <div class="addon-text"><h3>Hated Companion addon</h3><p class="muted sans">One click installs or updates the addon <b>and</b> saves the latest boss plan (assignments and screenshots) into it. Then <b>/reload</b> in game and type <b>/hated</b>. ${ testCanManage() ? "Click it again after changing the plan; in game the raid leader can push a boss to everyone's screen." : 'Click it again before raid to get the newest plan.' }</p></div>
       <div class="addon-actions">
-        <button class="btn" type="button" id="addon-save" ${state.addonBusy ? 'disabled' : ''}>${state.addonBusy ? 'Saving…' : 'Save to my addon'}</button>
+        <button class="btn" type="button" id="addon-save" ${state.addonBusy ? 'disabled' : ''}>${state.addonBusy ? 'Updating…' : 'Install / update addon'}</button>
         <button class="btn secondary" type="button" id="addon-forget" title="Pick a different folder next time">Change folder</button>
       </div>
     </div>
-    <details class="addon-help"><summary>First time? Setting up the folder</summary>
+    <details class="addon-help"><summary>First time? Pick the folder</summary>
       <ol class="sans">
-        <li>Install the addon: copy the <b>HatedCompanion</b> folder into <code>World of Warcraft\\_anniversary_\\Interface\\AddOns</code> (or <code>_classic_era_</code>, whichever you play).</li>
-        <li>If WoW is <b>not</b> under Program Files: click <b>Save to my addon</b> and pick <code>Interface\\AddOns\\HatedCompanion\\Plan</code> (make the Plan folder if it isn't there).</li>
-        <li>If WoW <b>is</b> under Program Files, browsers aren't allowed to write there, so link it once. Open the Start menu, type <b>cmd</b>, open it and paste (with your WoW path):<br>
-          <code class="addon-cmd">mkdir "%USERPROFILE%\\Documents\\HatedPlan" &amp; mklink /J "C:\\Program Files (x86)\\World of Warcraft\\_anniversary_\\Interface\\AddOns\\HatedCompanion\\Plan" "%USERPROFILE%\\Documents\\HatedPlan"</code>
-          Then click <b>Save to my addon</b> and pick <code>Documents\\HatedPlan</code>.</li>
-        <li>Restart WoW once (new addon files are only found on start-up). After that, save and <b>/reload</b> is enough.</li>
+        <li>Click <b>Install / update addon</b> and pick your WoW <code>Interface\\AddOns</code> folder (for example <code>World of Warcraft\\_anniversary_\\Interface\\AddOns</code>). The addon is put in a HatedCompanion folder inside it, and the site remembers the folder for next time.</li>
+        <li>If the browser says it can't open the folder, WoW is under <b>Program Files</b>, where browsers aren't allowed to write. Link it once: open the Start menu, type <b>cmd</b>, open it and paste this (change the WoW path to yours; delete any old HatedCompanion folder there first):<br>
+          <code class="addon-cmd">mkdir "%USERPROFILE%\\Documents\\HatedCompanion" &amp; mklink /J "C:\\Program Files (x86)\\World of Warcraft\\_anniversary_\\Interface\\AddOns\\HatedCompanion" "%USERPROFILE%\\Documents\\HatedCompanion"</code>
+          Then click the button and pick <code>Documents\\HatedCompanion</code>.</li>
+        <li>Restart WoW after the first install. After that, update and <b>/reload</b> is enough (the site tells you when a restart is needed).</li>
       </ol>
-      <p class="muted sans">Needs Chrome or Edge on a PC. Other browsers download just the text plan (no screenshots).</p>
+      <p class="muted sans">Needs Chrome or Edge on a PC. Other browsers download just the plan file.</p>
     </details>
   </div>`;
 }
