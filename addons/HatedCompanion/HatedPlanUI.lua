@@ -89,7 +89,7 @@ end
 local function bossText(b)
   local L, mine = {}, {}
   local function add(s) L[#L + 1] = s end
-  local function head(s, ic) add(" "); add((ic or "|cffb8862e<>|r ") .. GOLD .. s:upper() .. "|r") end
+  local function head(s, ic) add(" "); add((ic or "") .. GOLD .. s:upper() .. "|r") end
 
   for _, t in ipairs(b.tanks or {}) do
     if isMe(t.n) then mine[#mine + 1] = "Tank: " .. (t.job ~= "" and safe(t.job) or "see the plan") end
