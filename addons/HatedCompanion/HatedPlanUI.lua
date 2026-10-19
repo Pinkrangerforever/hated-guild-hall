@@ -10,6 +10,8 @@
 
   /hated        open or close the window
   /hated show   (raid leader / assistant) push the boss you're viewing to the raid
+  /hated send   (raid leader / assistant) send your whole plan to everyone in the raid (text; screenshots stay
+                each player's own files). Players keep it until they get a newer plan.
   /hated me X   also highlight assignments for the website name X (/hated me on its own clears it)
 ]]
 
@@ -202,6 +204,10 @@ local function build()
   push:SetSize(150, 24); push:SetPoint("BOTTOMRIGHT", -10, 10); push:SetText("Show to raid")
   push:SetScript("OnClick", function() UI.Push() end)
   UI.pushBtn = push
+  local sendAll = CreateFrame("Button", nil, mid, "UIPanelButtonTemplate")
+  sendAll:SetSize(170, 24); sendAll:SetPoint("RIGHT", push, "LEFT", -6, 0); sendAll:SetText("Send plan to raid")
+  sendAll:SetScript("OnClick", function() UI.SendPlan() end)
+  UI.sendBtn = sendAll
 
   -- right: screenshot
   local right = CreateFrame("Button", nil, f, "BackdropTemplate")
@@ -288,6 +294,7 @@ Show = function(b, raidName)
     ((HatedPlan and HatedPlan.updated) and ("Plan saved " .. HatedPlan.updated .. (HatedPlan.by and (" by " .. HatedPlan.by) or "")) or ""))
   refreshList()
   UI.pushBtn:SetShown(b ~= nil and canPush())
+  UI.sendBtn:SetShown(canPush() and HatedPlan ~= nil and HatedPlan.raids ~= nil and #HatedPlan.raids > 0)
 
   if not b then
     UI.mid.name:SetText(""); UI.mine:Hide(); UI.body.text:SetText(DIM .. "Pick a boss on the left.|r")
@@ -364,35 +371,84 @@ local function de(s, i, depth)
   error("bad data")
 end
 
-local queue, sending = {}, false
+local queue, sending, progress = {}, false, nil
 local function pump()
-  if #queue == 0 then sending = false; return end
+  if #queue == 0 then
+    sending = false
+    if progress then say(progress .. " sent."); progress = nil end
+    return
+  end
   sending = true
-  local m = table.remove(queue, 1)
-  C_ChatInfo.SendAddonMessage(PREFIX, m[1], m[2])
-  C_Timer.After(0.12, pump)   -- stay well under the addon message limits
+  local m = queue[1]
+  local r = C_ChatInfo.SendAddonMessage(PREFIX, m[1], m[2])
+  -- newer clients return a result code and throttle bursts: wait and retry the same piece
+  local ok = (r == nil or r == true or r == 0 or (Enum and Enum.SendAddonMessageResult and r == Enum.SendAddonMessageResult.Success))
+  if ok then table.remove(queue, 1) end
+  C_Timer.After(ok and 0.12 or 1, pump)
+end
+local function send(kind, payload)
+  local channel = IsInRaid() and "RAID" or "PARTY"
+  local data = table.concat(ser(payload, {}))
+  local id, CH = tostring(math.random(100000, 999999)), 220
+  local n = math.ceil(#data / CH)
+  for i = 1, n do queue[#queue + 1] = { kind .. id .. "|" .. i .. "|" .. n .. "|" .. data:sub((i - 1) * CH + 1, i * CH), channel } end
+  if not sending then pump() end
+  return channel == "RAID" and "raid" or "party", n
 end
 
 function UI.Push()
   if not current then return end
   if not canPush() then say("only the raid leader or an assistant can show a plan to the raid."); return end
-  local channel = IsInRaid() and "RAID" or "PARTY"
-  local data = table.concat(ser({ boss = current, raid = currentRaid, classes = HatedPlan and HatedPlan.classes }, {}))
-  local id, CH = tostring(math.random(100000, 999999)), 220
-  local n = math.ceil(#data / CH)
-  for i = 1, n do queue[#queue + 1] = { id .. "|" .. i .. "|" .. n .. "|" .. data:sub((i - 1) * CH + 1, i * CH), channel } end
-  if not sending then pump() end
-  say("showing " .. current.name .. " to the " .. (channel == "RAID" and "raid" or "party") .. ".")
+  local who = send("B", { boss = current, raid = currentRaid, classes = HatedPlan and HatedPlan.classes })
+  say("showing " .. current.name .. " to the " .. who .. ".")
+end
+
+-- the whole plan (every raid and boss, text only: screenshots stay each player's own files)
+function UI.SendPlan()
+  if not HatedPlan or not HatedPlan.raids or #HatedPlan.raids == 0 then say("no plan to send: update the addon on hatedforever.com first."); return end
+  if not canPush() then say("only the raid leader or an assistant can send the plan."); return end
+  local copy = { updated = HatedPlan.updated, by = HatedPlan.by, classes = HatedPlan.classes, raids = {} }
+  for _, raid in ipairs(HatedPlan.raids) do
+    local r = { name = raid.name, bosses = {} }
+    for _, b in ipairs(raid.bosses or {}) do
+      local c = {}; for k, v in pairs(b) do if k ~= "image" then c[k] = v end end
+      r.bosses[#r.bosses + 1] = c
+    end
+    copy.raids[#copy.raids + 1] = r
+  end
+  local who, n = send("P", copy)
+  progress = "Plan (saved " .. (HatedPlan.updated or "?") .. ")"
+  say(string.format("sending the plan to the %s (%d pieces, about %d seconds).", who, n, math.ceil(n * 0.15)))
+end
+
+-- use a plan received in game when it's newer than the one the website saved, keeping my own screenshots
+local filePlan
+local function adopt(plan)
+  local imgs = {}
+  for _, raid in ipairs((filePlan and filePlan.raids) or {}) do
+    for _, b in ipairs(raid.bosses or {}) do if b.image then imgs[b.id] = b.image end end
+  end
+  for _, raid in ipairs(plan.raids or {}) do
+    for _, b in ipairs(raid.bosses or {}) do b.image = imgs[b.id] end
+  end
+  HatedPlan = plan
+  if current then current = findBoss(current.id) or current end
 end
 
 local incoming = {}
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("CHAT_MSG_ADDON"); ev:RegisterEvent("PLAYER_LOGIN")
 ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
-  if event == "PLAYER_LOGIN" then C_ChatInfo.RegisterAddonMessagePrefix(PREFIX); return end
+  if event == "PLAYER_LOGIN" then
+    C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
+    filePlan = HatedPlan
+    local synced = HatedCompanionDB and HatedCompanionDB.syncedPlan
+    if type(synced) == "table" and (synced.updated or "") > ((HatedPlan and HatedPlan.updated) or "") then adopt(synced) end
+    return
+  end
   if prefix ~= PREFIX or (channel ~= "RAID" and channel ~= "PARTY") then return end
   local short = Ambiguate(sender or "", "short")
-  -- only the leader / assistants may pop windows open on people's screens
+  -- only the leader / assistants may send plans or pop windows open on people's screens
   local ok = false
   if IsInRaid() then
     for i = 1, GetNumGroupMembers() do
@@ -403,18 +459,38 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
     ok = UnitIsGroupLeader(short)
   end
   if not ok then return end
-  local id, i, n, part = msg:match("^(%d+)|(%d+)|(%d+)|(.*)$")
+  local kind, id, i, n, part = msg:match("^([BP])(%d+)|(%d+)|(%d+)|(.*)$")
   if not id then return end
   i, n = tonumber(i), tonumber(n)
-  if n > 200 then return end
-  local key = short .. id
-  local box = incoming[key] or { parts = {}, got = 0 }
-  incoming[key] = box
+  if n > 3000 then return end
+  if kind == "P" and short == UnitName("player") then return end     -- my own plan coming back
+  local key = short .. kind .. id
+  local box = incoming[key]
+  if not box then
+    box = { parts = {}, got = 0 }; incoming[key] = box
+    if kind == "P" then say(short .. " is sending the raid plan...") end
+  end
   if not box.parts[i] then box.parts[i] = part; box.got = box.got + 1 end
   if box.got < n then return end
   incoming[key] = nil
   local okDe, t = pcall(de, table.concat(box.parts), 1)
-  if not okDe or type(t) ~= "table" or type(t.boss) ~= "table" then return end
+  if not okDe or type(t) ~= "table" then return end
+
+  if kind == "P" then
+    if type(t.raids) ~= "table" then return end
+    if (t.updated or "") < ((HatedPlan and HatedPlan.updated) or "") then
+      say("got " .. short .. "'s plan, but yours is newer (" .. tostring(HatedPlan.updated) .. "), so kept yours.")
+      return
+    end
+    HatedCompanionDB = HatedCompanionDB or {}
+    HatedCompanionDB.syncedPlan = t           -- kept across /reload and log-outs
+    adopt(t)
+    say("plan updated from " .. short .. " (saved " .. tostring(t.updated) .. "). /hated to view.")
+    if UI.frame and UI.frame:IsShown() then Show(current, currentRaid) end
+    return
+  end
+
+  if type(t.boss) ~= "table" then return end
   -- prefer my own copy's screenshot info; the text is the sender's (newest) version
   local mineB = findBoss(t.boss.id)
   if mineB and mineB.image and not t.boss.image then t.boss.image = mineB.image end
@@ -438,6 +514,7 @@ SlashCmdList.HATEDPLAN = function(msg)
   end
   msg = (msg or ""):lower()
   if msg == "show" then UI.Push(); return end
+  if msg == "send" or msg == "sync" then UI.SendPlan(); return end
   if UI.frame and UI.frame:IsShown() then UI.frame:Hide(); return end
   pushedFrom = nil
   if current then Show(current, currentRaid); return end
