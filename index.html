@@ -13035,7 +13035,6 @@ async function screenshotToTga(url){
 }
 async function writeFile(dir, name, data){ const fh = await dir.getFileHandle(name, { create: true }); const w = await fh.createWritable(); await w.write(data); await w.close(); }
 async function buildAddonPlan(){
-  state.pixFailed = [];
   if(!state.raidPlan){ await loadRaidPlan(); }
   const roster = planRoster(), classes = {};
   roster.forEach(m => { if(m.class_key) classes[m.name] = m.class_key.toUpperCase(); });
@@ -13043,48 +13042,7 @@ async function buildAddonPlan(){
   const plan = { updated: new Date().toISOString().slice(0, 16).replace('T', ' '), by: myName(), leader: rl ? (rl.character_name || '') : '', classes, raids: [] };
   const bossesOf = r => state.bosses.filter(b => b.raid_id === r.id);
   state.raids.forEach(r => plan.raids.push({ name: r.name, bosses: bossesOf(r).map(addonBossData) }));
-  // a small pixel copy of each screenshot travels inside the plan, so "Send plan to guild" in game carries it too
-  for(const raid of plan.raids) for(const b of raid.bosses){
-    const boss = state.bosses.find(x => String(x.id) === b.id);
-    if(boss && boss.screenshot_url){ try{ b.pix = await screenshotPix(boss.screenshot_url); }catch(e){ console.error('pixel copy for', b.name, e); (state.pixFailed = state.pixFailed || []).push(b.name); } }
-  }
   return plan;
-}
-// screenshot -> up to 112x84 pixels in a 64-colour palette, run-length packed (v2), so it's small enough to send in game.
-// Palette: 64 x 12-bit colours (2 chars each). Pixels: one palette char each; a run of 3+ is "!" + length char + colour char.
-const PIX_ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-async function screenshotPix(url){
-  const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
-  if(!res.ok) throw new Error('HTTP ' + res.status);
-  const bmp = await createImageBitmap(await res.blob());
-  let w = 112, hh = Math.round(112 * bmp.height / bmp.width);
-  if(hh > 84){ hh = 84; w = Math.max(8, Math.round(84 * bmp.width / bmp.height)); }
-  const c = document.createElement('canvas'); c.width = w; c.height = hh;
-  const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(bmp, 0, 0, w, hh);
-  const px = g.getImageData(0, 0, w, hh).data, n = w * hh;
-  const col = new Array(n);
-  for(let i = 0; i < n; i++) col[i] = [px[i * 4], px[i * 4 + 1], px[i * 4 + 2]];
-  // palette: k-means (seeded from the most common colours), 64 colours
-  const counts = new Map();
-  col.forEach(([r, gg, b]) => { const k = (r >> 4) << 8 | (gg >> 4) << 4 | (b >> 4); counts.set(k, (counts.get(k) || 0) + 1); });
-  let pal = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 64).map(([k]) => [((k >> 8) & 15) * 17, ((k >> 4) & 15) * 17, (k & 15) * 17]);
-  const near = p => { let bi = 0, bd = 1e9; for(let j = 0; j < pal.length; j++){ const q = pal[j], d = (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2; if(d < bd){ bd = d; bi = j; } } return bi; };
-  let idx = col.map(near);
-  for(let it = 0; it < 4; it++){
-    const sum = pal.map(() => [0, 0, 0, 0]);
-    idx.forEach((j, i) => { const s = sum[j]; s[0] += col[i][0]; s[1] += col[i][1]; s[2] += col[i][2]; s[3]++; });
-    pal = pal.map((q, j) => sum[j][3] ? [sum[j][0] / sum[j][3], sum[j][1] / sum[j][3], sum[j][2] / sum[j][3]] : q);
-    idx = col.map(near);
-  }
-  const palStr = pal.map(([r, gg, b]) => { const v = (Math.round(r / 17) << 8) | (Math.round(gg / 17) << 4) | Math.round(b / 17); return PIX_ABC[v >> 6] + PIX_ABC[v & 63]; }).join('');
-  let out = '';
-  for(let i = 0; i < n;){
-    let j = i; while(j < n && idx[j] === idx[i] && j - i < 64) j++;
-    const run = j - i, ch = PIX_ABC[idx[i]];
-    out += run >= 3 ? '!' + PIX_ABC[run - 1] + ch : ch.repeat(run);
-    i = j;
-  }
-  return { v: 2, w, h: hh, src: url, pal: palStr, data: out };
 }
 
 
@@ -13245,7 +13203,6 @@ async function exportAddonPlan(){
     await writeFile(dir, 'HatedPlan.lua', '-- Written by hatedforever.com > Boss Strategies > Save to my addon. Do not edit; it is replaced each save.\nHatedPlan = ' + toLua(plan) + '\n');
     await addonSet('planImages', done);
     state.addonSavedAt = new Date();
-    if(state.pixFailed && state.pixFailed.length) showToast('Screenshot could not be added to the plan for: ' + state.pixFailed.join(', ') + '. Sending in game will not include them - try again.', true);
     showToast(`Hated Companion is up to date with the latest plan${imgs ? ` (${imgs} new screenshot${imgs === 1 ? '' : 's'})` : ''}. ` + (restart ? 'Restart WoW to load it (first install or new files).' : 'Type /reload in game.') + (failed ? ` ${failed} screenshot${failed === 1 ? '' : 's'} could not be read.` : ''), !!failed);
   }catch(e){
     console.error(e); showToast('Could not save to the addon folder: ' + e.message, true);

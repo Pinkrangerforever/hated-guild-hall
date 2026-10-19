@@ -355,7 +355,7 @@ local function build()
   vfade(hb, 0, 0, 0, 0, 0.7); hb:SetAlpha(0); shot.hb = hb
   shot:SetScript("OnEnter", function(self) self.hint:SetAlpha(1); self.hb:SetAlpha(1); self:SetBackdropBorderColor(1, 0.82, 0.4, 1) end)
   shot:SetScript("OnLeave", function(self) self.hint:SetAlpha(0); self.hb:SetAlpha(0); self:SetBackdropBorderColor(EDGE[1], EDGE[2], EDGE[3], 0.6) end)
-  shot:SetScript("OnClick", function() if current and (current.image or current.pix) then UI.Zoom() end end)
+  shot:SetScript("OnClick", function() if current and current.image then UI.Zoom() end end)
   shot.none = shot:CreateFontString(nil, "OVERLAY", "GameFontDisable"); shot.none:SetPoint("CENTER"); shot.none:SetText("No screenshot for this fight")
   UI.shot = shot
 
@@ -384,62 +384,6 @@ local function build()
   UI.zoom = z
 end
 
--- the pixel copy of a screenshot (sent in game): a grid of coloured squares
-local PIX = {}
-do
-  local abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-  for i = 1, 64 do PIX[abc:byte(i)] = i - 1 end
-end
-local function fitPix(pix, maxW, maxH)
-  local s = math.min(maxW / pix.w, maxH / pix.h)
-  return math.floor(pix.w * s), math.floor(pix.h * s)
-end
-local function rgb12(v) return math.floor(v / 256) / 15, (math.floor(v / 16) % 16) / 15, (v % 16) / 15 end
-local pixCache = setmetatable({}, { __mode = "k" })   -- decoded colours, kept out of saved variables
-local function decodePix(pix)
-  if pixCache[pix] then return pixCache[pix] end
-  local cols, data = {}, pix.data or ""
-  if pix.v == 2 then
-    local pal, ps = {}, pix.pal or ""
-    for i = 1, #ps - 1, 2 do pal[#pal + 1] = { rgb12((PIX[ps:byte(i)] or 0) * 64 + (PIX[ps:byte(i + 1)] or 0)) } end
-    local i = 1
-    while i <= #data do
-      if data:byte(i) == 33 then   -- "!" run
-        local len, c = (PIX[data:byte(i + 1)] or 0) + 1, pal[(PIX[data:byte(i + 2)] or 0) + 1]
-        for _ = 1, len do cols[#cols + 1] = c end
-        i = i + 3
-      else
-        cols[#cols + 1] = pal[(PIX[data:byte(i)] or 0) + 1]; i = i + 1
-      end
-    end
-  else
-    for i = 1, #data - 1, 2 do cols[#cols + 1] = { rgb12((PIX[data:byte(i)] or 0) * 64 + (PIX[data:byte(i + 1)] or 0)) } end
-  end
-  pixCache[pix] = cols
-  return cols
-end
-local function drawPix(holder, pix, W, H)
-  holder.pool = holder.pool or {}
-  local pool, pw, ph = holder.pool, pix.w or 0, pix.h or 0
-  local cols = decodePix(pix)
-  if pw * ph > #cols then pw, ph = 0, 0 end
-  local cw, ch = W / math.max(pw, 1), H / math.max(ph, 1)
-  local n = 0
-  for y = 0, ph - 1 do
-    for x = 0, pw - 1 do
-      n = n + 1
-      local tx = pool[n]
-      if not tx then tx = holder:CreateTexture(nil, "ARTWORK"); pool[n] = tx end
-      local c = cols[n] or { 0, 0, 0 }
-      tx:SetColorTexture(c[1] or 0, c[2] or 0, c[3] or 0, 1)
-      tx:ClearAllPoints(); tx:SetPoint("TOPLEFT", holder, "TOPLEFT", 1 + x * cw, -1 - y * ch)
-      tx:SetSize(cw + 0.6, ch + 0.6)   -- a hair of overlap hides seams
-      tx:Show()
-    end
-  end
-  for i = n + 1, #pool do pool[i]:Hide() end
-end
-local function hidePix(holder) for _, tx in ipairs(holder.pool or {}) do tx:Hide() end end
 
 -- my screenshot file counts only when it's the picture the (sent) plan names; otherwise the plan's copy wins
 local function fileFits(img, b)
@@ -460,13 +404,9 @@ function UI.Zoom()
   local z = UI.zoom
   local maxW, maxH = UIParent:GetWidth() * 0.9, UIParent:GetHeight() * 0.85
   if current.image then
-    hidePix(z); z.tex:Show()
+    z.tex:Show()
     local w, h = setImage(z.tex, current.image, maxW, maxH)
     z:SetSize(w + 8, h + 8)
-  elseif current.pix then
-    z.tex:Hide()
-    local w, h = fitPix(current.pix, maxW * 0.6, maxH * 0.6)   -- low-res copy: don't blow it up too far
-    z:SetSize(w + 2, h + 2); drawPix(z, current.pix, w, h)
   else return end
   z:Show()
 end
@@ -627,19 +567,11 @@ local function renderPage(b)
   shot:ClearAllPoints(); shot:SetPoint("TOPLEFT", LW + GAP, 0)
   local maxH = math.max(220, UI.scroll:GetHeight() * 0.62)
   if b.image and b.image.file then
-    hidePix(shot)
     local w, h = setImage(shot.tex, b.image, RW, maxH)
     shot:SetSize(w + 2, h + 2); shot.tex:Show(); shot.none:Hide(); shot:EnableMouse(true)
     yr = h + 2 + GAP
-  elseif b.pix and b.pix.data then
-    -- no screenshot file for this one yet: the low-res copy that came with the plan
-    shot.tex:Hide(); shot.none:Hide()
-    local w, h = fitPix(b.pix, RW, maxH)
-    shot:SetSize(w + 2, h + 2); drawPix(shot, b.pix, w, h); shot:EnableMouse(true)
-    yr = h + 2 + GAP
   else
-    hidePix(shot)
-    shot.none:SetText((b.shot and b.shot ~= "") and "New screenshot - ask the raid leader to send the plan again,\nor download the addon from hatedforever.com" or "No screenshot for this fight")
+    shot.none:SetText((b.shot and b.shot ~= "") and "New screenshot for this fight - update Hated Companion\n(CurseForge app: Update all) to see it" or "No screenshot for this fight")
     shot:SetSize(RW, 120); shot.tex:Hide(); shot.none:Show(); shot:EnableMouse(false)
     yr = 120 + GAP
   end
@@ -815,7 +747,6 @@ function UI.SendPlan()
     local r = { name = raid.name, bosses = {} }
     for _, b in ipairs(raid.bosses or {}) do
       local c = {}; for k, v in pairs(b) do if k ~= "image" then c[k] = v end end
-      if c.pix then local px = {}; for k, v in pairs(c.pix) do if k ~= "cols" then px[k] = v end end; c.pix = px end
       r.bosses[#r.bosses + 1] = c
     end
     copy.raids[#copy.raids + 1] = r
@@ -934,7 +865,7 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
     HatedPlan.raids = HatedPlan.raids or {}
     local old, oldRaid = findBoss(t.boss.id)
     if old then
-      t.boss.image, t.boss.pix = old.image, old.pix          -- the screenshot stays what I have
+      t.boss.image = old.image                               -- the screenshot stays what I have
       for _, raid in ipairs(HatedPlan.raids) do
         for bi, bb in ipairs(raid.bosses or {}) do if bb == old then raid.bosses[bi] = t.boss end end
       end
@@ -1257,7 +1188,7 @@ end
 function UI.SendBoss()
   if not current or not iAmLeader() then return end
   local c = {}
-  for k, v in pairs(current) do if k ~= "image" and k ~= "pix" then c[k] = v end end
+  for k, v in pairs(current) do if k ~= "image" then c[k] = v end end
   local channels = { "GUILD" }
   if IsInRaid() then
     for i = 1, GetNumGroupMembers() do local u = "raid" .. i; if UnitExists(u) and not UnitIsInMyGuild(u) then channels[2] = "RAID"; break end end
