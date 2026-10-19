@@ -77,7 +77,7 @@ end
 local function bossText(b)
   local L, mine = {}, {}
   local function add(s) L[#L + 1] = s end
-  local function head(s, ic) add(" "); add((ic or "") .. GOLD .. s:upper() .. "|r") end
+  local function head(s, ic) add(" "); add((ic or "|cffb8862e<>|r ") .. GOLD .. s:upper() .. "|r") end
 
   for _, t in ipairs(b.tanks or {}) do
     if isMe(t.n) then mine[#mine + 1] = "Tank: " .. (t.job ~= "" and safe(t.job) or "see the plan") end
@@ -135,11 +135,28 @@ end
 local UI = {}
 local current, currentRaid, pushedFrom
 
+local MEDIA = "Interface\\AddOns\\HatedCompanion\\Media\\"
+local BANNER_H = 176
+
+-- dark leather panel with a thin gold edge (the website's look)
 local function backdrop(f, r, g, b, a)
   f:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12,
     insets = { left = 3, right = 3, top = 3, bottom = 3 } })
-  f:SetBackdropColor(r or 0.06, g or 0.045, b or 0.03, a or 0.85)
-  f:SetBackdropBorderColor(0.42, 0.32, 0.2, 1)
+  f:SetBackdropColor(r or 0.045, g or 0.032, b or 0.022, a or 0.88)
+  f:SetBackdropBorderColor(0.72, 0.56, 0.28, 0.9)
+end
+local function vfade(tex, r, g, b, a1, a2)   -- vertical fade (top a1 -> bottom a2), safe on old and new APIs
+  tex:SetColorTexture(1, 1, 1, 1)
+  if CreateColor and pcall(tex.SetGradient, tex, "VERTICAL", CreateColor(r, g, b, a2), CreateColor(r, g, b, a1)) then return end
+  if tex.SetGradientAlpha then tex:SetGradientAlpha("VERTICAL", r, g, b, a2, r, g, b, a1) else tex:SetColorTexture(r, g, b, (a1 + a2) / 2) end
+end
+local function panelTitle(p, text)
+  local fs = p:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  fs:SetPoint("TOPLEFT", 10, -8); fs:SetText(text); fs:SetTextColor(0.93, 0.78, 0.4)
+  local line = p:CreateTexture(nil, "ARTWORK")
+  line:SetPoint("TOPLEFT", 8, -22); line:SetPoint("TOPRIGHT", -8, -22); line:SetHeight(1)
+  line:SetColorTexture(0.72, 0.56, 0.28, 0.45)
+  return fs
 end
 
 local function canPush()
@@ -151,82 +168,122 @@ local Show   -- forward
 
 local function build()
   if UI.frame then return end
-  local f = CreateFrame("Frame", "HatedPlanFrame", UIParent, "BasicFrameTemplateWithInset")
-  f:SetSize(1120, 620); f:SetPoint("CENTER"); f:SetFrameStrata("HIGH"); f:SetToplevel(true)
+  local f = CreateFrame("Frame", "HatedPlanFrame", UIParent, "BackdropTemplate")
+  f:SetSize(1120, 730); f:SetPoint("CENTER"); f:SetFrameStrata("HIGH"); f:SetToplevel(true)
   f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
   f:SetScript("OnDragStart", f.StartMoving); f:SetScript("OnDragStop", f.StopMovingOrSizing)
   f:SetClampedToScreen(true)
+  f:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", edgeSize = 26,
+    insets = { left = 7, right = 7, top = 7, bottom = 7 } })
+  f:SetBackdropColor(0.035, 0.024, 0.016, 0.97)
+  f:SetBackdropBorderColor(1, 0.8, 0.45, 1)
   tinsert(UISpecialFrames, "HatedPlanFrame")   -- Esc closes it
-  f.title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-  f.title:SetPoint("TOP", 0, -5)
-  f.sub = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  f.sub:SetPoint("BOTTOMLEFT", 14, 10)
   UI.frame = f
+
+  -- the website banner across the top, fading into the window
+  local banner = f:CreateTexture(nil, "ARTWORK")
+  banner:SetPoint("TOPLEFT", 7, -7); banner:SetPoint("TOPRIGHT", -7, -7); banner:SetHeight(BANNER_H)
+  banner:SetTexture(MEDIA .. "Banner"); banner:SetTexCoord(0, 1, 0, 171 / 256)
+  local fade = f:CreateTexture(nil, "ARTWORK", nil, 2)
+  fade:SetPoint("BOTTOMLEFT", banner, "BOTTOMLEFT"); fade:SetPoint("BOTTOMRIGHT", banner, "BOTTOMRIGHT"); fade:SetHeight(70)
+  vfade(fade, 0.035, 0.024, 0.016, 0, 1)
+  local shade = f:CreateTexture(nil, "ARTWORK", nil, 1)       -- darken the banner a touch so the title reads
+  shade:SetAllPoints(banner); shade:SetColorTexture(0, 0, 0, 0.12)
+  local rule = f:CreateTexture(nil, "ARTWORK", nil, 3)
+  rule:SetPoint("TOPLEFT", banner, "BOTTOMLEFT", 20, 0); rule:SetPoint("TOPRIGHT", banner, "BOTTOMRIGHT", -20, 0); rule:SetHeight(1)
+  rule:SetColorTexture(0.85, 0.68, 0.32, 0.6)
+
+  -- the guild crest, overlapping the top-left corner
+  local crest = CreateFrame("Frame", nil, f); crest:SetSize(132, 132); crest:SetPoint("TOPLEFT", -22, 26)
+  crest:SetFrameLevel(f:GetFrameLevel() + 10)
+  local ct = crest:CreateTexture(nil, "OVERLAY"); ct:SetAllPoints(); ct:SetTexture(MEDIA .. "Icon")
+
+  -- title under the banner
+  f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  f.title:SetPoint("BOTTOMLEFT", banner, "BOTTOMLEFT", 118, 10)
+  f.title:SetTextColor(1, 0.84, 0.45); f.title:SetShadowOffset(1, -1); f.title:SetShadowColor(0, 0, 0, 1)
+  f.sub = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  f.sub:SetPoint("BOTTOMLEFT", 16, 13)
+
+  local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+  close:SetPoint("TOPRIGHT", -4, -4); close:SetFrameLevel(f:GetFrameLevel() + 11)
+
+  local TOP = -(7 + BANNER_H + 8)
 
   -- left: bosses
   local left = CreateFrame("Frame", nil, f, "BackdropTemplate")
-  left:SetPoint("TOPLEFT", 10, -30); left:SetPoint("BOTTOMLEFT", 10, 30); left:SetWidth(190)
-  backdrop(left)
+  left:SetPoint("TOPLEFT", 14, TOP); left:SetPoint("BOTTOMLEFT", 14, 34); left:SetWidth(196)
+  backdrop(left); panelTitle(left, "BOSSES")
   local ls = CreateFrame("ScrollFrame", nil, left, "UIPanelScrollFrameTemplate")
-  ls:SetPoint("TOPLEFT", 6, -6); ls:SetPoint("BOTTOMRIGHT", -26, 6)
-  local lc = CreateFrame("Frame", nil, ls); lc:SetSize(150, 10); ls:SetScrollChild(lc)
+  ls:SetPoint("TOPLEFT", 6, -28); ls:SetPoint("BOTTOMRIGHT", -26, 6)
+  local lc = CreateFrame("Frame", nil, ls); lc:SetSize(160, 10); ls:SetScrollChild(lc)
   UI.list, UI.buttons, UI.heads = lc, {}, {}
 
   -- middle: the fight
   local mid = CreateFrame("Frame", nil, f, "BackdropTemplate")
-  mid:SetPoint("TOPLEFT", left, "TOPRIGHT", 8, 0); mid:SetPoint("BOTTOMLEFT", left, "BOTTOMRIGHT", 8, 0); mid:SetWidth(470)
+  mid:SetPoint("TOPLEFT", left, "TOPRIGHT", 8, 0); mid:SetPoint("BOTTOMLEFT", left, "BOTTOMRIGHT", 8, 0); mid:SetWidth(476)
   backdrop(mid)
   UI.mid = mid
   mid.name = mid:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  mid.name:SetPoint("TOPLEFT", 12, -10); mid.name:SetPoint("RIGHT", -12, 0); mid.name:SetJustifyH("LEFT")
+  mid.name:SetPoint("TOPLEFT", 12, -9); mid.name:SetPoint("RIGHT", -12, 0); mid.name:SetJustifyH("LEFT")
+  mid.name:SetTextColor(1, 0.84, 0.45)
+  local mline = mid:CreateTexture(nil, "ARTWORK")
+  mline:SetPoint("TOPLEFT", 8, -30); mline:SetPoint("TOPRIGHT", -8, -30); mline:SetHeight(1); mline:SetColorTexture(0.72, 0.56, 0.28, 0.45)
 
-  -- your jobs, in a pulsing gold box
+  -- your jobs, in a softly pulsing gold box
   local mine = CreateFrame("Frame", nil, mid, "BackdropTemplate")
-  mine:SetPoint("TOPLEFT", 8, -36); mine:SetPoint("RIGHT", -8, 0)
-  mine:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 2 })
-  mine:SetBackdropColor(0.18, 0.13, 0.03, 0.85); mine:SetBackdropBorderColor(1, 0.83, 0.3, 1)
+  mine:SetPoint("TOPLEFT", 10, -40); mine:SetPoint("RIGHT", -10, 0)
+  mine:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12,
+    insets = { left = 3, right = 3, top = 3, bottom = 3 } })
+  mine:SetBackdropColor(0.2, 0.14, 0.03, 0.9); mine:SetBackdropBorderColor(1, 0.83, 0.3, 1)
   mine.glow = mine:CreateTexture(nil, "BACKGROUND", nil, -1)
-  mine.glow:SetPoint("TOPLEFT", -10, 10); mine.glow:SetPoint("BOTTOMRIGHT", 10, -10)
-  mine.glow:SetColorTexture(1, 0.8, 0.2, 0.18)
+  mine.glow:SetPoint("TOPLEFT", -6, 6); mine.glow:SetPoint("BOTTOMRIGHT", 6, -6)
+  mine.glow:SetColorTexture(1, 0.8, 0.25, 0.14)
   local ag = mine:CreateAnimationGroup(); ag:SetLooping("BOUNCE")
-  local a = ag:CreateAnimation("Alpha"); a:SetFromAlpha(1); a:SetToAlpha(0.55); a:SetDuration(0.9); a:SetSmoothing("IN_OUT")
+  local a = ag:CreateAnimation("Alpha"); a:SetFromAlpha(1); a:SetToAlpha(0.7); a:SetDuration(1.1); a:SetSmoothing("IN_OUT")
   mine.anim = ag
   mine.text = mine:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-  mine.text:SetPoint("TOPLEFT", 10, -8); mine.text:SetPoint("RIGHT", -10, 0); mine.text:SetJustifyH("LEFT"); mine.text:SetSpacing(3)
+  mine.text:SetPoint("TOPLEFT", 12, -10); mine.text:SetPoint("RIGHT", -12, 0); mine.text:SetJustifyH("LEFT"); mine.text:SetSpacing(4)
   UI.mine = mine
 
   local ms = CreateFrame("ScrollFrame", nil, mid, "UIPanelScrollFrameTemplate")
-  ms:SetPoint("BOTTOMRIGHT", -28, 40)
+  ms:SetPoint("BOTTOMRIGHT", -28, 42)
   UI.scroll = ms
-  local mc = CreateFrame("Frame", nil, ms); mc:SetSize(420, 10); ms:SetScrollChild(mc)
+  local mc = CreateFrame("Frame", nil, ms); mc:SetSize(424, 10); ms:SetScrollChild(mc)
   mc.text = mc:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-  mc.text:SetPoint("TOPLEFT"); mc.text:SetWidth(420); mc.text:SetJustifyH("LEFT"); mc.text:SetSpacing(3)
+  mc.text:SetPoint("TOPLEFT", 4, 0); mc.text:SetWidth(420); mc.text:SetJustifyH("LEFT"); mc.text:SetSpacing(4)
   UI.body = mc
 
+  local bline = mid:CreateTexture(nil, "ARTWORK")
+  bline:SetPoint("BOTTOMLEFT", 8, 38); bline:SetPoint("BOTTOMRIGHT", -8, 38); bline:SetHeight(1); bline:SetColorTexture(0.72, 0.56, 0.28, 0.35)
   local push = CreateFrame("Button", nil, mid, "UIPanelButtonTemplate")
-  push:SetSize(150, 24); push:SetPoint("BOTTOMRIGHT", -10, 10); push:SetText("Show to raid")
+  push:SetSize(140, 24); push:SetPoint("BOTTOMRIGHT", -10, 9); push:SetText("Show to raid")
   push:SetScript("OnClick", function() UI.Push() end)
   UI.pushBtn = push
   local sendAll = CreateFrame("Button", nil, mid, "UIPanelButtonTemplate")
-  sendAll:SetSize(170, 24); sendAll:SetPoint("RIGHT", push, "LEFT", -6, 0); sendAll:SetText("Send plan to raid")
+  sendAll:SetSize(160, 24); sendAll:SetPoint("RIGHT", push, "LEFT", -6, 0); sendAll:SetText("Send plan to raid")
   sendAll:SetScript("OnClick", function() UI.SendPlan() end)
   UI.sendBtn = sendAll
 
   -- right: screenshot
   local right = CreateFrame("Button", nil, f, "BackdropTemplate")
-  right:SetPoint("TOPLEFT", mid, "TOPRIGHT", 8, 0); right:SetPoint("BOTTOMRIGHT", -10, 30)
-  backdrop(right, 0.02, 0.015, 0.01, 0.95)
+  right:SetPoint("TOPLEFT", mid, "TOPRIGHT", 8, 0); right:SetPoint("BOTTOMRIGHT", -14, 34)
+  backdrop(right, 0.02, 0.014, 0.01, 0.95); panelTitle(right, "STRATEGY")
   right.tex = right:CreateTexture(nil, "ARTWORK")
   right.none = right:CreateFontString(nil, "OVERLAY", "GameFontDisable")
   right.none:SetPoint("CENTER"); right.none:SetText("No screenshot for this fight")
+  right.hint = right:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  right.hint:SetPoint("BOTTOM", 0, 8); right.hint:SetText("Click to enlarge")
   right:SetScript("OnClick", function() if current and current.image then UI.Zoom() end end)
   UI.right = right
 
   -- big view of the screenshot
   local z = CreateFrame("Button", "HatedPlanZoom", UIParent, "BackdropTemplate")
   z:SetFrameStrata("DIALOG"); z:SetPoint("CENTER"); z:Hide()
-  backdrop(z, 0, 0, 0, 0.95)
-  z.tex = z:CreateTexture(nil, "ARTWORK"); z.tex:SetPoint("TOPLEFT", 6, -6); z.tex:SetPoint("BOTTOMRIGHT", -6, 6)
+  z:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", edgeSize = 26,
+    insets = { left = 7, right = 7, top = 7, bottom = 7 } })
+  z:SetBackdropColor(0, 0, 0, 0.96); z:SetBackdropBorderColor(1, 0.8, 0.45, 1)
+  z.tex = z:CreateTexture(nil, "ARTWORK"); z.tex:SetPoint("TOPLEFT", 9, -9); z.tex:SetPoint("BOTTOMRIGHT", -9, 9)
   z:SetScript("OnClick", z.Hide)
   tinsert(UISpecialFrames, "HatedPlanZoom")
   UI.zoom = z
@@ -243,7 +300,7 @@ end
 function UI.Zoom()
   local img, z = current.image, UI.zoom
   local w, h = setImage(z, z.tex, img, UIParent:GetWidth() * 0.9, UIParent:GetHeight() * 0.85)
-  z:SetSize(w + 12, h + 12); z:Show()
+  z:SetSize(w + 18, h + 18); z:Show()
 end
 
 local function refreshList()
@@ -254,35 +311,39 @@ local function refreshList()
   for _, raid in ipairs((HatedPlan and HatedPlan.raids) or {}) do
     hi = hi + 1
     local h = UI.heads[hi]
-    if not h then h = lc:CreateFontString(nil, "OVERLAY", "GameFontNormal"); h:SetJustifyH("LEFT"); h:SetWidth(150); UI.heads[hi] = h end
-    h:SetText(raid.name); h:ClearAllPoints(); h:SetPoint("TOPLEFT", 0, -y); h:Show()
+    if not h then h = lc:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); h:SetJustifyH("LEFT"); h:SetWidth(160); UI.heads[hi] = h end
+    h:SetText((raid.name or ""):upper()); h:SetTextColor(0.78, 0.66, 0.45); h:ClearAllPoints(); h:SetPoint("TOPLEFT", 2, -y - 2); h:Show()
     y = y + 20
     for _, b in ipairs(raid.bosses or {}) do
       bi = bi + 1
       local btn = UI.buttons[bi]
       if not btn then
         btn = CreateFrame("Button", nil, lc)
-        btn:SetSize(150, 20)
-        btn.hl = btn:CreateTexture(nil, "BACKGROUND"); btn.hl:SetAllPoints(); btn.hl:SetColorTexture(1, 0.8, 0.3, 0.18)
-        btn:SetHighlightTexture("Interface\\Buttons\\UI-Listbox-Highlight2", "ADD")
-        btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        btn.text:SetPoint("LEFT", 8, 0); btn.text:SetPoint("RIGHT", -2, 0); btn.text:SetJustifyH("LEFT")
+        btn:SetSize(160, 22)
+        btn.hl = btn:CreateTexture(nil, "BACKGROUND"); btn.hl:SetAllPoints(); btn.hl:SetColorTexture(1, 0.78, 0.3, 0.16)
+        btn.bar = btn:CreateTexture(nil, "ARTWORK"); btn.bar:SetPoint("TOPLEFT"); btn.bar:SetPoint("BOTTOMLEFT"); btn.bar:SetWidth(3)
+        btn.bar:SetColorTexture(1, 0.82, 0.35, 1)
+        local hov = btn:CreateTexture(nil, "HIGHLIGHT"); hov:SetAllPoints(); hov:SetColorTexture(1, 0.9, 0.6, 0.08)
+        btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        btn.text:SetPoint("LEFT", 10, 0); btn.text:SetPoint("RIGHT", -2, 0); btn.text:SetJustifyH("LEFT")
         btn:SetScript("OnClick", function(self) pushedFrom = nil; Show(self.boss, self.raid) end)
         UI.buttons[bi] = btn
       end
       btn.boss, btn.raid = b, raid.name
       btn.text:SetText(b.name)
-      btn.hl:SetShown(current and current.id == b.id)
+      local sel = current and current.id == b.id
+      btn.hl:SetShown(sel); btn.bar:SetShown(sel)
+      if sel then btn.text:SetTextColor(1, 0.86, 0.5) else btn.text:SetTextColor(0.9, 0.86, 0.78) end
       btn:ClearAllPoints(); btn:SetPoint("TOPLEFT", 0, -y); btn:Show()
-      y = y + 21
+      y = y + 23
     end
     y = y + 8
   end
   if bi == 0 then
     hi = hi + 1
     local h = UI.heads[hi] or lc:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); UI.heads[hi] = h
-    h:SetWidth(150); h:SetJustifyH("LEFT"); h:ClearAllPoints(); h:SetPoint("TOPLEFT", 0, 0)
-    h:SetText("No plan yet. On hatedforever.com > Boss Strategies, click \"Save to my addon\", then /reload."); h:Show()
+    h:SetWidth(160); h:SetJustifyH("LEFT"); h:ClearAllPoints(); h:SetPoint("TOPLEFT", 0, 0)
+    h:SetText("No plan yet. The raid leader can send one in game, or download the addon again from hatedforever.com."); h:Show()
     y = 60
   end
   lc:SetHeight(y)
@@ -292,7 +353,7 @@ Show = function(b, raidName)
   build()
   current, currentRaid = b, raidName
   local f = UI.frame
-  f.title:SetText("Hated - Boss Plan" .. (raidName and ("  |  " .. raidName) or ""))
+  f.title:SetText("BOSS PLAN" .. (raidName and ("   |cffc8b48a" .. safe(raidName) .. "|r") or ""))
   f.sub:SetText((pushedFrom and ("Shown by " .. pushedFrom .. ".  ") or "") ..
     ((HatedPlan and HatedPlan.updated) and ("Plan saved " .. HatedPlan.updated .. (HatedPlan.by and (" by " .. HatedPlan.by) or "")) or ""))
   refreshList()
@@ -301,31 +362,31 @@ Show = function(b, raidName)
 
   if not b then
     UI.mid.name:SetText(""); UI.mine:Hide(); UI.body.text:SetText(DIM .. "Pick a boss on the left.|r")
-    UI.scroll:ClearAllPoints(); UI.scroll:SetPoint("TOPLEFT", 8, -40); UI.scroll:SetPoint("BOTTOMRIGHT", -28, 40)
-    UI.right.tex:Hide(); UI.right.none:Show(); f:Show(); return
+    UI.scroll:ClearAllPoints(); UI.scroll:SetPoint("TOPLEFT", 8, -40); UI.scroll:SetPoint("BOTTOMRIGHT", -28, 42)
+    UI.right.tex:Hide(); UI.right.none:Show(); UI.right.hint:Hide(); f:Show(); return
   end
   UI.mid.name:SetText(b.name)
   local body, mine = bossText(b)
   local top = -40
   if #mine > 0 then
     UI.mine.text:SetText(ME_COLOR .. "YOUR JOBS|r\n" .. table.concat(mine, "\n"))
-    UI.mine:SetHeight(UI.mine.text:GetStringHeight() + 18)
+    UI.mine:SetHeight(UI.mine.text:GetStringHeight() + 20)
     UI.mine:Show(); UI.mine.anim:Play()
-    top = -36 - UI.mine:GetHeight() - 10
+    top = -40 - UI.mine:GetHeight() - 10
   else
     UI.mine:Hide(); UI.mine.anim:Stop()
   end
-  UI.scroll:ClearAllPoints(); UI.scroll:SetPoint("TOPLEFT", 8, top); UI.scroll:SetPoint("BOTTOMRIGHT", -28, 40)
+  UI.scroll:ClearAllPoints(); UI.scroll:SetPoint("TOPLEFT", 8, top); UI.scroll:SetPoint("BOTTOMRIGHT", -28, 42)
   UI.body.text:SetText(body)
   UI.body:SetHeight(UI.body.text:GetStringHeight() + 10)
   UI.scroll:SetVerticalScroll(0)
 
   local r = UI.right
   if b.image and b.image.file then
-    local w, h = setImage(r, r.tex, b.image, r:GetWidth() - 12, r:GetHeight() - 12)
-    r.tex:ClearAllPoints(); r.tex:SetPoint("TOP", 0, -6); r.tex:SetSize(w, h); r.tex:Show(); r.none:Hide()
+    local w, h = setImage(r, r.tex, b.image, r:GetWidth() - 16, r:GetHeight() - 56)
+    r.tex:ClearAllPoints(); r.tex:SetPoint("TOP", 0, -30); r.tex:SetSize(w, h); r.tex:Show(); r.none:Hide(); r.hint:Show()
   else
-    r.tex:Hide(); r.none:Show()
+    r.tex:Hide(); r.none:Show(); r.hint:Hide()
   end
   f:Show()
 end
