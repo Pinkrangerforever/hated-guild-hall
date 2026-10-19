@@ -91,7 +91,7 @@ local MARK_TEX = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_"
 -- each row: left text, right text, me (highlight), mark (raid icon number) ; sections: title, tex (icon), rows
 local function bossSections(b)
   local S, mine = {}, {}
-  local function section(title, tex) local s = { title = title, tex = tex, rows = {} }; S[#S + 1] = s; return s end
+  local function section(title, tex, key) local s = { title = title, tex = tex, key = key or title, rows = {} }; S[#S + 1] = s; return s end
 
   if b.tanks and #b.tanks > 0 then
     local s = section("Tanks", TANK_TEX)
@@ -110,9 +110,9 @@ local function bossSections(b)
       if h.t and h.t ~= "" and isMe(h.t) then mine[#mine + 1] = "Healed by " .. nameText(h.n) end
     end
   end
-  for _, set in ipairs({ { b.marks, "Target markers", "Kill / handle" }, { b.floor, "Floor markers  |cff8f7f62where to stand|r", "Stand at" } }) do
+  for _, set in ipairs({ { b.marks, "Target markers", "Kill / handle", "Target markers" }, { b.floor, "Floor markers  |cff8f7f62where to stand|r", "Stand at", "Floor markers" } }) do
     if set[1] and #set[1] > 0 then
-      local s = section(set[2], MARK_TEX .. "8")
+      local s = section(set[2], set[4] == "Floor markers" and (MARK_TEX .. "6") or (MARK_TEX .. "8"), set[4])
       for _, m in ipairs(set[1]) do
         s.rows[#s.rows + 1] = { mark = m.m, left = (m.note ~= "" and ("|cffecc867" .. safe(m.note) .. "|r") or DIM .. safe(m.label) .. "|r"), right = names(m.who), me = anyMe(m.who) }
         if anyMe(m.who) then mine[#mine + 1] = set[3] .. " " .. icon(m.m, 14) .. " " .. safe(m.label) .. (m.note ~= "" and (" - " .. safe(m.note)) or "") end
@@ -120,7 +120,7 @@ local function bossSections(b)
     end
   end
   if b.jobs and #b.jobs > 0 then
-    local s = section("Interrupts, CC & jobs", JOB_TEX)
+    local s = section("Interrupts, CC & jobs", JOB_TEX, "Jobs")
     for _, j in ipairs(b.jobs) do
       s.rows[#s.rows + 1] = { left = nameText(j.n), right = safe(j.what), me = isMe(j.n) }
       if isMe(j.n) then mine[#mine + 1] = safe(j.what) end
@@ -265,62 +265,56 @@ local function build()
   local lc = CreateFrame("Frame", nil, ls); lc:SetSize(180, 10); ls:SetScrollChild(lc)
   UI.list, UI.buttons, UI.heads = lc, {}, {}
 
-  -- middle: the fight
+  -- the boss: one panel, one scrolling page
   local mid = CreateFrame("Frame", nil, f, "BackdropTemplate")
-  mid:SetPoint("TOPLEFT", left, "TOPRIGHT", 10, 0); mid:SetPoint("BOTTOMLEFT", left, "BOTTOMRIGHT", 10, 0); mid:SetWidth(480)
+  mid:SetPoint("TOPLEFT", left, "TOPRIGHT", 10, 0); mid:SetPoint("BOTTOMRIGHT", -12, 32)
   flat(mid)
   UI.mid = mid
   mid.name = mid:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  mid.name:SetPoint("TOPLEFT", 14, -10); mid.name:SetPoint("RIGHT", -14, 0); mid.name:SetJustifyH("LEFT")
+  mid.name:SetPoint("TOPLEFT", 14, -10); mid.name:SetJustifyH("LEFT")
   mid.name:SetTextColor(1, 0.85, 0.48)
   local mline = mid:CreateTexture(nil, "ARTWORK")
   mline:SetPoint("TOPLEFT", 1, -34); mline:SetPoint("TOPRIGHT", -1, -34); mline:SetHeight(1)
   hfade(mline, EDGE[1], EDGE[2], EDGE[3], 0.7, 0.05)
 
+  local push = button(mid, "Open for raid", 130)
+  push:SetPoint("TOPRIGHT", -10, -6)
+  push:SetScript("OnClick", function() UI.Push() end)
+  push:SetMotionScriptsWhileDisabled(true)
+  push:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_BOTTOM"); GameTooltip:AddLine("Open for raid", 1, 0.82, 0.3)
+    GameTooltip:AddLine(canPush() and "Opens this boss on every raider's screen (raiders with the addon)." or "Be in a raid as leader or assistant to use this.", 1, 1, 1, true); GameTooltip:Show() end)
+  push:SetScript("OnLeave", GameTooltip_Hide)
+  UI.pushBtn = push
+  local sendAll = button(mid, "Send plan to guild", 150, true)
+  sendAll:SetPoint("RIGHT", push, "LEFT", -8, 0)
+  sendAll:SetScript("OnClick", function() UI.SendPlan() end)
+  sendAll:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_BOTTOM"); GameTooltip:AddLine("Send plan to guild", 1, 0.82, 0.3)
+    GameTooltip:AddLine("Sends every boss's plan to everyone online in the guild with the addon (and your raid).", 1, 1, 1, true); GameTooltip:Show() end)
+  sendAll:SetScript("OnLeave", GameTooltip_Hide)
+  UI.sendBtn = sendAll
+
+  local ms = CreateFrame("ScrollFrame", "HatedPlanBody", mid, "UIPanelScrollFrameTemplate")
+  ms:SetPoint("TOPLEFT", 12, -44); ms:SetPoint("BOTTOMRIGHT", -18, 10); slim(ms)
+  if ms.SetClipsChildren then ms:SetClipsChildren(true) end
+  UI.scroll = ms
+  local mc = CreateFrame("Frame", nil, ms); mc:SetSize(600, 10); ms:SetScrollChild(mc)
+  UI.body, UI.rows, UI.hdrs, UI.cards = mc, {}, {}, {}
+
   -- your jobs: a gold card with a soft breathing glow
-  local mine = CreateFrame("Frame", nil, mid, "BackdropTemplate")
-  mine:SetPoint("TOPLEFT", 10, -44); mine:SetPoint("RIGHT", -10, 0)
+  local mine = CreateFrame("Frame", nil, mc, "BackdropTemplate")
   flat(mine, 0.16, 0.11, 0.03, 0.95, 1, 0.8, 0.32, 0.85)
   mine.bar = mine:CreateTexture(nil, "ARTWORK"); mine.bar:SetPoint("TOPLEFT", 1, -1); mine.bar:SetPoint("BOTTOMLEFT", 1, 1); mine.bar:SetWidth(3)
   mine.bar:SetColorTexture(1, 0.82, 0.35, 1)
   mine.glow = mine:CreateTexture(nil, "BACKGROUND", nil, -1)
-  mine.glow:SetPoint("TOPLEFT", -5, 5); mine.glow:SetPoint("BOTTOMRIGHT", 5, -5); mine.glow:SetColorTexture(1, 0.78, 0.25, 0.12)
+  mine.glow:SetPoint("TOPLEFT", 1, -1); mine.glow:SetPoint("BOTTOMRIGHT", -1, 1); hfade(mine.glow, 1, 0.78, 0.25, 0.22, 0.03)
   mine.head = mine:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   mine.head:SetPoint("TOPLEFT", 14, -9); mine.head:SetText("YOUR JOBS"); mine.head:SetTextColor(0.45, 1, 0.6)
   mine.text = mine:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   mine.text:SetPoint("TOPLEFT", 14, -26); mine.text:SetPoint("RIGHT", -12, 0); mine.text:SetJustifyH("LEFT"); mine.text:SetSpacing(4)
   UI.mine = mine
 
-  local ms = CreateFrame("ScrollFrame", "HatedPlanBody", mid, "UIPanelScrollFrameTemplate")
-  ms:SetPoint("BOTTOMRIGHT", -16, 44); slim(ms)
-  UI.scroll = ms
-  local mc = CreateFrame("Frame", nil, ms); mc:SetSize(440, 10); ms:SetScrollChild(mc)
-  UI.body, UI.rows, UI.hdrs = mc, {}, {}
-
-  local bline = mid:CreateTexture(nil, "ARTWORK")
-  bline:SetPoint("BOTTOMLEFT", 1, 38); bline:SetPoint("BOTTOMRIGHT", -1, 38); bline:SetHeight(1); bline:SetColorTexture(EDGE[1], EDGE[2], EDGE[3], 0.35)
-  local push = button(mid, "Open for raid", 130)
-  push:SetPoint("BOTTOMRIGHT", -10, 8)
-  push:SetScript("OnClick", function() UI.Push() end)
-  push:SetMotionScriptsWhileDisabled(true)
-  push:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_TOP"); GameTooltip:AddLine("Open for raid", 1, 0.82, 0.3)
-    GameTooltip:AddLine(canPush() and "Opens this boss on every raider's screen (raiders with the addon)." or "Be in a raid as leader or assistant to use this.", 1, 1, 1, true); GameTooltip:Show() end)
-  push:SetScript("OnLeave", GameTooltip_Hide)
-  UI.pushBtn = push
-  local sendAll = button(mid, "Send plan to guild", 150, true)
-  sendAll:SetPoint("BOTTOMLEFT", 10, 8)
-  sendAll:SetScript("OnClick", function() UI.SendPlan() end)
-  sendAll:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_TOP"); GameTooltip:AddLine("Send plan to guild", 1, 0.82, 0.3)
-    GameTooltip:AddLine("Sends every boss's plan to everyone online in the guild with the addon (and your raid).", 1, 1, 1, true); GameTooltip:Show() end)
-  sendAll:SetScript("OnLeave", GameTooltip_Hide)
-  UI.sendBtn = sendAll
-
-  -- right: screenshot, then notes and kill order
-  local right = CreateFrame("Frame", nil, f, "BackdropTemplate")
-  right:SetPoint("TOPLEFT", mid, "TOPRIGHT", 10, 0); right:SetPoint("BOTTOMRIGHT", -12, 32)
-  flat(right); caption(right, "STRATEGY")
-  local shot = CreateFrame("Button", nil, right, "BackdropTemplate")
-  shot:SetPoint("TOPLEFT", 10, -36)
+  -- the screenshot, top right of the page
+  local shot = CreateFrame("Button", nil, mc, "BackdropTemplate")
   flat(shot, 0, 0, 0, 1, EDGE[1], EDGE[2], EDGE[3], 0.6)
   shot.tex = shot:CreateTexture(nil, "ARTWORK"); shot.tex:SetPoint("TOPLEFT", 1, -1); shot.tex:SetPoint("BOTTOMRIGHT", -1, 1)
   shot.hint = shot:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -330,23 +324,11 @@ local function build()
   shot:SetScript("OnEnter", function(self) self.hint:SetAlpha(1); self.hb:SetAlpha(1); self:SetBackdropBorderColor(1, 0.82, 0.4, 1) end)
   shot:SetScript("OnLeave", function(self) self.hint:SetAlpha(0); self.hb:SetAlpha(0); self:SetBackdropBorderColor(EDGE[1], EDGE[2], EDGE[3], 0.6) end)
   shot:SetScript("OnClick", function() if current and current.image then UI.Zoom() end end)
-  right.shot = shot
-  right.none = right:CreateFontString(nil, "OVERLAY", "GameFontDisable")
-  right.none:SetText("No screenshot for this fight")
-
-  local rs = CreateFrame("ScrollFrame", "HatedPlanNotes", right, "UIPanelScrollFrameTemplate")
-  rs:SetPoint("BOTTOMRIGHT", -16, 8); slim(rs)
-  local rc = CreateFrame("Frame", nil, rs); rc:SetSize(300, 10); rs:SetScrollChild(rc)
-  rc.killHead = rc:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); rc.killHead:SetText("KILL ORDER"); rc.killHead:SetTextColor(0.85, 0.7, 0.4)
-  rc.kill = rc:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge"); rc.kill:SetJustifyH("LEFT")
-  rc.killNote = rc:CreateFontString(nil, "OVERLAY", "GameFontHighlight"); rc.killNote:SetJustifyH("LEFT")
-  rc.notesHead = rc:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); rc.notesHead:SetText("NOTES"); rc.notesHead:SetTextColor(0.85, 0.7, 0.4)
-  rc.notes = rc:CreateFontString(nil, "OVERLAY", "GameFontHighlight"); rc.notes:SetJustifyH("LEFT"); rc.notes:SetSpacing(4)
-  right.scroll, right.body = rs, rc
-  UI.right = right
+  shot.none = shot:CreateFontString(nil, "OVERLAY", "GameFontDisable"); shot.none:SetPoint("CENTER"); shot.none:SetText("No screenshot for this fight")
+  UI.shot = shot
 
   UI.layout = function()
-    local w, h = f:GetWidth(), f:GetHeight()
+    local w = f:GetWidth()
     -- crop the banner art to the window's shape, keeping the logo in view
     local A, ART = (w - 2) / BANNER_H, 1024 / 171
     if A >= ART then
@@ -356,9 +338,7 @@ local function build()
     else
       local uw = A / ART; banner:SetTexCoord(0.5 - uw / 2, 0.5 + uw / 2, 0, 171 / 256)
     end
-    local avail = w - 12 - 200 - 10 - 10 - 12
-    local mw = math.max(400, math.floor(avail * 0.5))
-    mid:SetWidth(mw); mc:SetWidth(mw - 40)
+    mc:SetWidth(math.max(500, w - 12 - 200 - 10 - 12 - 12 - 18 - 6))
   end
   f:SetScript("OnSizeChanged", function() UI.layout() end)
 
@@ -432,7 +412,7 @@ local function refreshList()
   lc:SetHeight(y)
 end
 
--- the middle column: section headers and two-column rows; your rows glow
+-- ---------- the page: building blocks ----------
 local function header(i)
   local h = UI.hdrs[i]
   if h then return h end
@@ -459,82 +439,121 @@ local function row(i)
   UI.rows[i] = r
   return r
 end
-local glowRows = {}
-local function renderBody(sections)
-  for _, h in ipairs(UI.hdrs) do h:Hide() end
-  for _, r in ipairs(UI.rows) do r:Hide() end
-  wipe(glowRows)
-  local W = UI.body:GetWidth()
-  local LW = math.floor(W * 0.42)
-  local y, ri = 0, 0
-  for si, s in ipairs(sections) do
-    local h = header(si)
-    h:ClearAllPoints(); h:SetPoint("TOPLEFT", 0, -y); h:SetPoint("RIGHT", UI.body, "RIGHT", 0, 0)
-    h.icon:SetTexture(s.tex); if s.tex:find("RaidTargeting") then h.icon:SetTexCoord(0, 1, 0, 1) else h.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) end
-    h.text:SetText(s.title:upper()); h:Show()
-    y = y + 28
-    for k, d in ipairs(s.rows) do
-      ri = ri + 1
-      local r = row(ri)
-      r:ClearAllPoints(); r:SetPoint("TOPLEFT", 0, -y); r:SetPoint("RIGHT", UI.body, "RIGHT", 0, 0)
-      local x = 10
-      if d.mark then r.mark:SetTexture(MARK_TEX .. d.mark); r.mark:ClearAllPoints(); r.mark:SetPoint("TOPLEFT", 8, -4); r.mark:Show(); x = 32 else r.mark:Hide() end
-      r.left:ClearAllPoints(); r.left:SetPoint("TOPLEFT", x, -6); r.left:SetWidth(LW - x)
-      r.right:ClearAllPoints(); r.right:SetPoint("TOPLEFT", LW + 8, -6); r.right:SetWidth(W - LW - 16)
-      r.left:SetText(d.left or ""); r.right:SetText(d.right or "")
-      local rh = math.max(26, math.max(r.left:GetStringHeight(), r.right:GetStringHeight()) + 12)
-      r:SetHeight(rh)
-      r.bg:SetColorTexture(1, 1, 1, (k % 2 == 0) and 0.025 or 0)
-      r.glow:SetShown(d.me); r.edge:SetShown(d.me)
-      if d.me then glowRows[#glowRows + 1] = r end
-      r:Show()
-      y = y + rh
+local glowRows, HI, RI = {}, 0, 0
+-- a section (header + rows) at x, y with width w; returns its height. A row with only `left` spans the width;
+-- `big` makes the left text large (kill order icons).
+local function drawSection(s, x, y, w)
+  HI = HI + 1
+  local h = header(HI)
+  h:ClearAllPoints(); h:SetPoint("TOPLEFT", x, -y); h:SetWidth(w)
+  h.icon:SetTexture(s.tex)
+  if s.tex:find("RaidTargeting") then h.icon:SetTexCoord(0, 1, 0, 1) else h.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) end
+  h.text:SetText(s.title:upper()); h:Show()
+  local yy = y + 28
+  local LW = s.split and math.floor(w * s.split) or math.floor(w * 0.45)
+  for k, d in ipairs(s.rows) do
+    RI = RI + 1
+    local r = row(RI)
+    r:ClearAllPoints(); r:SetPoint("TOPLEFT", x, -yy); r:SetWidth(w)
+    local lx = 10
+    if d.mark then r.mark:SetTexture(MARK_TEX .. d.mark); r.mark:ClearAllPoints(); r.mark:SetPoint("TOPLEFT", 8, -4); r.mark:Show(); lx = 32 else r.mark:Hide() end
+    r.left:SetFontObject(d.big and "GameFontHighlightLarge" or "GameFontHighlight")
+    r.left:ClearAllPoints(); r.left:SetPoint("TOPLEFT", lx, -6)
+    if d.right then
+      r.left:SetWidth(LW - lx); r.right:ClearAllPoints(); r.right:SetPoint("TOPLEFT", LW + 6, -6); r.right:SetWidth(w - LW - 14)
+      r.right:SetText(d.right); r.right:Show()
+    else
+      r.left:SetWidth(w - lx - 10); r.right:Hide()
     end
-    y = y + 12
+    r.left:SetText(d.left or "")
+    local rh = math.max(26, math.max(r.left:GetStringHeight(), d.right and r.right:GetStringHeight() or 0) + 12)
+    r:SetHeight(rh)
+    r.bg:SetColorTexture(1, 1, 1, (k % 2 == 0) and 0.025 or 0)
+    r.glow:SetShown(d.me and true or false); r.edge:SetShown(d.me and true or false)
+    if d.me then glowRows[#glowRows + 1] = r end
+    r:Show()
+    yy = yy + rh
   end
-  if #sections == 0 then
-    ri = ri + 1
-    local r = row(ri); r:ClearAllPoints(); r:SetPoint("TOPLEFT", 0, 0); r:SetPoint("RIGHT", UI.body, "RIGHT")
-    r.mark:Hide(); r.glow:Hide(); r.edge:Hide(); r.bg:SetColorTexture(0, 0, 0, 0)
-    r.left:ClearAllPoints(); r.left:SetPoint("TOPLEFT", 10, -6); r.left:SetWidth(W - 20); r.left:SetText(DIM .. "Nothing planned for this fight yet.|r"); r.right:SetText("")
-    r:SetHeight(30); r:Show(); y = 30
-  end
-  UI.body:SetHeight(y + 6)
+  return yy - y
 end
 
-local function renderRight(b)
-  local r = UI.right
-  local W = r:GetWidth() - 20
-  local top = -36
-  if b and b.image and b.image.file then
-    local w, h = setImage(r.shot.tex, b.image, W, (r:GetHeight() - 40) * 0.6)
-    r.shot:SetSize(w + 2, h + 2); r.shot:ClearAllPoints(); r.shot:SetPoint("TOP", 0, -36); r.shot:Show(); r.none:Hide()
-    top = -36 - h - 14
-  else
-    r.shot:Hide(); r.none:ClearAllPoints(); r.none:SetPoint("TOP", 0, -60); r.none:Show()
-    top = -90
+local function renderPage(b)
+  for _, h in ipairs(UI.hdrs) do h:Hide() end
+  for _, r in ipairs(UI.rows) do r:Hide() end
+  wipe(glowRows); HI, RI = 0, 0
+  local W = UI.body:GetWidth()
+  local GAP = 14
+
+  if not b then
+    UI.mine:Hide(); UI.shot:Hide()
+    local s = { title = "Boss plan", tex = MARK_TEX .. "8", rows = { { left = DIM .. "Pick a boss on the left.|r" } } }
+    UI.body:SetHeight(drawSection(s, 0, 0, W) + 10)
+    return
   end
-  local rs, rc = r.scroll, r.body
-  rs:ClearAllPoints(); rs:SetPoint("TOPLEFT", 10, top); rs:SetPoint("BOTTOMRIGHT", -16, 8)
-  rc:SetWidth(W - 10)
-  local y = 0
-  local function place(fs, gap) fs:ClearAllPoints(); fs:SetPoint("TOPLEFT", 0, -y); fs:SetWidth(W - 14); fs:Show(); y = y + fs:GetStringHeight() + (gap or 6) end
-  local hasKill = b and b.kill and #b.kill > 0
-  local hasKillNote = b and b.killNote and b.killNote ~= ""
-  if hasKill or hasKillNote then
-    place(rc.killHead, 6)
-    if hasKill then
+  local sections, mine = bossSections(b)
+  local byTitle = {}
+  for _, s in ipairs(sections) do byTitle[s.key or s.title] = s end
+
+  -- top: your jobs, tanks, healers (left) | screenshot (right)
+  local LW = math.floor((W - GAP) * 0.46)
+  local RW = W - LW - GAP
+  local yl = 0
+  if #mine > 0 then
+    UI.mine:ClearAllPoints(); UI.mine:SetPoint("TOPLEFT", 0, 0); UI.mine:SetWidth(LW)
+    UI.mine.text:SetText(table.concat(mine, "\n"))
+    UI.mine:SetHeight(UI.mine.text:GetStringHeight() + 36); UI.mine:Show()
+    yl = UI.mine:GetHeight() + GAP
+  else UI.mine:Hide() end
+  for _, key in ipairs({ "Tanks", "Healers" }) do
+    if byTitle[key] then yl = yl + drawSection(byTitle[key], 0, yl, LW) + GAP end
+  end
+
+  local yr = 0
+  local shot = UI.shot
+  shot:ClearAllPoints(); shot:SetPoint("TOPLEFT", LW + GAP, 0)
+  if b.image and b.image.file then
+    local w, h = setImage(shot.tex, b.image, RW, math.max(220, UI.scroll:GetHeight() * 0.62))
+    shot:SetSize(w + 2, h + 2); shot.tex:Show(); shot.none:Hide(); shot:EnableMouse(true)
+    yr = h + 2 + GAP
+  else
+    shot:SetSize(RW, 120); shot.tex:Hide(); shot.none:Show(); shot:EnableMouse(false)
+    yr = 120 + GAP
+  end
+  shot:Show()
+
+  -- below: everything else as cards in columns (each card goes to the shortest column)
+  local cards = {}
+  if (b.kill and #b.kill > 0) or (b.killNote and b.killNote ~= "") then
+    local rows = {}
+    if b.kill and #b.kill > 0 then
       local seq = {}
-      for _, i in ipairs(b.kill) do seq[#seq + 1] = icon(i, 26) end
-      rc.kill:SetText(table.concat(seq, "  |cffb8862e>|r  ")); place(rc.kill, 8)
-    else rc.kill:Hide() end
-    if hasKillNote then rc.killNote:SetText(safe(b.killNote)); place(rc.killNote, 12) else rc.killNote:Hide() end
-    y = y + 6
-  else rc.killHead:Hide(); rc.kill:Hide(); rc.killNote:Hide() end
-  if b and b.notes and b.notes ~= "" then
-    place(rc.notesHead, 6); rc.notes:SetText(safe(b.notes)); place(rc.notes, 6)
-  else rc.notesHead:Hide(); rc.notes:Hide() end
-  rc:SetHeight(y + 4); rs:SetVerticalScroll(0)
+      for _, i in ipairs(b.kill) do seq[#seq + 1] = icon(i, 24) end
+      rows[#rows + 1] = { left = table.concat(seq, "  |cffb8862e>|r  "), big = true }
+    end
+    if b.killNote and b.killNote ~= "" then rows[#rows + 1] = { left = safe(b.killNote) } end
+    cards[#cards + 1] = { title = "Kill order", tex = MARK_TEX .. "8", rows = rows }
+  end
+  for _, key in ipairs({ "Target markers", "Floor markers", "Jobs" }) do if byTitle[key] then cards[#cards + 1] = byTitle[key] end end
+  if b.notes and b.notes ~= "" then cards[#cards + 1] = { title = "Notes", tex = "Interface\\Icons\\INV_Misc_Note_01", rows = { { left = safe(b.notes) } } } end
+
+  local top = math.max(yl, yr)
+  if #cards > 0 then
+    local sep = UI.sep or UI.body:CreateTexture(nil, "ARTWORK"); UI.sep = sep
+    sep:ClearAllPoints(); sep:SetPoint("TOPLEFT", 0, -(top - GAP / 2)); sep:SetSize(W, 1); hfade(sep, EDGE[1], EDGE[2], EDGE[3], 0.6, 0.05); sep:Show()
+    top = top + 4
+  elseif UI.sep then UI.sep:Hide() end
+  local ncol = W >= 900 and 3 or 2
+  local CW = math.floor((W - GAP * (ncol - 1)) / ncol)
+  local colY = {}
+  for c = 1, ncol do colY[c] = top end
+  for _, card in ipairs(cards) do
+    local c = 1
+    for k = 2, ncol do if colY[k] < colY[c] then c = k end end
+    colY[c] = colY[c] + drawSection(card, (c - 1) * (CW + GAP), colY[c], CW) + GAP
+  end
+  local bottom = top
+  for c = 1, ncol do bottom = math.max(bottom, colY[c]) end
+  UI.body:SetHeight(bottom + 6)
 end
 
 Show = function(b, raidName)
@@ -549,29 +568,10 @@ Show = function(b, raidName)
   UI.pushBtn:SetShown(b ~= nil and (canPush() or iAmLeader()))
   UI.pushBtn:SetEnabled(canPush())
   UI.sendBtn:SetShown(iAmLeader() and HatedPlan ~= nil and HatedPlan.raids ~= nil and #HatedPlan.raids > 0)
-
-  local top = -44
-  if not b then
-    UI.mid.name:SetText(""); UI.mine:Hide()
-    renderBody({})
-  else
-    UI.mid.name:SetText(b.name)
-    local sections, mine = bossSections(b)
-    if #mine > 0 then
-      UI.mine.text:SetText(table.concat(mine, "\n"))
-      UI.mine:SetHeight(UI.mine.text:GetStringHeight() + 36)
-      UI.mine:Show()
-      top = -44 - UI.mine:GetHeight() - 12
-    else
-      UI.mine:Hide()
-    end
-    UI.scroll:ClearAllPoints(); UI.scroll:SetPoint("TOPLEFT", 10, top); UI.scroll:SetPoint("BOTTOMRIGHT", -16, 46)
-    renderBody(sections)
-  end
-  UI.scroll:ClearAllPoints(); UI.scroll:SetPoint("TOPLEFT", 10, top); UI.scroll:SetPoint("BOTTOMRIGHT", -16, 46)
-  UI.scroll:SetVerticalScroll(0)
-  renderRight(b)
+  UI.mid.name:SetText(b and b.name or "")
   f:Show()
+  renderPage(b)
+  UI.scroll:SetVerticalScroll(0)
 end
 
 -- your rows and the jobs card breathe softly while the window is open
@@ -581,7 +581,7 @@ do
     if not UI.frame or not UI.frame:IsShown() then return end
     local k = 0.5 + 0.5 * math.sin((GetTime() - t0) * math.pi * 2 / 2.4)
     for _, r in ipairs(glowRows) do r.glow:SetAlpha(0.45 + 0.55 * k) end
-    if UI.mine:IsShown() then UI.mine.glow:SetAlpha(0.35 + 0.65 * k) end
+    if UI.mine:IsShown() then UI.mine.glow:SetAlpha(0.4 + 0.6 * k) end
   end)
 end
 
