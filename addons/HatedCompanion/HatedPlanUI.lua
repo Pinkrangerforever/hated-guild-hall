@@ -411,47 +411,68 @@ function UI.Zoom()
   z:Show()
 end
 
+-- the boss list: click a raid heading to fold its bosses away (remembered)
 local function refreshList()
   local lc, y = UI.list, 2
   for _, b in ipairs(UI.buttons) do b:Hide() end
   for _, h in ipairs(UI.heads) do h:Hide() end
+  if UI.empty then UI.empty:Hide() end
   local bi, hi = 0, 0
   for _, raid in ipairs((HatedPlan and HatedPlan.raids) or {}) do
     hi = hi + 1
     local h = UI.heads[hi]
-    if not h then h = lc:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); h:SetJustifyH("LEFT"); h:SetWidth(176); UI.heads[hi] = h end
-    h:SetText((raid.name or ""):upper()); h:SetTextColor(0.6, 0.52, 0.38); h:ClearAllPoints(); h:SetPoint("TOPLEFT", 8, -y - 4); h:Show()
-    y = y + 22
-    for _, b in ipairs(raid.bosses or {}) do
-      bi = bi + 1
-      local btn = UI.buttons[bi]
-      if not btn then
-        btn = CreateFrame("Button", nil, lc)
-        btn:SetSize(178, 24)
-        btn.hl = btn:CreateTexture(nil, "BACKGROUND"); btn.hl:SetAllPoints(); hfade(btn.hl, 1, 0.78, 0.3, 0.2, 0.02)
-        btn.bar = btn:CreateTexture(nil, "ARTWORK"); btn.bar:SetPoint("TOPLEFT"); btn.bar:SetPoint("BOTTOMLEFT"); btn.bar:SetWidth(2)
-        btn.bar:SetColorTexture(1, 0.82, 0.35, 1)
-        local hov = btn:CreateTexture(nil, "HIGHLIGHT"); hov:SetAllPoints(); hov:SetColorTexture(1, 0.9, 0.6, 0.06)
-        btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        btn.text:SetPoint("LEFT", 12, 0); btn.text:SetPoint("RIGHT", -4, 0); btn.text:SetJustifyH("LEFT")
-        btn:SetScript("OnClick", function(self) pushedFrom = nil; Show(self.boss, self.raid) end)
-        UI.buttons[bi] = btn
-      end
-      btn.boss, btn.raid = b, raid.name
-      btn.text:SetText(b.name)
-      local sel = current and current.id == b.id
-      btn.hl:SetShown(sel); btn.bar:SetShown(sel)
-      if sel then btn.text:SetTextColor(1, 0.86, 0.5) else btn.text:SetTextColor(0.82, 0.78, 0.7) end
-      btn:ClearAllPoints(); btn:SetPoint("TOPLEFT", 0, -y); btn:Show()
-      y = y + 25
+    if not h then
+      h = CreateFrame("Button", nil, lc); h:SetSize(178, 22)
+      h.sign = h:CreateFontString(nil, "OVERLAY", "GameFontNormal"); h.sign:SetPoint("LEFT", 6, 0); h.sign:SetWidth(12)
+      h.text = h:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); h.text:SetPoint("LEFT", 20, 0); h.text:SetPoint("RIGHT", -4, 0); h.text:SetJustifyH("LEFT")
+      h.count = h:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); h.count:SetPoint("RIGHT", -6, 0)
+      local hov = h:CreateTexture(nil, "HIGHLIGHT"); hov:SetAllPoints(); hov:SetColorTexture(1, 0.9, 0.6, 0.06)
+      h:SetScript("OnClick", function(self)
+        HatedCompanionDB = HatedCompanionDB or {}; HatedCompanionDB.folded = HatedCompanionDB.folded or {}
+        local f = HatedCompanionDB.folded
+        f[self.raid] = not f[self.raid] or nil
+        refreshList()
+      end)
+      UI.heads[hi] = h
     end
-    y = y + 10
+    local folded = HatedCompanionDB and HatedCompanionDB.folded and HatedCompanionDB.folded[raid.name] or false
+    h.raid = raid.name
+    h.sign:SetText(folded and "+" or "-"); h.sign:SetTextColor(0.95, 0.78, 0.4)
+    h.text:SetText((raid.name or ""):upper()); h.text:SetTextColor(0.72, 0.62, 0.45)
+    h.count:SetText(#(raid.bosses or {}))
+    h:ClearAllPoints(); h:SetPoint("TOPLEFT", 0, -y); h:Show()
+    y = y + 24
+    if not folded then
+      for _, b in ipairs(raid.bosses or {}) do
+        bi = bi + 1
+        local btn = UI.buttons[bi]
+        if not btn then
+          btn = CreateFrame("Button", nil, lc)
+          btn:SetSize(178, 24)
+          btn.hl = btn:CreateTexture(nil, "BACKGROUND"); btn.hl:SetAllPoints(); hfade(btn.hl, 1, 0.78, 0.3, 0.2, 0.02)
+          btn.bar = btn:CreateTexture(nil, "ARTWORK"); btn.bar:SetPoint("TOPLEFT"); btn.bar:SetPoint("BOTTOMLEFT"); btn.bar:SetWidth(2)
+          btn.bar:SetColorTexture(1, 0.82, 0.35, 1)
+          local hov = btn:CreateTexture(nil, "HIGHLIGHT"); hov:SetAllPoints(); hov:SetColorTexture(1, 0.9, 0.6, 0.06)
+          btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+          btn.text:SetPoint("LEFT", 20, 0); btn.text:SetPoint("RIGHT", -4, 0); btn.text:SetJustifyH("LEFT")
+          btn:SetScript("OnClick", function(self) pushedFrom = nil; Show(self.boss, self.raid) end)
+          UI.buttons[bi] = btn
+        end
+        btn.boss, btn.raid = b, raid.name
+        btn.text:SetText(b.name)
+        local sel = current and current.id == b.id
+        btn.hl:SetShown(sel); btn.bar:SetShown(sel)
+        if sel then btn.text:SetTextColor(1, 0.86, 0.5) else btn.text:SetTextColor(0.82, 0.78, 0.7) end
+        btn:ClearAllPoints(); btn:SetPoint("TOPLEFT", 0, -y); btn:Show()
+        y = y + 25
+      end
+    end
+    y = y + 8
   end
-  if bi == 0 then
-    hi = hi + 1
-    local h = UI.heads[hi] or lc:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); UI.heads[hi] = h
-    h:SetWidth(170); h:SetJustifyH("LEFT"); h:ClearAllPoints(); h:SetPoint("TOPLEFT", 8, -4)
-    h:SetText("No plan yet. The raid leader can send one in game, or download the addon again from hatedforever.com."); h:Show()
+  if hi == 0 then
+    UI.empty = UI.empty or lc:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    UI.empty:SetWidth(170); UI.empty:SetJustifyH("LEFT"); UI.empty:ClearAllPoints(); UI.empty:SetPoint("TOPLEFT", 8, -4)
+    UI.empty:SetText("No plan yet. The raid leader can send one in game, or update the addon."); UI.empty:Show()
     y = 60
   end
   lc:SetHeight(y)
