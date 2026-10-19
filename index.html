@@ -4813,6 +4813,8 @@ const SUPABASE_URL = SUPABASE_CONFIG.url;
 const SUPABASE_ANON_KEY = SUPABASE_CONFIG.key;
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const BOSS_SCREENSHOT_BUCKET = 'boss-screenshots';
+// Image uploads go through the R2 upload Worker, which is only routed on hatedforever.com (staging has no /api), so call it there from every host.
+const UPLOAD_API = 'https://hatedforever.com';
 
 /* ---- Hamburger Menu Handler ---- */
 (function(){
@@ -6034,7 +6036,7 @@ async function uploadBossScreenshot(bossId, file){
   if(!session?.access_token){ showToast('Please sign in first', true); return; }
   let uploadError = null, url = null;
   try {
-    const res = await fetch(`/api/upload-gallery-image?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(file.type)}`, {
+    const res = await fetch(`${UPLOAD_API}/api/upload-gallery-image?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(file.type)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/octet-stream', 'Authorization': `Bearer ${session.access_token}` },
       body: file
@@ -6263,7 +6265,7 @@ async function uploadOneGalleryImage(file){
       console.error('Not authenticated');
       return false;
     }
-    const uploadResponse = await fetch(`/api/upload-gallery-image?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(file.type)}`, {
+    const uploadResponse = await fetch(`${UPLOAD_API}/api/upload-gallery-image?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(file.type)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/octet-stream',
