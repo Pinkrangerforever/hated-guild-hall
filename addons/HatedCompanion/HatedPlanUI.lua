@@ -455,7 +455,8 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
     C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
     filePlan = HatedPlan
     local synced = HatedCompanionDB and HatedCompanionDB.syncedPlan
-    if type(synced) == "table" and (synced.updated or "") > ((HatedPlan and HatedPlan.updated) or "") then adopt(synced) end
+    -- use the plan the raid leader sent, unless the plan file has been replaced since it arrived
+    if type(synced) == "table" and HatedCompanionDB.syncedOver == ((HatedPlan and HatedPlan.updated) or "") then adopt(synced) end
     return
   end
   if prefix ~= PREFIX or (channel ~= "RAID" and channel ~= "PARTY") then return end
@@ -490,12 +491,9 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
 
   if kind == "P" then
     if type(t.raids) ~= "table" then return end
-    if (t.updated or "") < ((HatedPlan and HatedPlan.updated) or "") then
-      say("got " .. short .. "'s plan, but yours is newer (" .. tostring(HatedPlan.updated) .. "), so kept yours.")
-      return
-    end
     HatedCompanionDB = HatedCompanionDB or {}
     HatedCompanionDB.syncedPlan = t           -- kept across /reload and log-outs
+    HatedCompanionDB.syncedOver = (filePlan and filePlan.updated) or ""
     adopt(t)
     say("plan updated from " .. short .. " (saved " .. tostring(t.updated) .. "). /hated to view.")
     if UI.frame and UI.frame:IsShown() then Show(current, currentRaid) end

@@ -12877,6 +12877,7 @@ function wireRaidPlan(){
   });
   $('rp-readd') && ($('rp-readd').onchange = e => { const d = planDefaultRoster().find(x => x.name === e.target.value); if(d) saveRaidPlan({ roster: roster().concat(d) }); });
   $('addon-save') && ($('addon-save').onclick = exportAddonPlan);
+  $('addon-zip') && ($('addon-zip').onclick = downloadAddonZip);
   $('addon-forget') && ($('addon-forget').onclick = forgetAddonFolder);
   // pick / select / drag
   const bossFor = scope => state.bosses.find(b => String(b.id) === String(scope));
@@ -13013,13 +13014,78 @@ async function screenshotToTga(url){
   return { bytes: out, w: dw, h: dh, u: dw / W, v: dh / H };
 }
 async function writeFile(dir, name, data){ const fh = await dir.getFileHandle(name, { create: true }); const w = await fh.createWritable(); await w.write(data); await w.close(); }
-async function exportAddonPlan(){
+async function buildAddonPlan(){
   if(!state.raidPlan){ await loadRaidPlan(); }
   const roster = planRoster(), classes = {};
   roster.forEach(m => { if(m.class_key) classes[m.name] = m.class_key.toUpperCase(); });
   const plan = { updated: new Date().toISOString().slice(0, 16).replace('T', ' '), by: myName(), classes, raids: [] };
   const bossesOf = r => state.bosses.filter(b => b.raid_id === r.id);
   state.raids.forEach(r => plan.raids.push({ name: r.name, bosses: bossesOf(r).map(addonBossData) }));
+  return plan;
+}
+
+// ---- "Download addon": one zip with the addon, the current plan and its screenshots, for anyone to install by hand
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for(let n = 0; n < 256; n++){ let c = n; for(let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b){ let c = 0xFFFFFFFF; for(let i = 0; i < b.length; i++) c = CRC_TABLE[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+async function deflateRaw(b){
+  if(typeof CompressionStream === 'undefined') return null;
+  try{ return new Uint8Array(await new Response(new Blob([b]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()); }catch(e){ return null; }
+}
+async function makeZip(files){   // files: [{ name, data: Uint8Array | string }]
+  const enc = new TextEncoder(), parts = [], central = [];
+  let offset = 0;
+  const d = new Date(), dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), dosDate = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  for(const f of files){
+    const raw = typeof f.data === 'string' ? enc.encode(f.data) : f.data, name = enc.encode(f.name);
+    const packed = await deflateRaw(raw), useDeflate = packed && packed.length < raw.length, body = useDeflate ? packed : raw;
+    const crc = crc32(raw), method = useDeflate ? 8 : 0;
+    const head = new DataView(new ArrayBuffer(30));
+    head.setUint32(0, 0x04034b50, true); head.setUint16(4, 20, true); head.setUint16(6, 0x0800, true); head.setUint16(8, method, true);
+    head.setUint16(10, dosTime, true); head.setUint16(12, dosDate, true); head.setUint32(14, crc, true);
+    head.setUint32(18, body.length, true); head.setUint32(22, raw.length, true); head.setUint16(26, name.length, true);
+    parts.push(new Uint8Array(head.buffer), name, body);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, method, true);
+    c.setUint16(12, dosTime, true); c.setUint16(14, dosDate, true); c.setUint32(16, crc, true); c.setUint32(20, body.length, true);
+    c.setUint32(24, raw.length, true); c.setUint16(28, name.length, true); c.setUint32(42, offset, true);
+    central.push(new Uint8Array(c.buffer), name);
+    offset += 30 + name.length + body.length;
+  }
+  const size = central.reduce((s, x) => s + x.length, 0), end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, size, true); end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: 'application/zip' });
+}
+async function downloadAddonZip(){
+  if(state.addonZipBusy) return;
+  state.addonZipBusy = true; render();
+  try{
+    const files = [];
+    for(const f of ADDON_FILES){
+      const r = await fetch('addons/HatedCompanion/' + f, { cache: 'no-store' });
+      if(!r.ok) throw new Error(f + ': HTTP ' + r.status);
+      files.push({ name: 'HatedCompanion/' + f, data: new Uint8Array(await r.arrayBuffer()) });
+    }
+    const plan = await buildAddonPlan();
+    let failed = 0;
+    for(const raid of plan.raids) for(const b of raid.bosses){
+      const boss = state.bosses.find(x => String(x.id) === b.id);
+      if(!boss || !boss.screenshot_url) continue;
+      const file = 'Boss_' + b.id.replace(/[^A-Za-z0-9_-]/g, '');
+      try{ const t = await screenshotToTga(boss.screenshot_url); files.push({ name: 'HatedCompanion/Plan/' + file + '.tga', data: t.bytes }); b.image = { file, w: t.w, h: t.h, u: t.u, v: t.v }; }
+      catch(e){ console.error('screenshot for', b.name, e); failed++; }
+    }
+    files.push({ name: 'HatedCompanion/Plan/HatedPlan.lua', data: '-- From hatedforever.com > Boss Strategies > Download addon.\nHatedPlan = ' + toLua(plan) + '\n' });
+    const blob = await makeZip(files);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'HatedCompanion.zip'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    showToast('Downloaded HatedCompanion.zip - see the steps under the button.' + (failed ? ` (${failed} screenshot${failed === 1 ? '' : 's'} left out.)` : ''), !!failed);
+  }catch(e){ console.error(e); showToast('Could not build the addon download: ' + e.message, true); }
+  state.addonZipBusy = false; render();
+}
+
+async function exportAddonPlan(){
+  const plan = await buildAddonPlan();
   if(!window.showDirectoryPicker){
     // no folder access (Firefox / Safari / phones): download the text plan; screenshots need Chrome or Edge
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['HatedPlan = ' + toLua(plan) + '\n'], { type: 'text/plain' }));
@@ -13086,23 +13152,26 @@ async function exportAddonPlan(){
 async function forgetAddonFolder(){ await addonSet('addonDir', null); await addonSet('planImages', {}); showToast('Folder forgotten - the next save asks for it again.'); }
 function renderAddonBar(){
   if(!state.session) return '';
+  const lead = testCanManage();
   return `<div class="panel style-glass addon-bar">
     <div class="addon-row">
-      <div class="addon-text"><h3>Hated Companion addon</h3><p class="muted sans">One click installs or updates the addon <b>and</b> saves the latest boss plan (assignments and screenshots) into it. Then <b>/reload</b> in game and type <b>/hated</b>. ${ testCanManage() ? "Click it again after changing the plan; in game the raid leader can push a boss to everyone's screen." : 'Click it again before raid to get the newest plan.' }</p></div>
+      <div class="addon-text"><h3>Hated Companion addon</h3><p class="muted sans">Boss plans in game: your jobs highlighted, the strategy screenshot, and the raid leader can send the newest plan to everyone in the raid. In game: <b>/hated</b> or the <b>H</b> minimap button.</p></div>
       <div class="addon-actions">
-        <button class="btn" type="button" id="addon-save" ${state.addonBusy ? 'disabled' : ''}>${state.addonBusy ? 'Updating…' : 'Install / update addon'}</button>
-        <button class="btn secondary" type="button" id="addon-forget" title="Pick a different folder next time">Change folder</button>
+        <button class="btn" type="button" id="addon-zip" ${state.addonZipBusy ? 'disabled' : ''}>${state.addonZipBusy ? 'Building…' : '&#11015; Download addon'}</button>
+        ${ lead && window.showDirectoryPicker ? `<button class="btn secondary" type="button" id="addon-save" ${state.addonBusy ? 'disabled' : ''} title="Writes the addon + plan straight into your linked folder">${state.addonBusy ? 'Updating…' : 'Update my addon'}</button>
+          <button class="btn secondary" type="button" id="addon-forget" title="Pick a different folder next time">Change folder</button>` : '' }
       </div>
     </div>
-    <details class="addon-help"><summary>First time? Pick the folder</summary>
+    <details class="addon-help" ${state.addonZipBusy ? 'open' : ''}><summary>How to install (2 minutes)</summary>
       <ol class="sans">
-        <li>Click <b>Install / update addon</b> and pick your WoW <code>Interface\\AddOns</code> folder (for example <code>World of Warcraft\\_anniversary_\\Interface\\AddOns</code>). The addon is put in a HatedCompanion folder inside it, and the site remembers the folder for next time.</li>
-        <li>If the browser says it can't open the folder, WoW is under <b>Program Files</b>, where browsers aren't allowed to write. Link it once: open the Start menu, type <b>cmd</b>, open it and paste this (change the WoW path to yours; delete any old HatedCompanion folder there first):<br>
-          <code class="addon-cmd">mkdir "%USERPROFILE%\\Documents\\HatedCompanion" &amp; mklink /J "C:\\Program Files (x86)\\World of Warcraft\\_anniversary_\\Interface\\AddOns\\HatedCompanion" "%USERPROFILE%\\Documents\\HatedCompanion"</code>
-          Then click the button and pick <code>Documents\\HatedCompanion</code>.</li>
-        <li>Restart WoW after the first install. After that, update and <b>/reload</b> is enough (the site tells you when a restart is needed).</li>
+        <li>Click <b>Download addon</b>. You get <b>HatedCompanion.zip</b> in your Downloads.</li>
+        <li>Right-click the zip &rarr; <b>Extract All</b> &rarr; <b>Extract</b>. Inside is a folder called <b>HatedCompanion</b>.</li>
+        <li>Open your WoW folder: <code>C:\\Program Files (x86)\\World of Warcraft</code>, then your game's folder (for example <code>_classic_era_</code>), then <code>Interface</code> &rarr; <code>AddOns</code>.<br>
+          <span class="muted">Tip: in the Battle.net app, the gear next to Play &rarr; <b>Show in Explorer</b> opens the WoW folder.</span></li>
+        <li>Drag the <b>HatedCompanion</b> folder into <b>AddOns</b>. If Windows asks for permission or to replace files, click <b>Continue</b> / <b>Replace</b>.</li>
+        <li>Start (or restart) WoW, make sure <b>Hated Companion</b> is ticked under AddOns on the character screen, and type <b>/hated</b>.</li>
       </ol>
-      <p class="muted sans">Needs Chrome or Edge on a PC. Other browsers download just the plan file.</p>
+      <p class="muted sans">You only do this once. New plans arrive in game when the raid leader sends them. Download again only when the addon itself gets an update.</p>
     </details>
   </div>`;
 }
