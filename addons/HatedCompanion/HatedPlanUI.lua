@@ -323,7 +323,7 @@ local function build()
   vfade(hb, 0, 0, 0, 0, 0.7); hb:SetAlpha(0); shot.hb = hb
   shot:SetScript("OnEnter", function(self) self.hint:SetAlpha(1); self.hb:SetAlpha(1); self:SetBackdropBorderColor(1, 0.82, 0.4, 1) end)
   shot:SetScript("OnLeave", function(self) self.hint:SetAlpha(0); self.hb:SetAlpha(0); self:SetBackdropBorderColor(EDGE[1], EDGE[2], EDGE[3], 0.6) end)
-  shot:SetScript("OnClick", function() if current and current.image then UI.Zoom() end end)
+  shot:SetScript("OnClick", function() if current and (current.image or current.pix) then UI.Zoom() end end)
   shot.none = shot:CreateFontString(nil, "OVERLAY", "GameFontDisable"); shot.none:SetPoint("CENTER"); shot.none:SetText("No screenshot for this fight")
   UI.shot = shot
 
@@ -352,6 +352,39 @@ local function build()
   UI.zoom = z
 end
 
+-- the pixel copy of a screenshot (sent in game): a grid of coloured squares
+local PIX = {}
+do
+  local abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  for i = 1, 64 do PIX[abc:byte(i)] = i - 1 end
+end
+local function fitPix(pix, maxW, maxH)
+  local s = math.min(maxW / pix.w, maxH / pix.h)
+  return math.floor(pix.w * s), math.floor(pix.h * s)
+end
+local function drawPix(holder, pix, W, H)
+  holder.pool = holder.pool or {}
+  local pool, pw, ph, data = holder.pool, pix.w or 0, pix.h or 0, pix.data or ""
+  if pw * ph * 2 > #data then pw, ph = 0, 0 end
+  local cw, ch = W / math.max(pw, 1), H / math.max(ph, 1)
+  local n = 0
+  for y = 0, ph - 1 do
+    for x = 0, pw - 1 do
+      n = n + 1
+      local tx = pool[n]
+      if not tx then tx = holder:CreateTexture(nil, "ARTWORK"); pool[n] = tx end
+      local a, b = PIX[data:byte(n * 2 - 1)] or 0, PIX[data:byte(n * 2)] or 0
+      local v = a * 64 + b
+      tx:SetColorTexture(math.floor(v / 256) / 15, (math.floor(v / 16) % 16) / 15, (v % 16) / 15, 1)
+      tx:ClearAllPoints(); tx:SetPoint("TOPLEFT", holder, "TOPLEFT", 1 + x * cw, -1 - y * ch)
+      tx:SetSize(cw + 0.6, ch + 0.6)   -- a hair of overlap hides seams
+      tx:Show()
+    end
+  end
+  for i = n + 1, #pool do pool[i]:Hide() end
+end
+local function hidePix(holder) for _, tx in ipairs(holder.pool or {}) do tx:Hide() end end
+
 local function setImage(tex, img, maxW, maxH)
   local w, h = img.w or 1024, img.h or 512
   local s = math.min(maxW / w, maxH / h)
@@ -362,8 +395,17 @@ end
 
 function UI.Zoom()
   local z = UI.zoom
-  local w, h = setImage(z.tex, current.image, UIParent:GetWidth() * 0.9, UIParent:GetHeight() * 0.85)
-  z:SetSize(w + 8, h + 8); z:Show()
+  local maxW, maxH = UIParent:GetWidth() * 0.9, UIParent:GetHeight() * 0.85
+  if current.image then
+    hidePix(z); z.tex:Show()
+    local w, h = setImage(z.tex, current.image, maxW, maxH)
+    z:SetSize(w + 8, h + 8)
+  elseif current.pix then
+    z.tex:Hide()
+    local w, h = fitPix(current.pix, maxW * 0.6, maxH * 0.6)   -- low-res copy: don't blow it up too far
+    z:SetSize(w + 2, h + 2); drawPix(z, current.pix, w, h)
+  else return end
+  z:Show()
 end
 
 local function refreshList()
@@ -511,11 +553,20 @@ local function renderPage(b)
   local yr = 0
   local shot = UI.shot
   shot:ClearAllPoints(); shot:SetPoint("TOPLEFT", LW + GAP, 0)
+  local maxH = math.max(220, UI.scroll:GetHeight() * 0.62)
   if b.image and b.image.file then
-    local w, h = setImage(shot.tex, b.image, RW, math.max(220, UI.scroll:GetHeight() * 0.62))
+    hidePix(shot)
+    local w, h = setImage(shot.tex, b.image, RW, maxH)
     shot:SetSize(w + 2, h + 2); shot.tex:Show(); shot.none:Hide(); shot:EnableMouse(true)
     yr = h + 2 + GAP
+  elseif b.pix and b.pix.data then
+    -- no screenshot file for this one yet: the low-res copy that came with the plan
+    shot.tex:Hide(); shot.none:Hide()
+    local w, h = fitPix(b.pix, RW, maxH)
+    shot:SetSize(w + 2, h + 2); drawPix(shot, b.pix, w, h); shot:EnableMouse(true)
+    yr = h + 2 + GAP
   else
+    hidePix(shot)
     shot:SetSize(RW, 120); shot.tex:Hide(); shot.none:Show(); shot:EnableMouse(false)
     yr = 120 + GAP
   end
@@ -692,7 +743,11 @@ local function adopt(plan)
     for _, b in ipairs(raid.bosses or {}) do if b.image then imgs[b.id] = b.image end end
   end
   for _, raid in ipairs(plan.raids or {}) do
-    for _, b in ipairs(raid.bosses or {}) do b.image = imgs[b.id] end
+    for _, b in ipairs(raid.bosses or {}) do
+      local img = imgs[b.id]
+      if img and b.pix and img.src and b.pix.src and img.src ~= b.pix.src then img = nil end   -- my file is an older picture
+      b.image = img
+    end
   end
   HatedPlan = plan
   if current then current = findBoss(current.id) or current end
@@ -771,7 +826,7 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
   if type(t.boss) ~= "table" then return end
   -- prefer my own copy's screenshot info; the text is the sender's (newest) version
   local mineB = findBoss(t.boss.id)
-  if mineB and mineB.image and not t.boss.image then t.boss.image = mineB.image end
+  if mineB and mineB.image and not t.boss.image and not (t.boss.pix and mineB.image.src and t.boss.pix.src ~= mineB.image.src) then t.boss.image = mineB.image end
   if type(t.classes) == "table" then HatedPlan = HatedPlan or { raids = {} }; HatedPlan.classes = HatedPlan.classes or t.classes end
   pushedFrom = short
   Show(t.boss, t.raid)

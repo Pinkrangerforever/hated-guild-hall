@@ -13041,7 +13041,30 @@ async function buildAddonPlan(){
   const plan = { updated: new Date().toISOString().slice(0, 16).replace('T', ' '), by: myName(), leader: rl ? (rl.character_name || '') : '', classes, raids: [] };
   const bossesOf = r => state.bosses.filter(b => b.raid_id === r.id);
   state.raids.forEach(r => plan.raids.push({ name: r.name, bosses: bossesOf(r).map(addonBossData) }));
+  // a small pixel copy of each screenshot travels inside the plan, so "Send plan to guild" in game carries it too
+  for(const raid of plan.raids) for(const b of raid.bosses){
+    const boss = state.bosses.find(x => String(x.id) === b.id);
+    if(boss && boss.screenshot_url){ try{ b.pix = await screenshotPix(boss.screenshot_url); }catch(e){ console.error('pixel copy for', b.name, e); } }
+  }
   return plan;
+}
+// screenshot -> up to 112x84 pixels, 12-bit colour, 2 characters a pixel (safe for addon messages and Lua strings)
+const PIX_ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+async function screenshotPix(url){
+  const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const bmp = await createImageBitmap(await res.blob());
+  let w = 112, hh = Math.round(112 * bmp.height / bmp.width);
+  if(hh > 84){ hh = 84; w = Math.max(8, Math.round(84 * bmp.width / bmp.height)); }
+  const c = document.createElement('canvas'); c.width = w; c.height = hh;
+  const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(bmp, 0, 0, w, hh);
+  const px = g.getImageData(0, 0, w, hh).data;
+  let out = '';
+  for(let i = 0; i < px.length; i += 4){
+    const v = (Math.round(px[i] / 17) << 8) | (Math.round(px[i + 1] / 17) << 4) | Math.round(px[i + 2] / 17);
+    out += PIX_ABC[v >> 6] + PIX_ABC[v & 63];
+  }
+  return { w, h: hh, src: url, data: out };
 }
 
 // ---- "Download addon": one zip with the addon, the current plan and its screenshots, for anyone to install by hand
@@ -13093,7 +13116,7 @@ async function downloadAddonZip(){
       const boss = state.bosses.find(x => String(x.id) === b.id);
       if(!boss || !boss.screenshot_url) continue;
       const file = 'Boss_' + b.id.replace(/[^A-Za-z0-9_-]/g, '');
-      try{ const t = await screenshotToTga(boss.screenshot_url); files.push({ name: 'HatedCompanion/Plan/' + file + '.tga', data: t.bytes }); b.image = { file, w: t.w, h: t.h, u: t.u, v: t.v }; }
+      try{ const t = await screenshotToTga(boss.screenshot_url); files.push({ name: 'HatedCompanion/Plan/' + file + '.tga', data: t.bytes }); b.image = { file, src: boss.screenshot_url, w: t.w, h: t.h, u: t.u, v: t.v }; }
       catch(e){ console.error('screenshot for', b.name, e); failed++; }
     }
     files.push({ name: 'HatedCompanion/Plan/HatedPlan.lua', data: '-- From hatedforever.com > Boss Strategies > Download addon.\nHatedPlan = ' + toLua(plan) + '\n' });
@@ -13154,12 +13177,12 @@ async function exportAddonPlan(){
       const prev = done[b.id];
       if(prev && prev.url === boss.screenshot_url){
         let exists = true; try{ await dir.getFileHandle(file + '.tga'); }catch(e){ exists = false; }
-        if(exists){ b.image = Object.assign({ file }, prev.dims); continue; }
+        if(exists){ b.image = Object.assign({ file, src: boss.screenshot_url }, prev.dims); continue; }
       }
       try{
         const t = await screenshotToTga(boss.screenshot_url);
         await writeFile(dir, file + '.tga', t.bytes);
-        b.image = { file, w: t.w, h: t.h, u: t.u, v: t.v };
+        b.image = { file, src: boss.screenshot_url, w: t.w, h: t.h, u: t.u, v: t.v };
         done[b.id] = { url: boss.screenshot_url, dims: { w: t.w, h: t.h, u: t.u, v: t.v } };
         imgs++;
       }catch(e){ console.error('screenshot for', b.name, e); failed++; }
