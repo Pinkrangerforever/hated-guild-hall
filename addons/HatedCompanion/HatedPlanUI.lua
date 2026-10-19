@@ -197,6 +197,7 @@ local function canPush()
 end
 
 local Show   -- forward
+local findBoss -- forward
 
 local function build()
   if UI.frame then return end
@@ -296,6 +297,20 @@ local function build()
     GameTooltip:AddLine("Sends every boss's plan to everyone online in the guild with the addon (and your raid).", 1, 1, 1, true); GameTooltip:Show() end)
   sendAll:SetScript("OnLeave", GameTooltip_Hide)
   UI.sendBtn = sendAll
+  local bossBtn = button(mid, "Send boss", 90)
+  bossBtn:SetPoint("RIGHT", sendAll, "LEFT", -8, 0)
+  bossBtn:SetScript("OnClick", function() UI.SendBoss() end)
+  bossBtn:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_BOTTOM"); GameTooltip:AddLine("Send this boss", 1, 0.82, 0.3)
+    GameTooltip:AddLine("Sends just this boss's plan to the guild (and your raid's PUGs). Quick: use it for changes between pulls.", 1, 1, 1, true); GameTooltip:Show() end)
+  bossBtn:SetScript("OnLeave", GameTooltip_Hide)
+  UI.bossBtn = bossBtn
+  local editBtn = button(mid, "Edit", 64)
+  editBtn:SetPoint("RIGHT", bossBtn, "LEFT", -8, 0)
+  editBtn:SetScript("OnClick", function() UI.ToggleEdit() end)
+  editBtn:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_BOTTOM"); GameTooltip:AddLine("Edit this boss", 1, 0.82, 0.3)
+    GameTooltip:AddLine("Click any row to change it. Changes save straight away; send them with Send boss or Send plan to guild.", 1, 1, 1, true); GameTooltip:Show() end)
+  editBtn:SetScript("OnLeave", GameTooltip_Hide)
+  UI.editBtn = editBtn
 
   local ms = CreateFrame("ScrollFrame", "HatedPlanBody", mid, "UIPanelScrollFrameTemplate")
   ms:SetPoint("TOPLEFT", 12, -44); ms:SetPoint("BOTTOMRIGHT", -18, 10); slim(ms)
@@ -513,10 +528,15 @@ local function row(i)
   r.mark = r:CreateTexture(nil, "ARTWORK"); r.mark:SetSize(18, 18)
   r.left = r:CreateFontString(nil, "OVERLAY", "GameFontHighlight"); r.left:SetJustifyH("LEFT"); r.left:SetWordWrap(true)
   r.right = r:CreateFontString(nil, "OVERLAY", "GameFontHighlight"); r.right:SetJustifyH("LEFT"); r.right:SetWordWrap(true)
+  r.hov = r:CreateTexture(nil, "BACKGROUND", nil, 2); r.hov:SetAllPoints(); r.hov:SetColorTexture(0.4, 1, 0.55, 0.08); r.hov:Hide()
+  r:SetScript("OnEnter", function(self) if self.onClick then self.hov:Show() end end)
+  r:SetScript("OnLeave", function(self) self.hov:Hide() end)
+  r:SetScript("OnMouseUp", function(self, btn) if self.onClick and btn == "LeftButton" then self.onClick() end end)
   UI.rows[i] = r
   return r
 end
 local glowRows, HI, RI = {}, 0, 0
+local editSections   -- set by the edit module below
 -- a section (header + rows) at x, y with width w; returns its height. A row with only `left` spans the width;
 -- `big` makes the left text large (kill order icons).
 local function drawSection(s, x, y, w)
@@ -548,6 +568,7 @@ local function drawSection(s, x, y, w)
     r.bg:SetColorTexture(1, 1, 1, (k % 2 == 0) and 0.025 or 0)
     r.glow:SetShown(d.me and true or false); r.edge:SetShown(d.me and true or false)
     if d.me then glowRows[#glowRows + 1] = r end
+    r.onClick = d.onClick; r:EnableMouse(d.onClick ~= nil); r.hov:Hide()
     r:Show()
     yy = yy + rh
   end
@@ -568,6 +589,8 @@ local function renderPage(b)
     return
   end
   local sections, mine = bossSections(b)
+  local editKill, editNotes
+  if UI.editing and editSections then sections, editKill, editNotes = editSections(b) end
   local byTitle = {}
   for _, s in ipairs(sections) do byTitle[s.key or s.title] = s end
 
@@ -610,7 +633,8 @@ local function renderPage(b)
 
   -- below: everything else as cards in columns (each card goes to the shortest column)
   local cards = {}
-  if (b.kill and #b.kill > 0) or (b.killNote and b.killNote ~= "") then
+  if editKill then cards[#cards + 1] = editKill
+  elseif (b.kill and #b.kill > 0) or (b.killNote and b.killNote ~= "") then
     local rows = {}
     if b.kill and #b.kill > 0 then
       local seq = {}
@@ -621,7 +645,8 @@ local function renderPage(b)
     cards[#cards + 1] = { title = "Kill order", tex = MARK_TEX .. "8", rows = rows }
   end
   for _, key in ipairs({ "Target markers", "Floor markers", "Jobs" }) do if byTitle[key] then cards[#cards + 1] = byTitle[key] end end
-  if b.notes and b.notes ~= "" then cards[#cards + 1] = { title = "Notes", tex = "Interface\\Icons\\INV_Misc_Note_01", rows = { { left = safe(b.notes) } } } end
+  if editNotes then cards[#cards + 1] = editNotes
+  elseif b.notes and b.notes ~= "" then cards[#cards + 1] = { title = "Notes", tex = "Interface\\Icons\\INV_Misc_Note_01", rows = { { left = safe(b.notes) } } } end
 
   local top = math.max(yl, yr)
   if #cards > 0 then
@@ -643,7 +668,8 @@ local function renderPage(b)
   UI.body:SetHeight(bottom + 6)
 end
 
-Show = function(b, raidName)
+Show = function(b, raidName, keepScroll)
+  local scrollY = keepScroll and UI.scroll and UI.scroll:GetVerticalScroll() or 0
   build()
   UI.layout()
   current, currentRaid = b, raidName
@@ -657,8 +683,13 @@ Show = function(b, raidName)
   UI.sendBtn:SetShown(iAmLeader() and HatedPlan ~= nil and HatedPlan.raids ~= nil and #HatedPlan.raids > 0)
   UI.mid.name:SetText(b and b.name or "")
   f:Show()
+  local lead = iAmLeader() and b ~= nil and findBoss(b.id) ~= nil
+  if not lead then UI.editing = false end
+  UI.editBtn:SetShown(lead); UI.bossBtn:SetShown(lead)
+  UI.editBtn.text:SetText(UI.editing and "Done" or "Edit")
+  UI.mid.name:SetText((b and b.name or "") .. (UI.editing and "  |cff4dff88editing|r" or ""))
   renderPage(b)
-  UI.scroll:SetVerticalScroll(0)
+  UI.scroll:SetVerticalScroll(math.min(scrollY, UI.scroll:GetVerticalScrollRange() or 0))
 end
 
 -- your rows and the jobs card breathe softly while the window is open
@@ -672,7 +703,7 @@ do
   end)
 end
 
-local function findBoss(id)
+findBoss = function(id)
   for _, raid in ipairs((HatedPlan and HatedPlan.raids) or {}) do
     for _, b in ipairs(raid.bosses or {}) do if b.id == id then return b, raid.name end end
   end
@@ -814,7 +845,8 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
     filePlan = HatedPlan
     local synced = HatedCompanionDB and HatedCompanionDB.syncedPlan
     -- use the plan the raid leader sent, unless the plan file has been replaced since it arrived
-    if type(synced) == "table" and HatedCompanionDB.syncedOver == ((HatedPlan and HatedPlan.updated) or "") then adopt(synced) end
+    local fileStamp = (HatedPlan and HatedPlan.updated) or ""
+    if type(synced) == "table" and (HatedCompanionDB.syncedOver == fileStamp or (synced.updated or "") > fileStamp) then adopt(synced) end
     return
   end
   if prefix ~= PREFIX or (channel ~= "RAID" and channel ~= "PARTY" and channel ~= "GUILD") then return end
@@ -822,7 +854,8 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
   local ok, why = false, nil
   if channel == "GUILD" then
     -- guild plans only from the Raid Leader (the website names them in the plan); without a plan yet, from the guild master
-    if msg:sub(1, 1) ~= "P" then return end
+    local k1 = msg:sub(1, 1)
+    if k1 ~= "P" and k1 ~= "U" then return end
     local l = leaderName()
     if l and l ~= "" then ok = matches(l, wordsOf(short)); why = "only the Raid Leader (" .. l .. ") can send plans"
     else
@@ -842,14 +875,14 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
     ok = UnitIsGroupLeader(short)
   end
   if not ok then
-    if why and msg:match("^P%d+|1|") and short ~= UnitName("player") then say("ignored a plan from " .. short .. ": " .. why .. ".") end
+    if why and msg:match("^[PU]%d+|1|") and short ~= UnitName("player") then say("ignored a plan from " .. short .. ": " .. why .. ".") end
     return
   end
-  local kind, id, i, n, part = msg:match("^([BP])(%d+)|(%d+)|(%d+)|(.*)$")
+  local kind, id, i, n, part = msg:match("^([BPU])(%d+)|(%d+)|(%d+)|(.*)$")
   if not id then return end
   i, n = tonumber(i), tonumber(n)
   if n > 3000 then return end
-  if kind == "P" and short == UnitName("player") then return end     -- my own plan coming back
+  if (kind == "P" or kind == "U") and short == UnitName("player") then return end     -- my own plan coming back
   if done[kind .. id] then return end                                 -- already got it on another channel
   local key = short .. kind .. id
   local box = incoming[key]
@@ -875,6 +908,36 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
     return
   end
 
+  if kind == "U" then
+    if type(t.boss) ~= "table" or not t.boss.id then return end
+    HatedPlan = HatedPlan or { raids = {} }
+    HatedPlan.raids = HatedPlan.raids or {}
+    local old, oldRaid = findBoss(t.boss.id)
+    if old then
+      t.boss.image, t.boss.pix = old.image, old.pix          -- the screenshot stays what I have
+      for _, raid in ipairs(HatedPlan.raids) do
+        for bi, bb in ipairs(raid.bosses or {}) do if bb == old then raid.bosses[bi] = t.boss end end
+      end
+    else
+      local into
+      for _, raid in ipairs(HatedPlan.raids) do if raid.name == t.raid then into = raid end end
+      if not into then into = { name = t.raid or "Raid", bosses = {} }; HatedPlan.raids[#HatedPlan.raids + 1] = into end
+      into.bosses[#into.bosses + 1] = t.boss
+    end
+    if type(t.classes) == "table" then HatedPlan.classes = t.classes end
+    if t.leader then HatedPlan.leader = t.leader end
+    if (t.updated or "") > (HatedPlan.updated or "") then HatedPlan.updated, HatedPlan.by = t.updated, t.by end
+    HatedCompanionDB = HatedCompanionDB or {}
+    HatedCompanionDB.syncedPlan = HatedPlan
+    HatedCompanionDB.syncedOver = (filePlan and filePlan.updated) or ""
+    say(short .. " updated " .. tostring(t.boss.name) .. ". /hated to view.")
+    if UI.frame and UI.frame:IsShown() then
+      if current and current.id == t.boss.id then current = t.boss end
+      Show(current, currentRaid, true)
+    end
+    return
+  end
+
   if type(t.boss) ~= "table" then return end
   -- prefer my own copy's screenshot info; the text is the sender's (newest) version
   local mineB = findBoss(t.boss.id)
@@ -889,6 +952,279 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
   Show(t.boss, t.raid)
   PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
 end)
+
+-- ---------- editing the plan in game (Raid Leader) ----------
+-- Edits change the plan in memory and are saved straight away (the addon's saved settings, kept across /reload and
+-- log-outs). "Send boss" sends just the boss you're on; "Send plan to guild" sends everything.
+local MARK_ORDER = { 8, 7, 1, 5, 6, 4, 3, 2 }            -- Skull, Cross, Star, Moon, Square, Triangle, Diamond, Circle
+local MARK_LABEL = { "Star", "Circle", "Diamond", "Triangle", "Moon", "Square", "Cross", "Skull" }
+local function nowStamp() return date("!%Y-%m-%d %H:%M") end   -- UTC, the same format the website writes
+
+local function persist()
+  HatedCompanionDB = HatedCompanionDB or {}
+  HatedCompanionDB.syncedPlan = HatedPlan
+  HatedCompanionDB.syncedOver = (filePlan and filePlan.updated) or ""
+end
+local function edited(b)
+  b.edited = true
+  HatedPlan.updated, HatedPlan.by, HatedPlan.edited = nowStamp(), UnitName("player"), true
+  persist()
+  Show(current, currentRaid, true)
+end
+
+-- who can be picked: the plan's roster, everyone in the group right now, and anyone already in this fight
+local function candidates(b)
+  local set, list = {}, {}
+  local function add(n) if n and n ~= "" and not set[n] then set[n] = true; list[#list + 1] = n end end
+  for n in pairs((HatedPlan and HatedPlan.classes) or {}) do add(n) end
+  if IsInRaid() then for i = 1, GetNumGroupMembers() do add((GetRaidRosterInfo(i))) end
+  elseif IsInGroup() then add(UnitName("player")); for i = 1, GetNumSubgroupMembers() do add(UnitName("party" .. i)) end end
+  for _, t in ipairs(b.tanks or {}) do add(t.n) end
+  for _, h in ipairs(b.heals or {}) do add(h.n) end
+  for _, j in ipairs(b.jobs or {}) do add(j.n) end
+  table.sort(list, function(a, c) return a:lower() < c:lower() end)
+  return list
+end
+
+-- a small menu at the cursor: items { text, func, checked, keep (stay open), title (heading) }
+local menu, catcher
+local function closeMenu() if menu then menu:Hide() end; if catcher then catcher:Hide() end end
+local function openMenu(items, refresh)
+  if not menu then
+    catcher = CreateFrame("Button", nil, UIParent); catcher:SetAllPoints(UIParent); catcher:SetFrameStrata("FULLSCREEN")
+    catcher:SetScript("OnClick", closeMenu)
+    menu = CreateFrame("Frame", "HatedPlanMenu", UIParent, "BackdropTemplate")
+    menu:SetFrameStrata("FULLSCREEN_DIALOG"); menu:SetClampedToScreen(true)
+    flat(menu, 0.05, 0.035, 0.025, 0.98, 0.8, 0.63, 0.3, 0.9)
+    menu.btns = {}
+    tinsert(UISpecialFrames, "HatedPlanMenu")
+    menu:SetScript("OnHide", function() if catcher then catcher:Hide() end end)
+  end
+  menu.items, menu.refresh = items, refresh
+  local y, w = 6, 160
+  for i, it in ipairs(items) do
+    local bt = menu.btns[i]
+    if not bt then
+      bt = CreateFrame("Button", nil, menu)
+      bt:SetHeight(20)
+      bt.hl = bt:CreateTexture(nil, "HIGHLIGHT"); bt.hl:SetAllPoints(); bt.hl:SetColorTexture(1, 0.85, 0.5, 0.15)
+      bt.check = bt:CreateTexture(nil, "ARTWORK"); bt.check:SetSize(14, 14); bt.check:SetPoint("LEFT", 6, 0)
+      bt.check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+      bt.text = bt:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); bt.text:SetPoint("LEFT", 24, 0); bt.text:SetJustifyH("LEFT")
+      bt:SetScript("OnClick", function(self)
+        local item = self.item
+        if item.title then return end
+        if not item.keep then closeMenu() end
+        if item.func then item.func() end
+        if item.keep and menu.refresh then openMenu(menu.refresh(), menu.refresh) end
+      end)
+      menu.btns[i] = bt
+    end
+    bt.item = it
+    bt.text:SetText(it.text)
+    if it.title then bt.text:SetTextColor(1, 0.84, 0.48); bt.hl:SetAlpha(0) else bt.text:SetTextColor(0.92, 0.88, 0.8); bt.hl:SetAlpha(1) end
+    bt.check:SetShown(it.checked and true or false)
+    bt:ClearAllPoints(); bt:SetPoint("TOPLEFT", 4, -y); bt:SetPoint("RIGHT", menu, "RIGHT", -4, 0); bt:Show()
+    w = math.max(w, bt.text:GetStringWidth() + 40)
+    y = y + 20
+  end
+  for i = #items + 1, #menu.btns do menu.btns[i]:Hide() end
+  menu:SetSize(w, y + 6)
+  if not menu:IsShown() then
+    local x, cy = GetCursorPosition(); local s = UIParent:GetEffectiveScale()
+    menu:ClearAllPoints(); menu:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x / s + 4, cy / s - 4)
+  end
+  catcher:Show(); menu:Show()
+end
+
+-- a text box: single line (Enter saves) or several lines (notes)
+local editor
+local function editText(title, value, multi, done)
+  if not editor then
+    editor = CreateFrame("Frame", "HatedPlanEditor", UIParent, "BackdropTemplate")
+    editor:SetFrameStrata("FULLSCREEN_DIALOG"); editor:SetPoint("CENTER", 0, 80); editor:EnableMouse(true)
+    flat(editor, 0.05, 0.035, 0.025, 0.98, 0.85, 0.68, 0.32, 1)
+    editor.title = editor:CreateFontString(nil, "OVERLAY", "GameFontNormal"); editor.title:SetPoint("TOPLEFT", 14, -12)
+    editor.title:SetTextColor(1, 0.84, 0.48)
+    local sf = CreateFrame("ScrollFrame", "HatedPlanEditorScroll", editor, "UIPanelScrollFrameTemplate")
+    sf:SetPoint("TOPLEFT", 14, -34); sf:SetPoint("BOTTOMRIGHT", -30, 44)
+    local box = CreateFrame("EditBox", nil, sf)
+    box:SetMultiLine(true); box:SetAutoFocus(true); box:SetFontObject("ChatFontNormal"); box:SetWidth(380)
+    box:SetScript("OnEscapePressed", function() editor:Hide() end)
+    box:SetScript("OnEnterPressed", function(self) if editor.multi and not IsShiftKeyDown() then self:Insert("\n") else editor.ok:Click() end end)
+    sf:SetScrollChild(box)
+    local bg = editor:CreateTexture(nil, "ARTWORK"); bg:SetPoint("TOPLEFT", sf, -4, 4); bg:SetPoint("BOTTOMRIGHT", sf, 24, -4); bg:SetColorTexture(0, 0, 0, 0.45)
+    editor.box = box
+    editor.ok = button(editor, "Save", 90, true); editor.ok:SetPoint("BOTTOMRIGHT", -14, 12)
+    editor.ok:SetScript("OnClick", function() local v = editor.box:GetText():gsub("^%s+", ""):gsub("%s+$", ""); editor:Hide(); if editor.done then editor.done(v) end end)
+    local cancel = button(editor, "Cancel", 80); cancel:SetPoint("RIGHT", editor.ok, "LEFT", -8, 0)
+    cancel:SetScript("OnClick", function() editor:Hide() end)
+    editor.hint = editor:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); editor.hint:SetPoint("BOTTOMLEFT", 14, 18)
+    tinsert(UISpecialFrames, "HatedPlanEditor")
+  end
+  closeMenu()
+  editor.multi, editor.done = multi, done
+  editor:SetSize(430, multi and 280 or 120)
+  editor.box:SetMultiLine(multi and true or false)
+  editor.title:SetText(title)
+  editor.hint:SetText(multi and "Shift+Enter saves" or "Enter saves, Esc cancels")
+  editor.box:SetText(value or ""); editor.box:HighlightText(); editor:Show(); editor.box:SetFocus()
+end
+
+local function pickName(b, title, exclude, done)
+  local items = { { text = title, title = true } }
+  local skip = {}
+  for _, n in ipairs(exclude or {}) do skip[n] = true end
+  for _, n in ipairs(candidates(b)) do
+    if not skip[n] then items[#items + 1] = { text = nameText(n), func = function() done(n) end } end
+  end
+  items[#items + 1] = { text = DIM .. "Someone else...|r", func = function() editText("Name", "", false, function(v) if v ~= "" then done(v) end end) end }
+  openMenu(items)
+end
+
+local function markEntry(list, num, create)
+  for i, m in ipairs(list) do if m.m == num then return m, i end end
+  if not create then return nil end
+  local m = { m = num, label = MARK_LABEL[num], note = "", who = {} }
+  list[#list + 1] = m
+  local rank = {}; for i, v in ipairs(MARK_ORDER) do rank[v] = i end
+  table.sort(list, function(a, c) return (rank[a.m] or 9) < (rank[c.m] or 9) end)
+  return m
+end
+local function tidyMarks(list)
+  for i = #list, 1, -1 do local m = list[i]; if #(m.who or {}) == 0 and (m.note or "") == "" then table.remove(list, i) end end
+end
+
+-- the sections in edit mode: every row clickable, empty sections shown, "+ add" rows
+editSections = function(b)
+  b.tanks, b.heals, b.marks, b.floor, b.jobs, b.kill = b.tanks or {}, b.heals or {}, b.marks or {}, b.floor or {}, b.jobs or {}, b.kill or {}
+  local S = {}
+  local function section(title, tex, key) local s = { title = title .. "  |cff4dff88(click to edit)|r", tex = tex, key = key, rows = {} }; S[#S + 1] = s; return s end
+  local function addRow(s, text, fn) s.rows[#s.rows + 1] = { left = "|cff7fbf7f+ " .. text .. "|r", onClick = fn } end
+
+  local s = section("Tanks", TANK_TEX, "Tanks")
+  for i, t in ipairs(b.tanks) do
+    local tag = i == 1 and "Main tank" or i == 2 and "Off tank" or ("Tank " .. i)
+    s.rows[#s.rows + 1] = { left = DIM .. tag .. "|r   " .. nameText(t.n), right = (t.job ~= "" and safe(t.job) or DIM .. "set a job|r"), onClick = function()
+      local it = {
+        { text = nameText(t.n), title = true },
+        { text = "Set job...", func = function() editText(t.n .. "'s job", t.job, false, function(v) t.job = v; edited(b) end) end },
+        { text = "Change player...", func = function() pickName(b, "Tank", nil, function(n) t.n = n; edited(b) end) end },
+      }
+      if i > 1 then it[#it + 1] = { text = "Move up", func = function() b.tanks[i], b.tanks[i - 1] = b.tanks[i - 1], b.tanks[i]; edited(b) end } end
+      it[#it + 1] = { text = "|cffff7b6aRemove|r", func = function() table.remove(b.tanks, i); edited(b) end }
+      openMenu(it)
+    end }
+  end
+  addRow(s, "Add tank", function() local ex = {}; for _, t in ipairs(b.tanks) do ex[#ex + 1] = t.n end
+    pickName(b, "Add a tank", ex, function(n) b.tanks[#b.tanks + 1] = { n = n, job = "" }; edited(b) end) end)
+
+  s = section("Healers", HEAL_TEX, "Healers")
+  for i, h in ipairs(b.heals) do
+    local target = (h.t and h.t ~= "") and nameText(h.t) or "|cffc8b48aRaid healing|r"
+    s.rows[#s.rows + 1] = { left = nameText(h.n), right = target, onClick = function()
+      local items = { { text = nameText(h.n) .. " heals", title = true } }
+      for _, t in ipairs(b.tanks) do items[#items + 1] = { text = nameText(t.n), checked = h.t == t.n, func = function() h.t = t.n; h.c = true; edited(b) end } end
+      items[#items + 1] = { text = "Raid healing", checked = (h.t or "") == "", func = function() h.t = ""; h.c = true; edited(b) end }
+      items[#items + 1] = { text = "Change player...", func = function() pickName(b, "Healer", nil, function(n) h.n = n; edited(b) end) end }
+      items[#items + 1] = { text = "|cffff7b6aRemove|r", func = function() table.remove(b.heals, i); edited(b) end }
+      openMenu(items)
+    end }
+  end
+  addRow(s, "Add healer", function() local ex = {}; for _, h in ipairs(b.heals) do ex[#ex + 1] = h.n end
+    pickName(b, "Add a healer", ex, function(n) b.heals[#b.heals + 1] = { n = n, t = (b.tanks[1] and b.tanks[1].n) or "", c = true }; edited(b) end) end)
+
+  for _, set in ipairs({ { "marks", "Target markers", MARK_TEX .. "8" }, { "floor", "Floor markers", MARK_TEX .. "6" } }) do
+    local list = b[set[1]]
+    s = section(set[2], set[3], set[2])
+    for _, num in ipairs(MARK_ORDER) do
+      local m = markEntry(list, num, false)
+      s.rows[#s.rows + 1] = { mark = num,
+        left = (m and m.note ~= "" and ("|cffecc867" .. safe(m.note) .. "|r")) or (DIM .. MARK_LABEL[num] .. "|r"),
+        right = (m and #m.who > 0) and names(m.who) or (DIM .. "-|r"),
+        onClick = function()
+          local function items()
+            local me = markEntry(list, num, false)
+            local it = { { text = icon(num, 14) .. " " .. MARK_LABEL[num], title = true },
+              { text = (me and me.note ~= "" and ("Note: " .. safe(me.note)) or "Set a note...") , func = function()
+                editText(MARK_LABEL[num] .. ": what's it for?", me and me.note or "", false, function(v)
+                  local e = markEntry(list, num, true); e.note = v; tidyMarks(list); edited(b) end) end } }
+            for _, n in ipairs(candidates(b)) do
+              local has = false
+              if me then for _, w in ipairs(me.who) do if w == n then has = true end end end
+              it[#it + 1] = { text = nameText(n), checked = has, keep = true, func = function()
+                local e = markEntry(list, num, true)
+                if has then for k = #e.who, 1, -1 do if e.who[k] == n then table.remove(e.who, k) end end else e.who[#e.who + 1] = n end
+                tidyMarks(list); edited(b)
+              end }
+            end
+            return it
+          end
+          openMenu(items(), items)
+        end }
+    end
+  end
+
+  s = section("Interrupts, CC & jobs", JOB_TEX, "Jobs")
+  for i, j in ipairs(b.jobs) do
+    s.rows[#s.rows + 1] = { left = nameText(j.n), right = (j.what ~= "" and safe(j.what) or DIM .. "set the job|r"), onClick = function()
+      openMenu({
+        { text = nameText(j.n), title = true },
+        { text = "Edit job...", func = function() editText("Job for " .. j.n, j.what, false, function(v) j.what = v; edited(b) end) end },
+        { text = "Change player...", func = function() pickName(b, "Who", nil, function(n) j.n = n; edited(b) end) end },
+        { text = "|cffff7b6aRemove|r", func = function() table.remove(b.jobs, i); edited(b) end },
+      })
+    end }
+  end
+  addRow(s, "Add job", function() pickName(b, "Who does it?", nil, function(n)
+    editText("Job for " .. n, "", false, function(v) b.jobs[#b.jobs + 1] = { n = n, what = v }; edited(b) end) end) end)
+
+  -- kill order and notes
+  local seq = {}
+  for _, i in ipairs(b.kill) do seq[#seq + 1] = icon(i, 24) end
+  local kill = { title = "Kill order  |cff4dff88(click to edit)|r", tex = MARK_TEX .. "8", key = "Kill", rows = {
+    { left = #seq > 0 and table.concat(seq, "  |cffb8862e>|r  ") or (DIM .. "click to build the kill order|r"), big = #seq > 0, onClick = function()
+      local function items()
+        local it = { { text = "Add to the kill order", title = true } }
+        for _, num in ipairs(MARK_ORDER) do it[#it + 1] = { text = icon(num, 14) .. " " .. MARK_LABEL[num], keep = true, func = function() b.kill[#b.kill + 1] = num; edited(b) end } end
+        if #b.kill > 0 then
+          it[#it + 1] = { text = "Remove the last one", keep = true, func = function() table.remove(b.kill); edited(b) end }
+          it[#it + 1] = { text = "|cffff7b6aClear|r", func = function() wipe(b.kill); edited(b) end }
+        end
+        return it
+      end
+      openMenu(items(), items)
+    end },
+    { left = (b.killNote or "") ~= "" and safe(b.killNote) or (DIM .. "+ kill order note|r"), onClick = function()
+      editText("Kill order note", b.killNote or "", false, function(v) b.killNote = v; edited(b) end) end },
+  } }
+  local notes = { title = "Notes  |cff4dff88(click to edit)|r", tex = "Interface\\Icons\\INV_Misc_Note_01", key = "Notes", rows = {
+    { left = (b.notes or "") ~= "" and safe(b.notes) or (DIM .. "click to write notes|r"), onClick = function()
+      editText(b.name .. ": notes", b.notes or "", true, function(v) b.notes = v; edited(b) end) end } } }
+  return S, kill, notes
+end
+
+-- send just this boss (text; each player keeps their own screenshot)
+function UI.SendBoss()
+  if not current or not iAmLeader() then return end
+  local c = {}
+  for k, v in pairs(current) do if k ~= "image" and k ~= "pix" then c[k] = v end end
+  local channels = { "GUILD" }
+  if IsInRaid() then
+    for i = 1, GetNumGroupMembers() do local u = "raid" .. i; if UnitExists(u) and not UnitIsInMyGuild(u) then channels[2] = "RAID"; break end end
+  end
+  if not IsInGuild() then channels = { IsInRaid() and "RAID" or "PARTY" } end
+  local _, n = send("U", { boss = c, raid = currentRaid, updated = HatedPlan.updated, by = HatedPlan.by, leader = HatedPlan.leader, classes = HatedPlan.classes }, channels)
+  progress = current.name
+  say(string.format("sending %s to the guild (%d piece%s).", current.name, n, n == 1 and "" or "s"))
+end
+
+function UI.ToggleEdit()
+  if not iAmLeader() then return end
+  UI.editing = not UI.editing
+  closeMenu()
+  Show(current, currentRaid, true)
+end
 
 -- ---------- /hated ----------
 SLASH_HATEDPLAN1 = "/hated"
