@@ -115,7 +115,7 @@ local function bossSections(b)
       local s = section(set[2], set[4] == "Floor markers" and (MARK_TEX .. "6") or (MARK_TEX .. "8"), set[4])
       for _, m in ipairs(set[1]) do
         s.rows[#s.rows + 1] = { mark = m.m, left = (m.note ~= "" and ("|cffecc867" .. safe(m.note) .. "|r") or DIM .. safe(m.label) .. "|r"), right = names(m.who), me = anyMe(m.who) }
-        if anyMe(m.who) then mine[#mine + 1] = set[3] .. " " .. icon(m.m, 14) .. " " .. safe(m.label) .. (m.note ~= "" and (" - " .. safe(m.note)) or "") end
+        if anyMe(m.who) then mine[#mine + 1] = (m.note ~= "" and safe(m.note) or set[3]) .. " " .. icon(m.m, 14) .. " " .. safe(m.label) end   -- the note replaces "Kill / handle" / "Stand at"
       end
     end
   end
