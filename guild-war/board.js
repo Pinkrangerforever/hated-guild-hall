@@ -808,6 +808,15 @@
       this.weapons = {};
       return this.weaponsP = Promise.all(Object.keys(M).map(f => this.loadGltf(M[f]).then(g => {
         const m = g.scene; m.traverse(o => { if(o.isMesh){ o.castShadow = true; o.frustumCulled = false; o.material.alphaTest = 0.4; o.material.transparent = false; o.material.side = THREE.DoubleSide; } });
+        // the weapons come rigged; a copy of a skinned mesh stays tied to the original's bones (drawn at the table's
+        // middle, tiny), so swap them for plain meshes - they never animate here
+        const skinned = []; m.traverse(o => { if(o.isSkinnedMesh) skinned.push(o); });
+        skinned.forEach(o => {
+          const plain = new THREE.Mesh(o.geometry, o.material);
+          plain.position.copy(o.position); plain.quaternion.copy(o.quaternion); plain.scale.copy(o.scale);
+          plain.castShadow = true; plain.frustumCulled = false; plain.name = o.name;
+          o.parent.add(plain); o.parent.remove(o);
+        });
         const box = new THREE.Box3().setFromObject(m), L = 1.7, s = L / (box.max.x - box.min.x);
         m.scale.setScalar(s); m.position.set(-box.min.x * s, -(box.min.y + box.max.y) / 2 * s, -(box.min.z + box.max.z) / 2 * s);   // handle end at the pivot, blade along +x
         const w = new THREE.Group(); w.add(m); this.weapons[f] = { proto: w, reach: L * 0.86 };
@@ -847,11 +856,15 @@
         H.W = W; H.holder = new THREE.Group(); H.holder.rotation.order = 'YZX';
         H.holder.add(W.proto.clone()); this.scene.add(H.holder); H.ready = true;
         H.holder.visible = !!H.pos;
+        // a gold ring on the table where the blow will land
+        H.ring = new THREE.Mesh(new THREE.RingGeometry(0.16, 0.22, 40), new THREE.MeshBasicMaterial({ color: 0xffd36a, transparent: true, opacity: 0.85, depthWrite: false }));
+        H.ring.rotation.x = -Math.PI / 2; H.ring.renderOrder = 5; this.scene.add(H.ring); H.ring.visible = !!H.pos;
       });
     }
     dropWeapon(){
       const H = this.held; this.held = null;
       if(H && H.holder) this.scene.remove(H.holder);
+      if(H && H.ring) this.scene.remove(H.ring);
       if(H && H.swing && H.swing.res) H.swing.res();
       if(this.renderer) this.renderer.domElement.style.cursor = '';
     }
@@ -875,13 +888,18 @@
           if(!H.swing) H.pos.lerp(p, 1 - Math.exp(-dt * 22));   // glide after the cursor; locked while chopping
         }
       }
-      if(!H.pos){ H.holder.visible = false; return; }
-      H.holder.visible = true;
+      if(!H.pos){ H.holder.visible = false; H.ring.visible = false; return; }
+      H.holder.visible = true; H.ring.visible = true;
       const S = H.swing, aim = S ? S.at : H.pos;
-      const toCam = this.camera.position.clone().sub(aim); toCam.y = 0; toCam.normalize();
-      H.holder.position.copy(aim).addScaledVector(toCam, H.W.reach); H.holder.position.y = 0.12;
-      H.holder.rotation.y = Math.atan2(toCam.z, -toCam.x);   // local +x points from the handle to the cursor
-      const REST = 1.05;
+      // big enough to read at any zoom, and swung from the right-hand side so the whole blade faces the camera
+      const k = Math.max(1, Math.min(3, (this.cam ? this.cam.dist : 10) * 0.16));
+      H.holder.scale.setScalar(k);
+      const fwd = aim.clone().sub(this.camera.position); fwd.y = 0; fwd.normalize();
+      const side = new THREE.Vector3(-fwd.z, 0, fwd.x);                // the camera's right, along the table
+      H.holder.position.copy(aim).addScaledVector(side, H.W.reach * k); H.holder.position.y = 0.12;
+      H.holder.rotation.y = Math.atan2(side.z, -side.x);               // local +x points from the handle to the aim
+      H.ring.position.set(aim.x, 0.03, aim.z); H.ring.scale.setScalar(k * (S ? 1.25 : 1));
+      const REST = 0.95;
       let a = REST + Math.sin(now / 420) * 0.035;            // held up, breathing a little
       if(S){
         const t = (now - S.t0) / 430;
