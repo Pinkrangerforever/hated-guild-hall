@@ -10,6 +10,7 @@
 
   /hated        open or close the window
   /hated show   (raid leader / assistant) push the boss you're viewing to the raid
+  /hated me X   also highlight assignments for the website name X (/hated me on its own clears it)
 ]]
 
 local PREFIX = "HATEDPLAN"
@@ -22,13 +23,32 @@ local function say(msg) DEFAULT_CHAT_FRAME:AddMessage("|cffd6a940Hated Plan:|r "
 local function safe(s) return (tostring(s or "")):gsub("|", "||") end
 local function icon(i, size) return string.format(ICON, i, size or 16) end
 
--- ---------- is this name me? ("Pink" on the website matches Pinkranger, Pinky, Ironpink...) ----------
-local function myName() return (UnitName("player") or ""):lower() end
+-- ---------- is this name me? ----------
+-- WoW Forever characters have a first and a last name. A website name highlights for you when it's inside either
+-- one ("Pink" matches Pinkranger Stormwind and Ryan Ironpink). Extra names can be added with /hated me <name>.
+local function myNames()
+  local list, seen = {}, {}
+  local function add(s)
+    for w in (s or ""):lower():gmatch("[^%s%-]+") do
+      if not seen[w] then seen[w] = true; list[#list + 1] = w end
+    end
+  end
+  add(UnitName("player"))
+  add(UnitFullName and select(1, UnitFullName("player")))
+  local db = HatedCompanionDB and HatedCompanionDB.planNames
+  if db then for _, n in ipairs(db) do add(n) end end
+  return list
+end
 local function isMe(name)
   if not name or name == "" then return false end
-  local n, me = name:lower(), myName()
-  if #n < 3 or me == "" then return n == me end
-  return me:find(n, 1, true) ~= nil or n:find(me, 1, true) ~= nil
+  local mine = myNames()
+  for site in name:lower():gmatch("[^%s%-]+") do            -- every word of the website name
+    for _, w in ipairs(mine) do                              -- against my first name, last name (and extras)
+      if site == w then return true end
+      if #site >= 3 and w:find(site, 1, true) then return true end
+    end
+  end
+  return false
 end
 
 -- class colour: from the raid if they're in it, else the website's roster
@@ -408,6 +428,14 @@ end)
 SLASH_HATEDPLAN1 = "/hated"
 SLASH_HATEDPLAN2 = "/hplan"
 SlashCmdList.HATEDPLAN = function(msg)
+  local extra = (msg or ""):match("^%s*[Mm][Ee]%s*(.*)$")
+  if extra then
+    HatedCompanionDB = HatedCompanionDB or {}
+    if extra == "" then HatedCompanionDB.planNames = nil; say("highlighting names matching your character's first or last name.")
+    else HatedCompanionDB.planNames = { extra }; say("also highlighting \"" .. extra .. "\".") end
+    if UI.frame and UI.frame:IsShown() and current then Show(current, currentRaid) end
+    return
+  end
   msg = (msg or ""):lower()
   if msg == "show" then UI.Push(); return end
   if UI.frame and UI.frame:IsShown() then UI.frame:Hide(); return end
