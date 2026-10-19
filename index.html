@@ -4589,6 +4589,13 @@
   .addon-card-title{ font:800 15px Cinzel, Georgia, serif; letter-spacing:1px; color:#ecc867; text-shadow:0 1px 2px #000; }
   .addon-card-sub{ font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#a8875a; }
   .addon-card-text{ font-size:12px; line-height:1.5; color:#d8c8a8; margin:10px 0 12px; }
+  .addon-card-cf{ display:flex; align-items:center; justify-content:center; gap:10px; width:100%; box-sizing:border-box; padding:9px 10px; border-radius:4px;
+    border:1px solid #f16436; background:linear-gradient(#2a1a12, #1a100a); color:#ffe9dc; text-decoration:none; font:600 14px Cinzel, Georgia, serif; letter-spacing:.5px;
+    box-shadow:0 0 10px rgba(241,100,54,.22), inset 0 1px 0 rgba(255,200,170,.12); transition:filter .15s, transform .1s, box-shadow .15s; }
+  .addon-card-cf b{ color:#f16436; }
+  .addon-card-cf:hover{ filter:brightness(1.15); box-shadow:0 0 14px rgba(241,100,54,.4); } .addon-card-cf:active{ transform:translateY(1px); }
+  .addon-card-cf svg{ filter:drop-shadow(0 1px 1px #000); }
+  .addon-card-alt{ margin:8px 0 0; font-size:11px; color:#a8875a; } .addon-card-alt a{ color:#ecc867; }
   .addon-card-btn{ display:block; width:100%; padding:9px 10px; border-radius:4px; cursor:pointer; border:1px solid #d4af37;
     font:700 13px Cinzel, Georgia, serif; letter-spacing:1px; color:#2a1608; background:linear-gradient(#f3d27a, #b8862e);
     box-shadow:0 0 10px rgba(212,175,55,.25), inset 0 1px 0 rgba(255,255,255,.35); transition:filter .15s, transform .1s; }
@@ -13838,6 +13845,10 @@ const VAULT_DOOR = `<svg class="vault-door" viewBox="0 0 64 64" aria-hidden="tru
   <circle cx="32" cy="32" r="2.4" fill="#5a3a0c"/>
 </svg>`;
 // Home page: a small card to grab the Hated Companion addon (same zip as Boss Strategies > Download addon)
+const CURSEFORGE_URL = 'https://www.curseforge.com/wow/addons/hated-companion';
+// CurseForge's anvil, simplified, in their orange
+const CF_ICON = '<svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M3 9h11.5c.6-1.5 2-2.5 3.7-2.5H29l-1 3.2c-.6 1.8-2.2 3-4.1 3h-2.6c-.8 1.8-1.2 3.3-1.2 4.3 0 1.4.9 2.4 2.4 2.9V22H9.5v-2.1c1.6-.6 2.6-1.6 2.6-3 0-1.2-.6-2.3-1.6-3.1C8 13.2 4.8 12.4 3 9z" fill="#f16436"/><path d="M9 23.5h14V26H9z" fill="#f16436"/></svg>';
+// Home page: get the Hated Companion addon (CurseForge keeps it updated; the zip is the fallback)
 function renderAddonCard(){
   return `<div class="addon-card">
     <div class="addon-card-head">
@@ -13845,13 +13856,15 @@ function renderAddonCard(){
       <div><div class="addon-card-title">Hated Companion</div><div class="addon-card-sub">WoW addon</div></div>
     </div>
     <p class="addon-card-text">Boss plans in game: your jobs highlighted, the strategy screenshots, and the newest plan sent straight from the raid leader.</p>
-    <button type="button" class="addon-card-btn" onclick="downloadAddonZip()" ${state.addonZipBusy ? 'disabled' : ''}>${state.addonZipBusy ? 'Building…' : '&#11015; Download addon'}</button>
+    <a class="addon-card-cf" href="${CURSEFORGE_URL}" target="_blank" rel="noopener">${CF_ICON}<span>Get it on <b>CurseForge</b></span></a>
     <details class="addon-card-help"><summary>How to install</summary>
       <ol>
-        <li>Right-click <b>HatedCompanion.zip</b> &rarr; <b>Extract All</b>.</li>
-        <li>Drag the <b>HatedCompanion</b> folder into <code>World of Warcraft\\&lt;your game&gt;\\Interface\\AddOns</code> (click <b>Continue</b> if Windows asks).</li>
-        <li>Restart WoW and type <b>/hated</b>, or click the <b>H</b> on your minimap.</li>
+        <li>Open the link above and click <b>Install</b> (it opens the CurseForge app).</li>
+        <li>In the app, pick <b>World of Warcraft</b> &rarr; <b>Forever Beta</b>, then check <b>My Addons</b>.</li>
+        <li>Start WoW and type <b>/hated</b>, or click the <b>H</b> on your minimap.</li>
+        <li>Before raid, click <b>Update all</b> in CurseForge so you have the newest plans and screenshots.</li>
       </ol>
+      <p class="addon-card-alt">No CurseForge? <a href="#" onclick="downloadAddonZip(); return false;">${state.addonZipBusy ? 'Building the zip…' : 'Download the zip'}</a> and drag the <b>HatedCompanion</b> folder into <code>Interface\AddOns</code>.</p>
     </details>
   </div>`;
 }
