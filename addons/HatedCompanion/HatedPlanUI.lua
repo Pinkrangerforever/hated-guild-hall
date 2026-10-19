@@ -385,6 +385,13 @@ local function drawPix(holder, pix, W, H)
 end
 local function hidePix(holder) for _, tx in ipairs(holder.pool or {}) do tx:Hide() end end
 
+-- my screenshot file counts only when it's the picture the (sent) plan names; otherwise the plan's copy wins
+local function fileFits(img, b)
+  if not img then return false end
+  if b.shot == nil then return true end                 -- plans from before screenshots were named
+  return b.shot ~= "" and img.src ~= nil and img.src == b.shot
+end
+
 local function setImage(tex, img, maxW, maxH)
   local w, h = img.w or 1024, img.h or 512
   local s = math.min(maxW / w, maxH / h)
@@ -567,6 +574,7 @@ local function renderPage(b)
     yr = h + 2 + GAP
   else
     hidePix(shot)
+    shot.none:SetText((b.shot and b.shot ~= "") and "New screenshot - ask the raid leader to send the plan again,\nor download the addon from hatedforever.com" or "No screenshot for this fight")
     shot:SetSize(RW, 120); shot.tex:Hide(); shot.none:Show(); shot:EnableMouse(false)
     yr = 120 + GAP
   end
@@ -745,8 +753,7 @@ local function adopt(plan)
   for _, raid in ipairs(plan.raids or {}) do
     for _, b in ipairs(raid.bosses or {}) do
       local img = imgs[b.id]
-      if img and b.pix and img.src and b.pix.src and img.src ~= b.pix.src then img = nil end   -- my file is an older picture
-      b.image = img
+      b.image = fileFits(img, b) and img or nil       -- an older (or unknown) picture gives way to the sent one
     end
   end
   HatedPlan = plan
@@ -826,7 +833,12 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
   if type(t.boss) ~= "table" then return end
   -- prefer my own copy's screenshot info; the text is the sender's (newest) version
   local mineB = findBoss(t.boss.id)
-  if mineB and mineB.image and not t.boss.image and not (t.boss.pix and mineB.image.src and t.boss.pix.src ~= mineB.image.src) then t.boss.image = mineB.image end
+  t.boss.image = nil
+  local fileImg = mineB and mineB.image
+  if not fileImg and filePlan then
+    for _, raid in ipairs(filePlan.raids or {}) do for _, fb in ipairs(raid.bosses or {}) do if fb.id == t.boss.id then fileImg = fb.image end end end
+  end
+  if fileFits(fileImg, t.boss) then t.boss.image = fileImg end
   if type(t.classes) == "table" then HatedPlan = HatedPlan or { raids = {} }; HatedPlan.classes = HatedPlan.classes or t.classes end
   pushedFrom = short
   Show(t.boss, t.raid)

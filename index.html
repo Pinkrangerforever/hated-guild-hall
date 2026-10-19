@@ -13008,7 +13008,7 @@ function addonBossData(boss){
   const bp = bossPlan(boss), tanks = planTanks();
   const markList = set => RAID_MARKS.map(([k, label]) => { const m = (bp[set] || {})[k]; return m && ((m.who || []).length || m.note) ? { m: MARK_NUM[k], label, note: m.note || '', who: m.who || [] } : null; }).filter(Boolean);
   return {
-    id: String(boss.id), name: boss.name, notes: boss.notes || '',
+    id: String(boss.id), name: boss.name, notes: boss.notes || '', shot: boss.screenshot_url || '',
     tanks: tanks.map(t => ({ n: t, job: bp.tankJobs[t] || '' })),
     heals: planHealers().map(hl => { const own = Object.prototype.hasOwnProperty.call(bp.heal, hl.name); return { n: hl.name, t: own ? bp.heal[hl.name] : hl.tank, c: own }; }),
     marks: markList('marks'), floor: markList('floor'),
@@ -13034,6 +13034,7 @@ async function screenshotToTga(url){
 }
 async function writeFile(dir, name, data){ const fh = await dir.getFileHandle(name, { create: true }); const w = await fh.createWritable(); await w.write(data); await w.close(); }
 async function buildAddonPlan(){
+  state.pixFailed = [];
   if(!state.raidPlan){ await loadRaidPlan(); }
   const roster = planRoster(), classes = {};
   roster.forEach(m => { if(m.class_key) classes[m.name] = m.class_key.toUpperCase(); });
@@ -13044,7 +13045,7 @@ async function buildAddonPlan(){
   // a small pixel copy of each screenshot travels inside the plan, so "Send plan to guild" in game carries it too
   for(const raid of plan.raids) for(const b of raid.bosses){
     const boss = state.bosses.find(x => String(x.id) === b.id);
-    if(boss && boss.screenshot_url){ try{ b.pix = await screenshotPix(boss.screenshot_url); }catch(e){ console.error('pixel copy for', b.name, e); } }
+    if(boss && boss.screenshot_url){ try{ b.pix = await screenshotPix(boss.screenshot_url); }catch(e){ console.error('pixel copy for', b.name, e); (state.pixFailed = state.pixFailed || []).push(b.name); } }
   }
   return plan;
 }
@@ -13190,6 +13191,7 @@ async function exportAddonPlan(){
     await writeFile(dir, 'HatedPlan.lua', '-- Written by hatedforever.com > Boss Strategies > Save to my addon. Do not edit; it is replaced each save.\nHatedPlan = ' + toLua(plan) + '\n');
     await addonSet('planImages', done);
     state.addonSavedAt = new Date();
+    if(state.pixFailed && state.pixFailed.length) showToast('Screenshot could not be added to the plan for: ' + state.pixFailed.join(', ') + '. Sending in game will not include them - try again.', true);
     showToast(`Hated Companion is up to date with the latest plan${imgs ? ` (${imgs} new screenshot${imgs === 1 ? '' : 's'})` : ''}. ` + (restart ? 'Restart WoW to load it (first install or new files).' : 'Type /reload in game.') + (failed ? ` ${failed} screenshot${failed === 1 ? '' : 's'} could not be read.` : ''), !!failed);
   }catch(e){
     console.error(e); showToast('Could not save to the addon folder: ' + e.message, true);
