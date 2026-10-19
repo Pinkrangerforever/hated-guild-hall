@@ -837,6 +837,68 @@
         wpn.scale.setScalar(t > 0.8 ? Math.max(0.01, (1 - t) / 0.2) : 1);
       }).then(() => this.scene.remove(holder));
     }
+    // ---- the champion's weapon in hand: it follows the cursor over the table, raised, and chops down on a click ----
+    holdWeapon(faction){
+      this.dropWeapon();
+      const H = this.held = { faction, ready: false, pos: null, cursor: null, swing: null, queue: 0 };
+      this.loadWeapons().then(() => {
+        if(this.held !== H) return;
+        const W = this.weapons && this.weapons[faction]; if(!W) return;
+        H.W = W; H.holder = new THREE.Group(); H.holder.rotation.order = 'YZX';
+        H.holder.add(W.proto.clone()); this.scene.add(H.holder); H.ready = true;
+        H.holder.visible = !!H.pos;
+      });
+    }
+    dropWeapon(){
+      const H = this.held; this.held = null;
+      if(H && H.holder) this.scene.remove(H.holder);
+      if(H && H.swing && H.swing.res) H.swing.res();
+      if(this.renderer) this.renderer.domElement.style.cursor = '';
+    }
+    // start a chop at the weapon's spot; resolves when the head meets the table (with the point it hit)
+    swingHeld(){
+      const H = this.held;
+      if(!H || !H.ready || !H.pos) return null;
+      if(H.swing){                       // mid-swing: queue one more so fast clicking still feels responsive
+        if(!H.next) H.next = new Promise(res => (H.nextRes = res));
+        return H.next;
+      }
+      return new Promise(res => { H.swing = { t0: performance.now(), at: H.pos.clone(), res, hit: false }; });
+    }
+    heldStep(now, dt){
+      const H = this.held; if(!H || !H.ready) return;
+      if(H.cursor){
+        const p = this.pointOnTable(H.cursor.x, H.cursor.y);
+        if(p){
+          p.x = Math.max(-7.2, Math.min(7.2, p.x)); p.z = Math.max(-4.4, Math.min(4.4, p.z));
+          if(!H.pos) H.pos = p.clone();
+          if(!H.swing) H.pos.lerp(p, 1 - Math.exp(-dt * 22));   // glide after the cursor; locked while chopping
+        }
+      }
+      if(!H.pos){ H.holder.visible = false; return; }
+      H.holder.visible = true;
+      const S = H.swing, aim = S ? S.at : H.pos;
+      const toCam = this.camera.position.clone().sub(aim); toCam.y = 0; toCam.normalize();
+      H.holder.position.copy(aim).addScaledVector(toCam, H.W.reach); H.holder.position.y = 0.12;
+      H.holder.rotation.y = Math.atan2(toCam.z, -toCam.x);   // local +x points from the handle to the cursor
+      const REST = 1.05;
+      let a = REST + Math.sin(now / 420) * 0.035;            // held up, breathing a little
+      if(S){
+        const t = (now - S.t0) / 430;
+        if(t < 0.16) a = REST + Math.sin(t / 0.16 * Math.PI / 2) * 0.4;                   // wind up
+        else if(t < 0.36){ const k = (t - 0.16) / 0.2; a = (REST + 0.4) * (1 - k * k); }  // the chop, accelerating
+        else if(t < 0.5) a = Math.sin((t - 0.36) / 0.14 * Math.PI) * 0.14;              // bounce off the table
+        else if(t < 1){ const k = (t - 0.5) / 0.5; a = REST * (1 - Math.pow(1 - k, 3)); } // back up
+        else a = REST;
+        if(t >= 0.36 && !S.hit){ S.hit = true; S.res(S.at.clone()); }
+        if(t >= 1){
+          H.swing = null;
+          if(H.next){ const res = H.nextRes; H.next = H.nextRes = null; H.swing = { t0: now, at: H.pos.clone(), res, hit: false }; }
+        }
+      }
+      H.holder.rotation.z = a;
+    }
+
     pointOnTable(clientX, clientY){
       const r = this.renderer.domElement.getBoundingClientRect();
       this.mouse.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
@@ -2456,12 +2518,17 @@
       el.style.touchAction = 'none'; el.style.webkitUserSelect = el.style.userSelect = 'none'; el.style.webkitTouchCallout = 'none';
       let drag = null; const pts = new Map();
       el.addEventListener('contextmenu', e => e.preventDefault());
-      el.addEventListener('pointerleave', () => { if(this.hoverRegion){ this.hoverRegion = null; this.drawMap(); } });
+      el.addEventListener('pointerleave', () => { if(this.hoverRegion){ this.hoverRegion = null; this.drawMap(); } if(this.held && this.held.holder && !this.held.swing){ this.held.cursor = null; } });
       el.addEventListener('pointerdown', e => {
+        if(this.smashMode && this.opts.onSmash && e.button === 0 && e.pointerType === 'mouse'){
+          if(this.held) this.held.cursor = { x: e.clientX, y: e.clientY };
+          this.opts.onSmash(e.clientX, e.clientY); return;
+        }
         el.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
         drag = { x: e.clientX, y: e.clientY, moved: 0, btn: e.button, pinch: pts.size === 2 ? this.pinchDist(pts) : 0 };
       });
       el.addEventListener('pointermove', e => {
+        if(this.held){ this.held.cursor = { x: e.clientX, y: e.clientY }; el.style.cursor = this.held.ready ? 'none' : 'crosshair'; if(!drag) return; }
         if(!drag){
           const k = this.pickZone(e.clientX, e.clientY);
           el.style.cursor = k ? 'pointer' : 'grab';
@@ -2525,6 +2592,7 @@
       const dt = Math.min(0.1, (now - (this._last || now)) / 1000); this._last = now;
       (this.mixers || []).forEach(m => m.update(dt));
       this.tickEggs(now);
+      if(this.held) this.heldStep(now, dt);
       if(this.debris){ this.smashAcc = Math.min(0.25, (this.smashAcc || 0) + dt); while(this.smashAcc >= 1 / 60){ this.smashStep(1 / 60); this.smashAcc -= 1 / 60; } }
       if(this.water){ this.water.offset.x = now / 90000; this.water.offset.y = Math.sin(now / 7000) * 0.03; }
       // tweens can start new tweens (a die landing throws sparks): run this frame's batch, then keep anything

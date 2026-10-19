@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => curtainFlags(window.WAR_FLAG
   @keyframes swing{ 0%{ transform:rotate(-70deg); opacity:1; } 55%{ transform:rotate(25deg); } 75%{ transform:rotate(15deg); } 100%{ transform:rotate(20deg); opacity:0; } }
   #smashBar{ position:fixed; top:58px; left:50%; translate:-50% 0; z-index:40; display:none; align-items:center; gap:12px; padding:8px 16px; border-radius:10px;
     background:linear-gradient(#3a1a0c,#1c0c05); border:1px solid #d6a940; box-shadow:0 6px 20px rgba(0,0,0,.6); font:700 15px Cinzel, serif; color:#ffd36a; }
-  body.smashing #stage canvas{ cursor:crosshair; }
+  body.smashing #stage canvas{ cursor:crosshair; }   /* the weapon itself becomes the cursor once it has loaded */
   .smashNote{ text-align:center; margin-top:10px; color:#e6d3a8; font-size:14px; }
   .petln{ font-size:12px; color:#e6d3a8; margin-top:4px; }
   body.busy, body.busy #stage canvas{ cursor:progress !important; }
@@ -1410,19 +1410,21 @@ function startSmash(){
   ['me', 'zone', 'feed', 'chat'].forEach(id => { const e = document.getElementById(id); if(e) e.dataset.was = e.style.display, e.style.display = 'none'; });
   const bar = document.getElementById('smashBar'); bar.style.display = 'flex';
   document.getElementById('smashTxt').textContent = `${cur().faction === 'alliance' ? '🔨' : '🪓'} Click the board to smash it!`;
-  board.overview(700); smashChannel(); board.loadWeapons();
+  board.overview(700); smashChannel(); board.holdWeapon(cur().faction);
 }
 function stopSmash(){
-  document.body.classList.remove('smashing'); board.smashMode = false;
+  document.body.classList.remove('smashing'); board.smashMode = false; board.dropWeapon();
   ['me', 'zone', 'feed', 'chat'].forEach(id => { const e = document.getElementById(id); if(e && e.dataset.was !== undefined) e.style.display = e.dataset.was; });
   document.getElementById('smashBar').style.display = 'none';
   refreshUI();
 }
 async function smashClick(x, y){
   if(!board.smashMode || !canSmash()) return;
-  const at = board.pointOnTable(x, y); if(!at) return;
+  // the weapon in hand chops where it is; without it (still loading, or touch) the old one-off swing
+  let impact = board.swingHeld(), at;
+  if(impact){ at = await impact; }
+  else { at = board.pointOnTable(x, y); if(!at) return; board.swingAt(x, y, cur().faction, at); await new Promise(r => setTimeout(r, 300)); }
   if(LIVE){
-    board.swingAt(x, y, cur().faction, at);
     const r = await serverAct('smash', { x: at.x, z: at.z }); if(!r.ok){ toast(r.error); return; }
     (G.smash = G.smash || []).push(r.hit); board.smashHit(r.hit, true);
     const ch = smashChannel(); if(ch) ch.send({ type: 'broadcast', event: 'hit', payload: { gid: G.id, hit: r.hit } });
@@ -1431,8 +1433,7 @@ async function smashClick(x, y){
   G.smash = G.smash || []; if(!G.smashStart) G.smashStart = Date.now();
   const hit = { x: +at.x.toFixed(3), z: +at.z.toFixed(3), power: +(0.8 + Math.random() * 0.5).toFixed(2), seed: Math.floor(Math.random() * 1e9), t: +((Date.now() - G.smashStart) / 1000).toFixed(2) };
   G.smash.push(hit); save();
-  board.swingAt(x, y, cur().faction, at);
-  setTimeout(() => board.smashHit(hit, true), 300);   // the blow lands as the weapon comes down
+  board.smashHit(hit, true);
   const ch = smashChannel(); if(ch) ch.send({ type: 'broadcast', event: 'hit', payload: { gid: G.id, hit } });
 }
 
