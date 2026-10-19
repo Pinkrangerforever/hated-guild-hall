@@ -297,7 +297,11 @@ local function build()
   local bline = mid:CreateTexture(nil, "ARTWORK")
   bline:SetPoint("BOTTOMLEFT", 8, 38); bline:SetPoint("BOTTOMRIGHT", -8, 38); bline:SetHeight(1); bline:SetColorTexture(0.72, 0.56, 0.28, 0.35)
   local push = CreateFrame("Button", nil, mid, "UIPanelButtonTemplate")
-  push:SetSize(140, 24); push:SetPoint("BOTTOMRIGHT", -10, 9); push:SetText("Show to raid")
+  push:SetSize(140, 24); push:SetPoint("BOTTOMRIGHT", -10, 9); push:SetText("Open for raid")
+  push:SetMotionScriptsWhileDisabled(true)
+  push:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_TOP"); GameTooltip:AddLine("Open for raid", 1, 0.82, 0.3)
+    GameTooltip:AddLine(canPush() and "Opens this boss on every raider's screen (raiders with the addon)." or "Be in a raid as leader or assistant to use this.", 1, 1, 1, true); GameTooltip:Show() end)
+  push:SetScript("OnLeave", GameTooltip_Hide)
   push:SetScript("OnClick", function() UI.Push() end)
   UI.pushBtn = push
   local sendAll = CreateFrame("Button", nil, mid, "UIPanelButtonTemplate")
@@ -398,7 +402,8 @@ Show = function(b, raidName)
   f.sub:SetText((pushedFrom and ("Shown by " .. pushedFrom .. ".  ") or "") ..
     ((HatedPlan and HatedPlan.updated) and ("Plan saved " .. HatedPlan.updated .. (HatedPlan.by and (" by " .. HatedPlan.by) or "")) or ""))
   refreshList()
-  UI.pushBtn:SetShown(b ~= nil and canPush())
+  UI.pushBtn:SetShown(b ~= nil and (canPush() or iAmLeader()))
+  UI.pushBtn:SetEnabled(canPush())
   UI.sendBtn:SetShown(iAmLeader() and HatedPlan ~= nil and HatedPlan.raids ~= nil and #HatedPlan.raids > 0)
 
   if not b then
@@ -563,8 +568,12 @@ end
 
 local incoming, done = {}, {}
 local ev = CreateFrame("Frame")
-ev:RegisterEvent("CHAT_MSG_ADDON"); ev:RegisterEvent("PLAYER_LOGIN")
+ev:RegisterEvent("CHAT_MSG_ADDON"); ev:RegisterEvent("PLAYER_LOGIN"); ev:RegisterEvent("GROUP_ROSTER_UPDATE")
 ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
+  if event == "GROUP_ROSTER_UPDATE" then
+    if UI.pushBtn and current then UI.pushBtn:SetShown(canPush() or iAmLeader()); UI.pushBtn:SetEnabled(canPush()) end
+    return
+  end
   if event == "PLAYER_LOGIN" then
     C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
     filePlan = HatedPlan
