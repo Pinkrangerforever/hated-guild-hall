@@ -1125,6 +1125,16 @@
   .hb-chip.changed{ border-color:rgba(255,211,106,0.6); background:rgba(70,50,15,0.6); }
   .hb-drop{ margin-top:10px; padding:10px; border:1px dashed #5a4630; border-radius:6px; text-align:center; color:#a8875a; font-size:12px; cursor:pointer; }
   .hb-drop.over{ border-color:#7ed97e; color:#7ed97e; }
+  .mk-roster{ margin-bottom:10px; padding:8px; border:1px solid #3a2d20; border-radius:6px; background:rgba(12,9,6,0.4); }
+  .rp-chip.mk-used{ opacity:0.6; }
+  .mk-board{ grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); }
+  .mk-head{ display:flex; align-items:center; gap:8px; }
+  .mk-icon{ flex:0 0 auto; filter:drop-shadow(0 1px 2px #000); }
+  .mk-label{ font:700 13px Cinzel, Georgia, serif; letter-spacing:0.05em; }
+  .mk-star{ color:#ffe14a; } .mk-circle{ color:#ff8a1e; } .mk-diamond{ color:#c04dff; } .mk-triangle{ color:#3ee03e; }
+  .mk-moon{ color:#dfe8f2; } .mk-square{ color:#2a8cff; } .mk-cross{ color:#ff3a2a; } .mk-skull{ color:#f4f1ea; }
+  .mk-note{ margin:6px 8px 0; font-size:12px; padding:4px 6px; }
+  .mk-note-ro{ margin:6px 9px 0; font-size:12px; color:#c8b48a; font-style:italic; }
   .strat-breadcrumb{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); margin-bottom:4px; }
   .strat-breadcrumb button{ background:none; border:none; color:var(--text-muted); font-size:12px; padding:2px 0; text-decoration:underline; }
   .strat-breadcrumb button:hover{ color:var(--blurple); }
@@ -12732,8 +12742,35 @@ function healBoard(scope, list, edit){
     </div>`; }).join('') }</div>`;
 }
 
+// WoW raid target markers (in-game order 1-8), drawn as SVG so they stay crisp
+const RAID_MARKS = [
+  ['star', 'Star', '<polygon points="12,2 14.9,8.6 22,9.3 16.6,14 18.2,21 12,17.3 5.8,21 7.4,14 2,9.3 9.1,8.6" fill="#ffe14a" stroke="#8a6a00" stroke-width="1"/>'],
+  ['circle', 'Circle', '<circle cx="12" cy="12" r="9" fill="#ff8a1e" stroke="#7a3a00" stroke-width="1.2"/><circle cx="9.5" cy="9" r="2.5" fill="#ffc98a" opacity=".7"/>'],
+  ['diamond', 'Diamond', '<polygon points="12,2 21,12 12,22 3,12" fill="#c04dff" stroke="#55107a" stroke-width="1.2"/>'],
+  ['triangle', 'Triangle', '<polygon points="12,3 22,20.5 2,20.5" fill="#3ee03e" stroke="#126612" stroke-width="1.2"/>'],
+  ['moon', 'Moon', '<path d="M15.5 3a9 9 0 1 0 5.5 15.6A7.5 7.5 0 0 1 15.5 3z" fill="#dfe8f2" stroke="#6b7a8a" stroke-width="1"/>'],
+  ['square', 'Square', '<rect x="3.5" y="3.5" width="17" height="17" rx="1.5" fill="#2a8cff" stroke="#0b3f80" stroke-width="1.2"/>'],
+  ['cross', 'Cross', '<path d="M5 3.5 12 10.5 19 3.5 20.5 5 13.5 12 20.5 19 19 20.5 12 13.5 5 20.5 3.5 19 10.5 12 3.5 5z" fill="#ff3a2a" stroke="#7a0f08" stroke-width="1"/>'],
+  ['skull', 'Skull', '<path d="M12 2.5c-5 0-8.5 3.4-8.5 8 0 2.6 1.2 4.4 2.8 5.5V20h2.2v-2h1.6v2h3.8v-2h1.6v2h2.2v-4c1.6-1.1 2.8-2.9 2.8-5.5 0-4.6-3.5-8-8.5-8z" fill="#f4f1ea" stroke="#5a554c" stroke-width="1"/><circle cx="8.7" cy="11" r="2.1" fill="#222"/><circle cx="15.3" cy="11" r="2.1" fill="#222"/><path d="M12 13.3l-1.2 2.2h2.4z" fill="#222"/>']
+];
+function markIcon(key, size){ const m = RAID_MARKS.find(x => x[0] === key); return m ? `<svg class="mk-icon" viewBox="0 0 24 24" width="${size || 22}" height="${size || 22}" aria-label="${m[1]}">${m[2]}</svg>` : ''; }
+function renderMarkBoard(boss, bp, edit){
+  const marks = bp.marks || {}, used = new Set(Object.values(marks).flatMap(m => m.who || []));
+  return `
+    <div class="rp-group-title" style="margin-top:14px;">Raid markers</div>
+    ${ edit ? `<p class="muted sans rp-hint">Click a marker, then click raiders to put them on it (or click a raider, then a marker, or drag). Add what the marker is for, like "sheep" or "off-tank".</p>
+      <div class="rp-chips mk-roster">${ planRoster().map(m => `<span class="rp-chip ${state.rpPick === m.name ? 'picked' : ''} ${used.has(m.name) ? 'mk-used' : ''}" draggable="true" data-pick="${esc(m.name)}">${planNameHtml(m.name)}</span>`).join('') }</div>` : '' }
+    <div class="hb mk-board">${ RAID_MARKS.map(([k, label]) => { const m = marks[k] || {}, who = m.who || [];
+      if(!edit && !who.length && !m.note) return '';
+      return `<div class="hb-col ${state.rpMark === k ? 'sel' : ''} ${edit ? 'edit' : ''}" ${edit ? `data-mk="${k}"` : ''}>
+        <div class="hb-head mk-head">${markIcon(k)}<span class="mk-label mk-${k}">${label}</span></div>
+        ${ edit ? `<input class="mk-note" data-mk-note="${k}" value="${esc(m.note || '')}" placeholder="What's it for?" maxlength="40">` : (m.note ? `<div class="mk-note-ro">${esc(m.note)}</div>` : '') }
+        <div class="hb-body">${ who.map(n => `<span class="rp-chip">${planNameHtml(n)}${ edit ? `<button type="button" class="rp-x" data-mk-del="${k}|${esc(n)}">&times;</button>` : '' }</span>`).join('') || `<div class="hb-empty">${ edit ? 'Nobody yet' : '-' }</div>` }</div>
+      </div>`; }).join('') || emptyState('No markers for this fight.') }</div>`;
+}
+
 // A boss's fight assignments (on its page): starts from the raid setup, changes highlighted
-function bossPlan(boss){ return Object.assign({ tankJobs: {}, heal: {}, jobs: [], killOrder: '' }, boss.plan || {}); }
+function bossPlan(boss){ return Object.assign({ tankJobs: {}, heal: {}, jobs: [], killOrder: '', marks: {} }, boss.plan || {}); }
 function renderBossAssignments(boss){
   if(!state.raidPlan){ loadRaidPlan(); return ''; }
   const edit = testCanManage(), bp = bossPlan(boss), tanks = planTanks(), names = planRoster().map(m => m.name);
@@ -12752,6 +12789,7 @@ function renderBossAssignments(boss){
       <div class="rp-group-title" style="margin-top:14px;">Healers</div>
       ${ edit ? '<p class="muted sans rp-hint">Click a tank then the healers for them, or drag healers between tanks. Changes for this fight glow gold.</p>' : '' }
       ${ healList.length ? healBoard(boss.id, healList, edit) : emptyState('Pick healers on the Boss Strategies page.') }
+      ${ renderMarkBoard(boss, bp, edit) }
       <div class="rp-group-title" style="margin-top:14px;">Interrupts, crowd control &amp; other jobs</div>
       ${ bp.jobs.length ? bp.jobs.map((j, i) => `<div class="rp-heal">
           ${ edit ? `<select data-bp-job-who="${i}">${planPickOptions(j.who, names, 'Who…')}</select><input data-bp-job-what="${i}" value="${esc(j.what || '')}" placeholder="Interrupt Shadow Bolt, sheep skull 2…" maxlength="80"><button type="button" class="rp-x" data-bp-job-del="${i}">&times;</button>`
@@ -12803,6 +12841,7 @@ function wireRaidPlan(){
     el.onclick = e => {
       if(e.target.closest('button')) return;
       e.stopPropagation();
+      if(state.rpMark){ markAdd(state.rpMark, n); return; }
       if(state.rpTank){ const i = state.rpTank.lastIndexOf('|'); assign(state.rpTank.slice(0, i), n, state.rpTank.slice(i + 1)); return; }
       state.rpPick = state.rpPick === n ? null : n; render();
     };
@@ -12814,17 +12853,34 @@ function wireRaidPlan(){
     el.ondragleave = () => el.classList.remove('over');
     el.ondrop = e => { e.preventDefault(); el.classList.remove('over'); const n = e.dataTransfer.getData('text/plain'); if(n) onDrop(n); };
   };
+  const markBoss = () => { const id = state.stratNav && state.stratNav.bossId; return id && state.bosses.find(b => b.id === id); };
+  const markAdd = (k, n) => { const b = markBoss(); state.rpPick = null; if(!b) return;
+    const marks = Object.assign({}, bossPlan(b).marks), m = Object.assign({ who: [], note: '' }, marks[k]);
+    if(m.who.includes(n)){ render(); return; }
+    m.who = m.who.concat(n); marks[k] = m; saveBossPlan(b.id, { marks }); };
+  document.querySelectorAll('[data-mk]').forEach(col => {
+    const k = col.dataset.mk;
+    col.onclick = e => { if(e.target.closest('input,button')) return;
+      if(state.rpPick){ markAdd(k, state.rpPick); return; }
+      state.rpTank = null; state.rpMark = state.rpMark === k ? null : k; render(); };
+    dropZone(col, n => markAdd(k, n));
+  });
+  document.querySelectorAll('[data-mk-del]').forEach(btn => btn.onclick = e => { e.stopPropagation();
+    const [k, n] = btn.dataset.mkDel.split('|'), b = markBoss(); if(!b) return;
+    const marks = Object.assign({}, bossPlan(b).marks); marks[k] = Object.assign({}, marks[k], { who: (marks[k].who || []).filter(x => x !== n) }); saveBossPlan(b.id, { marks }); });
+  document.querySelectorAll('[data-mk-note]').forEach(inp => { inp.onclick = e => e.stopPropagation(); inp.onchange = () => { const k = inp.dataset.mkNote, b = markBoss(); if(!b) return;
+    const marks = Object.assign({}, bossPlan(b).marks); marks[k] = Object.assign({ who: [] }, marks[k], { note: inp.value.trim() }); saveBossPlan(b.id, { marks }); }; });
   document.querySelectorAll('[data-hb-col]').forEach(col => {
     const scope = col.dataset.hbScope, t = col.dataset.hbCol, key = scope + '|' + t;
     col.onclick = () => {
       if(state.rpPick){ assign(scope, state.rpPick, t); return; }
-      state.rpTank = state.rpTank === key ? null : key; render();
+      state.rpMark = null; state.rpTank = state.rpTank === key ? null : key; render();
     };
     dropZone(col, n => assign(scope, n, t));
   });
   document.querySelectorAll('[data-tanks-drop]').forEach(z => { z.onclick = () => { if(state.rpPick) addTank(state.rpPick); }; dropZone(z, addTank); });
   if(!wireRaidPlan.esc){ wireRaidPlan.esc = true;
-    document.addEventListener('keydown', e => { if(e.key === 'Escape' && (state.rpPick || state.rpTank)){ state.rpPick = state.rpTank = null; render(); } }); }
+    document.addEventListener('keydown', e => { if(e.key === 'Escape' && (state.rpPick || state.rpTank || state.rpMark)){ state.rpPick = state.rpTank = state.rpMark = null; render(); } }); }
   document.querySelectorAll('[data-rp-tank-del]').forEach(b => b.onclick = () => { const n = b.dataset.rpTankDel;
     saveRaidPlan({ tanks: tanks().filter(t => t !== n), healers: healers().map(x => x.tank === n ? Object.assign({}, x, { tank: '' }) : x) }); });
   document.querySelectorAll('[data-rp-tank-up]').forEach(b => b.onclick = () => { const i = +b.dataset.rpTankUp, t = tanks().slice(); [t[i - 1], t[i]] = [t[i], t[i - 1]]; saveRaidPlan({ tanks: t }); });
