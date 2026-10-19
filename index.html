@@ -1211,6 +1211,30 @@
   .bv-kill svg{ filter:drop-shadow(0 2px 2px #000); }
   .bv-gt{ color:#b8862e; font-size:22px; margin:0 2px; }
   .bv-killnote{ margin-top:4px; color:#e8dcc0; }
+  .bv-tmarks{ display:inline-flex; gap:2px; margin-right:8px; vertical-align:-4px; }
+  /* Edit plan: the same panels, with inputs */
+  .be .bv-row{ grid-template-columns:38% 1fr; }
+  .be-in{ width:100%; box-sizing:border-box; background:rgba(0,0,0,.35); border:1px solid rgba(140,110,56,.45); border-radius:3px; color:#ece4d4; padding:5px 7px; font:13px system-ui; }
+  .be-in:focus{ outline:none; border-color:#ffd166; }
+  .be-notes{ min-height:110px; resize:vertical; line-height:1.5; }
+  .be-stack{ display:flex; flex-direction:column; gap:5px; }
+  .be-marks, .be-kpick{ display:flex; flex-wrap:wrap; gap:3px; align-items:center; }
+  .be-mk{ width:28px; height:28px; padding:0; display:inline-flex; align-items:center; justify-content:center; background:rgba(0,0,0,.3); border:1px solid rgba(140,110,56,.35); border-radius:4px; cursor:pointer; opacity:.45; transition:opacity .12s, border-color .12s; }
+  .be-mk:hover{ opacity:.85; } .be-mk.on{ opacity:1; border-color:#ffd166; background:rgba(255,204,77,.18); }
+  .be-kpick .be-mk{ opacity:.9; }
+  .be-kstep{ background:none; border:0; padding:0; cursor:pointer; } .be-kstep:hover{ filter:drop-shadow(0 0 4px #ff6a5a); }
+  .be-chips{ display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+  .be-chip{ background:rgba(0,0,0,.3); border:1px solid rgba(140,110,56,.4); border-radius:12px; color:#cbbf9f; padding:2px 9px; font:600 12px system-ui; cursor:pointer; }
+  .be-chip:hover{ border-color:#d9b36a; color:#fff; } .be-chip.on{ background:rgba(255,204,77,.22); border-color:#ffd166; color:#ffe7a8; }
+  .be-changed{ font:700 10px system-ui; color:#ffd36a; border:1px solid rgba(255,211,106,.45); border-radius:3px; padding:0 4px; margin-left:4px; }
+  .be-who{ display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+  .be-tag{ display:inline-flex; align-items:center; gap:2px; background:rgba(0,0,0,.3); border:1px solid rgba(140,110,56,.35); border-radius:3px; padding:1px 2px 1px 6px; }
+  .be-tag button, .be-x{ background:none; border:0; color:#a8875a; cursor:pointer; font-size:15px; line-height:1; padding:0 3px; } .be-tag button:hover, .be-x:hover{ color:#ff7b6a; }
+  .be-add{ background:rgba(0,0,0,.3); border:1px dashed rgba(140,110,56,.5); border-radius:3px; color:#a8875a; font:12px system-ui; padding:2px 4px; max-width:110px; }
+  .be-line{ display:flex; gap:4px; align-items:center; }
+  .be-small{ padding:4px 10px !important; font-size:12px !important; }
+  .be-shotbar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:-6px; font-size:12px; }
+  .be-markcard .bv-row{ padding:4px 10px; }
   .bv-rule{ height:1px; margin:16px 0 14px; background:linear-gradient(90deg, rgba(140,110,56,.7), transparent); }
   .bv-cards{ columns:2 300px; column-gap:14px; }
   @media (min-width: 1500px){ .bv-cards{ columns:3 300px; } }
@@ -12626,34 +12650,9 @@ function renderStrategies(){
         <div class="bv-main">
           <div class="bv-title"><div><h2>${esc(boss.name)}</h2><span>${esc(raid.name)}</span></div>
             ${ officer ? `<button type="button" class="btn ${editing ? '' : 'secondary'}" id="bv-edit">${editing ? 'Done editing' : 'Edit plan'}</button>` : '' }</div>
-          ${ editing ? '' : renderBossView(boss) }
+          ${ editing ? renderBossEdit(boss) : renderBossView(boss) }
         </div>
       </div>
-      ${ editing ? `
-      ${ renderBossAssignments(boss) }
-
-      <div class="panel style-glass">
-        <h3 style="margin-bottom:12px;">Strategy notes</h3>
-        ${ officer ? `
-          <div class="field"><textarea id="boss-notes-input" placeholder="Positioning, cooldown order, who tanks what, wipe triggers...">${esc(boss.notes||'')}</textarea></div>
-          <button class="btn" type="button" id="boss-notes-save-btn" style="margin-top:10px;">Save notes</button>
-        ` : (boss.notes ? `<div class="muted" style="white-space:pre-wrap; line-height:1.6;">${esc(boss.notes)}</div>` : emptyState('No notes yet.')) }
-      </div>
-
-      <div class="panel style-glass">
-        <h3 style="margin-bottom:4px;">RaidPlan Screenshot</h3>
-        ${ officer ? '<p class="muted sans" style="margin-bottom:12px; font-size:12px;">Tip: copy an image and press Ctrl+V anywhere on this page to save it here.</p>' : '<div style="height:8px"></div>' }
-        ${ boss.screenshot_url ? `
-          <img src="${esc(boss.screenshot_url)}" alt="${esc(boss.name)} raid plan screenshot" class="boss-screenshot">
-          ${ officer ? `<div style="margin-top:12px; display:flex; gap:10px;">
-              <label class="btn secondary" style="cursor:pointer;">Replace screenshot<input type="file" accept="image/*" id="boss-screenshot-input" style="display:none;"></label>
-              <button class="btn danger" type="button" id="boss-screenshot-remove-btn">Remove</button>
-            </div>` : '' }
-        ` : ( officer ? `
-          <p class="muted sans" style="margin-bottom:12px;">Build the plan on <a href="https://raidplan.io/classic" target="_blank" rel="noopener">raidplan.io</a>, screenshot it, and upload it here.</p>
-          <label class="btn" style="cursor:pointer; display:inline-block;">Upload screenshot<input type="file" accept="image/*" id="boss-screenshot-input" style="display:none;"></label>
-        ` : emptyState('No screenshot posted yet.') ) }
-      </div>` : '' }
     `;
   }
 
@@ -12908,7 +12907,7 @@ function renderMarkBoard(boss, bp, edit){
 }
 
 // A boss's fight assignments (on its page): starts from the raid setup, changes highlighted
-function bossPlan(boss){ return Object.assign({ tankJobs: {}, heal: {}, jobs: [], killOrder: '', marks: {}, floor: {} }, boss.plan || {}); }
+function bossPlan(boss){ return Object.assign({ tankJobs: {}, tankMarks: {}, heal: {}, jobs: [], killOrder: '', marks: {}, floor: {} }, boss.plan || {}); }
 function renderBossAssignments(boss){
   if(!state.raidPlan){ loadRaidPlan(); return ''; }
   const edit = testCanManage(), bp = bossPlan(boss), tanks = planTanks(), names = planRoster().map(m => m.name);
@@ -13043,6 +13042,30 @@ function wireRaidPlan(){
     if(s.value === def) delete heal[s.dataset.bpHeal]; else heal[s.dataset.bpHeal] = s.value; saveBossPlan(boss.id, { heal }); });
   document.querySelectorAll('[data-bp-heal-reset]').forEach(b => b.onclick = e => { e.stopPropagation(); const heal = Object.assign({}, bp().heal); delete heal[b.dataset.bpHealReset]; saveBossPlan(boss.id, { heal }); });
   $('bp-heal-reset-all') && ($('bp-heal-reset-all').onclick = () => saveBossPlan(boss.id, { heal: {} }));
+  // Edit plan (the page-shaped editor)
+  document.querySelectorAll('[data-be-tankmark]').forEach(b => b.onclick = () => {
+    const [t, k] = b.dataset.beTankmark.split('|'), tm = Object.assign({}, bp().tankMarks), list = (tm[t] || []).slice();
+    const i = list.indexOf(k); if(i >= 0) list.splice(i, 1); else list.push(k);
+    tm[t] = list; saveBossPlan(boss.id, { tankMarks: tm });
+  });
+  document.querySelectorAll('[data-be-tankjob]').forEach(inp => inp.onchange = () => saveBossPlan(boss.id, { tankJobs: Object.assign({}, bp().tankJobs, { [inp.dataset.beTankjob]: inp.value.trim() }) }));
+  document.querySelectorAll('[data-be-heal]').forEach(b => b.onclick = () => {
+    const [hn, t] = b.dataset.beHeal.split('|'), heal = Object.assign({}, bp().heal), def = (healers().find(x => x.name === hn) || {}).tank || '';
+    if(t === def) delete heal[hn]; else heal[hn] = t; saveBossPlan(boss.id, { heal });
+  });
+  const markSet = (set, k, fn) => { const all = Object.assign({}, bp()[set]); const m = Object.assign({ who: [], note: '' }, all[k]); fn(m);
+    if(!m.who.length && !m.note) delete all[k]; else all[k] = m; saveBossPlan(boss.id, { [set]: all }); };
+  document.querySelectorAll('[data-be-mnote]').forEach(inp => inp.onchange = () => { const [set, k] = inp.dataset.beMnote.split('|'); markSet(set, k, m => m.note = inp.value.trim()); });
+  document.querySelectorAll('[data-be-madd]').forEach(sel => sel.onchange = () => { if(!sel.value) return; const [set, k] = sel.dataset.beMadd.split('|'); markSet(set, k, m => m.who = m.who.concat(sel.value)); });
+  document.querySelectorAll('[data-be-mdel]').forEach(b => b.onclick = () => { const [set, k, n] = b.dataset.beMdel.split('|'); markSet(set, k, m => m.who = m.who.filter(x => x !== n)); });
+  document.querySelectorAll('[data-be-kadd]').forEach(b => b.onclick = () => saveBossPlan(boss.id, { killMarks: (bp().killMarks || []).concat(b.dataset.beKadd) }));
+  document.querySelectorAll('[data-be-kdel]').forEach(b => b.onclick = () => saveBossPlan(boss.id, { killMarks: (bp().killMarks || []).filter((_, i) => i !== +b.dataset.beKdel) }));
+  $('be-kclear') && ($('be-kclear').onclick = () => saveBossPlan(boss.id, { killMarks: [] }));
+  $('be-knote') && ($('be-knote').onchange = e => saveBossPlan(boss.id, { killOrder: e.target.value.trim() }));
+  document.querySelectorAll('[data-be-jwho]').forEach(s => s.onchange = () => { const jobs = bp().jobs.slice(); jobs[+s.dataset.beJwho] = Object.assign({}, jobs[+s.dataset.beJwho], { who: s.value }); saveBossPlan(boss.id, { jobs }); });
+  document.querySelectorAll('[data-be-jwhat]').forEach(inp => inp.onchange = () => { const jobs = bp().jobs.slice(); jobs[+inp.dataset.beJwhat] = Object.assign({}, jobs[+inp.dataset.beJwhat], { what: inp.value.trim() }); saveBossPlan(boss.id, { jobs }); });
+  document.querySelectorAll('[data-be-jdel]').forEach(b => b.onclick = () => saveBossPlan(boss.id, { jobs: bp().jobs.filter((_, i) => i !== +b.dataset.beJdel) }));
+  $('be-jadd') && ($('be-jadd').onclick = () => saveBossPlan(boss.id, { jobs: bp().jobs.concat({ who: '', what: '' }) }));
   document.querySelectorAll('[data-bp-tankjob]').forEach(inp => inp.onchange = () => saveBossPlan(boss.id, { tankJobs: Object.assign({}, bp().tankJobs, { [inp.dataset.bpTankjob]: inp.value.trim() }) }));
   $('bp-job-add') && ($('bp-job-add').onclick = () => saveBossPlan(boss.id, { jobs: bp().jobs.concat({ who: '', what: '' }) }));
   document.querySelectorAll('[data-bp-job-who]').forEach(s => s.onchange = () => { const jobs = bp().jobs.slice(); jobs[+s.dataset.bpJobWho] = Object.assign({}, jobs[+s.dataset.bpJobWho], { who: s.value }); saveBossPlan(boss.id, { jobs }); });
@@ -13081,7 +13104,7 @@ function addonBossData(boss){
   const markList = set => RAID_MARKS.map(([k, label]) => { const m = (bp[set] || {})[k]; return m && ((m.who || []).length || m.note) ? { m: MARK_NUM[k], label, note: m.note || '', who: m.who || [] } : null; }).filter(Boolean);
   return {
     id: String(boss.id), name: boss.name, notes: boss.notes || '', shot: boss.screenshot_url || '',
-    tanks: tanks.map(t => ({ n: t, job: bp.tankJobs[t] || '' })),
+    tanks: tanks.map(t => ({ n: t, job: bp.tankJobs[t] || '', marks: (bp.tankMarks[t] || []).map(k => MARK_NUM[k]).filter(Boolean) })),
     heals: planHealers().map(hl => { const own = Object.prototype.hasOwnProperty.call(bp.heal, hl.name); return { n: hl.name, t: own ? bp.heal[hl.name] : hl.tank, c: own }; }),
     marks: markList('marks'), floor: markList('floor'),
     jobs: (bp.jobs || []).filter(j => j.who || j.what).map(j => ({ n: j.who || '', what: j.what || '' })),
@@ -13345,7 +13368,9 @@ function renderBossView(boss){
   const tankRows = b.tanks.map((t, i) => {
     const tag = i === 0 ? 'Main tank' : i === 1 ? 'Off tank' : 'Tank ' + (i + 1);
     if(bvIsMe(t.n)) mine.push(tag + (t.job ? ': ' + esc(t.job) : ''));
-    return { left: `<span class="bv-tag">${tag}</span>${bvName(t.n)}`, right: t.job ? esc(t.job) : null, me: bvIsMe(t.n) };
+    const tm = (t.marks || []).map(n => markIcon(bvMarkByNum(n), 18)).join('');
+    if(bvIsMe(t.n) && tm) mine[mine.length - 1] = tag + ': ' + tm + (t.job ? ' ' + esc(t.job) : '');
+    return { left: `<span class="bv-tag">${tag}</span>${bvName(t.n)}`, right: (tm || t.job) ? `${tm ? `<span class="bv-tmarks">${tm}</span>` : ''}${esc(t.job || '')}` : null, me: bvIsMe(t.n) };
   });
   const healRows = b.heals.map(x => {
     const target = x.t ? bvName(x.t) : '<span class="bv-raid">Raid healing</span>';
@@ -13386,6 +13411,68 @@ function renderBossView(boss){
     ${ cards.length ? `<div class="bv-rule"></div><div class="bv-cards">${cards.join('')}</div>` : '' }
   </div>`;
 }
+// Edit plan: the finished page's layout, every part editable in place. Saves as you go.
+function renderBossEdit(boss){
+  if(!state.raidPlan){ loadRaidPlan(); return `<div class="bv"><p class="muted sans">Loading the plan…</p></div>`; }
+  const bp = bossPlan(boss), tanks = planTanks(), heals = planHealers(), names = planRoster().map(m => m.name);
+  const opt = (sel, list, blank) => `<option value="">${blank}</option>` + list.map(n => `<option value="${esc(n)}" ${n === sel ? 'selected' : ''}>${esc(n)}</option>`).join('');
+
+  const tankRows = tanks.map((t, i) => ({
+    left: `<span class="bv-tag">${i === 0 ? 'Main tank' : i === 1 ? 'Off tank' : 'Tank ' + (i + 1)}</span>${bvName(t)}`,
+    right: `<div class="be-stack"><span class="be-marks">${ RAID_MARKS.map(([k, label]) => `<button type="button" class="be-mk ${(bp.tankMarks[t] || []).includes(k) ? 'on' : ''}" data-be-tankmark="${esc(t)}|${k}" title="${label}">${markIcon(k, 18)}</button>`).join('') }</span>
+      <input class="be-in" data-be-tankjob="${esc(t)}" value="${esc(bp.tankJobs[t] || '')}" placeholder="Job (boss, adds, kiting…)" maxlength="60"></div>` }));
+  const healRows = heals.map(x => {
+    const own = Object.prototype.hasOwnProperty.call(bp.heal, x.name), cur = own ? bp.heal[x.name] : x.tank;
+    return { left: bvName(x.name) + (own ? ' <span class="be-changed" title="Default: ' + esc(x.tank || 'Raid healing') + '">this fight</span>' : ''),
+      right: `<span class="be-chips"><span class="bv-arrow">&raquo;</span>${ tanks.concat(['']).map(t => `<button type="button" class="be-chip ${cur === t ? 'on' : ''}" data-be-heal="${esc(x.name)}|${esc(t)}">${t ? esc(t) : 'Raid'}</button>`).join('') }</span>` };
+  });
+  const markCard = (set, title, iconKey, sub) => bvSection(title, markIcon(iconKey, 18), RAID_MARKS.map(([k, label]) => {
+    const m = (bp[set] || {})[k] || { who: [], note: '' };
+    return { mark: k,
+      left: `<input class="be-in" data-be-mnote="${set}|${k}" value="${esc(m.note || '')}" placeholder="${label}${set === 'floor' ? ': where?' : ': what for?'}" maxlength="40">`,
+      right: `<span class="be-who">${ (m.who || []).map(n => `<span class="be-tag">${bvName(n)}<button type="button" data-be-mdel="${set}|${k}|${esc(n)}" title="Remove">&times;</button></span>`).join('') }
+        <select class="be-add" data-be-madd="${set}|${k}">${opt('', names.filter(n => !(m.who || []).includes(n)), '+ add')}</select></span>` };
+  }), { sub, cls: 'be-markcard' });
+
+  const killSeq = (bp.killMarks || []).map((k, i) => `<button type="button" class="be-kstep" data-be-kdel="${i}" title="Remove">${markIcon(k, 26)}</button>`).join('<span class="bv-gt">&rsaquo;</span>');
+  const killRows = [
+    { left: killSeq ? `<div class="bv-kill">${killSeq}</div>` : '<span class="bv-dim">Click markers below in kill order.</span>', right: null },
+    { left: `<div class="be-kpick">${ RAID_MARKS.map(([k, label]) => `<button type="button" class="be-mk" data-be-kadd="${k}" title="Add ${label}">${markIcon(k, 20)}</button>`).join('') }${ killSeq ? '<button type="button" class="btn secondary be-small" id="be-kclear">Clear</button>' : '' }</div>`, right: null },
+    { left: `<input class="be-in" id="be-knote" value="${esc(bp.killOrder || '')}" placeholder="Kill order note (e.g. then the boss)" maxlength="120">`, right: null },
+  ];
+  const jobRows = (bp.jobs || []).map((j, i) => ({
+    left: `<select class="be-in" data-be-jwho="${i}">${opt(j.who, names, 'Who…')}</select>`,
+    right: `<span class="be-line"><input class="be-in" data-be-jwhat="${i}" value="${esc(j.what || '')}" placeholder="Interrupt Shadow Bolt, sheep Moon…" maxlength="80"><button type="button" class="be-x" data-be-jdel="${i}" title="Remove">&times;</button></span>` }));
+  jobRows.push({ left: '<button type="button" class="btn secondary be-small" id="be-jadd">+ Add a job</button>', right: null });
+
+  return `<div class="bv be">
+    <div class="bv-top">
+      <div class="bv-col">
+        ${ tanks.length ? bvSection('Tanks', BV_ROLE.tank, tankRows) : `<p class="muted sans">Pick tanks in <b>Raid Setup</b> on the Boss Strategies page.</p>` }
+        ${ heals.length ? bvSection('Healers', BV_ROLE.heal, healRows, { sub: 'click who they heal this fight' }) : '' }
+        ${ Object.keys(bp.heal).length ? '<button type="button" class="btn secondary be-small" id="bp-heal-reset-all">Healers back to defaults</button>' : '' }
+      </div>
+      <div class="bv-col">
+        ${ boss.screenshot_url ? `<div class="bv-shot"><img src="${esc(boss.screenshot_url)}" alt="${esc(boss.name)} strategy"></div>` : `<div class="bv-shot none">No screenshot yet</div>` }
+        <div class="be-shotbar">
+          <label class="btn secondary be-small" style="cursor:pointer;">${boss.screenshot_url ? 'Replace' : 'Upload'} screenshot<input type="file" accept="image/*" id="boss-screenshot-input" style="display:none;"></label>
+          ${ boss.screenshot_url ? '<button class="btn danger be-small" type="button" id="boss-screenshot-remove-btn">Remove</button>' : '' }
+          <span class="bv-dim">or copy an image and press Ctrl+V</span>
+        </div>
+        ${ bvSection('Kill order', markIcon('skull', 18), killRows) }
+      </div>
+    </div>
+    <div class="bv-rule"></div>
+    <div class="bv-cards be-cards">
+      ${ markCard('marks', 'Target markers', 'skull') }
+      ${ markCard('floor', 'Floor markers', 'square', 'where to stand') }
+      ${ bvSection('Interrupts, CC &amp; jobs', BV_ROLE.jobs, jobRows) }
+      ${ bvSection('Notes', BV_ROLE.notes, [{ left: `<textarea class="be-in be-notes" id="boss-notes-input" placeholder="Positioning, cooldowns, wipe triggers…">${esc(boss.notes || '')}</textarea>
+          <button class="btn be-small" type="button" id="boss-notes-save-btn" style="margin-top:6px;">Save notes</button>`, right: null }]) }
+    </div>
+  </div>`;
+}
+
 function renderBossList(raid, boss){
   const fold = state.bvFold || {};
   return `<aside class="bv-list"><div class="bv-list-h">Bosses</div>
