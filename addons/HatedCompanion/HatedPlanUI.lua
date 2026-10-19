@@ -366,10 +366,35 @@ local function fitPix(pix, maxW, maxH)
   local s = math.min(maxW / pix.w, maxH / pix.h)
   return math.floor(pix.w * s), math.floor(pix.h * s)
 end
+local function rgb12(v) return math.floor(v / 256) / 15, (math.floor(v / 16) % 16) / 15, (v % 16) / 15 end
+local pixCache = setmetatable({}, { __mode = "k" })   -- decoded colours, kept out of saved variables
+local function decodePix(pix)
+  if pixCache[pix] then return pixCache[pix] end
+  local cols, data = {}, pix.data or ""
+  if pix.v == 2 then
+    local pal, ps = {}, pix.pal or ""
+    for i = 1, #ps - 1, 2 do pal[#pal + 1] = { rgb12((PIX[ps:byte(i)] or 0) * 64 + (PIX[ps:byte(i + 1)] or 0)) } end
+    local i = 1
+    while i <= #data do
+      if data:byte(i) == 33 then   -- "!" run
+        local len, c = (PIX[data:byte(i + 1)] or 0) + 1, pal[(PIX[data:byte(i + 2)] or 0) + 1]
+        for _ = 1, len do cols[#cols + 1] = c end
+        i = i + 3
+      else
+        cols[#cols + 1] = pal[(PIX[data:byte(i)] or 0) + 1]; i = i + 1
+      end
+    end
+  else
+    for i = 1, #data - 1, 2 do cols[#cols + 1] = { rgb12((PIX[data:byte(i)] or 0) * 64 + (PIX[data:byte(i + 1)] or 0)) } end
+  end
+  pixCache[pix] = cols
+  return cols
+end
 local function drawPix(holder, pix, W, H)
   holder.pool = holder.pool or {}
-  local pool, pw, ph, data = holder.pool, pix.w or 0, pix.h or 0, pix.data or ""
-  if pw * ph * 2 > #data then pw, ph = 0, 0 end
+  local pool, pw, ph = holder.pool, pix.w or 0, pix.h or 0
+  local cols = decodePix(pix)
+  if pw * ph > #cols then pw, ph = 0, 0 end
   local cw, ch = W / math.max(pw, 1), H / math.max(ph, 1)
   local n = 0
   for y = 0, ph - 1 do
@@ -377,9 +402,8 @@ local function drawPix(holder, pix, W, H)
       n = n + 1
       local tx = pool[n]
       if not tx then tx = holder:CreateTexture(nil, "ARTWORK"); pool[n] = tx end
-      local a, b = PIX[data:byte(n * 2 - 1)] or 0, PIX[data:byte(n * 2)] or 0
-      local v = a * 64 + b
-      tx:SetColorTexture(math.floor(v / 256) / 15, (math.floor(v / 16) % 16) / 15, (v % 16) / 15, 1)
+      local c = cols[n] or { 0, 0, 0 }
+      tx:SetColorTexture(c[1] or 0, c[2] or 0, c[3] or 0, 1)
       tx:ClearAllPoints(); tx:SetPoint("TOPLEFT", holder, "TOPLEFT", 1 + x * cw, -1 - y * ch)
       tx:SetSize(cw + 0.6, ch + 0.6)   -- a hair of overlap hides seams
       tx:Show()
@@ -693,10 +717,12 @@ local function de(s, i, depth)
 end
 
 local queue, sending, progress = {}, false, nil
+local sentCount, totalCount, lastPct = 0, 0, 0
 local function pump()
   if #queue == 0 then
     sending = false
     if progress then say(progress .. " sent."); progress = nil end
+    sentCount, totalCount, lastPct = 0, 0, 0
     return
   end
   sending = true
@@ -704,17 +730,22 @@ local function pump()
   local r = C_ChatInfo.SendAddonMessage(PREFIX, m[1], m[2])
   -- newer clients return a result code and throttle bursts: wait and retry the same piece
   local ok = (r == nil or r == true or r == 0 or (Enum and Enum.SendAddonMessageResult and r == Enum.SendAddonMessageResult.Success))
-  if ok then table.remove(queue, 1) end
+  if ok then
+    table.remove(queue, 1); sentCount = sentCount + 1
+    local pct = totalCount > 0 and math.floor(sentCount / totalCount * 4) * 25 or 0
+    if progress and pct > lastPct and pct < 100 then lastPct = pct; say(progress .. " " .. pct .. "% sent...") end
+  end
   C_Timer.After(ok and 0.12 or 1, pump)
 end
 local function send(kind, payload, channels)
   channels = channels or { IsInRaid() and "RAID" or "PARTY" }
   local data = table.concat(ser(payload, {}))
-  local id, CH = tostring(math.random(100000, 999999)), 220
+  local id, CH = tostring(math.random(100000, 999999)), 232
   local n = math.ceil(#data / CH)
   for _, channel in ipairs(channels) do
     for i = 1, n do queue[#queue + 1] = { kind .. id .. "|" .. i .. "|" .. n .. "|" .. data:sub((i - 1) * CH + 1, i * CH), channel } end
   end
+  totalCount = totalCount + n * #channels
   if not sending then pump() end
   return channels[1] == "RAID" and "raid" or channels[1] == "GUILD" and "guild" or "party", n * #channels
 end
@@ -736,15 +767,21 @@ function UI.SendPlan()
     local r = { name = raid.name, bosses = {} }
     for _, b in ipairs(raid.bosses or {}) do
       local c = {}; for k, v in pairs(b) do if k ~= "image" then c[k] = v end end
+      if c.pix then local px = {}; for k, v in pairs(c.pix) do if k ~= "cols" then px[k] = v end end; c.pix = px end
       r.bosses[#r.bosses + 1] = c
     end
     copy.raids[#copy.raids + 1] = r
   end
   local channels = { "GUILD" }
-  if IsInRaid() then channels[2] = "RAID" end     -- PUGs in the raid get it too
+  if IsInRaid() then                                -- PUGs in the raid get it too (only sent twice when there are any)
+    for i = 1, GetNumGroupMembers() do
+      local u = "raid" .. i
+      if UnitExists(u) and not UnitIsInMyGuild(u) then channels[2] = "RAID"; break end
+    end
+  end
   local _, n = send("P", copy, channels)
   progress = "Plan (saved " .. (HatedPlan.updated or "?") .. ")"
-  say(string.format("sending the plan to everyone online in the guild%s with the addon (about %d seconds).", IsInRaid() and " and the raid" or "", math.ceil(n * 0.15)))
+  say(string.format("sending the plan to everyone online in the guild%s with the addon (%d pieces; WoW limits addon messages, so this can take a minute or two).", channels[2] and " and your raid's PUGs" or "", n))
 end
 
 -- use a plan received in game when it's newer than the one the website saved, keeping my own screenshots
@@ -782,13 +819,14 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
   end
   if prefix ~= PREFIX or (channel ~= "RAID" and channel ~= "PARTY" and channel ~= "GUILD") then return end
   local short = Ambiguate(sender or "", "short")
-  local ok = false
+  local ok, why = false, nil
   if channel == "GUILD" then
     -- guild plans only from the Raid Leader (the website names them in the plan); without a plan yet, from the guild master
     if msg:sub(1, 1) ~= "P" then return end
     local l = leaderName()
-    if l and l ~= "" then ok = matches(l, wordsOf(short))
+    if l and l ~= "" then ok = matches(l, wordsOf(short)); why = "only the Raid Leader (" .. l .. ") can send plans"
     else
+      why = "without a plan yet, only the guild master's plans are taken"
       for gi = 1, GetNumGuildMembers() do
         local gname, _, rankIndex = GetGuildRosterInfo(gi)
         if gname and Ambiguate(gname, "short") == short then ok = rankIndex == 0; break end
@@ -803,7 +841,10 @@ ev:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
   else
     ok = UnitIsGroupLeader(short)
   end
-  if not ok then return end
+  if not ok then
+    if why and msg:match("^P%d+|1|") and short ~= UnitName("player") then say("ignored a plan from " .. short .. ": " .. why .. ".") end
+    return
+  end
   local kind, id, i, n, part = msg:match("^([BP])(%d+)|(%d+)|(%d+)|(.*)$")
   if not id then return end
   i, n = tonumber(i), tonumber(n)
