@@ -4523,6 +4523,25 @@
   .fsh-track .fish-jump{ left:50%; top:20%; width:90px; height:60px; }
 </style>
 <style>
+  /* Hated Companion download card (home page, under the Guild Vault) */
+  .addon-card{ position:relative; margin-bottom:16px; padding:14px 14px 12px; border-radius:7px; border:1px solid #6b5232;
+    background:linear-gradient(160deg, #241a10 0%, #150f09 60%, #1d140b 100%); box-shadow:inset 0 1px 0 rgba(255,215,140,.1), 0 4px 10px rgba(0,0,0,.45); }
+  .addon-card-head{ display:flex; align-items:center; gap:10px; }
+  .addon-card-h{ width:38px; height:38px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:50%;
+    font:900 22px Cinzel, Georgia, serif; color:#ffd56a; background:radial-gradient(circle at 40% 35%, #5a1a12, #2a0a07 70%);
+    border:2px solid #b8862e; box-shadow:0 0 10px rgba(212,175,55,.3), inset 0 -2px 4px rgba(0,0,0,.5); text-shadow:0 1px 2px #000; }
+  .addon-card-title{ font:800 15px Cinzel, Georgia, serif; letter-spacing:1px; color:#ecc867; text-shadow:0 1px 2px #000; }
+  .addon-card-sub{ font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#a8875a; }
+  .addon-card-text{ font-size:12px; line-height:1.5; color:#d8c8a8; margin:10px 0 12px; }
+  .addon-card-btn{ display:block; width:100%; padding:9px 10px; border-radius:4px; cursor:pointer; border:1px solid #d4af37;
+    font:700 13px Cinzel, Georgia, serif; letter-spacing:1px; color:#2a1608; background:linear-gradient(#f3d27a, #b8862e);
+    box-shadow:0 0 10px rgba(212,175,55,.25), inset 0 1px 0 rgba(255,255,255,.35); transition:filter .15s, transform .1s; }
+  .addon-card-btn:hover{ filter:brightness(1.1); } .addon-card-btn:active{ transform:translateY(1px); }
+  .addon-card-btn[disabled]{ opacity:.6; cursor:wait; }
+  .addon-card-help{ margin-top:9px; font-size:12px; color:#c8b48a; }
+  .addon-card-help summary{ cursor:pointer; color:#ecc867; }
+  .addon-card-help ol{ margin:6px 0 0; padding-left:18px; line-height:1.55; }
+  .addon-card-help code{ background:rgba(0,0,0,.45); padding:1px 4px; border-radius:3px; font-size:11px; word-break:break-all; }
   /* guild vault donations widget (home page) - deliberately unlike the crimson/gold Gold Leaderboard */
   .vault-widget{ position:relative; margin-bottom:16px; padding:22px 14px 22px; border-radius:7px; overflow:hidden;
     background:
@@ -13057,6 +13076,7 @@ async function makeZip(files){   // files: [{ name, data: Uint8Array | string }]
   end.setUint32(12, size, true); end.setUint32(16, offset, true);
   return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: 'application/zip' });
 }
+window.downloadAddonZip = (...a) => downloadAddonZip(...a);
 async function downloadAddonZip(){
   if(state.addonZipBusy) return;
   state.addonZipBusy = true; render();
@@ -13628,6 +13648,25 @@ const VAULT_DOOR = `<svg class="vault-door" viewBox="0 0 64 64" aria-hidden="tru
   <circle cx="32" cy="32" r="7.5" fill="url(#vdGold)" stroke="#5a3a0c" stroke-width="1.2"/>
   <circle cx="32" cy="32" r="2.4" fill="#5a3a0c"/>
 </svg>`;
+// Home page: a small card to grab the Hated Companion addon (same zip as Boss Strategies > Download addon)
+function renderAddonCard(){
+  return `<div class="addon-card">
+    <div class="addon-card-head">
+      <span class="addon-card-h">H</span>
+      <div><div class="addon-card-title">Hated Companion</div><div class="addon-card-sub">WoW addon</div></div>
+    </div>
+    <p class="addon-card-text">Boss plans in game: your jobs highlighted, the strategy screenshots, and the newest plan sent straight from the raid leader.</p>
+    <button type="button" class="addon-card-btn" onclick="downloadAddonZip()" ${state.addonZipBusy ? 'disabled' : ''}>${state.addonZipBusy ? 'Building…' : '&#11015; Download addon'}</button>
+    <details class="addon-card-help"><summary>How to install</summary>
+      <ol>
+        <li>Right-click <b>HatedCompanion.zip</b> &rarr; <b>Extract All</b>.</li>
+        <li>Drag the <b>HatedCompanion</b> folder into <code>World of Warcraft\\&lt;your game&gt;\\Interface\\AddOns</code> (click <b>Continue</b> if Windows asks).</li>
+        <li>Restart WoW and type <b>/hated</b>, or click the <b>H</b> on your minimap.</li>
+      </ol>
+    </details>
+  </div>`;
+}
+
 function renderDonationLeaderboard(){
   if(!gb.loaded && !gb.loading) loadGuildBank();
   const P = { week: ['Week', 'this week'], month: ['Month', 'this month'], all: ['All time', 'so far'] };
@@ -13751,7 +13790,7 @@ function renderNews(){
       <div class="layout-mobile">
         <div class="module-wrapper">${renderAnnouncementsModule(officer)}</div>
         <div class="module-wrapper">${renderRosterModule()}</div>
-        <div class="module-wrapper">${renderDonationLeaderboard()}</div>
+        <div class="module-wrapper">${renderDonationLeaderboard()}${renderAddonCard()}</div>
         <div class="module-wrapper">${renderGuildBoardModule()}</div>
         <div class="module-wrapper">${renderGoldLeaderboard()}</div>
         ${officer ? `<div class="module-wrapper">${renderAnnouncementsFormModule()}</div>` : ''}
@@ -13765,7 +13804,7 @@ function renderNews(){
           <div class="module-wrapper">${renderRosterModule()}</div>
           ${officer ? `<div class="module-wrapper">${renderAnnouncementsFormModule()}</div>` : ''}
         </main>
-        <aside class="layout-sidebar-right">${renderDonationLeaderboard()}${renderGuildBoardModule()}</aside>
+        <aside class="layout-sidebar-right">${renderDonationLeaderboard()}${renderAddonCard()}${renderGuildBoardModule()}</aside>
       </div>
     </div>
   `;
