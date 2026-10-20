@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     const t = +f[1];
     if (!t || t <= lastT || t < now - MAX_AGE || t > now + 300) continue;
     if (f[0] === 'm' && f.length >= 10) {
-      if (inBatch.has(f[5])) continue; inBatch.add(f[5]);
+      if (f[5]) { if (inBatch.has(f[5])) continue; inBatch.add(f[5]); }
       items.push({ kind: 'm', t, char: f[2], plvl: +f[3] || 0, id: +f[4], guid: f[5], lvl: +f[8] || 0, cls: f[9], raid: false, bossKey: '' });
     } else if (f[0] === 'b' && f.length >= 10) {
       const raid = f[5] === 'r';
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
   for (const [d, n] of perDay) if (n > MAX_KILLS_PER_DAY) flags.push(`${n} kills on ${d}.`);
   const high = fresh.filter(i => i.kind === 'm' && i.lvl > 0 && i.plvl > 0 && i.lvl > i.plvl + MAX_LEVELS_ABOVE).length;
   if (high) flags.push(`${high} kill(s) of mobs more than ${MAX_LEVELS_ABOVE} levels above the character.`);
-  const badGuid = fresh.filter(i => i.kind === 'm' && !new RegExp(`^(Creature|Vehicle)-\\d+-\\d+-\\d+-\\d+-${i.id}-[0-9A-F]+$`).test(i.guid)).length;
+  const badGuid = fresh.filter(i => i.kind === 'm' && i.guid !== '' && !new RegExp(`^(Creature|Vehicle)-\\d+-\\d+-\\d+-\\d+-${i.id}-[0-9A-F]+$`).test(i.guid)).length;
   if (badGuid) flags.push(`${badGuid} kill(s) with a spawn id that doesn't match its creature.`);
 
   // what's already been killed on this account

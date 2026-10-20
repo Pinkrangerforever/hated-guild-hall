@@ -295,6 +295,79 @@ local function sinceSync()
   for _, e in ipairs(t.log) do local ts = tonumber(e:match("^%a,(%d+),")); if ts and ts > last then sum = sum + (tonumber(e:match(",(%d+),[^,]*$")) or 0); n = n + 1 end end
   return sum, n
 end
+-- ---------- the export code: your kills since the last sync, packed small, to paste on the website ----------
+-- HTCG2|<first kill time>|<edited? 0/1>|<character names>|<creature ids>|<entries>|<check>
+-- entries (base 36, ";" between):  m<time step>,<creature #>,<mob level>,<class>,<character #>,<character level>
+--                                  b<time step>,<encounter id>,<r|d>,<character #>,<character level>
+local B36 = "0123456789abcdefghijklmnopqrstuvwxyz"
+local function b36(n)
+  n = math.floor(tonumber(n) or 0); if n <= 0 then return "0" end
+  local s = ""; while n > 0 do local d = n % 36; s = B36:sub(d + 1, d + 1) .. s; n = math.floor(n / 36) end
+  return s
+end
+local CLS = { normal = "n", elite = "e", rare = "r", rareelite = "R", worldboss = "w", trivial = "t", minus = "m" }
+local function exportCode()
+  local t = db(); local since = (t.server and t.server.lastT) or 0
+  local chars, charIx, npcs, npcIx, out, prev, first, n = {}, {}, {}, {}, {}, nil, nil, 0
+  local function ci(c) if not charIx[c] then chars[#chars + 1] = (c:gsub("[|,;]", "")); charIx[c] = #chars - 1 end return charIx[c] end
+  for _, e in ipairs(t.log) do
+    local f = { strsplit(",", e) }
+    local ts = tonumber(f[2])
+    if ts and ts > since then
+      if not first then first = ts; prev = ts end
+      local step = ts - prev; prev = ts
+      local dt = step < 0 and ("-" .. b36(-step)) or b36(step)   -- usually forwards; a minus if the log is ever out of order
+      if f[1] == "m" then
+        local id = tonumber(f[5]) or 0
+        if not npcIx[id] then npcs[#npcs + 1] = b36(id); npcIx[id] = #npcs - 1 end
+        out[#out + 1] = "m" .. dt .. "," .. b36(npcIx[id]) .. "," .. b36(f[9]) .. "," .. (CLS[f[10]] or "x") .. "," .. b36(ci(f[3] or "?")) .. "," .. b36(f[4])
+      elseif f[1] == "b" then
+        out[#out + 1] = "b" .. dt .. "," .. b36(f[5]) .. "," .. (f[6] == "r" and "r" or "d") .. "," .. b36(ci(f[3] or "?")) .. "," .. b36(f[4])
+      end
+      n = n + 1
+    end
+  end
+  if n == 0 then return nil, 0 end
+  local body = table.concat({ "HTCG2", first, t.tampered and 1 or 0, table.concat(chars, ","), table.concat(npcs, ","), table.concat(out, ";") }, "|")
+  local h = 7; for i = 1, #body do h = (h * 31 + body:byte(i)) % 1000003 end
+  return body .. "|" .. h, n
+end
+
+local exporter
+local function showExport()
+  local code, n = exportCode()
+  if not code then say("nothing new to export since your last sync - go kill something!"); return end
+  if not exporter then
+    local x = CreateFrame("Frame", "HatedTCGExport", UIParent, "BackdropTemplate"); x:Hide()
+    x:SetSize(480, 300); x:SetPoint("CENTER", 0, 60); x:SetFrameStrata("DIALOG"); x:EnableMouse(true)
+    x:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 })
+    x:SetBackdropColor(0.035, 0.055, 0.06, 0.98); x:SetBackdropBorderColor(TEAL[1], TEAL[2], TEAL[3], 0.8)
+    tinsert(UISpecialFrames, "HatedTCGExport")
+    local close = CreateFrame("Button", nil, x, "UIPanelCloseButton"); close:SetPoint("TOPRIGHT", 2, 2)
+    x.title = x:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"); x.title:SetPoint("TOPLEFT", 16, -14); x.title:SetTextColor(0.75, 1, 0.96)
+    x.help = x:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); x.help:SetPoint("TOPLEFT", 16, -40); x.help:SetWidth(448); x.help:SetJustifyH("LEFT")
+    x.help:SetText("1.  Press |cff5afff2Ctrl+C|r to copy the code below (it's already selected).\n2.  On hatedforever.com, open your |cff5afff2Profile > Hated TCG|r, paste it into |cff5afff2Paste from game|r and click Sync.\n3.  Paste the code the website gives back into this TCG window (Update) to see your new total.")
+    local sf = CreateFrame("ScrollFrame", "HatedTCGExportScroll", x, "UIPanelScrollFrameTemplate")
+    sf:SetPoint("TOPLEFT", 16, -96); sf:SetPoint("BOTTOMRIGHT", -34, 44)
+    local bg = x:CreateTexture(nil, "ARTWORK"); bg:SetPoint("TOPLEFT", sf, -4, 4); bg:SetPoint("BOTTOMRIGHT", sf, 24, -4); bg:SetColorTexture(0, 0, 0, 0.5)
+    local box = CreateFrame("EditBox", nil, sf); box:SetMultiLine(true); box:SetMaxLetters(0); box:SetAutoFocus(false)
+    box:SetFontObject("ChatFontSmall"); box:SetWidth(420); box:SetHeight(150)
+    box:SetScript("OnEscapePressed", function() x:Hide() end)
+    box:SetScript("OnTextChanged", function(self, user) if user then self:SetText(x.code or ""); self:HighlightText() end end)   -- read only
+    box:SetScript("OnMouseUp", function(self) self:HighlightText() end)
+    sf:SetScrollChild(box)
+    x.box = box
+    local sel = CreateFrame("Button", nil, x, "UIPanelButtonTemplate"); sel:SetSize(120, 22); sel:SetPoint("BOTTOMLEFT", 16, 12); sel:SetText("Select all")
+    sel:SetScript("OnClick", function() box:SetFocus(); box:HighlightText() end)
+    x.size = x:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); x.size:SetPoint("BOTTOMRIGHT", -16, 18)
+    exporter = x
+  end
+  exporter.code = code
+  exporter.title:SetText(string.format("Export %d kill%s", n, n == 1 and "" or "s"))
+  exporter.size:SetText(string.format("%.1f KB", #code / 1024))
+  exporter.box:SetText(code); exporter:Show(); exporter.box:SetFocus(); exporter.box:HighlightText()
+end
+
 local function checkCode(code)
   local p, l, lt, h = (code or ""):match("HTCG:(%d+):(%d+):(%d+):(%d+)")
   if not p then return nil end
@@ -311,7 +384,7 @@ end
 local function build()
   if TCGUI then return TCGUI end
   local w = CreateFrame("Frame", "HatedTCGFrame", UIParent, "BackdropTemplate"); w:Hide()   -- created hidden, so the first click opens it
-  w:SetSize(420, 470); w:SetPoint("CENTER", 260, 0); w:SetFrameStrata("HIGH"); w:SetToplevel(true)
+  w:SetSize(420, 520); w:SetPoint("CENTER", 260, 0); w:SetFrameStrata("HIGH"); w:SetToplevel(true)
   w:SetMovable(true); w:EnableMouse(true); w:RegisterForDrag("LeftButton"); w:SetClampedToScreen(true)
   w:SetScript("OnDragStart", w.StartMoving); w:SetScript("OnDragStop", w.StopMovingOrSizing)
   flat(w, 0.035, 0.055, 0.06, 0.97, 0.25, 0.95, 0.85, 0.7)
@@ -343,7 +416,11 @@ local function build()
   box:SetPoint("BOTTOMLEFT", 22, 46); box:SetSize(270, 24); box:SetAutoFocus(false); box:SetMaxLetters(80)
   box:SetScript("OnEscapePressed", box.ClearFocus)
   local hint = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); hint:SetPoint("BOTTOMLEFT", box, "TOPLEFT", -4, 4)
-  hint:SetText("Paste the code from your website Profile > Hated TCG:")
+  hint:SetText("2.  Paste the code the website gives back:")
+  local exp = CreateFrame("Button", nil, w, "UIPanelButtonTemplate"); exp:SetSize(150, 24); exp:SetPoint("BOTTOMLEFT", 16, 102); exp:SetText("Export points")
+  exp:SetScript("OnClick", showExport)
+  local ehint = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); ehint:SetPoint("BOTTOMLEFT", exp, "TOPLEFT", 2, 4)
+  ehint:SetText("1.  Copy your new kills to the website (Profile > Hated TCG):")
   local ok = CreateFrame("Button", nil, w, "UIPanelButtonTemplate"); ok:SetSize(90, 24); ok:SetPoint("LEFT", box, "RIGHT", 8, 0); ok:SetText("Update")
   local function apply()
     local s = checkCode(box:GetText())

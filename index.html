@@ -1261,6 +1261,11 @@
   .tcg-st.held{ background:rgba(255,179,92,.2); color:#ffb35c; } .tcg-st.bad{ background:rgba(255,90,74,.2); color:#ff7b6a; } .tcg-st.ok{ background:rgba(63,242,217,.15); color:#3ff2d9; }
   .tcg-code{ margin-top:10px; padding:8px 10px; border:1px dashed rgba(63,242,217,.45); border-radius:4px; font-size:12px; color:#bfe9e3; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .tcg-code code{ background:rgba(0,0,0,.45); padding:3px 8px; border-radius:3px; color:#3ff2d9; user-select:all; font-size:13px; }
+  .tcg-paste{ margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+  .tcg-paste textarea{ width:100%; box-sizing:border-box; min-height:90px; resize:vertical; background:rgba(0,0,0,.45); border:1px solid rgba(63,242,217,.45); border-radius:4px; color:#bff7ef; font:12px ui-monospace, Consolas, monospace; padding:8px; word-break:break-all; }
+  .tcg-paste textarea:focus{ outline:none; border-color:#5afff2; box-shadow:0 0 8px rgba(90,255,242,.3); }
+  .tcg-paste-act{ display:flex; gap:8px; }
+  .tcg-filebtn{ cursor:pointer; }
   .tcg-queue{ border-top:1px dashed rgba(255,179,92,.35); padding-top:10px; }
   .tcg-act{ flex-basis:100%; display:flex; gap:8px; } .tcg-mini{ padding:3px 10px !important; font-size:12px !important; }
   .strat-breadcrumb{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); margin-bottom:4px; }
@@ -11658,14 +11663,19 @@ function renderTcgPanel(p, isMe){
       <div class="tcg-stat"><span>${a.last_sync ? when(a.last_sync) : '&mdash;'}</span><em>last sync</em></div>
     </div>
     ${ isMe ? `<div class="tcg-sync">
-        <label class="btn tcg-btn" ${state.tcgBusy ? 'aria-disabled="true"' : ''}>${state.tcgBusy ? 'Syncing…' : '&#10227; Sync points from WoW'}<input type="file" id="tcg-file" accept=".lua" style="display:none;" ${state.tcgBusy ? 'disabled' : ''}></label>
+        <button type="button" class="btn tcg-btn" id="tcg-paste-open" ${state.tcgBusy ? 'disabled' : ''}>${state.tcgBusy ? 'Syncing…' : '&#10227; Paste from game'}</button>
+        <label class="btn secondary tcg-filebtn" title="Or read the addon's saved file" ${state.tcgBusy ? 'aria-disabled="true"' : ''}>Sync from saved file<input type="file" id="tcg-file" accept=".lua" style="display:none;" ${state.tcgBusy ? 'disabled' : ''}></label>
         <button type="button" class="btn secondary" id="tcg-code" title="Copies a code to paste into the TCG window in game (/tcg)">Show my points in game</button>
-        <span class="tcg-hint">Kill things in WoW with Hated Companion, <b>/reload</b> or log out, then pick <code>World of Warcraft\\&lt;game&gt;\\WTF\\Account\\&lt;ACCOUNT&gt;\\SavedVariables\\HatedCompanion.lua</code>. The picker opens in the same folder next time, so it's just a double-click on the file. Every character on the account adds to the same points. Syncing twice never counts a kill twice. The addon keeps 30 days of kills, so sync at least once a month.</span>
+        <span class="tcg-hint">In game type <b>/tcg</b> (or right-click the <b>H</b>), click <b>Export points</b>, press <b>Ctrl+C</b>, then click <b>Paste from game</b> here. Or <b>/reload</b> and use <b>Sync from saved file</b>: <code>World of Warcraft\\&lt;game&gt;\\WTF\\Account\\&lt;ACCOUNT&gt;\\SavedVariables\\HatedCompanion.lua</code>. The picker opens in the same folder next time, so it's just a double-click on the file. Every character on the account adds to the same points. Syncing twice never counts a kill twice. The addon keeps 30 days of kills, so sync at least once a month.</span>
       </div>
       <details class="tcg-rules"><summary>How points work</summary>
         <ul><li>A creature you've never killed on this account: <b>10</b></li><li>After that: <b>1</b> (elites <b>3</b>), no daily limit; grey mobs give nothing</li>
         <li>Dungeon boss <b>10</b>, a dungeon's last boss <b>20</b></li><li>Raid boss <b>100</b> the first time, <b>20</b> after (once a week per character)</li>
         <li>Group kills count for everyone who hit the mob. Card packs are coming to the shop soon.</li></ul></details>
+      ${ state.tcgPasteOpen ? `<div class="tcg-paste">
+          <textarea id="tcg-paste" placeholder="Paste the code from Export points here (Ctrl+V). It starts with HTCG2|" spellcheck="false"></textarea>
+          <div class="tcg-paste-act"><button type="button" class="btn tcg-btn" id="tcg-paste-go" ${state.tcgBusy ? 'disabled' : ''}>Sync</button><button type="button" class="btn secondary" id="tcg-paste-cancel">Cancel</button></div>
+        </div>` : '' }
       ${ state.tcgCode ? `<div class="tcg-code"><span>In game, type <b>/tcg</b> (or right-click the <b>H</b> on your minimap), paste this and click <b>Update</b>:</span><code>${esc(state.tcgCode)}</code></div>` : '' }` : '' }
     ${ T.syncs.length ? `<div class="tcg-list"><div class="tcg-list-h">Recent syncs</div>${ T.syncs.map(s => `<div class="tcg-row">
         <span class="tcg-when">${when(s.at)}</span><b class="tcg-pts">+${s.points}</b>${status(s)}<span class="tcg-what">${esc(tcgSummaryText(s.summary)) || (s.counted ? '' : 'nothing new')}</span>
@@ -11686,6 +11696,43 @@ async function tcgCall(body){
   if(!res.ok || !out.ok) throw new Error(out.error || ('HTTP ' + res.status));
   return out;
 }
+// The addon's "Export points" code -> log lines. Format: HTCG2|first time|edited|chars|creatures|entries|check
+const TCG_CLS = { n: 'normal', e: 'elite', r: 'rare', R: 'rareelite', w: 'worldboss', t: 'trivial', m: 'minus', x: '?' };
+function tcgDecodeExport(code){
+  code = (code || '').replace(/\s+/g, '');
+  const at = code.lastIndexOf('|');
+  if(!code.startsWith('HTCG2|') || at < 0) throw new Error("that isn't an export code from the addon (it starts with HTCG2)");
+  const body = code.slice(0, at), check = +code.slice(at + 1);
+  let hh = 7; for(let i = 0; i < body.length; i++) hh = (hh * 31 + body.charCodeAt(i)) % 1000003;
+  if(hh !== check) throw new Error('the code is incomplete or changed - copy it again in game (Select all, then Ctrl+C)');
+  const [, first, edited, charList, npcList, entryList] = body.split('|');
+  const chars = charList ? charList.split(',') : [], npcs = npcList ? npcList.split(',').map(x => parseInt(x, 36)) : [];
+  const lines = []; let t = +first;
+  for(const e of (entryList ? entryList.split(';') : [])){
+    const kind = e[0], f = e.slice(1).split(',');
+    t += parseInt(f[0], 36) || 0;
+    if(kind === 'm') lines.push(['m', t, chars[parseInt(f[4], 36)] || '?', parseInt(f[5], 36) || 0, npcs[parseInt(f[1], 36)] || 0, '', 0, 0, parseInt(f[2], 36) || 0, TCG_CLS[f[3]] || '?', 0].join(','));
+    else if(kind === 'b') lines.push(['b', t, chars[parseInt(f[3], 36)] || '?', parseInt(f[4], 36) || 0, parseInt(f[1], 36) || 0, f[2] === 'r' ? 'r' : 'd', 0, 0, 0, 0, 0].join(','));
+  }
+  return { lines, tampered: edited === '1' };
+}
+async function tcgSyncCode(){
+  const ta = document.getElementById('tcg-paste');
+  let dec;
+  try{ dec = tcgDecodeExport(ta ? ta.value : ''); }catch(e){ showToast('Could not read that: ' + e.message, true); return; }
+  if(!dec.lines.length){ showToast('That code has no kills in it.', true); return; }
+  await tcgSyncEntries(dec.lines, dec.tampered);
+  state.tcgPasteOpen = false;
+}
+async function tcgSyncEntries(entries, tampered){
+  state.tcgBusy = true; render();
+  try{
+    const out = await tcgCall({ action: 'sync', entries, tampered: !!tampered });
+    if(out.code){ state.tcgCode = out.code; try{ await navigator.clipboard.writeText(out.code); }catch(e){} }
+    showToast(out.held ? `Sync held for the Raid Leader to review (${out.points} points).` : (out.points ? `+${out.points} TCG points! (${tcgSummaryText(out.summary)}) Your new code is copied - paste it in game.` : 'Synced - nothing new since your last sync.'), out.held);
+  }catch(e){ showToast('Could not sync: ' + e.message, true); }
+  state.tcgBusy = false; state.tcg = null; render();
+}
 async function tcgSyncFile(file){
   if(!file) return;
   let tcg;
@@ -11693,13 +11740,7 @@ async function tcgSyncFile(file){
   catch(e){ showToast('That file could not be read: ' + e.message, true); return; }
   if(!tcg || !tcg.log){ showToast('No TCG points in that file yet. Kill something in WoW with Hated Companion 2.7+, then /reload.', true); return; }
   const entries = Array.isArray(tcg.log) ? tcg.log : Object.values(tcg.log);
-  state.tcgBusy = true; render();
-  try{
-    const out = await tcgCall({ action: 'sync', entries, seal: tcg.seal, tampered: !!tcg.tampered });
-    if(out.code){ state.tcgCode = out.code; try{ await navigator.clipboard.writeText(out.code); }catch(e){} }
-    showToast(out.held ? `Sync held for the Raid Leader to review (${out.points} points).` : (out.points ? `+${out.points} TCG points! (${tcgSummaryText(out.summary)})` : 'Synced - nothing new since your last sync.'), out.held);
-  }catch(e){ showToast('Could not sync: ' + e.message, true); }
-  state.tcgBusy = false; state.tcg = null; render();
+  return tcgSyncEntries(entries, tcg.tampered);
 }
 
 async function tcgSyncRemembered(){
@@ -11731,6 +11772,12 @@ function wireTcg(){
   if(sy) sy.addEventListener('click', tcgSyncRemembered);
   const fg = document.getElementById('tcg-forget');
   if(fg) fg.addEventListener('click', async () => { await addonSet('tcgFile', null); state.tcgHasFile = false; showToast('The next sync will ask for the file again.'); render(); });
+  const po = document.getElementById('tcg-paste-open');
+  if(po) po.addEventListener('click', () => { state.tcgPasteOpen = true; render(); setTimeout(() => { const t = document.getElementById('tcg-paste'); if(t) t.focus(); }, 0); });
+  const pg = document.getElementById('tcg-paste-go');
+  if(pg) pg.addEventListener('click', tcgSyncCode);
+  const pc = document.getElementById('tcg-paste-cancel');
+  if(pc) pc.addEventListener('click', () => { state.tcgPasteOpen = false; render(); });
   const cb = document.getElementById('tcg-code');
   if(cb) cb.addEventListener('click', async () => {
     try{ const out = await tcgCall({ action: 'code' }); state.tcgCode = out.code; try{ await navigator.clipboard.writeText(out.code); showToast('Code copied - paste it in the TCG window in game (/tcg).'); }catch(e){ showToast('Copy the code below into the TCG window in game (/tcg).'); } render(); }
