@@ -73,20 +73,6 @@ local function greyLevel(p)
   if p <= 5 then return 0 elseif p <= 39 then return p - 5 - math.floor(p / 10) elseif p <= 59 then return p - 1 - math.floor(p / 5) else return p - 9 end
 end
 
--- ---------- reading a nameplate's position (never touching the plate: nameplates are protected in combat) ----------
-local function plateSpot(unit)
-  local plate = unit and C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
-  if not plate then return nil, "no nameplate for " .. tostring(unit) end
-  if plate.IsForbidden and plate:IsForbidden() then return nil, "nameplate is forbidden" end
-  if not plate:IsVisible() then return nil, "nameplate not visible" end
-  local ok, x, top = pcall(function() local l, r, tp = plate:GetLeft(), plate:GetRight(), plate:GetTop(); if not l then return nil end return (l + r) / 2, tp end)
-  if not ok then return nil, "can't read nameplate position: " .. tostring(x) end
-  if not x then return nil, "nameplate has no position yet" end
-  local s = plate:GetEffectiveScale() / UIParent:GetEffectiveScale()
-  local ok2, w = pcall(plate.GetWidth, plate)
-  return x * s, top * s, (ok2 and w or 110) * s
-end
-
 -- ---------- the popup: teal "+10" rising from the mob ----------
 local pool = {}
 local popupRaw
@@ -111,9 +97,7 @@ popupRaw = function(amount, guid)
   end
   f.text:SetText("+" .. amount .. " TCG")
   f:ClearAllPoints()
-  local x, top = plateSpot(guid and plateOf[guid])
-  if x then f:SetPoint("BOTTOM", UIParent, "BOTTOMLEFT", x, top + 4)
-  else f:SetPoint("CENTER", UIParent, "CENTER", math.random(-40, 40), 140) end
+  f:SetPoint("CENTER", UIParent, "CENTER", math.random(-60, 60), 120 + math.random(0, 40))
   f:Show(); f.ag:Stop(); f.ag:Play()
 end
 
@@ -132,35 +116,37 @@ local function isNew(unit)
   return not db().firsts["n:" .. id]
 end
 local dots, dotFor = {}, {}           -- our dot frames; unit token -> dot
+-- Nameplates are restricted: an addon may not measure them or draw onto Blizzard's frame. So, like quest-helper
+-- addons do, each dot is our own little frame made a child of the nameplate and anchored to it; WoW positions it.
 local function freeDot() for _, d in ipairs(dots) do if not d.unit then return d end end
-  local d = CreateFrame("Frame", nil, UIParent); d:SetSize(11, 11); d:SetFrameStrata("LOW")
+  local d = CreateFrame("Frame", nil, UIParent); d:SetSize(11, 11)
   d.glow = d:CreateTexture(nil, "ARTWORK"); d.glow:SetPoint("CENTER"); d.glow:SetSize(21, 21); d.glow:SetTexture(DOT_TEX)
   d.glow:SetVertexColor(TEAL[1], TEAL[2], TEAL[3], 0.35); d.glow:SetBlendMode("ADD")
   d.tex = d:CreateTexture(nil, "OVERLAY"); d.tex:SetAllPoints(); d.tex:SetTexture(DOT_TEX); d.tex:SetVertexColor(TEAL[1], TEAL[2], TEAL[3])
   dots[#dots + 1] = d; return d end
-local function markPlate(unit)
-  local d = dotFor[unit]
-  dbg("nameplate " .. tostring(unit) .. " (" .. tostring(UnitName(unit)) .. "): " .. (isNew(unit) and "never killed - dot" or "no dot"))
-  if isNew(unit) then
-    if not d then d = freeDot(); d.unit = unit; d.placed = nil; d.why = nil; dotFor[unit] = d end
-  elseif d then d.unit = nil; d:Hide(); dotFor[unit] = nil end
+local function releaseDot(unit)
+  local d = dotFor[unit]; if not d then return end
+  d.unit = nil; d:Hide(); d:ClearAllPoints(); d:SetParent(UIParent); dotFor[unit] = nil
 end
-local function unmarkPlate(unit) local d = dotFor[unit]; if d then d.unit = nil; d:Hide(); dotFor[unit] = nil end end
+local function markPlate(unit)
+  local new = isNew(unit)
+  dbg("nameplate " .. tostring(unit) .. " (" .. tostring(UnitName(unit)) .. "): " .. (new and "never killed - dot" or "no dot"))
+  if not new then releaseDot(unit); return end
+  local plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
+  if not plate or (plate.IsForbidden and plate:IsForbidden()) then dbg("no usable nameplate for " .. unit); return end
+  local d = dotFor[unit] or freeDot()
+  d.unit = unit; dotFor[unit] = d
+  local ok, err = pcall(function()
+    d:SetParent(plate); d:SetFrameLevel(plate:GetFrameLevel() + 20)
+    d:ClearAllPoints()
+    local name = plate.UnitFrame and plate.UnitFrame.name
+    if name then d:SetPoint("RIGHT", name, "LEFT", -3, 0) else d:SetPoint("BOTTOM", plate, "TOP", 0, -4) end
+    d:Show()
+  end)
+  if not ok then dbg("couldn't attach the dot: " .. tostring(err)); releaseDot(unit) end
+end
+local function unmarkPlate(unit) releaseDot(unit) end
 local function refreshPlates() for unit in pairs(dotFor) do markPlate(unit) end end
--- keep each dot just left of its plate's name (plates move every frame)
-local mover = CreateFrame("Frame")
-mover:SetScript("OnUpdate", function()
-  for unit, d in pairs(dotFor) do
-    local x, top, w = plateSpot(unit)
-    if x then
-      d:ClearAllPoints(); d:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x - w * 0.5 + 2, top - 8); d:Show()
-      if not d.placed then d.placed = true; dbg(string.format("dot placed for %s at %.0f, %.0f", unit, x - w * 0.5 + 2, top - 8)) end
-    else
-      d:Hide()
-      if d.why ~= top then d.why = top; dbg("dot hidden for " .. unit .. ": " .. tostring(top)) end
-    end
-  end
-end)
 local function tooltipUnit(tip)
   local _, unit = tip:GetUnit()
   if unit and isNew(unit) then tip:AddLine(DOT .. " |cff5afff2Never killed on your account: +10 TCG|r") ; tip:Show() end
