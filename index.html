@@ -1239,6 +1239,28 @@
   .bv-cards{ columns:2 300px; column-gap:14px; }
   @media (min-width: 1500px){ .bv-cards{ columns:3 300px; } }
   .bv-notes{ white-space:pre-wrap; line-height:1.6; color:#e8dcc0; }
+  /* Hated TCG panel (profile) */
+  .tcg-panel{ margin:16px 0; padding:16px; border:1px solid rgba(63,242,217,.35); border-radius:6px;
+    background:radial-gradient(ellipse at top left, rgba(30,120,115,.25), transparent 60%), linear-gradient(160deg, #10181a, #0b0d0f); box-shadow:0 0 18px rgba(63,242,217,.08); }
+  .tcg-head{ display:flex; align-items:center; gap:10px; margin-bottom:12px; } .tcg-head h3{ margin:0; font:700 18px Cinzel, Georgia, serif; color:#bff7ef; }
+  .tcg-logo{ font:800 11px Cinzel, Georgia, serif; letter-spacing:.1em; color:#062a27; background:linear-gradient(#7ff9ea, #2bc4b2); border-radius:4px; padding:3px 6px; box-shadow:0 0 8px rgba(63,242,217,.5); }
+  .tcg-stats{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
+  .tcg-stat{ flex:1; min-width:120px; padding:8px 12px; border-radius:5px; background:rgba(0,0,0,.35); border:1px solid rgba(63,242,217,.18); }
+  .tcg-stat span{ display:block; font:700 18px Cinzel, Georgia, serif; color:#e8fffb; } .tcg-stat em{ font-style:normal; font-size:11px; color:#7fb5ad; text-transform:uppercase; letter-spacing:.08em; }
+  .tcg-stat.main span{ font-size:26px; color:#3ff2d9; text-shadow:0 0 12px rgba(63,242,217,.45); }
+  .tcg-sync{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  .tcg-btn{ cursor:pointer; background:linear-gradient(#3ff2d9, #1c9d90) !important; color:#032421 !important; border-color:#7ff9ea !important; font-weight:700; }
+  .tcg-hint{ flex:1; min-width:260px; font-size:12px; color:#9cc7c1; line-height:1.5; } .tcg-hint code{ background:rgba(0,0,0,.4); padding:1px 4px; border-radius:3px; word-break:break-all; }
+  .tcg-rules{ margin-top:10px; font-size:13px; color:#c6e3df; } .tcg-rules summary{ cursor:pointer; color:#3ff2d9; } .tcg-rules ul{ margin:6px 0 0; padding-left:18px; line-height:1.6; }
+  .tcg-list{ margin-top:14px; } .tcg-list-h{ font:700 11px Cinzel, Georgia, serif; letter-spacing:.1em; color:#7fb5ad; text-transform:uppercase; margin-bottom:6px; }
+  .tcg-row{ display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; padding:7px 10px; border-bottom:1px solid rgba(63,242,217,.1); font-size:13px; color:#d9efec; }
+  .tcg-row:nth-child(even){ background:rgba(255,255,255,.02); }
+  .tcg-when{ color:#7fb5ad; min-width:110px; } .tcg-pts{ color:#3ff2d9; } .tcg-what{ color:#a9cbc6; }
+  .tcg-flags{ flex-basis:100%; color:#ffb35c; font-size:12px; line-height:1.5; }
+  .tcg-st{ font:700 10px system-ui; border-radius:3px; padding:1px 6px; text-transform:uppercase; letter-spacing:.05em; }
+  .tcg-st.held{ background:rgba(255,179,92,.2); color:#ffb35c; } .tcg-st.bad{ background:rgba(255,90,74,.2); color:#ff7b6a; } .tcg-st.ok{ background:rgba(63,242,217,.15); color:#3ff2d9; }
+  .tcg-queue{ border-top:1px dashed rgba(255,179,92,.35); padding-top:10px; }
+  .tcg-act{ flex-basis:100%; display:flex; gap:8px; } .tcg-mini{ padding:3px 10px !important; font-size:12px !important; }
   .strat-breadcrumb{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); margin-bottom:4px; }
   .strat-breadcrumb button{ background:none; border:none; color:var(--text-muted); font-size:12px; padding:2px 0; text-decoration:underline; }
   .strat-breadcrumb button:hover{ color:var(--blurple); }
@@ -11579,9 +11601,111 @@ function renderProfilePage(){
         ${renderProfileStats(p)}
         ${renderResourceShelf(p, isMe)}
       </div>
+      ${renderTcgPanel(p, isMe)}
       ${renderHomeSection(p, isMe)}
       ${renderPetRoster(p, isMe)}
     </div>`;
+}
+
+/* ---------------- Hated TCG (profile) ----------------
+   Points come from kills in WoW: the Hated Companion addon logs them, the player syncs the addon's saved file here,
+   and the tcg-sync server function checks the log and credits the account (all characters share one pool).
+   Anything suspicious is held for an officer; officers see the review queue on their own profile. */
+async function loadTcg(userId){
+  state.tcg = state.tcg || {};
+  if(state.tcg.loading === userId) return;
+  state.tcg.loading = userId;
+  const [a, s] = await Promise.all([
+    sb.from('tcg_accounts').select('*').eq('user_id', userId).maybeSingle(),
+    sb.from('tcg_syncs').select('*').eq('user_id', userId).order('at', { ascending: false }).limit(6),
+  ]);
+  let queue = null;
+  if(testCanManage() && state.profile && state.profile.id === userId){
+    const q = await sb.from('tcg_syncs').select('*').eq('status', 'held').order('at', { ascending: true }).limit(50);
+    queue = q.data || [];
+  }
+  state.tcg = { userId, account: a.data || null, syncs: s.data || [], queue, loading: null };
+  if(state.tab === 'profile') render();
+}
+function tcgSummaryText(sm){
+  if(!sm) return '';
+  const bits = [];
+  if(sm.firstKills) bits.push(sm.firstKills + ' first kill' + (sm.firstKills === 1 ? '' : 's'));
+  if(sm.repeatKills) bits.push(sm.repeatKills + ' kills');
+  if(sm.eliteKills) bits.push(sm.eliteKills + ' elites');
+  if(sm.dungeonBosses) bits.push(sm.dungeonBosses + ' dungeon boss' + (sm.dungeonBosses === 1 ? '' : 'es'));
+  if(sm.raidBosses) bits.push(sm.raidBosses + ' raid boss' + (sm.raidBosses === 1 ? '' : 'es'));
+  if(sm.grey) bits.push(sm.grey + ' grey (no points)');
+  if(sm.capped) bits.push(sm.capped + ' over the daily cap');
+  return bits.join(' · ');
+}
+function renderTcgPanel(p, isMe){
+  if(!state.session || !(isMe || testCanManage())) return '';
+  const T = state.tcg;
+  if(!T || T.userId !== p.id){ loadTcg(p.id); return `<div class="tcg-panel"><div class="tcg-head"><span class="tcg-logo">TCG</span><h3>Hated TCG</h3></div><p class="muted sans">Loading…</p></div>`; }
+  const a = T.account || { points: 0, lifetime: 0, held: 0 };
+  const when = s => new Date(s).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const status = s => s.status === 'held' ? '<span class="tcg-st held">held for review</span>' : s.status === 'rejected' ? '<span class="tcg-st bad">rejected</span>' : s.status === 'approved' ? '<span class="tcg-st ok">approved</span>' : '';
+  return `<div class="tcg-panel">
+    <div class="tcg-head"><span class="tcg-logo">TCG</span><h3>Hated TCG</h3>${ a.banned ? '<span class="tcg-st bad">suspended</span>' : '' }</div>
+    <div class="tcg-stats">
+      <div class="tcg-stat main"><span>${(a.points || 0).toLocaleString()}</span><em>points</em></div>
+      <div class="tcg-stat"><span>${(a.lifetime || 0).toLocaleString()}</span><em>earned all-time</em></div>
+      ${ a.held ? `<div class="tcg-stat"><span>${a.held.toLocaleString()}</span><em>waiting for review</em></div>` : '' }
+      <div class="tcg-stat"><span>${a.last_sync ? when(a.last_sync) : '&mdash;'}</span><em>last sync</em></div>
+    </div>
+    ${ isMe ? `<div class="tcg-sync">
+        <label class="btn tcg-btn" ${state.tcgBusy ? 'aria-disabled="true"' : ''}>${state.tcgBusy ? 'Syncing…' : '&#10227; Sync points from WoW'}<input type="file" id="tcg-file" accept=".lua" style="display:none;" ${state.tcgBusy ? 'disabled' : ''}></label>
+        <span class="tcg-hint">Kill things in WoW with Hated Companion, <b>/reload</b> or log out, then pick <code>World of Warcraft\\&lt;game&gt;\\WTF\\Account\\&lt;ACCOUNT&gt;\\SavedVariables\\HatedCompanion.lua</code>. Every character on the account adds to the same points. Syncing twice never counts a kill twice; sync at least once a week (the addon keeps 7 days).</span>
+      </div>
+      <details class="tcg-rules"><summary>How points work</summary>
+        <ul><li>A creature you've never killed on this account: <b>10</b></li><li>After that: <b>1</b> (elites <b>3</b>), up to 500 a day; grey mobs give nothing</li>
+        <li>Dungeon boss <b>10</b>, a dungeon's last boss <b>20</b></li><li>Raid boss <b>100</b> the first time, <b>20</b> after (once a week per character)</li>
+        <li>Group kills count for everyone who hit the mob. Card packs are coming to the shop soon.</li></ul></details>` : '' }
+    ${ T.syncs.length ? `<div class="tcg-list"><div class="tcg-list-h">Recent syncs</div>${ T.syncs.map(s => `<div class="tcg-row">
+        <span class="tcg-when">${when(s.at)}</span><b class="tcg-pts">+${s.points}</b>${status(s)}<span class="tcg-what">${esc(tcgSummaryText(s.summary)) || (s.counted ? '' : 'nothing new')}</span>
+        ${ (s.flags || []).length ? `<div class="tcg-flags">${s.flags.map(f => '&#9888; ' + esc(f)).join('<br>')}</div>` : '' }</div>`).join('') }</div>` : '' }
+    ${ T.queue ? `<div class="tcg-list tcg-queue"><div class="tcg-list-h">Officer review (${T.queue.length})</div>${ T.queue.length ? T.queue.map(s => {
+        const who = state.profilesById[s.user_id];
+        return `<div class="tcg-row"><span class="tcg-when">${when(s.at)}</span><b>${esc(who ? who.character_name || who.discord_username : 'Unknown')}</b><b class="tcg-pts">+${s.points}</b>
+          <span class="tcg-what">${esc(tcgSummaryText(s.summary))}</span>
+          <div class="tcg-flags">${(s.flags || []).map(f => '&#9888; ' + esc(f)).join('<br>')}</div>
+          <div class="tcg-act"><button class="btn tcg-mini" data-tcg-review="${s.id}|approve">Approve</button><button class="btn danger tcg-mini" data-tcg-review="${s.id}|reject">Reject</button></div></div>`; }).join('') : '<p class="muted sans" style="margin:6px 0 0;">Nothing waiting.</p>' }</div>` : '' }
+  </div>`;
+}
+async function tcgCall(body){
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session) throw new Error('sign in first');
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/tcg-sync`, { method: 'POST', headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const out = await res.json().catch(() => ({}));
+  if(!res.ok || !out.ok) throw new Error(out.error || ('HTTP ' + res.status));
+  return out;
+}
+async function tcgSyncFile(file){
+  if(!file) return;
+  let tcg;
+  try{ const db = parseLuaSaved(await file.text()).HatedCompanionDB; tcg = db && db.tcg; }
+  catch(e){ showToast('That file could not be read: ' + e.message, true); return; }
+  if(!tcg || !tcg.log){ showToast('No TCG points in that file yet. Kill something in WoW with Hated Companion 2.7+, then /reload.', true); return; }
+  const entries = Array.isArray(tcg.log) ? tcg.log : Object.values(tcg.log);
+  state.tcgBusy = true; render();
+  try{
+    const out = await tcgCall({ action: 'sync', entries, seal: tcg.seal, tampered: !!tcg.tampered });
+    showToast(out.held ? `Sync held for an officer to review (${out.points} points).` : (out.points ? `+${out.points} TCG points! (${tcgSummaryText(out.summary)})` : 'Synced - nothing new since your last sync.'), out.held);
+  }catch(e){ showToast('Could not sync: ' + e.message, true); }
+  state.tcgBusy = false; state.tcg = null; render();
+}
+
+function wireTcg(){
+  const f = document.getElementById('tcg-file');
+  if(f) f.addEventListener('change', e => tcgSyncFile(e.target.files[0]));
+  document.querySelectorAll('[data-tcg-review]').forEach(b => b.addEventListener('click', async () => {
+    const [id, decision] = b.dataset.tcgReview.split('|');
+    if(decision === 'reject' && !confirm('Reject these points? They will not be credited.')) return;
+    try{ await tcgCall({ action: 'review', id: +id, decision }); showToast(decision === 'approve' ? 'Approved and credited.' : 'Rejected.'); }
+    catch(e){ showToast('Could not save: ' + e.message, true); }
+    state.tcg = null; render();
+  }));
 }
 
 /* ---------------- Treasure corner ----------------
@@ -13083,7 +13207,7 @@ function wireRaidPlan(){
    Access); the chosen folder is remembered. Browsers won't open folders inside Program Files, so for a WoW install
    there the Plan folder is a link to Documents\HatedPlan (one command, see the help on the page). */
 const ADDON_DB = 'hated-addon';
-const ADDON_FILES = ['HatedCompanion.toc', 'HatedCompanion.lua', 'HatedPlanUI.lua', 'HatedMinimap.lua', 'Media/Banner.tga', 'Media/Icon.tga'];
+const ADDON_FILES = ['HatedCompanion.toc', 'HatedCompanion.lua', 'HatedPlanUI.lua', 'HatedMinimap.lua', 'HatedTCG.lua', 'Media/Banner.tga', 'Media/Icon.tga'];
 function addonIdb(){ return new Promise((res, rej) => { const r = indexedDB.open(ADDON_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 async function addonGet(k){ try{ const db = await addonIdb(); return await new Promise(res => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(undefined); }); }catch(e){ return undefined; } }
 async function addonSet(k, v){ try{ const db = await addonIdb(); await new Promise(res => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = res; }); }catch(e){} }
@@ -15367,6 +15491,7 @@ function bindApp(){
     state.stratNav.bossId = el.dataset.openBoss;
     render();
   }));
+  wireTcg();
   const bvEdit = document.getElementById('bv-edit');
   if(bvEdit) bvEdit.addEventListener('click', () => { state.bossEdit = !state.bossEdit; render(); });
   document.querySelectorAll('[data-goto-boss]').forEach(el => el.addEventListener('click', () => {

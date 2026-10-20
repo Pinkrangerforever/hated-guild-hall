@@ -2,10 +2,11 @@
 ## Title: Hated Companion
 ## Notes: Hated guild: boss plans from hatedforever.com (/hated), and guild bank records for the website.
 ## Author: Hated
-## Version: 2.6.0
+## Version: 2.7.0
 ## SavedVariables: HatedCompanionDB
 
 HatedCompanion.lua
 Plan\HatedPlan.lua
 HatedPlanUI.lua
 HatedMinimap.lua
+HatedTCG.lua
