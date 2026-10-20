@@ -6,6 +6,7 @@ directly, which is what this does. For the guild's own non-commercial use; nothi
     python tools/tcg_art/fetch_hearthstone_art.py              # the Classic set (382 cards), 512x512 JPG
     python tools/tcg_art/fetch_hearthstone_art.py --sets ALL   # every collectible card (8,000+)
     python tools/tcg_art/fetch_hearthstone_art.py --sets VANILLA NAXX GVG   # chosen sets (HearthstoneJSON set codes)
+    python tools/tcg_art/fetch_hearthstone_art.py --sets VANILLA NAXX --ids OG_280 TRL_541   # sets plus single cards
     python tools/tcg_art/fetch_hearthstone_art.py --orig       # original-resolution PNGs instead (much bigger)
     python tools/tcg_art/fetch_hearthstone_art.py --data-only  # just the card spreadsheet
 
@@ -46,6 +47,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--out', default=os.path.join(os.path.expanduser('~'), 'Documents', 'Hearthstone Art'))
     ap.add_argument('--sets', nargs='*', default=['VANILLA'], help='set codes (VANILLA = Classic), or ALL')
+    ap.add_argument('--ids', nargs='*', default=[], help='single cards to add on top of the sets (card ids)')
     ap.add_argument('--orig', action='store_true', help='original-resolution PNGs instead of 512x512 JPGs')
     ap.add_argument('--data-only', action='store_true')
     ap.add_argument('--workers', type=int, default=6)
@@ -56,7 +58,7 @@ def main():
     cards = json.loads(get(API))
     by_dbf = {c.get('dbfId'): c for c in cards}
     want = None if [s.upper() for s in args.sets] == ['ALL'] else {s.upper() for s in args.sets}
-    keep = [c for c in cards if c.get('collectible') and (want is None or c.get('set') in want)]
+    keep = [c for c in cards if c.get('collectible') and (want is None or c.get('set') in want or c['id'] in args.ids)]
     ids = {c['id'] for c in keep}
     # each collectible hero's hero power, and the base class heroes (HERO_01 Garrosh ... HERO_10 Illidan)
     extra = []
