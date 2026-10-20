@@ -264,6 +264,8 @@ local function build()
   glow:SetColorTexture(1, 1, 1, 1)
   if CreateColor and pcall(glow.SetGradient, glow, "VERTICAL", CreateColor(0.1, 0.5, 0.48, 0), CreateColor(0.1, 0.5, 0.48, 0.35)) then else glow:SetColorTexture(0.1, 0.5, 0.48, 0.15) end
   local close = CreateFrame("Button", nil, w, "UIPanelCloseButton"); close:SetPoint("TOPRIGHT", 2, 2)
+  local back = CreateFrame("Button", nil, w, "UIPanelButtonTemplate"); back:SetSize(64, 20); back:SetPoint("TOPRIGHT", -30, -8); back:SetText("< Hub")
+  back:SetScript("OnClick", function() w:Hide(); if HatedHub_Toggle then HatedHub_Toggle() end end)
   local title = w:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"); title:SetPoint("TOPLEFT", 16, -14); title:SetText("Hated TCG")
   title:SetTextColor(0.75, 1, 0.96)
 
@@ -327,9 +329,15 @@ local function build()
   return w
 end
 
-function HatedTCG_Toggle()
+function HatedTCG_Toggle(open)
   local w = build()
-  if w:IsShown() then w:Hide() else w.refresh(); w:Show() end
+  if w:IsShown() and not open then w:Hide() else w.refresh(); w:Show() end
+end
+-- for the hub: (account total, earned since the last sync, whether a sync code has been pasted)
+function HatedTCG_Summary()
+  local t = db(); local new = sinceSync()
+  if t.server then return t.server.points + new, new, true end
+  return new, new, false
 end
 
 -- ---------- /tcg ----------
