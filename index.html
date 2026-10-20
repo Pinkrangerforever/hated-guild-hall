@@ -11615,6 +11615,7 @@ function renderProfilePage(){
    Anything suspicious is held for an officer; officers see the review queue on their own profile. */
 async function loadTcg(userId){
   state.tcg = state.tcg || {};
+  if(state.tcgHasFile === undefined) addonGet('tcgFile').then(h => { state.tcgHasFile = !!h; });
   if(state.tcg.loading === userId) return;
   state.tcg.loading = userId;
   const [a, s] = await Promise.all([
@@ -11657,9 +11658,12 @@ function renderTcgPanel(p, isMe){
       <div class="tcg-stat"><span>${a.last_sync ? when(a.last_sync) : '&mdash;'}</span><em>last sync</em></div>
     </div>
     ${ isMe ? `<div class="tcg-sync">
-        <label class="btn tcg-btn" ${state.tcgBusy ? 'aria-disabled="true"' : ''}>${state.tcgBusy ? 'Syncing…' : '&#10227; Sync points from WoW'}<input type="file" id="tcg-file" accept=".lua" style="display:none;" ${state.tcgBusy ? 'disabled' : ''}></label>
+        ${ window.showOpenFilePicker
+          ? `<button type="button" class="btn tcg-btn" id="tcg-sync" ${state.tcgBusy ? 'disabled' : ''}>${state.tcgBusy ? 'Syncing…' : '&#10227; Sync points from WoW'}</button>
+             ${ state.tcgHasFile ? '<button type="button" class="btn secondary" id="tcg-forget" title="Pick a different SavedVariables file next time">Change file</button>' : '' }`
+          : `<label class="btn tcg-btn" ${state.tcgBusy ? 'aria-disabled="true"' : ''}>${state.tcgBusy ? 'Syncing…' : '&#10227; Sync points from WoW'}<input type="file" id="tcg-file" accept=".lua" style="display:none;" ${state.tcgBusy ? 'disabled' : ''}></label>` }
         <button type="button" class="btn secondary" id="tcg-code" title="Copies a code to paste into the TCG window in game (/tcg)">Show my points in game</button>
-        <span class="tcg-hint">Kill things in WoW with Hated Companion, <b>/reload</b> or log out, then pick <code>World of Warcraft\\&lt;game&gt;\\WTF\\Account\\&lt;ACCOUNT&gt;\\SavedVariables\\HatedCompanion.lua</code>. Every character on the account adds to the same points. Syncing twice never counts a kill twice. The addon keeps 30 days of kills, so sync at least once a month.</span>
+        <span class="tcg-hint">Kill things in WoW with Hated Companion, <b>/reload</b> or log out, then sync. The first time, pick <code>World of Warcraft\\&lt;game&gt;\\WTF\\Account\\&lt;ACCOUNT&gt;\\SavedVariables\\HatedCompanion.lua</code>. ${ window.showOpenFilePicker ? 'After that the site remembers it, so syncing is one click. ' : '' }Every character on the account adds to the same points. Syncing twice never counts a kill twice. The addon keeps 30 days of kills, so sync at least once a month.</span>
       </div>
       <details class="tcg-rules"><summary>How points work</summary>
         <ul><li>A creature you've never killed on this account: <b>10</b></li><li>After that: <b>1</b> (elites <b>3</b>), no daily limit; grey mobs give nothing</li>
@@ -11701,7 +11705,35 @@ async function tcgSyncFile(file){
   state.tcgBusy = false; state.tcg = null; render();
 }
 
+async function tcgSyncRemembered(){
+  let handle = await addonGet('tcgFile');
+  try{
+    if(handle && (await handle.queryPermission({ mode: 'read' })) !== 'granted' && (await handle.requestPermission({ mode: 'read' })) !== 'granted') handle = null;
+  }catch(e){ handle = null; }
+  if(!handle){
+    try{
+      [handle] = await window.showOpenFilePicker({ id: 'hatedtcg', types: [{ description: 'Hated Companion saved file', accept: { 'text/plain': ['.lua'] } }] });
+    }catch(e){
+      if(e.name === 'AbortError') return;
+      // some folders can't be opened this way: fall back to the plain picker
+      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.lua';
+      inp.onchange = () => tcgSyncFile(inp.files[0]); inp.click(); return;
+    }
+    if(!/HatedCompanion\.lua$/i.test(handle.name) && !confirm(`"${handle.name}" isn't HatedCompanion.lua. Use it anyway?`)) return;
+    await addonSet('tcgFile', handle);
+    state.tcgHasFile = true;
+  }
+  let file;
+  try{ file = await handle.getFile(); }
+  catch(e){ await addonSet('tcgFile', null); state.tcgHasFile = false; showToast("Couldn't open the saved file - pick it again.", true); render(); return; }
+  tcgSyncFile(file);
+}
+
 function wireTcg(){
+  const sy = document.getElementById('tcg-sync');
+  if(sy) sy.addEventListener('click', tcgSyncRemembered);
+  const fg = document.getElementById('tcg-forget');
+  if(fg) fg.addEventListener('click', async () => { await addonSet('tcgFile', null); state.tcgHasFile = false; showToast('The next sync will ask for the file again.'); render(); });
   const cb = document.getElementById('tcg-code');
   if(cb) cb.addEventListener('click', async () => {
     try{ const out = await tcgCall({ action: 'code' }); state.tcgCode = out.code; try{ await navigator.clipboard.writeText(out.code); showToast('Code copied - paste it in the TCG window in game (/tcg).'); }catch(e){ showToast('Copy the code below into the TCG window in game (/tcg).'); } render(); }
