@@ -52,7 +52,7 @@ end
 local function build()
   if hub then return hub end
   local f = CreateFrame("Frame", "HatedHubFrame", UIParent, "BackdropTemplate"); f:Hide()   -- created hidden, so the first click opens it
-  f:SetSize(640, 372); f:SetPoint("CENTER", 0, 40); f:SetFrameStrata("HIGH"); f:SetToplevel(true)
+  f:SetSize(640, 392); f:SetPoint("CENTER", 0, 40); f:SetFrameStrata("HIGH"); f:SetToplevel(true)
   f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton"); f:SetClampedToScreen(true)
   f:SetScript("OnDragStart", f.StartMoving); f:SetScript("OnDragStop", f.StopMovingOrSizing)
   flat(f, BG[1], BG[2], BG[3], 0.97, 0.75, 0.6, 0.3, 0.9)
@@ -68,13 +68,21 @@ local function build()
   local fade = f:CreateTexture(nil, "ARTWORK", nil, 2); fade:SetPoint("BOTTOMLEFT", banner); fade:SetPoint("BOTTOMRIGHT", banner); fade:SetHeight(50)
   vfade(fade, BG[1], BG[2], BG[3], 0, 1)
   local crest = f:CreateTexture(nil, "OVERLAY"); crest:SetSize(96, 96); crest:SetPoint("LEFT", banner, "LEFT", 8, -2); crest:SetTexture(MEDIA .. "Icon")
-  local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge"); title:SetPoint("LEFT", crest, "RIGHT", 4, 6)
-  title:SetText("Hated Companion"); title:SetTextColor(1, 0.85, 0.48); title:SetShadowOffset(1, -1)
+  -- the title gets its own line under the banner (on the banner it fought the logo), between two gold rules
+  local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"); title:SetPoint("TOP", banner, "BOTTOM", 0, -6)
+  title:SetText("H A T E D   C O M P A N I O N"); title:SetTextColor(1, 0.85, 0.48); title:SetShadowOffset(1, -1)
+  for _, side in ipairs({ -1, 1 }) do
+    local rule = f:CreateTexture(nil, "ARTWORK"); rule:SetHeight(1); rule:SetWidth(170)
+    if side < 0 then rule:SetPoint("RIGHT", title, "LEFT", -14, 0) else rule:SetPoint("LEFT", title, "RIGHT", 14, 0) end
+    rule:SetColorTexture(1, 1, 1, 1)
+    local a1, a2 = side < 0 and 0 or 0.7, side < 0 and 0.7 or 0
+    if CreateColor and pcall(rule.SetGradient, rule, "HORIZONTAL", CreateColor(0.85, 0.68, 0.32, a1), CreateColor(0.85, 0.68, 0.32, a2)) then else rule:SetColorTexture(0.85, 0.68, 0.32, 0.5) end
+  end
   local close = CreateFrame("Button", nil, f, "UIPanelCloseButton"); close:SetPoint("TOPRIGHT", 2, 2); close:SetFrameLevel(f:GetFrameLevel() + 5)
 
   -- Boss Strategies
   local boss = tile(f, { 1, 0.82, 0.4 }, "Boss Strategies", "Your raid's boss plans: your jobs,\nmarkers, kill order and strategy maps.", function() if openPlan then openPlan("") end end)
-  boss:SetPoint("TOPLEFT", 20, -128)
+  boss:SetPoint("TOPLEFT", 20, -146)
   boss.art:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_8"); boss.art:SetSize(64, 64); boss.art:SetPoint("LEFT", 18, 6)
   boss.title:SetPoint("TOPLEFT", 96, -26); boss.sub:SetPoint("TOPLEFT", boss.title, "BOTTOMLEFT", 0, -6); boss.sub:SetWidth(180)
   boss.live:SetPoint("BOTTOMLEFT", 18, 12); boss.live:SetWidth(200)
@@ -82,7 +90,7 @@ local function build()
 
   -- Hated TCG
   local tcg = tile(f, { 0.35, 1, 0.95 }, "Hated TCG", "Earn points killing monsters,\nthen open card packs.", function() if HatedTCG_Toggle then HatedTCG_Toggle(true) end end)
-  tcg:SetPoint("TOPRIGHT", -20, -128)
+  tcg:SetPoint("TOPRIGHT", -20, -146)
   tcg.art:SetTexture(MEDIA .. "CardBack"); tcg.art:SetTexCoord(0, 1, 0, 382 / 512); tcg.art:SetSize(66, 98); tcg.art:SetPoint("LEFT", 16, 6)
   tcg.title:SetPoint("TOPLEFT", 96, -26); tcg.sub:SetPoint("TOPLEFT", tcg.title, "BOTTOMLEFT", 0, -6); tcg.sub:SetWidth(180)
   tcg.live:SetPoint("BOTTOMLEFT", 96, 30); tcg.live:SetWidth(180)
