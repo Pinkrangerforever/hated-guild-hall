@@ -288,7 +288,7 @@ local function flat(fr, r, g, b, a, er, eg, eb, ea)
 end
 local function build()
   if TCGUI then return TCGUI end
-  local w = CreateFrame("Frame", "HatedTCGFrame", UIParent, "BackdropTemplate")
+  local w = CreateFrame("Frame", "HatedTCGFrame", UIParent, "BackdropTemplate"); w:Hide()   -- created hidden, so the first click opens it
   w:SetSize(420, 470); w:SetPoint("CENTER", 260, 0); w:SetFrameStrata("HIGH"); w:SetToplevel(true)
   w:SetMovable(true); w:EnableMouse(true); w:RegisterForDrag("LeftButton"); w:SetClampedToScreen(true)
   w:SetScript("OnDragStart", w.StartMoving); w:SetScript("OnDragStop", w.StopMovingOrSizing)

@@ -44,7 +44,7 @@ end
 
 local function build()
   if hub then return hub end
-  local f = CreateFrame("Frame", "HatedHubFrame", UIParent, "BackdropTemplate")
+  local f = CreateFrame("Frame", "HatedHubFrame", UIParent, "BackdropTemplate"); f:Hide()   -- created hidden, so the first click opens it
   f:SetSize(640, 352); f:SetPoint("CENTER", 0, 40); f:SetFrameStrata("HIGH"); f:SetToplevel(true)
   f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton"); f:SetClampedToScreen(true)
   f:SetScript("OnDragStart", f.StartMoving); f:SetScript("OnDragStop", f.StopMovingOrSizing)
