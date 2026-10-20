@@ -1,0 +1,245 @@
+id,type,rarity,name,faction,class,race,evolves_from,ability_idea,art_source
+H001,Hero,Common,Human Warrior,Alliance,Warrior,Human,,Battle Shout: your creatures get +1 attack this turn,model
+H002,Hero,Common,Human Paladin,Alliance,Paladin,Human,,Holy Light: restore 3 health to any character,model
+H003,Hero,Common,Human Rogue,Alliance,Rogue,Human,,Sinister Strike: deal 2 damage to a creature,model
+H004,Hero,Common,Human Priest,Alliance,Priest,Human,,Lesser Heal: restore 2 health,model
+H005,Hero,Common,Human Mage,Alliance,Mage,Human,,Fireball: deal 2 damage,model
+H006,Hero,Uncommon,Human Warlock,Alliance,Warlock,Human,,Life Tap: draw a card and take 2 damage,model
+H007,Hero,Common,Dwarf Warrior,Alliance,Warrior,Dwarf,,Shield Block: gain 3 armor,model
+H008,Hero,Uncommon,Dwarf Paladin,Alliance,Paladin,Dwarf,,Blessing of Might: give a creature +2 attack,model
+H009,Hero,Common,Dwarf Hunter,Alliance,Hunter,Dwarf,,Steady Shot: deal 2 damage to the enemy hero,model
+H010,Hero,Uncommon,Dwarf Rogue,Alliance,Rogue,Dwarf,,Gouge: a creature can't attack next turn,model
+H011,Hero,Uncommon,Dwarf Priest,Alliance,Priest,Dwarf,,Fear Ward: a creature can't be targeted by spells this turn,model
+H012,Hero,Common,Night Elf Warrior,Alliance,Warrior,Night Elf,,Charge: a creature can attack the turn it's played,model
+H013,Hero,Common,Night Elf Hunter,Alliance,Hunter,Night Elf,,Call Pet: summon a 1/1 cat,model
+H014,Hero,Uncommon,Night Elf Rogue,Alliance,Rogue,Night Elf,,Shadowmeld: your hero can't be attacked this turn,model
+H015,Hero,Common,Night Elf Priest,Alliance,Priest,Night Elf,,Starshards: deal 1 damage to all enemies,model
+H016,Hero,Common,Night Elf Druid,Alliance,Druid,Night Elf,,Shapeshift: +1 attack and +1 armor this turn,model
+H017,Hero,Uncommon,Gnome Warrior,Alliance,Warrior,Gnome,,Escape Artist: return a creature to your hand,model
+H018,Hero,Common,Gnome Rogue,Alliance,Rogue,Gnome,,Pick Pocket: draw a card from the enemy deck's top,model
+H019,Hero,Common,Gnome Mage,Alliance,Mage,Gnome,,Frost Nova: freeze a creature,model
+H020,Hero,Rare,Gnome Warlock,Alliance,Warlock,Gnome,,Summon Imp: summon a 1/1 that pings for 1,model
+H021,Hero,Common,Orc Warrior,Horde,Warrior,Orc,,Blood Fury: +2 attack this turn,model
+H022,Hero,Common,Orc Hunter,Horde,Hunter,Orc,,Call Wolf: summon a 2/1 wolf,model
+H023,Hero,Uncommon,Orc Rogue,Horde,Rogue,Orc,,Poison: your next attack also deals 1 damage over 2 turns,model
+H024,Hero,Common,Orc Shaman,Horde,Shaman,Orc,,Totem: summon a random 0/2 totem,model
+H025,Hero,Common,Orc Warlock,Horde,Warlock,Orc,,Corruption: deal 1 damage now and 1 next turn,model
+H026,Hero,Common,Undead Warrior,Horde,Warrior,Undead,,Will of the Forsaken: remove a freeze or fear from your hero,model
+H027,Hero,Common,Undead Rogue,Horde,Rogue,Undead,,Backstab: deal 3 damage to an undamaged creature,model
+H028,Hero,Common,Undead Priest,Horde,Priest,Undead,,Shadow Word: Pain - deal 1 damage each turn for 2 turns,model
+H029,Hero,Common,Undead Mage,Horde,Mage,Undead,,Arcane Missiles: deal 3 damage split randomly,model
+H030,Hero,Uncommon,Undead Warlock,Horde,Warlock,Undead,,Drain Life: deal 2 damage and heal 2,model
+H031,Hero,Common,Tauren Warrior,Horde,Warrior,Tauren,,War Stomp: stun all enemy creatures for a turn (once per game),model
+H032,Hero,Common,Tauren Hunter,Horde,Hunter,Tauren,,Aimed Shot: deal 3 damage to a creature,model
+H033,Hero,Common,Tauren Shaman,Horde,Shaman,Tauren,,Healing Wave: restore 3 health,model
+H034,Hero,Common,Tauren Druid,Horde,Druid,Tauren,,Rejuvenation: restore 1 health each turn for 3 turns,model
+H035,Hero,Common,Troll Warrior,Horde,Warrior,Troll,,Berserking: +1 attack for each damaged enemy creature,model
+H036,Hero,Common,Troll Hunter,Horde,Hunter,Troll,,Beast Slaying: deal 2 bonus damage to beasts,model
+H037,Hero,Uncommon,Troll Rogue,Horde,Rogue,Troll,,Regeneration: restore 1 health at the start of each turn,model
+H038,Hero,Uncommon,Troll Priest,Horde,Priest,Troll,,Hex of Weakness: a creature gets -2 attack,model
+H039,Hero,Common,Troll Shaman,Horde,Shaman,Troll,,Lightning Bolt: deal 2 damage,model
+H040,Hero,Common,Troll Mage,Horde,Mage,Troll,,Frostbolt: deal 2 damage and freeze,model
+H101,Hero,Legendary,Varian Wrynn,Alliance,Warrior,Human,H001,Evolved: Heroic Leap - deal 2 damage to all enemy creatures,model
+H102,Hero,Legendary,Uther the Lightbringer,Alliance,Paladin,Human,H002,Evolved: Divine Shield on your hero once per game,model
+H103,Hero,Epic,Mathias Shaw,Alliance,Rogue,Human,H003,Evolved: Stealth - your first creature each turn can't be targeted,model
+H104,Hero,Legendary,Jaina Proudmoore,Alliance,Mage,Human,H005,Evolved: Blizzard - deal 1 damage to all enemies and freeze them,model
+H105,Hero,Epic,Benedictus,Alliance,Priest,Human,H004,Evolved: Power Word: Shield - give a character 4 armor,model
+H106,Hero,Legendary,Magni Bronzebeard,Alliance,Warrior,Dwarf,H007,Evolved: Stoneform - your hero takes half damage this turn,model
+H107,Hero,Epic,Muradin Bronzebeard,Alliance,Paladin,Dwarf,H008,Evolved: Storm Bolt - stun and deal 3 damage,model
+H108,Hero,Legendary,Tyrande Whisperwind,Alliance,Priest,Night Elf,H015,Evolved: Elune's Grace - restore 2 health to all friendly characters,model
+H109,Hero,Legendary,Malfurion Stormrage,Alliance,Druid,Night Elf,H016,Evolved: Moonfire + Rejuvenation each turn,model
+H110,Hero,Epic,Shandris Feathermoon,Alliance,Hunter,Night Elf,H013,Evolved: Multi-Shot - deal 2 damage to three enemies,model
+H111,Hero,Legendary,Gelbin Mekkatorque,Alliance,Warrior,Gnome,H017,Evolved: Summon a 3/3 mechanostrider,model
+H112,Hero,Legendary,Thrall,Horde,Shaman,Orc,H024,Evolved: Doomhammer - your hero has +3 attack and windfury,model
+H113,Hero,Legendary,Grommash Hellscream,Horde,Warrior,Orc,H021,Evolved: Bloodlust - all creatures +2 attack this turn,model
+H114,Hero,Legendary,Gul'dan,Horde,Warlock,Orc,H025,Evolved: Dark Pact - destroy a friendly creature to deal its attack to all enemies,model
+H115,Hero,Epic,Rexxar,Horde,Hunter,Orc,H022,Evolved: Misha - summon a 4/4 bear,model
+H116,Hero,Legendary,Sylvanas Windrunner,Horde,Rogue,Undead,H027,Evolved: Black Arrow - a creature that dies rises for you as a 2/2,model
+H117,Hero,Epic,Nathanos Blightcaller,Horde,Hunter,Undead,H026,Evolved: Plague Shot - deal 2 damage to a creature and its neighbours,model
+H118,Hero,Legendary,Cairne Bloodhoof,Horde,Warrior,Tauren,H031,Evolved: Reincarnation - when your hero would die it returns with 10 health (once),model
+H119,Hero,Epic,Hamuul Runetotem,Horde,Druid,Tauren,H034,Evolved: Entangling Roots - two enemy creatures can't attack next turn,model
+H120,Hero,Legendary,Vol'jin,Horde,Shaman,Troll,H039,Evolved: Hex - turn a creature into a 0/1 frog,model
+H121,Hero,Epic,Zul'jin,Horde,Warrior,Troll,H035,Evolved: Axe Throw - deal 2 damage to two creatures,model
+C001,Creature,Common,Murloc Raider,Neutral,,Murloc,,Mrglglgl: +1 attack for each other murloc,model
+C002,Creature,Common,Murloc Tidehunter,Neutral,,Murloc,,Summon a 1/1 murloc,model
+C003,Creature,Common,Kobold Miner,Neutral,,Kobold,,You no take candle! - deal 1 damage when it dies,model
+C004,Creature,Common,Kobold Geomancer,Neutral,,Kobold,,Your spells deal +1 damage,model
+C005,Creature,Common,Defias Bandit,Neutral,,Human,,Stealth,model
+C006,Creature,Common,Defias Pillager,Neutral,,Human,,Deal 1 damage to a random enemy when played,model
+C007,Creature,Common,Gnoll Brute,Neutral,,Gnoll,,Taunt,model
+C008,Creature,Common,Riverpaw Mystic,Neutral,,Gnoll,,Restore 2 health to your hero when played,model
+C009,Creature,Common,Young Wolf,Neutral,,Beast,,Charge,model
+C010,Creature,Common,Plainstrider,Neutral,,Beast,,Kick - deal 1 damage to a creature,model
+C011,Creature,Common,Rotting Slime,Neutral,,Ooze,,When it dies summon a 1/1 slime,model
+C012,Creature,Common,Harpy Screecher,Neutral,,Harpy,,Silence a creature's ability this turn,model
+C013,Creature,Common,Quilboar Thornweaver,Neutral,,Quilboar,,Thorns - deal 1 damage to attackers,model
+C014,Creature,Common,Scarlet Initiate,Neutral,,Human,,Taunt,model
+C015,Creature,Common,Skeletal Warrior,Neutral,,Undead,,Deathrattle: summon a 1/1 skeleton,model
+C016,Creature,Common,Venture Co. Laborer,Neutral,,Goblin,,Give a friendly item +1 durability,model
+C017,Creature,Common,Mana Wyrm,Neutral,,Elemental,,Gains +1 attack whenever you cast a spell,model
+C018,Creature,Common,Timber Wolf,Neutral,,Beast,,Pack - +1/+1 if you have another beast,model
+C019,Creature,Common,Silverwing Sentinel,Alliance,,Night Elf,,Taunt,model
+C020,Creature,Common,Warsong Grunt,Horde,,Orc,,Charge,model
+C021,Creature,Common,Stormwind Guard,Alliance,,Human,,Taunt,model
+C022,Creature,Common,Orgrimmar Grunt,Horde,,Orc,,Taunt,model
+C023,Creature,Common,Tauren Brave,Horde,,Tauren,,+2 health when played next to another tauren,model
+C024,Creature,Common,Ironforge Mountaineer,Alliance,,Dwarf,,Deal 1 damage to a flying creature when played,model
+C025,Creature,Common,Darkspear Headhunter,Horde,,Troll,,Throw spear - deal 1 damage,model
+C031,Creature,Uncommon,Ghostpaw Runner,Neutral,,Beast,,Stealth until it attacks,model
+C032,Creature,Uncommon,Edwin's Henchman,Neutral,,Human,,+2 attack if you control Edwin VanCleef,model
+C033,Creature,Uncommon,Scarlet Crusader,Neutral,,Human,,Divine Shield,model
+C034,Creature,Uncommon,Blackrock Orc,Neutral,,Orc,,Enrage: +2 attack while damaged,model
+C035,Creature,Uncommon,Bloodsail Buccaneer,Neutral,,Human,,Give your weapon +1 attack,model
+C036,Creature,Uncommon,Gurubashi Berserker,Neutral,,Troll,,Gains +2 attack whenever it takes damage,model
+C037,Creature,Uncommon,Frostmane Seer,Neutral,,Troll,,Freeze a creature when played,model
+C038,Creature,Uncommon,Venom Web Spider,Neutral,,Beast,,Poisonous,model
+C039,Creature,Uncommon,Searing Blade Cultist,Neutral,,Orc,,Deal 2 damage to your hero and a creature,model
+C040,Creature,Uncommon,Earth Elemental,Neutral,,Elemental,,Taunt; overload,model
+C041,Creature,Uncommon,Fire Elemental,Neutral,,Elemental,,Deal 3 damage when played,model
+C042,Creature,Uncommon,Water Elemental,Neutral,,Elemental,,Freeze whatever it damages,model
+C043,Creature,Uncommon,Ghoul,Neutral,,Undead,,Deathrattle: deal 1 damage to all creatures,model
+C044,Creature,Uncommon,Gnomeregan Leper,Neutral,,Gnome,,Deathrattle: give a random enemy -1 attack,model
+C045,Creature,Uncommon,Arathi Highlands Raptor,Neutral,,Beast,,Charge,model
+C046,Creature,Uncommon,Stranglethorn Tiger,Neutral,,Beast,,Stealth,model
+C047,Creature,Uncommon,Booty Bay Bodyguard,Neutral,,Goblin,,Taunt,model
+C048,Creature,Uncommon,Argent Squire,Neutral,,Human,,Divine Shield,model
+C049,Creature,Uncommon,Kor'kron Elite,Horde,,Orc,,Charge,model
+C050,Creature,Uncommon,Stormwind Knight,Alliance,,Human,,Charge,model
+C061,Creature,Rare,Edwin VanCleef,Neutral,,Human,,Combo: +2/+2 for each card played before it this turn,model
+C062,Creature,Rare,Mutanus the Devourer,Neutral,,Murloc,,Eat a random enemy creature and gain its stats,model
+C063,Creature,Rare,Bazzalan,Neutral,,Satyr,,Poisonous,model
+C064,Creature,Rare,Herod,Neutral,,Human,,Whirlwind - deal 1 damage to all other creatures each turn,model
+C065,Creature,Rare,Arcanist Doan,Neutral,,Human,,Detonation - deal 2 damage to all enemies when it dies,model
+C066,Creature,Rare,Mekgineer Thermaplugg,Neutral,,Gnome,,Summon a 1/1 bomb each turn,model
+C067,Creature,Rare,Bloodmage Thalnos,Neutral,,Undead,,Spell damage +1; deathrattle: draw a card,model
+C068,Creature,Rare,Princess Theradras,Neutral,,Elemental,,Taunt; when it dies summon a 2/2 earth spirit,model
+C069,Creature,Rare,Mr. Smite,Neutral,,Tauren,,Gains +1 attack each time it's damaged,model
+C070,Creature,Rare,Gahz'rilla,Neutral,,Hydra,,Gahz'rilla's attack doubles when damaged,model
+C071,Creature,Rare,Hakkar's Soulflayer,Neutral,,Troll,,Lifesteal,model
+C072,Creature,Rare,Baron Rivendare (Dungeon),Neutral,,Undead,,Your deathrattles trigger twice,model
+C073,Creature,Rare,Gnomeregan Mechano-Tank,Alliance,,Mech,,Divine Shield; Taunt,model
+C074,Creature,Rare,Kodo Beast,Horde,,Beast,,Devour a creature with 2 or less attack,model
+C075,Creature,Rare,Doomguard,Neutral,,Demon,,Charge; discard two cards,model
+C076,Creature,Rare,Infernal,Neutral,,Demon,,Deal 2 damage to all other creatures when played,model
+C077,Creature,Rare,Felhunter,Neutral,,Demon,,Silence an enemy creature when played,model
+C078,Creature,Rare,Voidwalker,Neutral,,Demon,,Taunt,model
+C091,Creature,Epic,General Drakkisath,Neutral,,Dragon,,Your other dragons get +1/+1,model
+C092,Creature,Epic,Lord Valthalak,Neutral,,Demon,,Returns from the graveyard once,model
+C093,Creature,Epic,Archivist Galford,Neutral,,Human,,Burn - destroy the top card of each deck,model
+C094,Creature,Epic,Hakkar the Soulflayer,Neutral,,God,,Corrupted Blood - damage spreads to adjacent creatures,model
+C095,Creature,Epic,Majordomo Executus,Neutral,,Elemental,,Summon two 2/2 Flamewakers,model
+C096,Creature,Epic,Golemagg the Incinerator,Neutral,,Elemental,,Taunt; its two Core Hounds return to life,model
+C097,Creature,Epic,Vaelastrasz the Corrupt,Neutral,,Dragon,,Essence of the Red - both players draw an extra card each turn,model
+C098,Creature,Epic,Broodlord Lashlayer,Neutral,,Dragon,,Mortal Strike - healing on enemies is halved,model
+C099,Creature,Epic,Chromaggus,Neutral,,Dragon,,Random breath each turn: freeze / burn / poison,model
+C100,Creature,Epic,Ossirian the Unscarred,Neutral,,Mummy,,Immune until a crystal (spell) is played,model
+C101,Creature,Epic,Princess Huhuran,Neutral,,Silithid,,Poisonous; enrage below half health,model
+C102,Creature,Epic,Patchwerk,Neutral,,Undead,,Hateful Strike - attacks the highest-health enemy,model
+C103,Creature,Epic,Loatheb,Neutral,,Undead,,Your opponent's spells cost +3 next turn,model
+C104,Creature,Epic,Azuregos,Neutral,,Dragon,,Mark of Frost - enemies it damages can't attack next turn,model
+C105,Creature,Epic,Lord Kazzak,Neutral,,Demon,,Heals 5 whenever any creature dies,model
+C121,Creature,Legendary,Ragnaros the Firelord,Neutral,,Elemental,,By fire be purged! - deal 8 damage to a random enemy each turn,model
+C122,Creature,Legendary,Onyxia,Neutral,,Dragon,,Summon whelps to fill your board,model
+C123,Creature,Legendary,Nefarian,Neutral,,Dragon,,Class call - steal two spells from your opponent's class,model
+C124,Creature,Legendary,C'Thun,Neutral,,Old God,,Deals damage equal to its attack split among enemies,model
+C125,Creature,Legendary,Kel'Thuzad,Neutral,,Undead,,At end of turn summon every friendly creature that died this turn,model
+C126,Creature,Legendary,Hogger,Neutral,,Gnoll,,At end of turn summon a 2/2 gnoll with Taunt,model
+C127,Creature,Legendary,Leeroy Jenkins,Neutral,,Human,,Charge; summon two 1/1 whelps for your opponent,model
+C128,Creature,Legendary,King Mukla,Neutral,,Beast,,Give your opponent two bananas,model
+I001,Item,Common,Worn Shortsword,Neutral,,,,+1 attack,icon
+I002,Item,Common,Rusty Hatchet,Neutral,,,,+1 attack; 3 uses,icon
+I003,Item,Common,Linen Bandage,Neutral,,,,Restore 2 health to your hero,icon
+I004,Item,Common,Minor Healing Potion,Neutral,,,,Restore 3 health,icon
+I005,Item,Common,Buckler,Neutral,,,,+2 armor,icon
+I006,Item,Common,Hearthstone,Neutral,,,,Return your hero's items to your hand,icon
+I007,Item,Common,Copper Shortsword,Neutral,,,,+1 attack; +1 if you have a Warrior hero,icon
+I008,Item,Common,Light Leather Cap,Neutral,,,,+1 health,icon
+I009,Item,Common,Rough Arrows,Neutral,,,,Your hero power deals +1 damage (Hunters),icon
+I010,Item,Common,Shadow Oil,Neutral,,,,Your hero's attacks deal 1 extra shadow damage,icon
+I021,Item,Uncommon,Cruel Barb,Neutral,,,,+2 attack,icon
+I022,Item,Uncommon,Smite's Mighty Hammer,Neutral,,,,+3 attack; your hero can't attack the turn it's equipped,icon
+I023,Item,Uncommon,Blackened Defias Armor,Neutral,,,,+3 armor; stealth on your hero for a turn,icon
+I024,Item,Uncommon,Greater Healing Potion,Neutral,,,,Restore 6 health,icon
+I025,Item,Uncommon,Flask of the Titans,Neutral,,,,+4 max health this game,icon
+I026,Item,Uncommon,Elixir of the Mongoose,Neutral,,,,+1 attack and draw a card,icon
+I027,Item,Uncommon,Goblin Sapper Charge,Neutral,,,,Deal 2 damage to all enemies and 1 to your hero,icon
+I028,Item,Uncommon,Thorium Grenade,Neutral,,,,Stun a creature,icon
+I041,Item,Rare,Arcanite Reaper,Neutral,,,,+5 attack; 2 uses,icon
+I042,Item,Rare,Truestrike Shoulders,Neutral,,,,Your hero's attacks can't miss stealthed creatures,icon
+I043,Item,Rare,Hand of Justice,Neutral,,,,Your hero has a chance to attack twice,icon
+I044,Item,Rare,Briarwood Reed,Neutral,,,,Spell damage +1,icon
+I045,Item,Rare,Lifestone,Neutral,,,,Restore 1 health to your hero each turn,icon
+I046,Item,Rare,Blackhand's Breadth,Neutral,,,,+2 attack; crits deal double,icon
+I047,Item,Rare,Royal Seal of Eldre'Thalas,Neutral,,,,A class-specific bonus for your hero,icon
+I061,Item,Epic,Ironfoe,Neutral,,,,+3 attack; may attack twice,icon
+I062,Item,Epic,Bonereaver's Edge,Neutral,,,,+4 attack; each hit reduces enemy armor,icon
+I063,Item,Epic,Staff of Dominance,Neutral,,,,Spell damage +2,icon
+I064,Item,Epic,Dragonbreath Hand Cannon,Neutral,,,,Deal 3 damage to a creature each turn (3 uses),icon
+I065,Item,Epic,Band of Accuria,Neutral,,,,+2 attack; +2 health,icon
+I066,Item,Epic,Drake Fang Talisman,Neutral,,,,Your hero gains +1 attack each time it attacks,icon
+I081,Item,Legendary,Thunderfury Blessed Blade of the Windseeker,Neutral,,,,+4 attack; hits chain lightning to two more enemies,icon
+I082,Item,Legendary,Sulfuras Hand of Ragnaros,Neutral,,,,+5 attack; deal 2 fire damage to all enemies when equipped,icon
+I083,Item,Legendary,Atiesh Greatstaff of the Guardian,Neutral,,,,Spell damage +3; your spells cost 1 less,icon
+I084,Item,Legendary,Corrupted Ashbringer,Neutral,,,,+6 attack; heals your hero for half the damage dealt,icon
+S001,Spell,Common,Fireball,Neutral,Mage,,,Deal 6 damage,icon
+S002,Spell,Common,Frostbolt,Neutral,Mage,,,Deal 3 damage and freeze,icon
+S003,Spell,Common,Arcane Intellect,Neutral,Mage,,,Draw two cards,icon
+S004,Spell,Common,Shadow Bolt,Neutral,Warlock,,,Deal 4 damage to a creature,icon
+S005,Spell,Common,Fear,Neutral,Warlock,,,An enemy creature can't attack next turn,icon
+S006,Spell,Common,Heal,Neutral,Priest,,,Restore 6 health,icon
+S007,Spell,Common,Power Word Fortitude,Neutral,Priest,,,Give a creature +2 health,icon
+S008,Spell,Common,Holy Light,Neutral,Paladin,,,Restore 6 health,icon
+S009,Spell,Common,Blessing of Kings,Neutral,Paladin,,,Give a creature +2/+2,icon
+S010,Spell,Common,Lightning Bolt,Neutral,Shaman,,,Deal 3 damage; overload 1,icon
+S011,Spell,Common,Moonfire,Neutral,Druid,,,Deal 1 damage,icon
+S012,Spell,Common,Mark of the Wild,Neutral,Druid,,,Give a creature Taunt and +1/+1,icon
+S013,Spell,Common,Execute,Neutral,Warrior,,,Destroy a damaged enemy creature,icon
+S014,Spell,Common,Battle Shout,Neutral,Warrior,,,Your creatures get +1 attack this turn,icon
+S015,Spell,Common,Backstab,Neutral,Rogue,,,Deal 2 damage to an undamaged creature,icon
+S016,Spell,Common,Sap,Neutral,Rogue,,,Return an enemy creature to its owner's hand,icon
+S017,Spell,Common,Arcane Shot,Neutral,Hunter,,,Deal 2 damage,icon
+S018,Spell,Common,Hunter's Mark,Neutral,Hunter,,,Change a creature's health to 1,icon
+S031,Spell,Uncommon,Polymorph,Neutral,Mage,,,Transform a creature into a 1/1 sheep,icon
+S032,Spell,Uncommon,Cone of Cold,Neutral,Mage,,,Freeze a creature and its neighbours and deal 1 damage,icon
+S033,Spell,Uncommon,Hellfire,Neutral,Warlock,,,Deal 3 damage to all characters,icon
+S034,Spell,Uncommon,Mind Control,Neutral,Priest,,,Take control of an enemy creature,icon
+S035,Spell,Uncommon,Divine Shield,Neutral,Paladin,,,Give a creature Divine Shield,icon
+S036,Spell,Uncommon,Chain Lightning,Neutral,Shaman,,,Deal 3 damage to three enemies (2 then 1),icon
+S037,Spell,Uncommon,Starfire,Neutral,Druid,,,Deal 5 damage and draw a card,icon
+S038,Spell,Uncommon,Whirlwind,Neutral,Warrior,,,Deal 1 damage to all creatures,icon
+S039,Spell,Uncommon,Vanish,Neutral,Rogue,,,Return all creatures to their owners' hands,icon
+S040,Spell,Uncommon,Multi-Shot,Neutral,Hunter,,,Deal 3 damage to two random enemy creatures,icon
+S041,Spell,Uncommon,Bloodlust,Neutral,Shaman,,,Your creatures get +3 attack this turn,icon
+S042,Spell,Uncommon,Rain of Fire,Neutral,Warlock,,,Deal 1 damage to all enemies three times,icon
+S061,Spell,Rare,Pyroblast,Neutral,Mage,,,Deal 10 damage,icon
+S062,Spell,Rare,Ice Block,Neutral,Mage,,,Your hero is immune for a turn,icon
+S063,Spell,Rare,Shadowfury,Neutral,Warlock,,,Stun all enemy creatures and deal 2 damage,icon
+S064,Spell,Rare,Psychic Scream,Neutral,Priest,,,Shuffle all creatures into their owners' decks,icon
+S065,Spell,Rare,Lay on Hands,Neutral,Paladin,,,Restore all health and draw three cards,icon
+S066,Spell,Rare,Earth Shock,Neutral,Shaman,,,Silence a creature and deal 1 damage,icon
+S067,Spell,Rare,Innervate,Neutral,Druid,,,Gain 2 resource this turn,icon
+S068,Spell,Rare,Recklessness,Neutral,Warrior,,,Your hero gets +4 attack and takes double damage this turn,icon
+S069,Spell,Rare,Blade Flurry,Neutral,Rogue,,,Your hero's attack hits all enemy creatures,icon
+S070,Spell,Rare,Freezing Trap,Neutral,Hunter,,,The next enemy creature to attack returns to hand,icon
+S081,Spell,Epic,Shadow Word Death,Neutral,Priest,,,Destroy a creature with 5 or more attack,icon
+S082,Spell,Epic,Evocation,Neutral,Mage,,,Refill your resource,icon
+S083,Spell,Epic,Ritual of Doom,Neutral,Warlock,,,Summon a Doomguard; destroy a random friendly creature,icon
+S084,Spell,Epic,Tranquility,Neutral,Druid,,,Restore 3 health to all friendly characters each turn for 3 turns,icon
+S085,Spell,Epic,Mana Tide Totem,Neutral,Shaman,,,Draw a card at the end of each of your turns,icon
+S086,Spell,Legendary,Ancestral Spirit,Neutral,Shaman,,,Return your strongest dead creature to life,icon
+S087,Spell,Legendary,Divine Intervention,Neutral,Paladin,,,Your hero can't drop below 1 health this turn,icon
+A001,Artifact,Rare,The Dark Portal,Neutral,,,,Each turn both players summon a random 2-cost demon,ai
+A002,Artifact,Rare,Scarlet Crusade Banner,Neutral,,,,Your Human creatures get +1/+1,ai
+A003,Artifact,Rare,Warsong Battle Standard,Horde,,,,Your Orc creatures have Charge,ai
+A004,Artifact,Rare,Ironforge Forge,Alliance,,,,Your items get +1 attack,ai
+A005,Artifact,Epic,Moonwell,Neutral,,,,Restore 2 health to all friendly characters each turn,ai
+A006,Artifact,Epic,Scourge Plague Cauldron,Neutral,,,,Deal 1 damage to all creatures at the start of each turn,ai
+A007,Artifact,Epic,Scepter of the Shifting Sands,Neutral,,,,Destroy all creatures; no creatures can be played next turn,ai
+A008,Artifact,Epic,The Stormwind Throne,Alliance,,,,Your hero gains +5 health and your creatures cost 1 less,ai
+A009,Artifact,Epic,Grommash Hold,Horde,,,,Your creatures get +1 attack while your hero is damaged,ai
+A010,Artifact,Epic,Eye of C'Thun,Neutral,,,,Each turn destroy a random creature with the lowest health,ai
+A011,Artifact,Legendary,The Frozen Throne,Neutral,,,,Creatures that die return for the Lich King as 1/1 ghouls,ai
+A012,Artifact,Legendary,Dragon Soul,Neutral,,,,Take control of all enemy dragons,ai
+A013,Artifact,Legendary,Well of Eternity,Neutral,,,,Your spells cost nothing this turn,ai
+A014,Artifact,Legendary,Hand of Ragnaros (Molten Core Rune),Neutral,,,,Deal 3 damage to everything each turn for three turns,ai
+A015,Artifact,Legendary,Naaru Fragment,Neutral,,,,Restore your hero to full health and cleanse all effects,ai
