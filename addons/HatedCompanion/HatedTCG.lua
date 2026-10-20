@@ -52,6 +52,8 @@ local function append(entry)
   local t = db()
   t.log[#t.log + 1] = entry
   t.seal = fnv(t.seal, entry)
+  t.recent = t.recent or {}                       -- the window's "Recent" list (kept even after synced kills are cleared)
+  table.insert(t.recent, entry); while #t.recent > 10 do table.remove(t.recent, 1) end
   if TCGUI and TCGUI:IsShown() then TCGUI.refresh() end
 end
 
@@ -425,7 +427,12 @@ local function build()
   local function apply()
     local s = checkCode(box:GetText())
     if not s then say("that code doesn't look right - copy it again from the website."); return end
-    db().server = s; box:SetText(""); box:ClearFocus(); w.refresh()
+    local d = db(); d.server = s
+    -- the website has counted everything up to s.lastT: drop those lines so exports (and this file) stay small
+    local keep, edited = {}, d.tampered
+    for _, e in ipairs(d.log) do local ts = tonumber(e:match("^%a,(%d+),")); if not ts or ts > s.lastT then keep[#keep + 1] = e end end
+    if #keep ~= #d.log then d.log = keep; d.seal = reseal(d); if edited then d.tampered = true end end
+    box:SetText(""); box:ClearFocus(); w.refresh()
     say(string.format("account total updated: %d points.", s.points))
   end
   ok:SetScript("OnClick", apply); box:SetScript("OnEnterPressed", apply)
@@ -446,9 +453,10 @@ local function build()
     end
     -- newest first
     local shown = 0
-    for i = #t.log, 1, -1 do
+    local recent = t.recent or t.log
+    for i = #recent, 1, -1 do
       if shown >= 10 then break end
-      local e = entryOf(t.log[i])
+      local e = entryOf(recent[i])
       if e then
         shown = shown + 1
         local row = w.rows[shown]
