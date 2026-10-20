@@ -20,6 +20,7 @@ local MAX_LOG = 60000          -- lines kept at most (the oldest go first)
 local TEAL = { 0.25, 0.95, 0.85 }
 
 local function say(msg) DEFAULT_CHAT_FRAME:AddMessage("|cff3ff2d9Hated TCG:|r " .. msg) end
+local function dbg(msg) if HatedCompanionDB and HatedCompanionDB.tcgDebug then DEFAULT_CHAT_FRAME:AddMessage("|cff7fb5adTCG debug:|r " .. msg) end end
 
 -- ---------- the log (account-wide, sealed) ----------
 -- Each entry is one line of text. A running checksum ("seal") is kept with it; if the file is edited by hand the
@@ -85,7 +86,12 @@ end
 
 -- ---------- the popup: teal "+10" rising from the mob ----------
 local pool = {}
+local popupRaw
 local function popup(amount, guid)
+  local ok, err = pcall(popupRaw, amount, guid)
+  if not ok then dbg("popup failed: " .. tostring(err)) end
+end
+popupRaw = function(amount, guid)
   local f
   for _, x in ipairs(pool) do if not x:IsShown() then f = x; break end end
   if not f then
@@ -162,11 +168,11 @@ local lastEncounter = { t = 0, name = nil }
 local function mobKilled(guid)
   local id = npcId(guid); if not id then return end
   local i = info[guid] or {}
-  if i.ctype == "Critter" or i.ctype == "Non-combat Pet" or i.ctype == "Totem" then return end
+  if i.ctype == "Critter" or i.ctype == "Non-combat Pet" or i.ctype == "Totem" then dbg("skipped: " .. tostring(i.ctype)); return end
   local plvl = UnitLevel("player")
-  if i.lvl and i.lvl > 0 and i.lvl <= greyLevel(plvl) then return end           -- grey: nothing
+  if i.lvl and i.lvl > 0 and i.lvl <= greyLevel(plvl) then dbg("skipped: grey (level " .. i.lvl .. ")"); return end
   -- a boss's death is credited by the encounter itself, not as a normal mob
-  if GetTime() - lastEncounter.t < 4 and i.name and i.name == lastEncounter.name then return end
+  if GetTime() - lastEncounter.t < 4 and i.name and i.name == lastEncounter.name then dbg("skipped: boss (encounter credit)"); return end
   local cls = i.cls or "?"
   local _, _, _, _, _, _, _, instId = GetInstanceInfo()
   local zone = (C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")) or 0
@@ -175,6 +181,7 @@ local function mobKilled(guid)
   local elite = cls == "elite" or cls == "rareelite" or cls == "worldboss"
   local amount = first and 10 or (elite and 3 or 1)
   append(table.concat({ "m", time(), UnitName("player"), plvl, id, guid, instId or 0, zone, i.lvl or 0, cls, amount, ((i.name or ""):gsub(",", "")) }, ","))
+  dbg(string.format("logged %s (npc %d) for %d points; log has %d lines", tostring(i.name), id, amount, #db().log))
   award(key, first, amount, guid)
 end
 
@@ -204,8 +211,10 @@ f:SetScript("OnEvent", function(_, event, a1, a2, a3, a4, a5)
     local _, sub, _, _, _, srcFlags, _, dstGUID = CombatLogGetCurrentEventInfo()
     if DAMAGE[sub] then
       if dstGUID and bit.band(srcFlags or 0, AFF) ~= 0 and npcId(dstGUID) then hit[dstGUID] = GetTime() end
-    elseif sub == "UNIT_DIED" and dstGUID and hit[dstGUID] then
+    elseif sub == "UNIT_DIED" and dstGUID and npcId(dstGUID) then
+      if not hit[dstGUID] then dbg("a mob died that you / your group didn't hit: " .. dstGUID); return end
       local guid = dstGUID
+      dbg("mob died, checking in 1.5s: " .. guid)
       if GetTime() - hit[guid] < 120 then C_Timer.After(1.5, function() mobKilled(guid); hit[guid] = nil; info[guid] = nil end) end
     end
   elseif event == "NAME_PLATE_UNIT_ADDED" then
@@ -355,4 +364,11 @@ end
 
 -- ---------- /tcg ----------
 SLASH_HATEDTCG1 = "/tcg"
-SlashCmdList.HATEDTCG = function() HatedTCG_Toggle() end
+SlashCmdList.HATEDTCG = function(msg)
+  if (msg or ""):lower():match("debug") then
+    HatedCompanionDB = HatedCompanionDB or {}; HatedCompanionDB.tcgDebug = not HatedCompanionDB.tcgDebug
+    say("debug " .. (HatedCompanionDB.tcgDebug and "on: kills are reported in chat (/tcg debug again to stop)." or "off.")); return
+  end
+  if (msg or ""):lower():match("test") then popup(10, nil); say("that was a test popup (no points)."); return end
+  HatedTCG_Toggle()
+end
