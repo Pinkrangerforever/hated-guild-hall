@@ -1285,39 +1285,86 @@
   .tcgp-history{ margin-top:22px; width:100%; }
   .tcgp-history .row{ display:flex; gap:6px; align-items:center; padding:6px 0; border-bottom:1px solid rgba(63,242,217,.1); font-size:12px; color:#7fb5ad; }
   .tcgp-history img{ width:46px; border-radius:3px; cursor:pointer; }
-  /* the pack itself */
-  .tcg-pack{ position:relative; width:190px; height:270px; margin:0 auto; border-radius:10px; overflow:hidden;
-    background:linear-gradient(135deg, #0d3b38 0%, #19a394 30%, #7ff9ea 48%, #19a394 62%, #0b2e2b 100%);
-    box-shadow:0 10px 30px rgba(0,0,0,.6), 0 0 22px rgba(63,242,217,.35), inset 0 0 0 3px rgba(255,255,255,.15); }
-  .tcg-pack::before{ content:''; position:absolute; inset:0; background:repeating-linear-gradient(115deg, transparent 0 18px, rgba(255,255,255,.07) 18px 20px); }
-  .tcg-pack::after{ content:''; position:absolute; inset:-40%; background:linear-gradient(105deg, transparent 40%, rgba(255,255,255,.5) 50%, transparent 60%); animation:tcgSheen 3.5s infinite; }
-  .tcg-pack img{ position:absolute; left:50%; top:42%; width:110px; transform:translate(-50%,-50%); filter:drop-shadow(0 4px 10px rgba(0,0,0,.6)); }
-  .tcg-pack b{ position:absolute; left:0; right:0; bottom:26px; font:800 20px Cinzel, Georgia, serif; color:#fff; text-shadow:0 2px 6px #000, 0 0 12px rgba(63,242,217,.8); letter-spacing:.08em; }
-  .tcg-pack i{ position:absolute; left:0; right:0; bottom:10px; font:600 10px system-ui; font-style:normal; color:#d7fffa; letter-spacing:.2em; text-transform:uppercase; }
-  @keyframes tcgSheen{ 0%{ transform:translateX(-60%); } 60%,100%{ transform:translateX(60%); } }
+  /* the pack: a sealed foil pouch, ridged heat seals top and bottom, a tear strip across the top */
+  .tpk{ position:relative; width:var(--pw, 200px); height:calc(var(--pw, 200px) * 1.5); margin:0 auto; filter:drop-shadow(0 14px 24px rgba(0,0,0,.65)) drop-shadow(0 0 18px rgba(63,242,217,.25)); user-select:none; -webkit-user-select:none; }
+  .tpk-foil{ position:absolute; inset:0; border-radius:4px;
+    background:linear-gradient(150deg, #13786e 0%, #2fc8b6 10%, #128a7e 24%, #6ff3e2 40%, #e6fffb 47%, #3fd9c6 54%, #0f6d65 75%, #061f1d 100%); }
+  .tpk-foil::before{ content:''; position:absolute; inset:0; border-radius:inherit; background:
+      repeating-linear-gradient(100deg, transparent 0 22px, rgba(255,255,255,.06) 22px 24px),
+      radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.35), transparent 45%); mix-blend-mode:screen; }
+  .tpk-foil::after{ content:''; position:absolute; inset:0; border-radius:inherit; overflow:hidden;
+      background:linear-gradient(105deg, transparent 42%, rgba(255,255,255,.55) 50%, transparent 58%) no-repeat; background-size:300% 100%; animation:tpkSheen 3.8s ease-in-out infinite; }
+  @keyframes tpkSheen{ 0%{ background-position:120% 0; } 55%,100%{ background-position:-20% 0; } }
+  .tpk-body{ position:absolute; left:0; right:0; top:13%; bottom:0; overflow:hidden; border-radius:0 0 4px 4px; }
+  .tpk-body .tpk-foil{ top:-15%; }
+  .tpk-seal{ position:absolute; left:0; right:0; height:7%; background:repeating-linear-gradient(90deg, rgba(0,0,0,.28) 0 2px, rgba(255,255,255,.18) 2px 4px); }
+  .tpk-body .tpk-seal{ bottom:0; }
+  .tpk-art{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4%; padding-bottom:6%; }
+  .tpk-art img{ width:52%; filter:drop-shadow(0 4px 10px rgba(0,0,0,.6)); }
+  .tpk-art b{ font:800 calc(var(--pw, 200px) * .105) Cinzel, Georgia, serif; color:#fff; letter-spacing:.08em; text-shadow:0 2px 6px #000, 0 0 12px rgba(63,242,217,.9); }
+  .tpk-art i{ font:600 calc(var(--pw, 200px) * .05) system-ui; font-style:normal; color:#e0fffb; letter-spacing:.25em; text-transform:uppercase; text-shadow:0 1px 3px #000; }
+  .tpk-mouth{ position:absolute; left:3%; right:3%; top:-6px; height:16px; border-radius:50%; background:radial-gradient(ellipse at center, #000 30%, rgba(0,0,0,.6) 60%, transparent 72%); opacity:0; transition:opacity .3s; }
+  .tpk.open .tpk-mouth{ opacity:1; }
+  /* the strip above the tear line; it's two copies: the part already torn (lifts away) and the part still attached */
+  .tpk-strip{ position:absolute; left:0; right:0; top:0; height:13%; cursor:grab; touch-action:none; }
+  .tpk-strip > div{ position:absolute; inset:0; overflow:hidden; border-radius:4px 4px 0 0; }
+  .tpk-strip .tpk-foil{ bottom:-670%; }
+  .tpk-strip .tpk-seal{ top:0; height:55%; }
+  .tpk-lift{ transform-origin:var(--p, 0%) 100%; transform:rotate(calc(var(--t, 0) * -16deg)) translateY(calc(var(--t, 0) * -5px)); clip-path:inset(0 calc(100% - var(--p, 0%)) 0 0); }
+  .tpk-stay{ clip-path:inset(0 0 0 var(--p, 0%)); }
+  .tpk-rip{ position:absolute; top:0; bottom:0; left:var(--p, 0%); width:3px; margin-left:-1px; background:repeating-linear-gradient(180deg, #fff 0 3px, transparent 3px 5px); opacity:0; }
+  .tpk.tearing .tpk-rip{ opacity:.9; }
+  .tpk-line{ position:absolute; left:4%; right:4%; bottom:0; border-bottom:2px dashed rgba(255,255,255,.55); }
+  .tpk-notch{ position:absolute; left:-2px; bottom:-7px; width:0; height:0; border:7px solid transparent; border-left-color:#0b0d0f; }
+  .tpk-hint{ position:absolute; left:50%; top:-34px; transform:translateX(-50%); white-space:nowrap; font:700 13px Cinzel, Georgia, serif; color:#bff7ef; text-shadow:0 0 8px rgba(63,242,217,.7); animation:tpkNudge 1.4s ease-in-out infinite; pointer-events:none; }
+  @keyframes tpkNudge{ 50%{ transform:translateX(calc(-50% + 10px)); } }
+  .tpk.torn .tpk-hint, .tpk.tearing .tpk-hint{ opacity:0; transition:opacity .2s; }
+  .tpk-strip.fly > .tpk-lift{ clip-path:none; transition:transform .7s cubic-bezier(.3,.6,.4,1), opacity .7s; transform:translate(-40%, -240%) rotate(-38deg); opacity:0; }
+  .tpk-strip.fly > .tpk-stay, .tpk-strip.fly .tpk-rip{ display:none; }
+  .tcgp-product .tpk{ cursor:default; } .tcgp-product .tpk-strip{ cursor:default; }
   /* opening overlay */
-  .tcgo{ position:fixed; inset:0; z-index:100000; background:radial-gradient(ellipse at center, rgba(10,40,38,.92), rgba(0,0,0,.97)); display:flex; align-items:center; justify-content:center; overflow:hidden; }
-  .tcgo .tcg-pack{ position:absolute; left:50%; top:50%; margin:0; transform:translate(-50%,-50%) scale(1.25); transition:transform .5s, opacity .4s; }
-  .tcgo .tcg-pack.shake{ animation:tcgShake .9s ease-in-out; }
-  .tcgo .tcg-pack.gone{ transform:translate(-50%,-50%) scale(1.8); opacity:0; }
-  @keyframes tcgShake{ 0%,100%{ transform:translate(-50%,-50%) scale(1.25) rotate(0); } 15%{ transform:translate(-52%,-50%) scale(1.27) rotate(-4deg); } 30%{ transform:translate(-48%,-50%) scale(1.29) rotate(4deg); }
-    45%{ transform:translate(-52%,-50%) scale(1.31) rotate(-5deg); } 60%{ transform:translate(-48%,-50%) scale(1.33) rotate(5deg); } 80%{ transform:translate(-50%,-50%) scale(1.38) rotate(-2deg); } }
-  .tcgo-flash{ position:absolute; inset:0; background:radial-gradient(circle, #fff, rgba(127,249,234,.6) 30%, transparent 70%); opacity:0; pointer-events:none; }
-  .tcgo-flash.go{ animation:tcgFlash .7s ease-out; } @keyframes tcgFlash{ 0%{ opacity:0; } 20%{ opacity:1; } 100%{ opacity:0; } }
-  .tcgo-card{ position:absolute; left:50%; top:50%; width:var(--cw); height:calc(var(--cw) * 1.334); margin:calc(var(--cw) * -.667) 0 0 calc(var(--cw) * -.5); perspective:1200px; cursor:pointer;
-    transform:translate(0,0) scale(.3); opacity:0; transition:transform .65s cubic-bezier(.2,.9,.3,1.15), opacity .3s; }
-  .tcgo-card.out{ opacity:1; transform:translate(var(--x), var(--y)) scale(1); }
-  .tcgo-card .in{ position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .7s cubic-bezier(.3,1.4,.5,1); }
-  .tcgo-card.flip .in{ transform:rotateY(180deg); }
-  .tcgo-card .face{ position:absolute; inset:0; backface-visibility:hidden; border-radius:8px; }
-  .tcgo-card .back{ background:url(https://assets.hatedforever.com/tcg/cardback.webp) center/contain no-repeat; filter:drop-shadow(0 0 10px var(--glow)) drop-shadow(0 0 4px var(--glow)); animation:tcgPulse 1.6s infinite; }
+  .tcgo{ position:fixed; inset:0; z-index:100000; background:radial-gradient(ellipse at center, rgba(10,40,38,.94), rgba(0,0,0,.97)); overflow:hidden; }
+  .tcgo.shake{ animation:tcgoShake .5s; } @keyframes tcgoShake{ 20%{ transform:translate(-8px,4px); } 40%{ transform:translate(7px,-5px); } 60%{ transform:translate(-5px,3px); } 80%{ transform:translate(3px,-2px); } }
+  .tcgo-stage{ position:absolute; left:50%; top:50%; width:0; height:0; }
+  .tcgo .tpk{ position:absolute; left:calc(var(--pw) * -.5); top:calc(var(--pw) * -.75); margin:0; z-index:3; transition:transform .8s cubic-bezier(.5,0,.75,0), opacity .6s; animation:tpkIn .6s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes tpkIn{ from{ transform:translateY(60vh) rotate(8deg); } }
+  .tcgo .tpk.drop{ transform:translateY(80vh) rotate(-6deg); opacity:0; }
+  .tcgo .tpk.wobble{ animation:tpkWobble .35s; } @keyframes tpkWobble{ 30%{ transform:rotate(-2deg) scale(1.02); } 70%{ transform:rotate(1.5deg); } }
+  .tcgo-flash{ position:absolute; inset:0; pointer-events:none; opacity:0; background:radial-gradient(circle, var(--fc, #fff), transparent 65%); }
+  .tcgo-flash.go{ animation:tcgFlash .8s ease-out; } @keyframes tcgFlash{ 0%{ opacity:0; } 15%{ opacity:.9; } 100%{ opacity:0; } }
+  .tcgo-card{ position:absolute; left:0; top:0; width:var(--cw); height:calc(var(--cw) * 1.334); margin:calc(var(--cw) * -.667) 0 0 calc(var(--cw) * -.5); perspective:1000px; cursor:pointer; z-index:2;
+    transform:translate(0, calc(var(--cw) * .35)) scale(.82); transition:transform .75s cubic-bezier(.2,.9,.25,1.12); }
+  .tcgo-card.rise{ transform:translate(var(--sx, 0), calc(var(--cw) * -.95)) scale(.85) rotate(var(--sr, 0deg)); transition-duration:.6s; }
+  .tcgo-card.out{ z-index:4; transform:translate(var(--x), var(--y)) scale(1); }
+  .tcgo-card .in{ --flip:0deg; position:relative; width:100%; height:100%; transform-style:preserve-3d; transform:rotateX(var(--rx, 0deg)) rotateY(calc(var(--ry, 0deg) + var(--flip))); transition:transform .15s; }
+  .tcgo-card.flip .in{ --flip:180deg; transition:transform .8s cubic-bezier(.3,1.5,.5,1); }
+  .tcgo-card.flip{ z-index:5; }
+  .tcgo-card.pop{ animation:tcgPop .8s; } @keyframes tcgPop{ 40%{ scale:1.12; } }
+  .tcgo-card .face{ position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+  .tcgo-card .back{ background:url(https://assets.hatedforever.com/tcg/cardback.webp?v=2) center/88% auto no-repeat; filter:drop-shadow(0 0 8px var(--glow)) drop-shadow(0 0 3px var(--glow)); }
+  .tcgo-card.out:not(.flip) .back{ animation:tcgPulse 1.4s ease-in-out infinite; }
+  .tcgo-card.out:not(.flip):hover .back{ filter:drop-shadow(0 0 26px var(--glow)) drop-shadow(0 0 8px var(--glow)) brightness(1.15); animation:none; }
+  @keyframes tcgPulse{ 50%{ filter:drop-shadow(0 0 22px var(--glow)) drop-shadow(0 0 7px var(--glow)); } }
   .tcgo-card .front{ transform:rotateY(180deg); }
   .tcgo-card .front img{ width:100%; height:100%; object-fit:contain; display:block; }
-  @keyframes tcgPulse{ 50%{ filter:drop-shadow(0 0 22px var(--glow)) drop-shadow(0 0 8px var(--glow)); } }
-  .tcgo-card.legendary.flip{ animation:tcgBoom .8s; } @keyframes tcgBoom{ 30%{ filter:drop-shadow(0 0 40px #ff9a1f) brightness(1.6); } }
-  .tcgo-tag{ position:absolute; left:50%; bottom:-26px; transform:translateX(-50%) rotateY(180deg); white-space:nowrap; font:800 12px Cinzel, Georgia, serif; letter-spacing:.06em; padding:2px 8px; border-radius:10px; background:rgba(0,0,0,.7); backface-visibility:hidden; }
-  .tcgo-hint{ position:absolute; top:6%; left:0; right:0; text-align:center; font:700 18px Cinzel, Georgia, serif; color:#bff7ef; text-shadow:0 0 10px rgba(63,242,217,.5); }
-  .tcgo-done{ position:absolute; bottom:5%; left:50%; transform:translateX(-50%); display:flex; gap:10px; }
+  .tcgo-tag{ position:absolute; left:50%; bottom:-28px; transform:translateX(-50%); white-space:nowrap; font:800 12px Cinzel, Georgia, serif; letter-spacing:.06em; padding:2px 9px; border-radius:10px; background:rgba(0,0,0,.75); opacity:0; transition:opacity .4s .45s; }
+  .tcgo-card.flip .tcgo-tag{ opacity:1; }
+  .tcgo-spark{ position:absolute; left:50%; top:50%; width:8px; height:8px; margin:-4px; border-radius:50%; pointer-events:none; z-index:6; }
+  .tcgo-ring{ position:absolute; left:50%; top:50%; width:20px; height:20px; margin:-10px; border-radius:50%; border:3px solid var(--c); pointer-events:none; z-index:6; }
+  .tcgo-banner{ position:absolute; left:0; right:0; top:12%; text-align:center; font:900 clamp(30px, 7vw, 64px) Cinzel, Georgia, serif; color:#ffb347; letter-spacing:.08em;
+    text-shadow:0 0 18px #ff8000, 0 0 40px #ff6a00, 0 4px 8px #000; pointer-events:none; animation:tcgBanner 2.4s forwards; z-index:7; }
+  @keyframes tcgBanner{ 0%{ opacity:0; transform:scale(2.2); } 15%{ opacity:1; transform:scale(1); } 75%{ opacity:1; } 100%{ opacity:0; transform:scale(1.05); } }
+  .tcgo-hint{ position:absolute; top:5%; left:0; right:0; text-align:center; font:700 18px Cinzel, Georgia, serif; color:#bff7ef; text-shadow:0 0 10px rgba(63,242,217,.5); transition:opacity .3s; pointer-events:none; }
+  .tcgo-done{ position:absolute; bottom:4%; left:50%; transform:translateX(-50%); display:flex; gap:10px; }
+  .tcgo-skip{ position:absolute; right:16px; bottom:16px; font-size:12px; color:#7fb5ad; }
+  /* binder: cards you haven't found yet */
+  .tcgb-myst{ position:relative; aspect-ratio:655/874; display:flex; align-items:center; justify-content:center; }
+  .tcgb-myst::before{ content:''; position:absolute; inset:0; background:url(https://assets.hatedforever.com/tcg/cardback.webp?v=2) center/88% auto no-repeat;
+    filter:brightness(.5) saturate(.6) drop-shadow(0 0 6px var(--glow)); opacity:.85; transition:filter .2s; }
+  .tcgb-card:hover .tcgb-myst::before{ filter:brightness(.7) saturate(.8) drop-shadow(0 0 12px var(--glow)); }
+  .tcgb-myst b{ position:relative; font:900 44px Cinzel, Georgia, serif; color:rgba(255,255,255,.85); text-shadow:0 0 12px var(--glow), 0 2px 4px #000; }
+  .tcgb-myst span{ position:absolute; left:8%; right:8%; bottom:9%; text-align:center; font:700 10px system-ui; letter-spacing:.04em; color:var(--glow); text-shadow:0 1px 2px #000; line-height:1.3; }
+  .tcgb-card.missing{ cursor:default; } .tcgb-card.missing:hover{ transform:none; }
   /* holographic foil */
   .tcg-holo{ position:relative; display:block; overflow:hidden; border-radius:8px; }
   .tcg-holo::after{ content:''; position:absolute; inset:0; pointer-events:none; mix-blend-mode:color-dodge; opacity:.55;
@@ -11849,6 +11896,7 @@ const TCG_SETS = { VANILLA: 'Classic', NAXX: 'Naxxramas', BRM: 'Blackrock Mounta
 const TCG_CLASSES = ['NEUTRAL', 'DRUID', 'HUNTER', 'MAGE', 'PALADIN', 'PRIEST', 'ROGUE', 'SHAMAN', 'WARLOCK', 'WARRIOR', 'DEMONHUNTER', 'DEATHKNIGHT'];
 const tcgClassName = c => ({ DEMONHUNTER: 'Demon Hunter', DEATHKNIGHT: 'Death Knight' })[c] || (c ? c[0] + c.slice(1).toLowerCase() : '');
 const tcgSetName = s => TCG_SETS[s] || 'Other';
+const tcgSlot = c => c.slot || '?';
 
 async function loadTcgCatalog(){
   if(state.tcgCards || state.tcgCardsLoading) return;
@@ -11864,6 +11912,7 @@ async function loadTcgCatalog(){
   all.sort((a, b) => order(a.set_code) - order(b.set_code) || TCG_CLASSES.indexOf(a.card_class) - TCG_CLASSES.indexOf(b.card_class)
     || (a.cost ?? 99) - (b.cost ?? 99) || a.name.localeCompare(b.name));
   state.tcgCards = all; state.tcgCardById = Object.fromEntries(all.map(c => [c.id, c]));
+  const n = {}; all.forEach(c => { c.slot = n[c.set_code] = (n[c.set_code] || 0) + 1; });
   state.tcgCardsLoading = false; render();
 }
 async function loadTcgMine(){
@@ -11904,7 +11953,7 @@ function renderTcgShop(){
       ${h.cards.map(c => `<span data-tcg-zoom="${esc(c.id)}|${c.holo ? 1 : 0}" title="${esc(TCG_RARITY[c.rarity].label)}">${tcgCardImg(c.id, c.holo)}</span>`).join('')}</div>`).join('')}</div>` : '';
   return `<div class="tcgp-shop">
     <div class="tcgp-product">
-      <div class="tcg-pack"><img src="guild-icon.png" alt=""><b>HATED TCG</b><i>5 cards</i></div>
+      ${tcgPackHtml(200, false)}
       <button class="btn tcg-btn tcgp-buy" id="tcg-buy" ${can && !state.tcgOpeningBusy ? '' : 'disabled'}>Open a pack &mdash; ${TCG_PACK_PRICE} points</button>
       ${ M && M.points < TCG_PACK_PRICE ? `<p class="muted sans" style="font-size:12px;margin:8px 0 0;">You need ${TCG_PACK_PRICE - M.points} more points. Earn them killing things in game, then sync on your profile.</p>` : '' }
     </div>
@@ -11924,7 +11973,7 @@ function renderTcgBinder(){
   const F = state.tcgFilter || (state.tcgFilter = { set: '', cls: '', rarity: '', owned: false, q: '', limit: 120 });
   const q = F.q.trim().toLowerCase();
   const list = cards.filter(c => (!F.set || c.set_code === F.set) && (!F.cls || c.card_class === F.cls) && (!F.rarity || c.rarity === F.rarity)
-    && (!F.owned || M.owned[c.id]) && (!q || c.name.toLowerCase().includes(q)));
+    && (!F.owned || M.owned[c.id]) && (!q || (M.owned[c.id] && c.name.toLowerCase().includes(q))));
   const pool = cards.filter(c => (!F.set || c.set_code === F.set));
   const have = pool.filter(c => M.owned[c.id]).length;
   const sets = [...new Set(cards.map(c => c.set_code))];
@@ -11933,13 +11982,14 @@ function renderTcgBinder(){
       <select id="tcgb-set">${opt('', 'All sets', F.set)}${sets.map(s => opt(s, tcgSetName(s), F.set)).join('')}</select>
       <select id="tcgb-cls">${opt('', 'All classes', F.cls)}${TCG_CLASSES.map(c => opt(c, tcgClassName(c), F.cls)).join('')}</select>
       <select id="tcgb-rar">${opt('', 'All rarities', F.rarity)}${TCG_RARITY_ORDER.map(r => opt(r, TCG_RARITY[r].label, F.rarity)).join('')}</select>
-      <input type="search" id="tcgb-q" placeholder="Search names" value="${esc(F.q)}">
+      <input type="search" id="tcgb-q" placeholder="Search your cards" value="${esc(F.q)}">
       <label><input type="checkbox" id="tcgb-owned" ${F.owned ? 'checked' : ''}> Owned only</label>
       <span class="tcgb-prog">${have} / ${pool.length} collected${F.set ? ' in ' + esc(tcgSetName(F.set)) : ''}</span>
     </div>
-    ${ list.length ? `<div class="tcgb-grid">${list.slice(0, F.limit).map(c => { const o = M.owned[c.id];
-      return `<div class="tcgb-card ${o ? '' : 'missing'}" data-tcg-zoom="${esc(c.id)}|${o && o.holo ? 1 : 0}" title="${esc(c.name)}">${tcgCardImg(c.id, o && o.holo)}
-        ${o ? `<span class="tcgb-n">x${o.count}</span>` : ''}${o && o.holo ? `<span class="tcgb-h">HOLO${o.holo > 1 ? ' x' + o.holo : ''}</span>` : ''}</div>`; }).join('')}</div>
+    ${ list.length ? `<div class="tcgb-grid">${list.slice(0, F.limit).map(c => { const o = M.owned[c.id], R = TCG_RARITY[c.rarity];
+      if(!o) return `<div class="tcgb-card missing" title="Not found yet"><div class="tcgb-myst" style="--glow:${R.color}"><b>?</b><span>${esc(tcgSetName(c.set_code))} #${tcgSlot(c)}<br>${R.label}</span></div></div>`;
+      return `<div class="tcgb-card" data-tcg-zoom="${esc(c.id)}|${o.holo ? 1 : 0}" title="${esc(c.name)}">${tcgCardImg(c.id, o.holo)}
+        <span class="tcgb-n">x${o.count}</span>${o.holo ? `<span class="tcgb-h">HOLO${o.holo > 1 ? ' x' + o.holo : ''}</span>` : ''}</div>`; }).join('')}</div>
       ${ list.length > F.limit ? `<button class="btn secondary tcgb-more" id="tcgb-more">Show more (${list.length - F.limit} left)</button>` : '' }`
       : `<div class="tcgb-empty">${F.owned && !Object.keys(M.owned).length ? 'Your binder is empty. Open a pack in the Card Shop!' : 'No cards match.'}</div>` }`;
 }
@@ -11952,8 +12002,39 @@ function tcgZoom(id, holo){
   document.body.appendChild(z);
 }
 
-// The pack opening: the pack shakes and bursts, five cards fly out face down glowing their rarity,
-// and the player clicks each one to turn it over.
+// A sealed foil pack. The strip above the dashed line is the tear-off; while tearing, --p (0-100%) is how far along it is.
+function tcgPackHtml(pw, hint){
+  const strip = `<div class="tpk-foil"></div><div class="tpk-seal"></div><div class="tpk-line"></div>`;
+  return `<div class="tpk" style="--pw:${pw}px">
+    <div class="tpk-body"><div class="tpk-foil"></div><div class="tpk-mouth"></div>
+      <div class="tpk-art"><img src="guild-icon.png" alt=""><b>HATED TCG</b><i>5 cards</i></div><div class="tpk-seal"></div></div>
+    <div class="tpk-strip"><div class="tpk-stay">${strip}</div><div class="tpk-lift">${strip}</div><span class="tpk-rip"></span><span class="tpk-notch"></span></div>
+    ${hint ? `<div class="tpk-hint">&#9664; Tear here &#9654;</div>` : ''}
+  </div>`;
+}
+
+// Little bursts of light when a card turns over (more for rarer cards)
+function tcgBurst(host, color, n, big){
+  const r = host.getBoundingClientRect(), ov = host.closest('.tcgo');
+  const o = ov.getBoundingClientRect(), cx = r.left + r.width / 2 - o.left, cy = r.top + r.height / 2 - o.top;
+  for(let i = 0; i < n; i++){
+    const s = document.createElement('div');
+    s.className = 'tcgo-spark';
+    const a = Math.random() * Math.PI * 2, d = (big ? 160 : 90) + Math.random() * (big ? 220 : 110), sz = 3 + Math.random() * (big ? 9 : 6);
+    s.style.cssText = `left:${cx}px;top:${cy}px;width:${sz}px;height:${sz}px;background:${color};box-shadow:0 0 ${sz * 2}px ${color}`;
+    ov.appendChild(s);
+    s.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d}px) scale(.2)`, opacity: 0 }],
+      { duration: 700 + Math.random() * 600, easing: 'cubic-bezier(.1,.8,.3,1)' }).onfinish = () => s.remove();
+  }
+  const ring = document.createElement('div');
+  ring.className = 'tcgo-ring'; ring.style.cssText = `left:${cx}px;top:${cy}px;--c:${color}`;
+  ov.appendChild(ring);
+  ring.animate([{ transform: 'scale(1)', opacity: .9 }, { transform: `scale(${big ? 30 : 16})`, opacity: 0 }], { duration: big ? 1000 : 700, easing: 'ease-out' }).onfinish = () => ring.remove();
+}
+
+// The pack opening: the pack slides up, the player tears the strip off the top (drag across it, or tap it),
+// the cards rise out of the pack face down glowing their rarity, the pack drops away, and each card is
+// clicked to turn it over. The cards were already rolled on the server; this only shows them.
 async function tcgOpenPack(){
   if(state.tcgOpeningBusy) return;
   state.tcgOpeningBusy = true; render();
@@ -11964,45 +12045,116 @@ async function tcgOpenPack(){
     out = data;
   }catch(e){ showToast('Could not open the pack: ' + (e.message || e), true); state.tcgOpeningBusy = false; render(); return; }
   state.tcgMine = null;                                    // reload balance / binder / history afterwards
+  out.cards.forEach(c => { const im = new Image(); im.src = TCG_IMG(c.id); });   // start loading the art now
+
+  const w = Math.min(190, Math.floor((window.innerWidth - 40) / 3.2)), pw = Math.round(Math.min(w * 1.35, 240));
+  const wide = window.innerWidth > 5.6 * w;
+  const spots = wide ? [-2, -1, 0, 1, 2].map(i => [i * w * 1.12, 0]) : [[-1.1, -.72], [0, -.72], [1.1, -.72], [-.55, .72], [.55, .72]].map(([x, y]) => [x * w, y * w * 1.36]);
   const ov = document.createElement('div');
   ov.className = 'tcgo';
-  const w = Math.min(190, Math.floor((window.innerWidth - 40) / 3.2));
-  const wide = window.innerWidth > 5.6 * w;
-  // a row of five on wide screens, 3 + 2 on narrow ones
-  const spots = wide ? [-2, -1, 0, 1, 2].map(i => [i * w * 1.12, 0]) : [[-1.1, -.72], [0, -.72], [1.1, -.72], [-.55, .72], [.55, .72]].map(([x, y]) => [x * w, y * w * 1.36]);
   ov.innerHTML = `<div class="tcgo-flash"></div>
-    <div class="tcg-pack"><img src="guild-icon.png" alt=""><b>HATED TCG</b><i>5 cards</i></div>
-    <div class="tcgo-hint" style="opacity:0">Click the cards to reveal them</div>
-    ${out.cards.map((c, i) => `<div class="tcgo-card ${c.rarity}" data-i="${i}" style="--cw:${w}px;--x:${spots[i][0]}px;--y:${spots[i][1]}px;--glow:${TCG_RARITY[c.rarity].color}">
-      <div class="in"><div class="face back"></div><div class="face front">${tcgCardImg(c.id, c.holo)}</div></div>
-      <span class="tcgo-tag" style="color:${TCG_RARITY[c.rarity].color}">${c.holo ? 'HOLO ' : ''}${TCG_RARITY[c.rarity].label}${c.new ? ' &middot; NEW' : ''}</span></div>`).join('')}
+    <div class="tcgo-hint">Tear open your pack</div>
+    <div class="tcgo-stage">
+      ${tcgPackHtml(pw, true)}
+      ${out.cards.map((c, i) => `<div class="tcgo-card ${c.rarity}" style="--cw:${w}px;--x:${spots[i][0]}px;--y:${spots[i][1]}px;--sx:${(i - 2) * 6}px;--sr:${(i - 2) * 3}deg;--glow:${TCG_RARITY[c.rarity].color}">
+        <div class="in"><div class="face back"></div><div class="face front">${tcgCardImg(c.id, c.holo)}</div></div>
+        <span class="tcgo-tag" style="color:${TCG_RARITY[c.rarity].color}">${c.holo ? 'HOLO ' : ''}${TCG_RARITY[c.rarity].label}${c.new ? ' &middot; NEW' : ''}</span></div>`).join('')}
+    </div>
     <div class="tcgo-done" style="display:none"><button class="btn tcg-btn" id="tcgo-again">Open another (${TCG_PACK_PRICE})</button><button class="btn secondary" id="tcgo-close">Done</button></div>`;
   document.body.appendChild(ov);
-  out.cards.forEach(c => { const im = new Image(); im.src = TCG_IMG(c.id); });   // warm the cache while the pack shakes
-  const pack = ov.querySelector('.tcg-pack'), flash = ov.querySelector('.tcgo-flash'), cards = [...ov.querySelectorAll('.tcgo-card')];
+  const pack = ov.querySelector('.tpk'), strip = ov.querySelector('.tpk-strip'), hint = ov.querySelector('.tcgo-hint');
+  const cards = [...ov.querySelectorAll('.tcgo-card')];
   const wait = ms => new Promise(r => setTimeout(r, ms));
-  await wait(150); pack.classList.add('shake');
-  await wait(900); flash.classList.add('go'); pack.classList.add('gone');
-  await wait(250);
-  for(const el of cards){ el.classList.add('out'); await wait(110); }
-  ov.querySelector('.tcgo-hint').style.opacity = 1;
+  const flash = color => { const f = ov.querySelector('.tcgo-flash'); f.style.setProperty('--fc', color); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); };
+
+  // ---- tearing ----
+  let p = 0, torn = false, drag = null;
+  const setP = v => { p = Math.max(p, Math.min(1, v)); strip.style.setProperty('--p', (p * 100).toFixed(1) + '%'); strip.style.setProperty('--t', p.toFixed(3)); };
+  const finishTear = async () => {
+    if(torn) return; torn = true;
+    pack.classList.add('torn'); pack.classList.remove('tearing');
+    strip.classList.add('fly'); pack.classList.add('open');
+    flash('rgba(127,249,234,.8)');
+    hint.style.opacity = 0;
+    await wait(350);
+    cards.forEach((el, i) => setTimeout(() => el.classList.add('rise'), i * 70));   // up out of the pack
+    await wait(900);
+    pack.classList.add('drop');
+    for(const el of cards){ el.classList.add('out'); await wait(120); }
+    hint.textContent = 'Click the cards to reveal them'; hint.style.opacity = 1;
+  };
+  const autoTear = () => {                                 // a tap tears it for you
+    pack.classList.add('tearing');
+    const t0 = performance.now(), from = p;
+    const step = now => { setP(from + (now - t0) / 450); if(p < 1) requestAnimationFrame(step); else finishTear(); };
+    requestAnimationFrame(step);
+  };
+  strip.addEventListener('pointerdown', e => {
+    if(torn) return;
+    strip.setPointerCapture(e.pointerId);
+    const r = strip.getBoundingClientRect();
+    drag = { x0: e.clientX, left: r.left, width: r.width, moved: 0 };
+    pack.classList.add('tearing'); pack.classList.add('wobble');
+  });
+  strip.addEventListener('pointermove', e => {
+    if(!drag || torn) return;
+    drag.moved = Math.max(drag.moved, Math.abs(e.clientX - drag.x0));
+    setP((e.clientX - drag.left) / drag.width);
+    if(p >= .92) finishTear();
+  });
+  const up = () => {
+    if(!drag || torn) return;
+    const tap = drag.moved < 8; drag = null;
+    pack.classList.remove('wobble');
+    if(tap || p > .55) autoTear();                         // past halfway it finishes on its own
+  };
+  strip.addEventListener('pointerup', up); strip.addEventListener('pointercancel', up);
+
+  // ---- revealing ----
   let left = cards.length;
   const done = () => {
-    ov.querySelector('.tcgo-hint').textContent = out.cards.some(c => c.rarity === 'legendary') ? 'LEGENDARY!' : 'Added to your binder';
+    hint.textContent = 'Added to your binder';
     const d = ov.querySelector('.tcgo-done'); d.style.display = 'flex';
     const again = ov.querySelector('#tcgo-again');
     if(out.points < TCG_PACK_PRICE) again.disabled = true;
     again.addEventListener('click', () => { ov.remove(); state.tcgOpeningBusy = false; tcgOpenPack(); });
     ov.querySelector('#tcgo-close').addEventListener('click', () => { ov.remove(); state.tcgOpeningBusy = false; render(); });
   };
-  cards.forEach(el => el.addEventListener('click', () => {
-    if(el.classList.contains('flip')) return;
-    el.classList.add('flip');
-    if(--left === 0) setTimeout(done, 500);
-  }));
-  // revealing everything at once: space / enter
-  const key = e => { if(!document.body.contains(ov)){ document.removeEventListener('keydown', key); return; }
-    if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); cards.forEach(el => el.click()); } };
+  const reveal = (el, i) => {
+    if(!el.classList.contains('out') || el.classList.contains('flip')) return;
+    const c = out.cards[i], col = TCG_RARITY[c.rarity].color;
+    const inner = el.querySelector('.in'); inner.style.removeProperty('--rx'); inner.style.removeProperty('--ry');
+    el.classList.add('flip', 'pop');
+    setTimeout(() => {
+      if(c.rarity === 'legendary'){
+        tcgBurst(el, col, 60, true); flash('rgba(255,140,0,.85)'); ov.classList.remove('shake'); void ov.offsetWidth; ov.classList.add('shake');
+        const b = document.createElement('div'); b.className = 'tcgo-banner'; b.textContent = 'LEGENDARY!'; ov.appendChild(b); setTimeout(() => b.remove(), 2500);
+      }
+      else if(c.rarity === 'epic'){ tcgBurst(el, col, 36, true); flash('rgba(163,53,238,.55)'); }
+      else if(c.rarity === 'rare'){ tcgBurst(el, col, 22, false); }
+      else tcgBurst(el, col, 8, false);
+      if(c.holo) tcgBurst(el, '#ff4fd8', 16, false), tcgBurst(el, '#ffe94f', 16, false);
+    }, 280);
+    if(--left === 0){ hint.style.opacity = 0; setTimeout(done, 900); }
+  };
+  cards.forEach((el, i) => {
+    el.addEventListener('click', () => reveal(el, i));
+    // tilt toward the pointer while it's face down
+    el.addEventListener('pointermove', e => {
+      if(el.classList.contains('flip') || !el.classList.contains('out')) return;
+      const r = el.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+      const inner = el.querySelector('.in'); inner.style.setProperty('--ry', (x * 22).toFixed(1) + 'deg'); inner.style.setProperty('--rx', (-y * 22).toFixed(1) + 'deg');
+    });
+    el.addEventListener('pointerleave', () => { const inner = el.querySelector('.in'); inner.style.removeProperty('--rx'); inner.style.removeProperty('--ry'); });
+  });
+  // keyboard: space / enter tears the pack, then reveals everything (one at a time)
+  const key = async e => {
+    if(!document.body.contains(ov)){ document.removeEventListener('keydown', key); return; }
+    if(e.key !== ' ' && e.key !== 'Enter') return;
+    e.preventDefault();
+    if(!torn){ autoTear(); return; }
+    for(let i = 0; i < cards.length; i++){ if(!cards[i].classList.contains('flip')){ reveal(cards[i], i); await wait(220); } }
+  };
   document.addEventListener('keydown', key);
 }
 
