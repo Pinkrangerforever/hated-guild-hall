@@ -104,8 +104,8 @@ end
 -- ---------- earning ----------
 -- the addon's own estimate rides along at the end of each line (the website works the real value out itself)
 -- ---------- "never killed" marker: a teal dot on the nameplate and in the tooltip ----------
-local DOT_TEX = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"   -- a white circle built into WoW (no restart needed), tinted teal
-local DOT = "|T" .. DOT_TEX .. ":12:12:0:0:64:64:0:64:0:64:90:255:242|t"
+local DOT_TEX = "Interface\\AddOns\\HatedCompanion\\Media\\Dot"   -- a small teal gem (colours baked in)
+local DOT = "|T" .. DOT_TEX .. ":14:14|t"
 local function isNew(unit)
   if not unit or not UnitExists(unit) or UnitIsPlayer(unit) or not UnitCanAttack("player", unit) then return false end
   local id = npcId(UnitGUID(unit)); if not id then return false end
@@ -119,12 +119,8 @@ local dots, dotFor = {}, {}           -- our dot frames; unit token -> dot
 -- Nameplates are restricted: an addon may not measure them or draw onto Blizzard's frame. So, like quest-helper
 -- addons do, each dot is our own little frame made a child of the nameplate and anchored to it; WoW positions it.
 local function freeDot() for _, d in ipairs(dots) do if not d.unit then return d end end
-  -- a small crisp dot: a dark rim, the bright teal centre, a faint glow
-  local d = CreateFrame("Frame", nil, UIParent); d:SetSize(10, 10)
-  d.glow = d:CreateTexture(nil, "BACKGROUND"); d.glow:SetPoint("CENTER"); d.glow:SetSize(16, 16); d.glow:SetTexture(DOT_TEX)
-  d.glow:SetVertexColor(TEAL[1], TEAL[2], TEAL[3], 0.22); d.glow:SetBlendMode("ADD")
-  d.rim = d:CreateTexture(nil, "ARTWORK"); d.rim:SetPoint("CENTER"); d.rim:SetSize(10, 10); d.rim:SetTexture(DOT_TEX); d.rim:SetVertexColor(0, 0, 0, 0.9)
-  d.tex = d:CreateTexture(nil, "OVERLAY"); d.tex:SetPoint("CENTER"); d.tex:SetSize(7, 7); d.tex:SetTexture(DOT_TEX); d.tex:SetVertexColor(TEAL[1], TEAL[2], TEAL[3])
+  local d = CreateFrame("Frame", nil, UIParent); d:SetSize(13, 13)
+  d.tex = d:CreateTexture(nil, "OVERLAY"); d.tex:SetAllPoints(); d.tex:SetTexture(DOT_TEX)
   dots[#dots + 1] = d; return d end
 local function releaseDot(unit)
   local d = dotFor[unit]; if not d then return end
@@ -214,8 +210,9 @@ local function watch(unit)
     dbg("a mob died while you weren't fighting: " .. tostring(UnitName(unit))); return
   end
   learn(unit)
-  dbg("mob died, checking in 1.5s: " .. tostring(UnitName(unit)))
-  C_Timer.After(1.5, function() mobKilled(guid); info[guid] = nil end)
+  local wait = IsInInstance() and 1.5 or 0      -- in an instance it might be a boss: give the encounter credit a moment
+  dbg("mob died: " .. tostring(UnitName(unit)) .. (wait > 0 and " (checking for a boss first)" or ""))
+  if wait > 0 then C_Timer.After(wait, function() mobKilled(guid); info[guid] = nil end) else mobKilled(guid); info[guid] = nil end
 end
 local WATCHED = { target = true, focus = true, mouseover = true }
 local f = CreateFrame("Frame")
