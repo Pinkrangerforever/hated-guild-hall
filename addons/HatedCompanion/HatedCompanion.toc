@@ -2,7 +2,7 @@
 ## Title: Hated Companion
 ## Notes: Hated guild: boss plans, Hated TCG points (/hated, /tcg), and guild bank records for the website.
 ## Author: Hated
-## Version: 3.0.0
+## Version: 3.0.1
 ## SavedVariables: HatedCompanionDB
 
 HatedCompanion.lua

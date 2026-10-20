@@ -72,6 +72,17 @@ local function greyLevel(p)
   if p <= 5 then return 0 elseif p <= 39 then return p - 5 - math.floor(p / 10) elseif p <= 59 then return p - 1 - math.floor(p / 5) else return p - 9 end
 end
 
+-- ---------- reading a nameplate's position (never touching the plate: nameplates are protected in combat) ----------
+local function plateSpot(unit)
+  local plate = unit and C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
+  if not plate or (plate.IsForbidden and plate:IsForbidden()) or not plate:IsVisible() then return nil end
+  local ok, x, top = pcall(function() local l, r, tp = plate:GetLeft(), plate:GetRight(), plate:GetTop(); if not l then return nil end return (l + r) / 2, tp end)
+  if not ok or not x then return nil end
+  local s = plate:GetEffectiveScale() / UIParent:GetEffectiveScale()
+  local ok2, w = pcall(plate.GetWidth, plate)
+  return x * s, top * s, (ok2 and w or 110) * s
+end
+
 -- ---------- the popup: teal "+10" rising from the mob ----------
 local pool = {}
 local function popup(amount, guid)
@@ -91,9 +102,8 @@ local function popup(amount, guid)
   end
   f.text:SetText("+" .. amount .. " TCG")
   f:ClearAllPoints()
-  local unit = guid and plateOf[guid]
-  local plate = unit and C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
-  if plate and plate:IsShown() then f:SetPoint("BOTTOM", plate, "TOP", 0, 6)
+  local x, top = plateSpot(guid and plateOf[guid])
+  if x then f:SetPoint("BOTTOM", UIParent, "BOTTOMLEFT", x, top + 4)
   else f:SetPoint("CENTER", UIParent, "CENTER", math.random(-40, 40), 140) end
   f:Show(); f.ag:Stop(); f.ag:Play()
 end
@@ -112,24 +122,27 @@ local function isNew(unit)
   if lvl and lvl > 0 and lvl <= greyLevel(UnitLevel("player")) then return false end
   return not db().firsts["n:" .. id]
 end
+local dots, dotFor = {}, {}           -- our dot frames; unit token -> dot
+local function freeDot() for _, d in ipairs(dots) do if not d.unit then return d end end
+  local d = CreateFrame("Frame", nil, UIParent); d:SetSize(12, 12); d:SetFrameStrata("LOW")
+  d.tex = d:CreateTexture(nil, "OVERLAY"); d.tex:SetAllPoints(); d.tex:SetTexture(DOT_TEX); d.tex:SetVertexColor(0.25, 0.95, 0.85)
+  dots[#dots + 1] = d; return d end
 local function markPlate(unit)
-  local plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit); if not plate then return end
-  if not plate.hatedDot then
-    local d = plate:CreateTexture(nil, "OVERLAY")
-    d:SetTexture(DOT_TEX); d:SetVertexColor(0.25, 0.95, 0.85); d:SetSize(12, 12)
-    local name = plate.UnitFrame and plate.UnitFrame.name
-    if name then d:SetPoint("RIGHT", name, "LEFT", -2, 0) else d:SetPoint("BOTTOMLEFT", plate, "TOPLEFT", 4, -6) end
-    plate.hatedDot = d
-  end
-  plate.hatedDot:SetShown(isNew(unit))
+  local d = dotFor[unit]
+  if isNew(unit) then
+    if not d then d = freeDot(); d.unit = unit; dotFor[unit] = d end
+  elseif d then d.unit = nil; d:Hide(); dotFor[unit] = nil end
 end
-local function refreshPlates()
-  if not C_NamePlate then return end
-  for _, plate in ipairs(C_NamePlate.GetNamePlates() or {}) do
-    local unit = plate.namePlateUnitToken or (plate.UnitFrame and plate.UnitFrame.unit)
-    if unit then markPlate(unit) elseif plate.hatedDot then plate.hatedDot:Hide() end
+local function unmarkPlate(unit) local d = dotFor[unit]; if d then d.unit = nil; d:Hide(); dotFor[unit] = nil end end
+local function refreshPlates() for unit in pairs(dotFor) do markPlate(unit) end end
+-- keep each dot just left of its plate's name (plates move every frame)
+local mover = CreateFrame("Frame")
+mover:SetScript("OnUpdate", function()
+  for unit, d in pairs(dotFor) do
+    local x, top, w = plateSpot(unit)
+    if x then d:ClearAllPoints(); d:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x - w * 0.5 + 2, top - 8); d:Show() else d:Hide() end
   end
-end
+end)
 local function tooltipUnit(tip)
   local _, unit = tip:GetUnit()
   if unit and isNew(unit) then tip:AddLine(DOT .. " |cff3ff2d9Never killed on your account: +10 TCG|r") ; tip:Show() end
@@ -199,7 +212,7 @@ f:SetScript("OnEvent", function(_, event, a1, a2, a3, a4, a5)
     local g = UnitGUID(a1); if g then plateOf[g] = a1; learn(a1) end
     markPlate(a1)
   elseif event == "NAME_PLATE_UNIT_REMOVED" then
-    local p = C_NamePlate and C_NamePlate.GetNamePlateForUnit(a1); if p and p.hatedDot then p.hatedDot:Hide() end
+    unmarkPlate(a1)
     local g = UnitGUID(a1); if g and plateOf[g] == a1 then C_Timer.After(2, function() if plateOf[g] == a1 then plateOf[g] = nil end end) end
   elseif event == "PLAYER_TARGET_CHANGED" then learn("target")
   elseif event == "UPDATE_MOUSEOVER_UNIT" then learn("mouseover")
