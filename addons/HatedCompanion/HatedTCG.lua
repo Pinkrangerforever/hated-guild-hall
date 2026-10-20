@@ -5,17 +5,18 @@
 
   Values (the website has the final say):
     a creature type killed for the first time on this account     10
-    after that: normal 1, elite 3 (grey mobs give nothing)
+    after that: normal 1, elite 3 (grey mobs give nothing), no daily limit
     dungeon boss 10, a dungeon's last boss 20
     raid boss 100 the first time, 20 after that
 
-  Kills you or your group damaged count for everyone in the group. The log keeps 7 days; sync on the website
-  (Profile > Hated TCG) at least once a week. /reload or log out first so WoW writes the file.
+  Kills you or your group damaged count for everyone in the group. The log keeps 30 days; sync on the website
+  (Profile > Hated TCG) at least once a month. /reload or log out first so WoW writes the file.
 
-  /tcg   points earned since your last sync
+  /tcg   the Hated TCG window: your points (paste the code from the website to show your account total)
 ]]
 
-local KEEP_DAYS = 7
+local KEEP_DAYS = 30
+local MAX_LOG = 60000          -- lines kept at most (the oldest go first)
 local TEAL = { 0.25, 0.95, 0.85 }
 
 local function say(msg) DEFAULT_CHAT_FRAME:AddMessage("|cff3ff2d9Hated TCG:|r " .. msg) end
@@ -45,10 +46,12 @@ local function reseal(t)
   for _, e in ipairs(t.log) do h = fnv(h, e) end
   return h
 end
+local TCGUI   -- the window (below), refreshed when points come in
 local function append(entry)
   local t = db()
   t.log[#t.log + 1] = entry
   t.seal = fnv(t.seal, entry)
+  if TCGUI and TCGUI:IsShown() then TCGUI.refresh() end
 end
 
 -- ---------- what we know about creatures (from nameplates, target, mouseover) ----------
@@ -78,8 +81,6 @@ local function popup(amount, guid)
     f = CreateFrame("Frame", nil, UIParent); f:SetSize(160, 40); f:SetFrameStrata("HIGH")
     f.text = f:CreateFontString(nil, "OVERLAY"); f.text:SetFont(STANDARD_TEXT_FONT, 26, "OUTLINE"); f.text:SetPoint("CENTER")
     f.text:SetTextColor(TEAL[1], TEAL[2], TEAL[3]); f.text:SetShadowOffset(2, -2)
-    f.sub = f:CreateFontString(nil, "OVERLAY"); f.sub:SetFont(STANDARD_TEXT_FONT, 11, "OUTLINE"); f.sub:SetPoint("TOP", f.text, "BOTTOM", 0, -1)
-    f.sub:SetTextColor(TEAL[1] * 0.8, TEAL[2] * 0.8, TEAL[3] * 0.8); f.sub:SetText("TCG points")
     local ag = f:CreateAnimationGroup()
     local up = ag:CreateAnimation("Translation"); up:SetOffset(0, 70); up:SetDuration(1.6); up:SetSmoothing("OUT")
     local fade = ag:CreateAnimation("Alpha"); fade:SetFromAlpha(1); fade:SetToAlpha(0); fade:SetStartDelay(0.9); fade:SetDuration(0.7)
@@ -88,7 +89,7 @@ local function popup(amount, guid)
     f.ag = ag
     pool[#pool + 1] = f
   end
-  f.text:SetText("+" .. amount)
+  f.text:SetText("+" .. amount .. " TCG")
   f:ClearAllPoints()
   local unit = guid and plateOf[guid]
   local plate = unit and C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
@@ -120,7 +121,7 @@ local function mobKilled(guid)
   local first = not db().firsts[key]
   local elite = cls == "elite" or cls == "rareelite" or cls == "worldboss"
   local amount = first and 10 or (elite and 3 or 1)
-  append(table.concat({ "m", time(), UnitName("player"), plvl, id, guid, instId or 0, zone, i.lvl or 0, cls, amount }, ","))
+  append(table.concat({ "m", time(), UnitName("player"), plvl, id, guid, instId or 0, zone, i.lvl or 0, cls, amount, ((i.name or ""):gsub(",", "")) }, ","))
   award(key, first, amount, guid)
 end
 
@@ -130,7 +131,7 @@ local function bossKilled(encounterID, name, difficultyID, groupSize)
   local key = "e:" .. encounterID
   local first = not db().firsts[key]
   local amount = kind == "r" and (first and 100 or 20) or 10
-  append(table.concat({ "b", time(), UnitName("player"), UnitLevel("player"), encounterID, kind, instId or 0, difficultyID or 0, groupSize or 0, GetNumGroupMembers(), amount }, ","))
+  append(table.concat({ "b", time(), UnitName("player"), UnitLevel("player"), encounterID, kind, instId or 0, difficultyID or 0, groupSize or 0, GetNumGroupMembers(), amount, ((name or ""):gsub(",", "")) }, ","))
   award(key, first, amount, nil)
 end
 
@@ -172,6 +173,7 @@ f:SetScript("OnEvent", function(_, event, a1, a2, a3, a4, a5)
     end
     local cutoff, keep = time() - KEEP_DAYS * 86400, {}
     for _, e in ipairs(t.log) do local ts = tonumber(e:match("^%a,(%d+),")); if ts and ts >= cutoff then keep[#keep + 1] = e end end
+    while #keep > MAX_LOG do table.remove(keep, 1) end
     if #keep ~= #t.log then
       local wasOk = not t.tampered
       t.log = keep; t.seal = reseal(t)
@@ -182,11 +184,112 @@ f:SetScript("OnEvent", function(_, event, a1, a2, a3, a4, a5)
   end
 end)
 
+-- ---------- the Hated TCG window ----------
+-- The website is the bank: it shows a code after each sync ("HTCG:points:lifetime:last kill time:check"). Pasted
+-- here, the window shows the account total plus whatever has been earned in game since that sync.
+local function entryOf(e)
+  local f = { strsplit(",", e) }
+  if f[1] == "m" then return { boss = false, t = tonumber(f[2]), char = f[3], amount = tonumber(f[11]) or 0, name = (f[12] and f[12] ~= "") and f[12] or ("Creature " .. (f[5] or "?")) }
+  elseif f[1] == "b" then return { boss = true, raid = f[6] == "r", t = tonumber(f[2]), char = f[3], amount = tonumber(f[11]) or 0, name = (f[12] and f[12] ~= "") and f[12] or "Boss" } end
+end
+local function sinceSync()
+  local t = db(); local last = (t.server and t.server.lastT) or 0; local sum, n = 0, 0
+  for _, e in ipairs(t.log) do local ts = tonumber(e:match("^%a,(%d+),")); if ts and ts > last then sum = sum + (tonumber(e:match(",(%d+),[^,]*$")) or 0); n = n + 1 end end
+  return sum, n
+end
+local function checkCode(code)
+  local p, l, lt, h = (code or ""):match("HTCG:(%d+):(%d+):(%d+):(%d+)")
+  if not p then return nil end
+  local body, x = p .. ":" .. l .. ":" .. lt, 7
+  for i = 1, #body do x = (x * 31 + body:byte(i)) % 1000003 end
+  if x ~= tonumber(h) then return nil end
+  return { points = tonumber(p), lifetime = tonumber(l), lastT = tonumber(lt), at = time() }
+end
+
+local function flat(fr, r, g, b, a, er, eg, eb, ea)
+  fr:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 })
+  fr:SetBackdropColor(r, g, b, a); fr:SetBackdropBorderColor(er, eg, eb, ea)
+end
+local function build()
+  if TCGUI then return TCGUI end
+  local w = CreateFrame("Frame", "HatedTCGFrame", UIParent, "BackdropTemplate")
+  w:SetSize(420, 470); w:SetPoint("CENTER", 260, 0); w:SetFrameStrata("HIGH"); w:SetToplevel(true)
+  w:SetMovable(true); w:EnableMouse(true); w:RegisterForDrag("LeftButton"); w:SetClampedToScreen(true)
+  w:SetScript("OnDragStart", w.StartMoving); w:SetScript("OnDragStop", w.StopMovingOrSizing)
+  flat(w, 0.035, 0.055, 0.06, 0.97, 0.25, 0.95, 0.85, 0.7)
+  tinsert(UISpecialFrames, "HatedTCGFrame")
+  local glow = w:CreateTexture(nil, "BACKGROUND", nil, 1); glow:SetPoint("TOPLEFT", 1, -1); glow:SetPoint("TOPRIGHT", -1, -1); glow:SetHeight(120)
+  glow:SetColorTexture(1, 1, 1, 1)
+  if CreateColor and pcall(glow.SetGradient, glow, "VERTICAL", CreateColor(0.1, 0.5, 0.48, 0), CreateColor(0.1, 0.5, 0.48, 0.35)) then else glow:SetColorTexture(0.1, 0.5, 0.48, 0.15) end
+  local close = CreateFrame("Button", nil, w, "UIPanelCloseButton"); close:SetPoint("TOPRIGHT", 2, 2)
+  local title = w:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"); title:SetPoint("TOPLEFT", 16, -14); title:SetText("Hated TCG")
+  title:SetTextColor(0.75, 1, 0.96)
+
+  w.total = w:CreateFontString(nil, "OVERLAY"); w.total:SetFont(STANDARD_TEXT_FONT, 40, "OUTLINE"); w.total:SetPoint("TOP", 0, -44)
+  w.total:SetTextColor(TEAL[1], TEAL[2], TEAL[3])
+  w.totalLbl = w:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); w.totalLbl:SetPoint("TOP", w.total, "BOTTOM", 0, -2)
+  w.detail = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); w.detail:SetPoint("TOP", w.totalLbl, "BOTTOM", 0, -6); w.detail:SetWidth(380)
+
+  local rl = w:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); rl:SetPoint("TOPLEFT", 16, -148); rl:SetText("RECENT"); rl:SetTextColor(0.5, 0.8, 0.76)
+  w.rows = {}
+  for i = 1, 10 do
+    local r = w:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); r:SetPoint("TOPLEFT", 16, -150 - i * 18); r:SetWidth(300); r:SetJustifyH("LEFT")
+    local a = w:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); a:SetPoint("TOPRIGHT", -16, -150 - i * 18); a:SetTextColor(TEAL[1], TEAL[2], TEAL[3])
+    w.rows[i] = { r, a }
+  end
+
+  -- paste the website's code
+  local box = CreateFrame("EditBox", nil, w, "InputBoxTemplate")
+  box:SetPoint("BOTTOMLEFT", 22, 46); box:SetSize(270, 24); box:SetAutoFocus(false); box:SetMaxLetters(80)
+  box:SetScript("OnEscapePressed", box.ClearFocus)
+  local hint = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); hint:SetPoint("BOTTOMLEFT", box, "TOPLEFT", -4, 4)
+  hint:SetText("Paste the code from your website Profile > Hated TCG:")
+  local ok = CreateFrame("Button", nil, w, "UIPanelButtonTemplate"); ok:SetSize(90, 24); ok:SetPoint("LEFT", box, "RIGHT", 8, 0); ok:SetText("Update")
+  local function apply()
+    local s = checkCode(box:GetText())
+    if not s then say("that code doesn't look right - copy it again from the website."); return end
+    db().server = s; box:SetText(""); box:ClearFocus(); w.refresh()
+    say(string.format("account total updated: %d points.", s.points))
+  end
+  ok:SetScript("OnClick", apply); box:SetScript("OnEnterPressed", apply)
+  local soon = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); soon:SetPoint("BOTTOM", 0, 16)
+  soon:SetText("Card packs and your binder are coming - spend points on hatedforever.com.")
+
+  w.refresh = function()
+    local t = db(); local new, n = sinceSync()
+    if t.server then
+      w.total:SetText(BreakUpLargeNumbers and BreakUpLargeNumbers(t.server.points + new) or (t.server.points + new))
+      w.totalLbl:SetText("points on your account")
+      w.detail:SetText(string.format("%d at your last sync (%s)%s", t.server.points, date("%b %d", t.server.at),
+        new > 0 and string.format("  +  about %d earned since (%d kills)", new, n) or ""))
+    else
+      w.total:SetText("+" .. new)
+      w.totalLbl:SetText("points earned in game, not synced yet")
+      w.detail:SetText("Sync on the website, then paste the code below to see your whole account here.")
+    end
+    -- newest first
+    local shown = 0
+    for i = #t.log, 1, -1 do
+      if shown >= 10 then break end
+      local e = entryOf(t.log[i])
+      if e then
+        shown = shown + 1
+        local row = w.rows[shown]
+        row[1]:SetText(string.format("|cff7fb5ad%s|r  %s%s|r  |cff6f8f8a%s|r", date("%b %d %H:%M", e.t), e.boss and "|cffffd36a" or "|cffe8f6f3", e.name, e.char or ""))
+        row[2]:SetText(e.amount > 0 and ("+" .. e.amount) or "")
+      end
+    end
+    for i = shown + 1, 10 do w.rows[i][1]:SetText(i == 1 and "|cff6f8f8aNothing yet - go kill something!|r" or ""); w.rows[i][2]:SetText("") end
+  end
+  TCGUI = w
+  return w
+end
+
+function HatedTCG_Toggle()
+  local w = build()
+  if w:IsShown() then w:Hide() else w.refresh(); w:Show() end
+end
+
 -- ---------- /tcg ----------
 SLASH_HATEDTCG1 = "/tcg"
-SlashCmdList.HATEDTCG = function()
-  local t, sum = db(), 0
-  for _, e in ipairs(t.log) do sum = sum + (tonumber(e:match(",(%d+)$")) or 0) end
-  say(string.format("your log holds about %d points from the last %d days (%d kills and bosses). Sync on hatedforever.com > your Profile > Hated TCG after a /reload or log out; syncing twice never counts a kill twice.",
-    sum, KEEP_DAYS, #t.log))
-end
+SlashCmdList.HATEDTCG = function() HatedTCG_Toggle() end

@@ -46,7 +46,7 @@ btn:SetScript("OnDragStart", function(self)
 end)
 btn:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) end)
 
-btn:SetScript("OnClick", function() SlashCmdList.HATEDPLAN("") end)
+btn:SetScript("OnClick", function(_, mouse) if mouse == "RightButton" and HatedTCG_Toggle then HatedTCG_Toggle() else SlashCmdList.HATEDPLAN("") end end)
 btn:SetScript("OnMouseDown", function() h:SetPoint("CENTER", 1, 0) end)
 btn:SetScript("OnMouseUp", function() h:SetPoint("CENTER", 0, 1) end)
 
@@ -54,6 +54,7 @@ btn:SetScript("OnEnter", function(self)
   GameTooltip:SetOwner(self, "ANCHOR_LEFT")
   GameTooltip:AddLine("Hated Companion", 1, 0.82, 0.3)
   GameTooltip:AddLine("Click: boss plan", 1, 1, 1)
+  GameTooltip:AddLine("Right-click: Hated TCG", 0.25, 0.95, 0.85)
   GameTooltip:AddLine("Drag: move this button", 0.7, 0.7, 0.7)
   if HatedPlan and HatedPlan.updated then GameTooltip:AddLine("Plan saved " .. HatedPlan.updated, 0.6, 0.55, 0.45) end
   GameTooltip:Show()
