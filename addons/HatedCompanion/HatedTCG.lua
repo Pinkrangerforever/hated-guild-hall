@@ -117,8 +117,8 @@ end
 -- ---------- earning ----------
 -- the addon's own estimate rides along at the end of each line (the website works the real value out itself)
 -- ---------- "never killed" marker: a teal dot on the nameplate and in the tooltip ----------
-local DOT_TEX = "Interface\\AddOns\\HatedCompanion\\Media\\Dot"   -- a white dot with a soft glow, tinted teal
-local DOT = "|T" .. DOT_TEX .. ":16:16:0:0:64:64:0:64:0:64:90:255:242|t"
+local DOT_TEX = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"   -- a white circle built into WoW (no restart needed), tinted teal
+local DOT = "|T" .. DOT_TEX .. ":12:12:0:0:64:64:0:64:0:64:90:255:242|t"
 local function isNew(unit)
   if not unit or not UnitExists(unit) or UnitIsPlayer(unit) or not UnitCanAttack("player", unit) then return false end
   local id = npcId(UnitGUID(unit)); if not id then return false end
@@ -130,8 +130,10 @@ local function isNew(unit)
 end
 local dots, dotFor = {}, {}           -- our dot frames; unit token -> dot
 local function freeDot() for _, d in ipairs(dots) do if not d.unit then return d end end
-  local d = CreateFrame("Frame", nil, UIParent); d:SetSize(18, 18); d:SetFrameStrata("LOW")
-  d.tex = d:CreateTexture(nil, "OVERLAY"); d.tex:SetAllPoints(); d.tex:SetTexture(DOT_TEX); d.tex:SetVertexColor(TEAL[1], TEAL[2], TEAL[3]); d.tex:SetBlendMode("ADD")
+  local d = CreateFrame("Frame", nil, UIParent); d:SetSize(11, 11); d:SetFrameStrata("LOW")
+  d.glow = d:CreateTexture(nil, "ARTWORK"); d.glow:SetPoint("CENTER"); d.glow:SetSize(21, 21); d.glow:SetTexture(DOT_TEX)
+  d.glow:SetVertexColor(TEAL[1], TEAL[2], TEAL[3], 0.35); d.glow:SetBlendMode("ADD")
+  d.tex = d:CreateTexture(nil, "OVERLAY"); d.tex:SetAllPoints(); d.tex:SetTexture(DOT_TEX); d.tex:SetVertexColor(TEAL[1], TEAL[2], TEAL[3])
   dots[#dots + 1] = d; return d end
 local function markPlate(unit)
   local d = dotFor[unit]
