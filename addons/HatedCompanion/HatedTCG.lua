@@ -119,10 +119,12 @@ local dots, dotFor = {}, {}           -- our dot frames; unit token -> dot
 -- Nameplates are restricted: an addon may not measure them or draw onto Blizzard's frame. So, like quest-helper
 -- addons do, each dot is our own little frame made a child of the nameplate and anchored to it; WoW positions it.
 local function freeDot() for _, d in ipairs(dots) do if not d.unit then return d end end
-  local d = CreateFrame("Frame", nil, UIParent); d:SetSize(11, 11)
-  d.glow = d:CreateTexture(nil, "ARTWORK"); d.glow:SetPoint("CENTER"); d.glow:SetSize(21, 21); d.glow:SetTexture(DOT_TEX)
-  d.glow:SetVertexColor(TEAL[1], TEAL[2], TEAL[3], 0.35); d.glow:SetBlendMode("ADD")
-  d.tex = d:CreateTexture(nil, "OVERLAY"); d.tex:SetAllPoints(); d.tex:SetTexture(DOT_TEX); d.tex:SetVertexColor(TEAL[1], TEAL[2], TEAL[3])
+  -- a small crisp dot: a dark rim, the bright teal centre, a faint glow
+  local d = CreateFrame("Frame", nil, UIParent); d:SetSize(10, 10)
+  d.glow = d:CreateTexture(nil, "BACKGROUND"); d.glow:SetPoint("CENTER"); d.glow:SetSize(16, 16); d.glow:SetTexture(DOT_TEX)
+  d.glow:SetVertexColor(TEAL[1], TEAL[2], TEAL[3], 0.22); d.glow:SetBlendMode("ADD")
+  d.rim = d:CreateTexture(nil, "ARTWORK"); d.rim:SetPoint("CENTER"); d.rim:SetSize(10, 10); d.rim:SetTexture(DOT_TEX); d.rim:SetVertexColor(0, 0, 0, 0.9)
+  d.tex = d:CreateTexture(nil, "OVERLAY"); d.tex:SetPoint("CENTER"); d.tex:SetSize(7, 7); d.tex:SetTexture(DOT_TEX); d.tex:SetVertexColor(TEAL[1], TEAL[2], TEAL[3])
   dots[#dots + 1] = d; return d end
 local function releaseDot(unit)
   local d = dotFor[unit]; if not d then return end
@@ -194,35 +196,50 @@ local function bossKilled(encounterID, name, difficultyID, groupSize)
 end
 
 -- ---------- events ----------
-local AFF = bit.bor(COMBATLOG_OBJECT_AFFILIATION_MINE or 1, COMBATLOG_OBJECT_AFFILIATION_PARTY or 2, COMBATLOG_OBJECT_AFFILIATION_RAID or 4)
-local DAMAGE = { SWING_DAMAGE = true, RANGE_DAMAGE = true, SPELL_DAMAGE = true, SPELL_PERIODIC_DAMAGE = true, DAMAGE_SHIELD = true, SPELL_BUILDING_DAMAGE = true }
+-- This client doesn't let addons read the combat log, so kills are spotted the way WoW awards credit: a mob we saw
+-- alive (on a nameplate or as the target) dies while our group holds its tag (UnitIsTapDenied is false).
+local seenAlive, counted = {}, {}
+local lastCombat = 0
+local function watch(unit)
+  local guid = UnitGUID(unit)
+  if not guid or not npcId(guid) or counted[guid] then return end
+  if not UnitIsDead(unit) then
+    if not seenAlive[guid] then seenAlive[guid] = GetTime(); learn(unit) end
+    return
+  end
+  if not seenAlive[guid] then return end                         -- an old corpse we never saw alive
+  counted[guid] = true
+  if UnitIsTapDenied(unit) then dbg("a mob died that another player tagged: " .. tostring(UnitName(unit))); return end
+  if not UnitAffectingCombat("player") and GetTime() - lastCombat > 8 and not IsInGroup() then
+    dbg("a mob died while you weren't fighting: " .. tostring(UnitName(unit))); return
+  end
+  learn(unit)
+  dbg("mob died, checking in 1.5s: " .. tostring(UnitName(unit)))
+  C_Timer.After(1.5, function() mobKilled(guid); info[guid] = nil end)
+end
+local WATCHED = { target = true, focus = true, mouseover = true }
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
-f:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 f:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 f:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 f:RegisterEvent("PLAYER_TARGET_CHANGED")
 f:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+f:RegisterEvent("UNIT_HEALTH")
+f:RegisterEvent("UNIT_FLAGS")
+f:RegisterEvent("PLAYER_REGEN_ENABLED")
 pcall(f.RegisterEvent, f, "ENCOUNTER_END")
 f:SetScript("OnEvent", function(_, event, a1, a2, a3, a4, a5)
-  if event == "COMBAT_LOG_EVENT_UNFILTERED" then
-    local _, sub, _, _, _, srcFlags, _, dstGUID = CombatLogGetCurrentEventInfo()
-    if DAMAGE[sub] then
-      if dstGUID and bit.band(srcFlags or 0, AFF) ~= 0 and npcId(dstGUID) then hit[dstGUID] = GetTime() end
-    elseif sub == "UNIT_DIED" and dstGUID and npcId(dstGUID) then
-      if not hit[dstGUID] then dbg("a mob died that you / your group didn't hit: " .. dstGUID); return end
-      local guid = dstGUID
-      dbg("mob died, checking in 1.5s: " .. guid)
-      if GetTime() - hit[guid] < 120 then C_Timer.After(1.5, function() mobKilled(guid); hit[guid] = nil; info[guid] = nil end) end
-    end
+  if event == "UNIT_HEALTH" or event == "UNIT_FLAGS" then
+    if a1 and (WATCHED[a1] or a1:find("^nameplate")) then watch(a1) end
+  elseif event == "PLAYER_REGEN_ENABLED" then lastCombat = GetTime()
   elseif event == "NAME_PLATE_UNIT_ADDED" then
     local g = UnitGUID(a1); if g then plateOf[g] = a1; learn(a1) end
-    markPlate(a1)
+    watch(a1); markPlate(a1)
   elseif event == "NAME_PLATE_UNIT_REMOVED" then
     unmarkPlate(a1)
     local g = UnitGUID(a1); if g and plateOf[g] == a1 then C_Timer.After(2, function() if plateOf[g] == a1 then plateOf[g] = nil end end) end
-  elseif event == "PLAYER_TARGET_CHANGED" then learn("target")
-  elseif event == "UPDATE_MOUSEOVER_UNIT" then learn("mouseover")
+  elseif event == "PLAYER_TARGET_CHANGED" then learn("target"); watch("target")
+  elseif event == "UPDATE_MOUSEOVER_UNIT" then learn("mouseover"); watch("mouseover")
   elseif event == "ENCOUNTER_END" then
     local encounterID, name, difficultyID, groupSize, success = a1, a2, a3, a4, a5
     if success == 1 then lastEncounter = { t = GetTime(), name = name }; bossKilled(encounterID, name, difficultyID, groupSize) end
@@ -241,8 +258,8 @@ f:SetScript("OnEvent", function(_, event, a1, a2, a3, a4, a5)
       t.log = keep; t.seal = reseal(t)
       if not wasOk then t.tampered = true end
     end
-    -- forget old spawns we were tracking
-    C_Timer.NewTicker(60, function() local now = GetTime(); for g, ts in pairs(hit) do if now - ts > 180 then hit[g] = nil; info[g] = nil end end end)
+    -- forget mobs we stopped seeing a while ago
+    C_Timer.NewTicker(120, function() local now = GetTime(); for g, ts in pairs(seenAlive) do if now - ts > 900 then seenAlive[g] = nil; counted[g] = nil; info[g] = nil end end end)
   end
 end)
 
