@@ -106,6 +106,7 @@ end
 -- ---------- "never killed" marker: a teal dot on the nameplate and in the tooltip ----------
 local DOT_TEX = "Interface\\AddOns\\HatedCompanion\\Media\\Dot"   -- a small teal gem (colours baked in)
 local DOT = "|T" .. DOT_TEX .. ":14:14|t"
+local function dotsOn() return not (HatedCompanionDB and HatedCompanionDB.tcgDotsOff) end
 local function isNew(unit)
   if not unit or not UnitExists(unit) or UnitIsPlayer(unit) or not UnitCanAttack("player", unit) then return false end
   local id = npcId(UnitGUID(unit)); if not id then return false end
@@ -127,7 +128,7 @@ local function releaseDot(unit)
   d.unit = nil; d:Hide(); d:ClearAllPoints(); d:SetParent(UIParent); dotFor[unit] = nil
 end
 local function markPlate(unit)
-  local new = isNew(unit)
+  local new = dotsOn() and isNew(unit)
   if not new then releaseDot(unit); return end
   local plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
   if not plate or (plate.IsForbidden and plate:IsForbidden()) then dbg("no usable nameplate for " .. unit); return end
@@ -144,9 +145,16 @@ local function markPlate(unit)
 end
 local function unmarkPlate(unit) releaseDot(unit) end
 local function refreshPlates() for unit in pairs(dotFor) do markPlate(unit) end end
+-- for the hub's switch: on / off, applied to every nameplate on screen right away
+function HatedTCG_DotsOn() return dotsOn() end
+function HatedTCG_SetDots(on)
+  HatedCompanionDB = HatedCompanionDB or {}
+  HatedCompanionDB.tcgDotsOff = not on or nil
+  for i = 1, 40 do local u = "nameplate" .. i; if UnitExists(u) then markPlate(u) end end
+end
 local function tooltipUnit(tip)
   local _, unit = tip:GetUnit()
-  if unit and isNew(unit) then tip:AddLine(DOT .. " |cff5afff2Never killed on your account: +10 TCG|r") ; tip:Show() end
+  if unit and dotsOn() and isNew(unit) then tip:AddLine(DOT .. " |cff5afff2Never killed on your account: +10 TCG|r") ; tip:Show() end
 end
 if TooltipDataProcessor and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Unit then
   TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tip) if tip == GameTooltip then tooltipUnit(tip) end end)

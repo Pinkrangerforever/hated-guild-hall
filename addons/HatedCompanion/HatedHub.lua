@@ -45,7 +45,7 @@ end
 local function build()
   if hub then return hub end
   local f = CreateFrame("Frame", "HatedHubFrame", UIParent, "BackdropTemplate"); f:Hide()   -- created hidden, so the first click opens it
-  f:SetSize(640, 352); f:SetPoint("CENTER", 0, 40); f:SetFrameStrata("HIGH"); f:SetToplevel(true)
+  f:SetSize(640, 372); f:SetPoint("CENTER", 0, 40); f:SetFrameStrata("HIGH"); f:SetToplevel(true)
   f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton"); f:SetClampedToScreen(true)
   f:SetScript("OnDragStart", f.StartMoving); f:SetScript("OnDragStop", f.StopMovingOrSizing)
   flat(f, BG[1], BG[2], BG[3], 0.97, 0.75, 0.6, 0.3, 0.9)
@@ -81,7 +81,32 @@ local function build()
   tcg.live:SetPoint("BOTTOMLEFT", 96, 30); tcg.live:SetWidth(180)
   f.tcg = tcg
 
+  -- footer: a switch for the TCG nameplate dots, and the addon's version
+  local sw = CreateFrame("Button", nil, f)
+  sw:SetSize(40, 20); sw:SetPoint("BOTTOMLEFT", 22, 12)
+  sw.track = sw:CreateTexture(nil, "BACKGROUND"); sw.track:SetAllPoints(); sw.track:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+  sw.track:SetTexture("Interface\\Buttons\\WHITE8x8")
+  sw.knob = sw:CreateTexture(nil, "OVERLAY"); sw.knob:SetSize(16, 16); sw.knob:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+  sw.edge = sw:CreateTexture(nil, "BORDER"); sw.edge:SetPoint("TOPLEFT", -1, 1); sw.edge:SetPoint("BOTTOMRIGHT", 1, -1); sw.edge:SetColorTexture(0, 0, 0, 0.8)
+  local label = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); label:SetPoint("LEFT", sw, "RIGHT", 10, 0)
+  label:SetText("Show TCG dots on nameplates (mobs never killed on your account)")
+  local function paint()
+    local on = not HatedTCG_DotsOn or HatedTCG_DotsOn()
+    if on then sw.track:SetVertexColor(0.2, 0.75, 0.7, 1) else sw.track:SetVertexColor(0.25, 0.22, 0.2, 1) end
+    sw.knob:ClearAllPoints(); sw.knob:SetPoint(on and "RIGHT" or "LEFT", on and -2 or 2, 0)
+    sw.knob:SetVertexColor(on and 1 or 0.7, on and 1 or 0.7, on and 1 or 0.7)
+    label:SetTextColor(on and 0.9 or 0.6, on and 0.95 or 0.58, on and 0.93 or 0.55)
+  end
+  sw:SetScript("OnClick", function() if HatedTCG_SetDots then HatedTCG_SetDots(not HatedTCG_DotsOn()) end; paint() end)
+  sw:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_TOP"); GameTooltip:AddLine("TCG nameplate dots", 0.35, 1, 0.95)
+    GameTooltip:AddLine("The teal dot (and tooltip line) on mobs your account has never killed. Turn it off if you only use Boss Strategies; points still count either way.", 1, 1, 1, true); GameTooltip:Show() end)
+  sw:SetScript("OnLeave", GameTooltip_Hide)
+  local meta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+  local ver = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); ver:SetPoint("BOTTOMRIGHT", -14, 14)
+  ver:SetText("Hated Companion v" .. ((meta and meta("HatedCompanion", "Version")) or "?"))
+
   f.refresh = function()
+    paint()
     -- the plan: how many bosses, when it was saved
     local n, raids = 0, 0
     for _, raid in ipairs((HatedPlan and HatedPlan.raids) or {}) do raids = raids + 1; n = n + #(raid.bosses or {}) end
