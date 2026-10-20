@@ -100,8 +100,48 @@ end
 
 -- ---------- earning ----------
 -- the addon's own estimate rides along at the end of each line (the website works the real value out itself)
+-- ---------- "never killed" marker: a teal dot on the nameplate and in the tooltip ----------
+local DOT_TEX = "Interface\\COMMON\\Indicator-Gray"
+local DOT = "|T" .. DOT_TEX .. ":12:12:0:0:32:32:0:32:0:32:63:242:217|t"
+local function isNew(unit)
+  if not unit or not UnitExists(unit) or UnitIsPlayer(unit) or not UnitCanAttack("player", unit) then return false end
+  local id = npcId(UnitGUID(unit)); if not id then return false end
+  local ctype = UnitCreatureType(unit)
+  if ctype == "Critter" or ctype == "Non-combat Pet" or ctype == "Totem" then return false end
+  local lvl = UnitLevel(unit)
+  if lvl and lvl > 0 and lvl <= greyLevel(UnitLevel("player")) then return false end
+  return not db().firsts["n:" .. id]
+end
+local function markPlate(unit)
+  local plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit); if not plate then return end
+  if not plate.hatedDot then
+    local d = plate:CreateTexture(nil, "OVERLAY")
+    d:SetTexture(DOT_TEX); d:SetVertexColor(0.25, 0.95, 0.85); d:SetSize(12, 12)
+    local name = plate.UnitFrame and plate.UnitFrame.name
+    if name then d:SetPoint("RIGHT", name, "LEFT", -2, 0) else d:SetPoint("BOTTOMLEFT", plate, "TOPLEFT", 4, -6) end
+    plate.hatedDot = d
+  end
+  plate.hatedDot:SetShown(isNew(unit))
+end
+local function refreshPlates()
+  if not C_NamePlate then return end
+  for _, plate in ipairs(C_NamePlate.GetNamePlates() or {}) do
+    local unit = plate.namePlateUnitToken or (plate.UnitFrame and plate.UnitFrame.unit)
+    if unit then markPlate(unit) elseif plate.hatedDot then plate.hatedDot:Hide() end
+  end
+end
+local function tooltipUnit(tip)
+  local _, unit = tip:GetUnit()
+  if unit and isNew(unit) then tip:AddLine(DOT .. " |cff3ff2d9Never killed on your account: +10 TCG|r") ; tip:Show() end
+end
+if TooltipDataProcessor and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Unit then
+  TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tip) if tip == GameTooltip then tooltipUnit(tip) end end)
+else
+  GameTooltip:HookScript("OnTooltipSetUnit", tooltipUnit)
+end
+
 local function award(key, first, amount, guid)
-  if first then db().firsts[key] = true end
+  if first then db().firsts[key] = true; C_Timer.After(0.1, refreshPlates) end
   if amount > 0 then popup(amount, guid) end
 end
 
@@ -157,7 +197,9 @@ f:SetScript("OnEvent", function(_, event, a1, a2, a3, a4, a5)
     end
   elseif event == "NAME_PLATE_UNIT_ADDED" then
     local g = UnitGUID(a1); if g then plateOf[g] = a1; learn(a1) end
+    markPlate(a1)
   elseif event == "NAME_PLATE_UNIT_REMOVED" then
+    local p = C_NamePlate and C_NamePlate.GetNamePlateForUnit(a1); if p and p.hatedDot then p.hatedDot:Hide() end
     local g = UnitGUID(a1); if g and plateOf[g] == a1 then C_Timer.After(2, function() if plateOf[g] == a1 then plateOf[g] = nil end end) end
   elseif event == "PLAYER_TARGET_CHANGED" then learn("target")
   elseif event == "UPDATE_MOUSEOVER_UNIT" then learn("mouseover")
