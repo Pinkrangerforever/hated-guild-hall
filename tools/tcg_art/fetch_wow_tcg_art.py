@@ -81,10 +81,27 @@ def art_box(img):
     strong = np.nonzero(bot_r > bot_r.max() * 0.55)[0]                # the type bar has two edges: take its top one
     bottom = int(h * 0.55) + int(strong[0] if len(strong) else np.argmax(bot_r)) - 1
     ya, yb = top + 20, bottom - 20
-    left_c = col_edges(0, int(w * 0.10), ya, yb)
+    # sides: the frame edge sits in the outer few percent (searching wider catches lines inside the art)
+    left_c = col_edges(0, int(w * 0.07), ya, yb)
     left = int(np.argmax(left_c)) + 2
-    right_c = col_edges(int(w * 0.80), w, ya, yb)
-    right = int(w * 0.80) + int(np.argmax(right_c)) - 1
+    right_c = col_edges(int(w * 0.93), w, ya, yb)
+    right = int(w * 0.93) + int(np.argmax(right_c)) - 1
+    # item cards have a column of icons down the right. Its edge is a straight line the whole height of the art,
+    # unlike lines in a painting, so cut it away when some column there is a continuous edge.
+    def straight_col(x):
+        d = np.abs(a[ya:yb, x + 1] - a[ya:yb, x])
+        return float((d > 18).mean())
+    best = max(range(int(w * 0.80), int(w * 0.92)), key=lambda x: straight_col(x))
+    if straight_col(best) > 0.85:
+        right = best - 1
+    # the type bar's top edge is likewise a straight line all the way across: prefer the first such row
+    def straight_row(y):
+        d = np.abs(a[y + 1, left:right] - a[y, left:right])
+        return float((d > 18).mean())
+    for y in range(int(h * 0.55), int(h * 0.70)):
+        if straight_row(y) > 0.85:
+            bottom = y - 1
+            break
     # sanity: fall back to the standard window if the detection looks off
     std = (int(w * 0.040), int(h * 0.090), int(w * 0.958), int(h * 0.625))
     box = (left + 3, top + 3, right - 3, bottom - 3)                   # a few pixels in, so no frame line shows
