@@ -17,9 +17,9 @@
 
 local KEEP_DAYS = 30
 local MAX_LOG = 60000          -- lines kept at most (the oldest go first)
-local TEAL = { 0.25, 0.95, 0.85 }
+local TEAL = { 0.35, 1, 0.95 }    -- bright teal
 
-local function say(msg) DEFAULT_CHAT_FRAME:AddMessage("|cff3ff2d9Hated TCG:|r " .. msg) end
+local function say(msg) DEFAULT_CHAT_FRAME:AddMessage("|cff5afff2Hated TCG:|r " .. msg) end
 local function dbg(msg) if HatedCompanionDB and HatedCompanionDB.tcgDebug then DEFAULT_CHAT_FRAME:AddMessage("|cff7fb5adTCG debug:|r " .. msg) end end
 
 -- ---------- the log (account-wide, sealed) ----------
@@ -117,8 +117,8 @@ end
 -- ---------- earning ----------
 -- the addon's own estimate rides along at the end of each line (the website works the real value out itself)
 -- ---------- "never killed" marker: a teal dot on the nameplate and in the tooltip ----------
-local DOT_TEX = "Interface\\COMMON\\Indicator-Gray"
-local DOT = "|T" .. DOT_TEX .. ":12:12:0:0:32:32:0:32:0:32:63:242:217|t"
+local DOT_TEX = "Interface\\AddOns\\HatedCompanion\\Media\\Dot"   -- a white dot with a soft glow, tinted teal
+local DOT = "|T" .. DOT_TEX .. ":16:16:0:0:64:64:0:64:0:64:90:255:242|t"
 local function isNew(unit)
   if not unit or not UnitExists(unit) or UnitIsPlayer(unit) or not UnitCanAttack("player", unit) then return false end
   local id = npcId(UnitGUID(unit)); if not id then return false end
@@ -130,8 +130,8 @@ local function isNew(unit)
 end
 local dots, dotFor = {}, {}           -- our dot frames; unit token -> dot
 local function freeDot() for _, d in ipairs(dots) do if not d.unit then return d end end
-  local d = CreateFrame("Frame", nil, UIParent); d:SetSize(12, 12); d:SetFrameStrata("LOW")
-  d.tex = d:CreateTexture(nil, "OVERLAY"); d.tex:SetAllPoints(); d.tex:SetTexture(DOT_TEX); d.tex:SetVertexColor(0.25, 0.95, 0.85)
+  local d = CreateFrame("Frame", nil, UIParent); d:SetSize(18, 18); d:SetFrameStrata("LOW")
+  d.tex = d:CreateTexture(nil, "OVERLAY"); d.tex:SetAllPoints(); d.tex:SetTexture(DOT_TEX); d.tex:SetVertexColor(TEAL[1], TEAL[2], TEAL[3]); d.tex:SetBlendMode("ADD")
   dots[#dots + 1] = d; return d end
 local function markPlate(unit)
   local d = dotFor[unit]
@@ -151,7 +151,7 @@ mover:SetScript("OnUpdate", function()
 end)
 local function tooltipUnit(tip)
   local _, unit = tip:GetUnit()
-  if unit and isNew(unit) then tip:AddLine(DOT .. " |cff3ff2d9Never killed on your account: +10 TCG|r") ; tip:Show() end
+  if unit and isNew(unit) then tip:AddLine(DOT .. " |cff5afff2Never killed on your account: +10 TCG|r") ; tip:Show() end
 end
 if TooltipDataProcessor and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Unit then
   TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tip) if tip == GameTooltip then tooltipUnit(tip) end end)

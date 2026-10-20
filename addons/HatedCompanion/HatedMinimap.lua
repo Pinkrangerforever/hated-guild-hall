@@ -54,7 +54,7 @@ btn:SetScript("OnEnter", function(self)
   GameTooltip:SetOwner(self, "ANCHOR_LEFT")
   GameTooltip:AddLine("Hated Companion", 1, 0.82, 0.3)
   GameTooltip:AddLine("Click: boss plan", 1, 1, 1)
-  GameTooltip:AddLine("Right-click: Hated TCG", 0.25, 0.95, 0.85)
+  GameTooltip:AddLine("Right-click: Hated TCG", 0.35, 1, 0.95)
   GameTooltip:AddLine("Drag: move this button", 0.7, 0.7, 0.7)
   if HatedPlan and HatedPlan.updated then GameTooltip:AddLine("Plan saved " .. HatedPlan.updated, 0.6, 0.55, 0.45) end
   GameTooltip:Show()

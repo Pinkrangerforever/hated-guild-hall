@@ -74,7 +74,7 @@ local function build()
   f.boss = boss
 
   -- Hated TCG
-  local tcg = tile(f, { 0.25, 0.95, 0.85 }, "Hated TCG", "Earn points killing monsters,\nthen open card packs.", function() if HatedTCG_Toggle then HatedTCG_Toggle(true) end end)
+  local tcg = tile(f, { 0.35, 1, 0.95 }, "Hated TCG", "Earn points killing monsters,\nthen open card packs.", function() if HatedTCG_Toggle then HatedTCG_Toggle(true) end end)
   tcg:SetPoint("TOPRIGHT", -20, -128)
   tcg.art:SetTexture(MEDIA .. "CardBack"); tcg.art:SetTexCoord(0, 1, 0, 382 / 512); tcg.art:SetSize(66, 98); tcg.art:SetPoint("LEFT", 16, 6)
   tcg.title:SetPoint("TOPLEFT", 96, -26); tcg.sub:SetPoint("TOPLEFT", tcg.title, "BOTTOMLEFT", 0, -6); tcg.sub:SetWidth(180)
@@ -89,8 +89,8 @@ local function build()
     -- points
     local total, new, synced = 0, 0, false
     if HatedTCG_Summary then total, new, synced = HatedTCG_Summary() end
-    tcg.live:SetText(synced and string.format("|cff3ff2d9%s|r |cff9cc7c1points|r", BreakUpLargeNumbers and BreakUpLargeNumbers(total) or total)
-      or string.format("|cff3ff2d9+%d|r |cff9cc7c1points to sync|r", new))
+    tcg.live:SetText(synced and string.format("|cff5afff2%s|r |cff9cc7c1points|r", BreakUpLargeNumbers and BreakUpLargeNumbers(total) or total)
+      or string.format("|cff5afff2+%d|r |cff9cc7c1points to sync|r", new))
   end
   hub = f
   return f
