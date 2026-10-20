@@ -11658,12 +11658,9 @@ function renderTcgPanel(p, isMe){
       <div class="tcg-stat"><span>${a.last_sync ? when(a.last_sync) : '&mdash;'}</span><em>last sync</em></div>
     </div>
     ${ isMe ? `<div class="tcg-sync">
-        ${ window.showOpenFilePicker
-          ? `<button type="button" class="btn tcg-btn" id="tcg-sync" ${state.tcgBusy ? 'disabled' : ''}>${state.tcgBusy ? 'Syncing…' : '&#10227; Sync points from WoW'}</button>
-             ${ state.tcgHasFile ? '<button type="button" class="btn secondary" id="tcg-forget" title="Pick a different SavedVariables file next time">Change file</button>' : '' }`
-          : `<label class="btn tcg-btn" ${state.tcgBusy ? 'aria-disabled="true"' : ''}>${state.tcgBusy ? 'Syncing…' : '&#10227; Sync points from WoW'}<input type="file" id="tcg-file" accept=".lua" style="display:none;" ${state.tcgBusy ? 'disabled' : ''}></label>` }
+        <label class="btn tcg-btn" ${state.tcgBusy ? 'aria-disabled="true"' : ''}>${state.tcgBusy ? 'Syncing…' : '&#10227; Sync points from WoW'}<input type="file" id="tcg-file" accept=".lua" style="display:none;" ${state.tcgBusy ? 'disabled' : ''}></label>
         <button type="button" class="btn secondary" id="tcg-code" title="Copies a code to paste into the TCG window in game (/tcg)">Show my points in game</button>
-        <span class="tcg-hint">Kill things in WoW with Hated Companion, <b>/reload</b> or log out, then sync. The first time, pick <code>World of Warcraft\\&lt;game&gt;\\WTF\\Account\\&lt;ACCOUNT&gt;\\SavedVariables\\HatedCompanion.lua</code>. ${ window.showOpenFilePicker ? 'After that the site remembers it, so syncing is one click. ' : '' }Every character on the account adds to the same points. Syncing twice never counts a kill twice. The addon keeps 30 days of kills, so sync at least once a month.</span>
+        <span class="tcg-hint">Kill things in WoW with Hated Companion, <b>/reload</b> or log out, then pick <code>World of Warcraft\\&lt;game&gt;\\WTF\\Account\\&lt;ACCOUNT&gt;\\SavedVariables\\HatedCompanion.lua</code>. The picker opens in the same folder next time, so it's just a double-click on the file. Every character on the account adds to the same points. Syncing twice never counts a kill twice. The addon keeps 30 days of kills, so sync at least once a month.</span>
       </div>
       <details class="tcg-rules"><summary>How points work</summary>
         <ul><li>A creature you've never killed on this account: <b>10</b></li><li>After that: <b>1</b> (elites <b>3</b>), no daily limit; grey mobs give nothing</li>
