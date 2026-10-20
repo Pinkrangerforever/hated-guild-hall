@@ -128,7 +128,6 @@ local function releaseDot(unit)
 end
 local function markPlate(unit)
   local new = isNew(unit)
-  dbg("nameplate " .. tostring(unit) .. " (" .. tostring(UnitName(unit)) .. "): " .. (new and "never killed - dot" or "no dot"))
   if not new then releaseDot(unit); return end
   local plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
   if not plate or (plate.IsForbidden and plate:IsForbidden()) then dbg("no usable nameplate for " .. unit); return end
@@ -194,21 +193,36 @@ end
 -- ---------- events ----------
 -- This client doesn't let addons read the combat log, so kills are spotted the way WoW awards credit: a mob we saw
 -- alive (on a nameplate or as the target) dies while our group holds its tag (UnitIsTapDenied is false).
-local seenAlive, counted = {}, {}
-local lastCombat = 0
+local seenAlive, counted, engaged = {}, {}, {}
+-- did you (or your group) fight it? on its threat list, or it was attacking one of you
+local function groupUnits()
+  local list = { "player", "pet" }
+  if IsInRaid() then for i = 1, GetNumGroupMembers() do list[#list + 1] = "raid" .. i; list[#list + 1] = "raidpet" .. i end
+  elseif IsInGroup() then for i = 1, GetNumSubgroupMembers() do list[#list + 1] = "party" .. i; list[#list + 1] = "partypet" .. i end end
+  return list
+end
+local function fightingUs(unit)
+  for _, u in ipairs(groupUnits()) do
+    if UnitExists(u) then
+      local ok, s = pcall(UnitThreatSituation, u, unit)
+      if ok and s ~= nil then return true end
+      if UnitIsUnit(unit .. "target", u) then return true end
+    end
+  end
+  return false
+end
 local function watch(unit)
   local guid = UnitGUID(unit)
   if not guid or not npcId(guid) or counted[guid] then return end
   if not UnitIsDead(unit) then
     if not seenAlive[guid] then seenAlive[guid] = GetTime(); learn(unit) end
+    if not engaged[guid] and fightingUs(unit) then engaged[guid] = true end
     return
   end
   if not seenAlive[guid] then return end                         -- an old corpse we never saw alive
   counted[guid] = true
-  if UnitIsTapDenied(unit) then dbg("a mob died that another player tagged: " .. tostring(UnitName(unit))); return end
-  if not UnitAffectingCombat("player") and GetTime() - lastCombat > 8 and not IsInGroup() then
-    dbg("a mob died while you weren't fighting: " .. tostring(UnitName(unit))); return
-  end
+  if UnitIsTapDenied(unit) then dbg("skipped " .. tostring(UnitName(unit)) .. ": another player tagged it"); return end
+  if not engaged[guid] then dbg("skipped " .. tostring(UnitName(unit)) .. ": it died without fighting you or your group"); return end
   learn(unit)
   local wait = IsInInstance() and 1.5 or 0      -- in an instance it might be a boss: give the encounter credit a moment
   dbg("mob died: " .. tostring(UnitName(unit)) .. (wait > 0 and " (checking for a boss first)" or ""))
@@ -223,12 +237,12 @@ f:RegisterEvent("PLAYER_TARGET_CHANGED")
 f:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 f:RegisterEvent("UNIT_HEALTH")
 f:RegisterEvent("UNIT_FLAGS")
-f:RegisterEvent("PLAYER_REGEN_ENABLED")
+f:RegisterEvent("UNIT_THREAT_LIST_UPDATE")
+f:RegisterEvent("UNIT_TARGET")
 pcall(f.RegisterEvent, f, "ENCOUNTER_END")
 f:SetScript("OnEvent", function(_, event, a1, a2, a3, a4, a5)
-  if event == "UNIT_HEALTH" or event == "UNIT_FLAGS" then
+  if event == "UNIT_HEALTH" or event == "UNIT_FLAGS" or event == "UNIT_THREAT_LIST_UPDATE" or event == "UNIT_TARGET" then
     if a1 and (WATCHED[a1] or a1:find("^nameplate")) then watch(a1) end
-  elseif event == "PLAYER_REGEN_ENABLED" then lastCombat = GetTime()
   elseif event == "NAME_PLATE_UNIT_ADDED" then
     local g = UnitGUID(a1); if g then plateOf[g] = a1; learn(a1) end
     watch(a1); markPlate(a1)
@@ -256,7 +270,7 @@ f:SetScript("OnEvent", function(_, event, a1, a2, a3, a4, a5)
       if not wasOk then t.tampered = true end
     end
     -- forget mobs we stopped seeing a while ago
-    C_Timer.NewTicker(120, function() local now = GetTime(); for g, ts in pairs(seenAlive) do if now - ts > 900 then seenAlive[g] = nil; counted[g] = nil; info[g] = nil end end end)
+    C_Timer.NewTicker(120, function() local now = GetTime(); for g, ts in pairs(seenAlive) do if now - ts > 900 then seenAlive[g] = nil; counted[g] = nil; engaged[g] = nil; info[g] = nil end end end)
   end
 end)
 
