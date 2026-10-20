@@ -39,6 +39,13 @@ local function tile(parent, accent, title, sub, onClick)
   t:SetScript("OnEnter", function(self) self:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
   t:SetScript("OnLeave", function(self) self:SetBackdropBorderColor(accent[1], accent[2], accent[3], 0.55) end)
   t:SetScript("OnClick", function() hub:Hide(); onClick() end)
+  t.accent = accent
+  t.recolor = function(r, g, b)
+    accent[1], accent[2], accent[3] = r, g, b
+    t:SetBackdropBorderColor(r, g, b, 0.55)
+    vfade(t.glow, r, g, b, 0, 0.16)
+    t.title:SetTextColor(r, g, b); t.go:SetTextColor(r, g, b)
+  end
   return t
 end
 
@@ -108,6 +115,11 @@ local function build()
     if instant then pos = goal end
     place()
     label:SetTextColor(on and 0.9 or 0.6, on and 0.95 or 0.58, on and 0.93 or 0.55)
+    if f.tcg then
+      if on then f.tcg.recolor(0.35, 1, 0.95) else f.tcg.recolor(0.5, 0.5, 0.5) end
+      f.tcg.art:SetDesaturated(not on); f.tcg.art:SetAlpha(on and 1 or 0.6)
+      if f.refreshTcgLine then f.refreshTcgLine() end
+    end
   end
   sw:SetScript("OnClick", function() if HatedTCG_SetDots then HatedTCG_SetDots(not HatedTCG_DotsOn()) end; paint(); PlaySound(SOUNDKIT and SOUNDKIT.U_CHAT_SCROLL_BUTTON or 1115) end)
   sw:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_TOP"); GameTooltip:AddLine("Show TCG on screen", 0.35, 1, 0.95)
@@ -117,6 +129,15 @@ local function build()
   local ver = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); ver:SetPoint("BOTTOMRIGHT", -14, 14)
   ver:SetText("Hated Companion v" .. ((meta and meta("HatedCompanion", "Version")) or "?"))
 
+  -- the points line on the TCG tile (teal, or grey while the TCG is switched off)
+  f.refreshTcgLine = function()
+    local total, new, synced = 0, 0, false
+    if HatedTCG_Summary then total, new, synced = HatedTCG_Summary() end
+    local on = not HatedTCG_DotsOn or HatedTCG_DotsOn()
+    local big, small = on and "|cff5afff2" or "|cffa0a0a0", on and "|cff9cc7c1" or "|cff808080"
+    tcg.live:SetText(synced and string.format("%s%s|r %spoints|r", big, BreakUpLargeNumbers and BreakUpLargeNumbers(total) or total, small)
+      or string.format("%s+%d|r %spoints to sync|r", big, new, small))
+  end
   f.refresh = function()
     paint(true)
     -- the plan: how many bosses, when it was saved
@@ -124,10 +145,7 @@ local function build()
     for _, raid in ipairs((HatedPlan and HatedPlan.raids) or {}) do raids = raids + 1; n = n + #(raid.bosses or {}) end
     boss.live:SetText(n > 0 and string.format("|cffc8b48a%d boss%s in %d raid%s|r", n, n == 1 and "" or "es", raids, raids == 1 and "" or "s") or "|cff8f7f62No plan yet|r")
     -- points
-    local total, new, synced = 0, 0, false
-    if HatedTCG_Summary then total, new, synced = HatedTCG_Summary() end
-    tcg.live:SetText(synced and string.format("|cff5afff2%s|r |cff9cc7c1points|r", BreakUpLargeNumbers and BreakUpLargeNumbers(total) or total)
-      or string.format("|cff5afff2+%d|r |cff9cc7c1points to sync|r", new))
+    f.refreshTcgLine()
   end
   hub = f
   return f
