@@ -82,22 +82,34 @@ local function build()
   f.tcg = tcg
 
   -- footer: a switch for the TCG nameplate dots, and the addon's version
+  -- the switch: a pill track (teal when on, dark leather when off) with a metal knob that slides across
   local sw = CreateFrame("Button", nil, f)
-  sw:SetSize(40, 20); sw:SetPoint("BOTTOMLEFT", 22, 12)
-  sw.track = sw:CreateTexture(nil, "BACKGROUND"); sw.track:SetAllPoints(); sw.track:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
-  sw.track:SetTexture("Interface\\Buttons\\WHITE8x8")
-  sw.knob = sw:CreateTexture(nil, "OVERLAY"); sw.knob:SetSize(16, 16); sw.knob:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
-  sw.edge = sw:CreateTexture(nil, "BORDER"); sw.edge:SetPoint("TOPLEFT", -1, 1); sw.edge:SetPoint("BOTTOMRIGHT", 1, -1); sw.edge:SetColorTexture(0, 0, 0, 0.8)
+  sw:SetSize(52, 26); sw:SetPoint("BOTTOMLEFT", 20, 10)
+  sw.off = sw:CreateTexture(nil, "BACKGROUND"); sw.off:SetAllPoints(); sw.off:SetTexture(MEDIA .. "SwitchOff")
+  sw.on = sw:CreateTexture(nil, "BORDER"); sw.on:SetAllPoints(); sw.on:SetTexture(MEDIA .. "SwitchOn")
+  sw.knob = sw:CreateTexture(nil, "OVERLAY"); sw.knob:SetSize(26, 26); sw.knob:SetTexture(MEDIA .. "SwitchKnob")
+  local hov = sw:CreateTexture(nil, "HIGHLIGHT"); hov:SetAllPoints(); hov:SetTexture(MEDIA .. "SwitchOn"); hov:SetBlendMode("ADD"); hov:SetAlpha(0.15)
   local label = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); label:SetPoint("LEFT", sw, "RIGHT", 10, 0)
   label:SetText("Show TCG on screen: nameplate dots, tooltip line and +points popups")
-  local function paint()
+  local pos, goal = 1, 1           -- 0 = off (left), 1 = on (right); the knob eases toward the goal
+  local function place()
+    sw.knob:ClearAllPoints(); sw.knob:SetPoint("CENTER", sw, "LEFT", 13 + pos * 26, 0)
+    sw.on:SetAlpha(pos); sw.off:SetAlpha(1 - pos * 0.7)
+  end
+  sw:SetScript("OnUpdate", function(_, dt)
+    if pos == goal then return end
+    pos = pos + (goal - pos) * math.min(1, dt * 14)
+    if math.abs(goal - pos) < 0.01 then pos = goal end
+    place()
+  end)
+  local function paint(instant)
     local on = not HatedTCG_DotsOn or HatedTCG_DotsOn()
-    if on then sw.track:SetVertexColor(0.2, 0.75, 0.7, 1) else sw.track:SetVertexColor(0.25, 0.22, 0.2, 1) end
-    sw.knob:ClearAllPoints(); sw.knob:SetPoint(on and "RIGHT" or "LEFT", on and -2 or 2, 0)
-    sw.knob:SetVertexColor(on and 1 or 0.7, on and 1 or 0.7, on and 1 or 0.7)
+    goal = on and 1 or 0
+    if instant then pos = goal end
+    place()
     label:SetTextColor(on and 0.9 or 0.6, on and 0.95 or 0.58, on and 0.93 or 0.55)
   end
-  sw:SetScript("OnClick", function() if HatedTCG_SetDots then HatedTCG_SetDots(not HatedTCG_DotsOn()) end; paint() end)
+  sw:SetScript("OnClick", function() if HatedTCG_SetDots then HatedTCG_SetDots(not HatedTCG_DotsOn()) end; paint(); PlaySound(SOUNDKIT and SOUNDKIT.U_CHAT_SCROLL_BUTTON or 1115) end)
   sw:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_TOP"); GameTooltip:AddLine("Show TCG on screen", 0.35, 1, 0.95)
     GameTooltip:AddLine("The teal dots and tooltip line on mobs your account has never killed, and the +10 / +1 TCG popups. Turn it off if you only use Boss Strategies: your kills still earn points, so they are all there if you start playing the TCG later.", 1, 1, 1, true); GameTooltip:Show() end)
   sw:SetScript("OnLeave", GameTooltip_Hide)
@@ -106,7 +118,7 @@ local function build()
   ver:SetText("Hated Companion v" .. ((meta and meta("HatedCompanion", "Version")) or "?"))
 
   f.refresh = function()
-    paint()
+    paint(true)
     -- the plan: how many bosses, when it was saved
     local n, raids = 0, 0
     for _, raid in ipairs((HatedPlan and HatedPlan.raids) or {}) do raids = raids + 1; n = n + #(raid.bosses or {}) end

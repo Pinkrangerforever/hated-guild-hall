@@ -13249,7 +13249,7 @@ function wireRaidPlan(){
    Access); the chosen folder is remembered. Browsers won't open folders inside Program Files, so for a WoW install
    there the Plan folder is a link to Documents\HatedPlan (one command, see the help on the page). */
 const ADDON_DB = 'hated-addon';
-const ADDON_FILES = ['HatedCompanion.toc', 'HatedCompanion.lua', 'HatedPlanUI.lua', 'HatedMinimap.lua', 'HatedTCG.lua', 'HatedHub.lua', 'Media/Banner.tga', 'Media/Icon.tga', 'Media/CardBack.tga', 'Media/Dot.tga'];
+const ADDON_FILES = ['HatedCompanion.toc', 'HatedCompanion.lua', 'HatedPlanUI.lua', 'HatedMinimap.lua', 'HatedTCG.lua', 'HatedHub.lua', 'Media/Banner.tga', 'Media/Icon.tga', 'Media/CardBack.tga', 'Media/Dot.tga', 'Media/SwitchOn.tga', 'Media/SwitchOff.tga', 'Media/SwitchKnob.tga'];
 function addonIdb(){ return new Promise((res, rej) => { const r = indexedDB.open(ADDON_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 async function addonGet(k){ try{ const db = await addonIdb(); return await new Promise(res => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(undefined); }); }catch(e){ return undefined; } }
 async function addonSet(k, v){ try{ const db = await addonIdb(); await new Promise(res => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = res; }); }catch(e){} }
