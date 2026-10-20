@@ -76,9 +76,12 @@ end
 -- ---------- reading a nameplate's position (never touching the plate: nameplates are protected in combat) ----------
 local function plateSpot(unit)
   local plate = unit and C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
-  if not plate or (plate.IsForbidden and plate:IsForbidden()) or not plate:IsVisible() then return nil end
+  if not plate then return nil, "no nameplate for " .. tostring(unit) end
+  if plate.IsForbidden and plate:IsForbidden() then return nil, "nameplate is forbidden" end
+  if not plate:IsVisible() then return nil, "nameplate not visible" end
   local ok, x, top = pcall(function() local l, r, tp = plate:GetLeft(), plate:GetRight(), plate:GetTop(); if not l then return nil end return (l + r) / 2, tp end)
-  if not ok or not x then return nil end
+  if not ok then return nil, "can't read nameplate position: " .. tostring(x) end
+  if not x then return nil, "nameplate has no position yet" end
   local s = plate:GetEffectiveScale() / UIParent:GetEffectiveScale()
   local ok2, w = pcall(plate.GetWidth, plate)
   return x * s, top * s, (ok2 and w or 110) * s
@@ -137,8 +140,9 @@ local function freeDot() for _, d in ipairs(dots) do if not d.unit then return d
   dots[#dots + 1] = d; return d end
 local function markPlate(unit)
   local d = dotFor[unit]
+  dbg("nameplate " .. tostring(unit) .. " (" .. tostring(UnitName(unit)) .. "): " .. (isNew(unit) and "never killed - dot" or "no dot"))
   if isNew(unit) then
-    if not d then d = freeDot(); d.unit = unit; dotFor[unit] = d end
+    if not d then d = freeDot(); d.unit = unit; d.placed = nil; d.why = nil; dotFor[unit] = d end
   elseif d then d.unit = nil; d:Hide(); dotFor[unit] = nil end
 end
 local function unmarkPlate(unit) local d = dotFor[unit]; if d then d.unit = nil; d:Hide(); dotFor[unit] = nil end end
@@ -148,7 +152,13 @@ local mover = CreateFrame("Frame")
 mover:SetScript("OnUpdate", function()
   for unit, d in pairs(dotFor) do
     local x, top, w = plateSpot(unit)
-    if x then d:ClearAllPoints(); d:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x - w * 0.5 + 2, top - 8); d:Show() else d:Hide() end
+    if x then
+      d:ClearAllPoints(); d:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x - w * 0.5 + 2, top - 8); d:Show()
+      if not d.placed then d.placed = true; dbg(string.format("dot placed for %s at %.0f, %.0f", unit, x - w * 0.5 + 2, top - 8)) end
+    else
+      d:Hide()
+      if d.why ~= top then d.why = top; dbg("dot hidden for " .. unit .. ": " .. tostring(top)) end
+    end
   end
 end)
 local function tooltipUnit(tip)
