@@ -1266,6 +1266,8 @@
   .tcg-paste textarea:focus{ outline:none; border-color:#5afff2; box-shadow:0 0 8px rgba(90,255,242,.3); }
   .tcg-paste-act{ display:flex; gap:8px; }
   .tcg-filebtn{ cursor:pointer; }
+  .tcg-export{ cursor:pointer; background:linear-gradient(#2c1a4a, #1a0f2e) !important; color:#e9dcff !important; border-color:#a77bff !important; font-weight:700; box-shadow:0 0 10px rgba(167,123,255,.3); }
+  .tcg-export:hover{ filter:brightness(1.15); }
   .tcg-queue{ border-top:1px dashed rgba(255,179,92,.35); padding-top:10px; }
   .tcg-act{ flex-basis:100%; display:flex; gap:8px; } .tcg-mini{ padding:3px 10px !important; font-size:12px !important; }
   .strat-breadcrumb{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); margin-bottom:4px; }
@@ -11665,7 +11667,7 @@ function renderTcgPanel(p, isMe){
     ${ isMe ? `<div class="tcg-sync">
         <button type="button" class="btn tcg-btn" id="tcg-paste-open" ${state.tcgBusy ? 'disabled' : ''}>${state.tcgBusy ? 'Syncing…' : '&#10227; Paste from game'}</button>
         <label class="btn secondary tcg-filebtn" title="Or read the addon's saved file" ${state.tcgBusy ? 'aria-disabled="true"' : ''}>Sync from saved file<input type="file" id="tcg-file" accept=".lua" style="display:none;" ${state.tcgBusy ? 'disabled' : ''}></label>
-        <button type="button" class="btn secondary" id="tcg-code" title="Copies a code to paste into the TCG window in game (/tcg)">Show my points in game</button>
+        <button type="button" class="btn tcg-export" id="tcg-code" title="Copies a code with your points (and soon your cards) to paste into the TCG window in game">&#11014; Export Cards to WoW!</button>
         <span class="tcg-hint">In game type <b>/tcg</b> (or right-click the <b>H</b>), click <b>Export points</b>, press <b>Ctrl+C</b>, then click <b>Paste from game</b> here. Or <b>/reload</b> and use <b>Sync from saved file</b>: <code>World of Warcraft\\&lt;game&gt;\\WTF\\Account\\&lt;ACCOUNT&gt;\\SavedVariables\\HatedCompanion.lua</code>. The picker opens in the same folder next time, so it's just a double-click on the file. Every character on the account adds to the same points. Syncing twice never counts a kill twice. The addon keeps 30 days of kills, so sync at least once a month.</span>
       </div>
       <details class="tcg-rules"><summary>How points work</summary>
@@ -11676,7 +11678,7 @@ function renderTcgPanel(p, isMe){
           <textarea id="tcg-paste" placeholder="Paste the code from Export points here (Ctrl+V). It starts with HTCG2|" spellcheck="false"></textarea>
           <div class="tcg-paste-act"><button type="button" class="btn tcg-btn" id="tcg-paste-go" ${state.tcgBusy ? 'disabled' : ''}>Sync</button><button type="button" class="btn secondary" id="tcg-paste-cancel">Cancel</button></div>
         </div>` : '' }
-      ${ state.tcgCode ? `<div class="tcg-code"><span>In game, type <b>/tcg</b> (or right-click the <b>H</b> on your minimap), paste this and click <b>Update</b>:</span><code>${esc(state.tcgCode)}</code></div>` : '' }` : '' }
+      ${ state.tcgCode ? `<div class="tcg-code"><span>Copied! In game type <b>/tcg</b> (or right-click the <b>H</b>), paste it into <b>Import from website</b> and click <b>Import</b>:</span><code>${esc(state.tcgCode)}</code></div>` : '' }` : '' }
     ${ T.syncs.length ? `<div class="tcg-list"><div class="tcg-list-h">Recent syncs</div>${ T.syncs.map(s => `<div class="tcg-row">
         <span class="tcg-when">${when(s.at)}</span><b class="tcg-pts">+${s.points}</b>${status(s)}<span class="tcg-what">${esc(tcgSummaryText(s.summary)) || (s.counted ? '' : 'nothing new')}</span>
         ${ (s.flags || []).length ? `<div class="tcg-flags">${s.flags.map(f => '&#9888; ' + esc(f)).join('<br>')}</div>` : '' }</div>`).join('') }</div>` : '' }
@@ -11780,7 +11782,7 @@ function wireTcg(){
   if(pc) pc.addEventListener('click', () => { state.tcgPasteOpen = false; render(); });
   const cb = document.getElementById('tcg-code');
   if(cb) cb.addEventListener('click', async () => {
-    try{ const out = await tcgCall({ action: 'code' }); state.tcgCode = out.code; try{ await navigator.clipboard.writeText(out.code); showToast('Code copied - paste it in the TCG window in game (/tcg).'); }catch(e){ showToast('Copy the code below into the TCG window in game (/tcg).'); } render(); }
+    try{ const out = await tcgCall({ action: 'code' }); state.tcgCode = out.code; try{ await navigator.clipboard.writeText(out.code); showToast('Copied! Paste it in game: /tcg > Import from website.'); }catch(e){ showToast('Copy the code below into the TCG window in game (/tcg).'); } render(); }
     catch(e){ showToast('Could not get your code: ' + e.message, true); }
   });
   const f = document.getElementById('tcg-file');
