@@ -164,7 +164,7 @@ end
 
 local function award(key, first, amount, guid)
   if first then db().firsts[key] = true; C_Timer.After(0.1, refreshPlates) end
-  if amount > 0 then popup(amount, guid) end
+  if amount > 0 and dotsOn() then popup(amount, guid) end   -- points always count; the hub switch only hides the visuals
 end
 
 local lastEncounter = { t = 0, name = nil }
