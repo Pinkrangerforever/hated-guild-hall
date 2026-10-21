@@ -180,6 +180,7 @@ local function build()
       local order = {}; for i, cl in ipairs(CLASSES) do order[cl] = i end
       table.sort(list, function(a, b)
         local A, B = card(a), card(b)
+        if A[2] ~= B[2] then return A[2] > B[2] end                              -- Legendary first, Common last
         if A[7] ~= B[7] then return (order[A[7]] or 99) < (order[B[7]] or 99) end
         if (A[3] or 0) ~= (B[3] or 0) then return (A[3] or 0) < (B[3] or 0) end
         return A[1] < B[1]
