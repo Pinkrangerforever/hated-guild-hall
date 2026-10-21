@@ -17098,6 +17098,19 @@ function bindApp(){
 
 }
 
+// Wide screens: the nav links are centred on the page, so the guild logo sits right beside Home (it keeps its
+// overhang below the bar). Narrower screens keep it at its usual spot on the left.
+function placeNavLogo(){
+  const logo = document.querySelector('.top-nav .nav-logo'), items = document.querySelector('.top-nav .nav-items');
+  if(!logo || !items) return;
+  if(window.innerWidth >= 1500){ const r = items.getBoundingClientRect(); logo.style.left = Math.max(10, r.left - logo.offsetWidth - 14) + 'px'; }
+  else logo.style.left = '';
+}
+window.addEventListener('resize', placeNavLogo);
+window.addEventListener('load', placeNavLogo);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(placeNavLogo);
+setTimeout(placeNavLogo, 0);
+
 // FOOTPRINT TRAIL SYSTEM
 // One trail at a time: 3 glowing footprints (below the banner, halfway, 3/4 down), then the Shadowy
 // Dealer's face peeks out by the footer and can be clicked. Every 4-5 minutes (random). render() calls
