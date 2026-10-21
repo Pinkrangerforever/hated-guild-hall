@@ -12326,9 +12326,13 @@ function wireTcgDecks(){
     el.addEventListener('mouseenter', () => showPeek(el, el.dataset.tcgdAdd || el.dataset.tcgdPeek));
     el.addEventListener('mouseleave', hidePeek);
   });
-  // after a redraw: keep the preview only if the pointer is still on that card
-  const over = [...document.querySelectorAll('[data-tcgd-add]:hover, [data-tcgd-peek]:hover')].pop();
+  // after a redraw: keep the preview only if the pointer is still on that card (":hover" isn't set on the redrawn
+  // elements until the mouse moves, so look at what's under the last known pointer position instead)
+  if(!window.__tcgPtr){ window.__tcgPtr = [0, 0]; document.addEventListener('pointermove', e => { window.__tcgPtr = [e.clientX, e.clientY]; }, { passive: true }); }
+  const hit = document.elementFromPoint(window.__tcgPtr[0], window.__tcgPtr[1]);
+  const over = hit && hit.closest && hit.closest('[data-tcgd-add], [data-tcgd-peek]');
   if(P.el && (!over || (over.dataset.tcgdAdd || over.dataset.tcgdPeek) !== P.id)) hidePeek();
+  else if(over && P.el) over.__peeked = true;
 }
 
 function tcgZoom(id, holo){
