@@ -5165,7 +5165,7 @@
 
 <!-- HATED BANNER SECTION -->
 <div id="banner-section" class="banner-section">
-  <video id="hated-banner" class="hated-banner" autoplay muted loop playsinline>
+  <video id="hated-banner" class="hated-banner" autoplay muted loop playsinline preload="auto">
     <source src="https://assets.hatedforever.com/HatedBanner.mp4" type="video/mp4">
   </video>
 </div>
@@ -17097,6 +17097,19 @@ function bindApp(){
   if(testRoleRaidleader) testRoleRaidleader.addEventListener('click', ()=>{ setTestRole('raidleader'); render(); });
 
 }
+
+// The banner video: browsers sometimes suspend a background video while the page is busy (after sign-in the site
+// loads a lot at once) and never resume it, so it freezes on a frame. Check every 2 s and nudge it back to playing.
+(function bannerWatchdog(){
+  let last = -1;
+  setInterval(() => {
+    const v = document.getElementById('hated-banner');
+    if(!v || document.hidden || !v.isConnected || v.offsetParent === null) return;
+    const stuck = v.paused || v.ended || (v.readyState >= 2 && Math.abs(v.currentTime - last) < 0.01);
+    last = v.currentTime;
+    if(stuck){ v.muted = true; const p = v.play(); if(p && p.catch) p.catch(() => {}); }
+  }, 2000);
+})();
 
 // Wide screens: the nav links are centred on the page, so the guild logo sits right beside Home (it keeps its
 // overhang below the bar). Narrower screens keep it at its usual spot on the left.
