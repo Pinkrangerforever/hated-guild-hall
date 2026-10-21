@@ -1353,7 +1353,7 @@
   .tcgo{ position:fixed; inset:0; z-index:100000; background:radial-gradient(ellipse at center, rgba(10,40,38,.94), rgba(0,0,0,.97)); overflow:hidden; }
   .tcgo.shake{ animation:tcgoShake .5s; } @keyframes tcgoShake{ 20%{ transform:translate(-8px,4px); } 40%{ transform:translate(7px,-5px); } 60%{ transform:translate(-5px,3px); } 80%{ transform:translate(3px,-2px); } }
   .tcgo-stage{ position:absolute; left:50%; top:50%; width:0; height:0; }
-  .tcgo .tpk{ position:absolute; left:calc(var(--pw) * -.5); top:calc(var(--pw) * -.75); margin:0; z-index:3; transition:transform .8s cubic-bezier(.5,0,.75,0), opacity .6s; animation:tpkIn .6s cubic-bezier(.2,.9,.3,1.2); }
+  .tcgo .tpk{ cursor:pointer; position:absolute; left:calc(var(--pw) * -.5); top:calc(var(--pw) * -.75); margin:0; z-index:3; transition:transform .8s cubic-bezier(.5,0,.75,0), opacity .6s; animation:tpkIn .6s cubic-bezier(.2,.9,.3,1.2); }
   @keyframes tpkIn{ from{ transform:translateY(60vh) rotate(8deg); } }
   .tcgo .tpk.drop{ transform:translateY(80vh) rotate(-6deg); opacity:0; }
   .tcgo .tpk.wobble{ animation:tpkWobble .35s; } @keyframes tpkWobble{ 30%{ transform:rotate(-2deg) scale(1.02); } 70%{ transform:rotate(1.5deg); } }
@@ -12237,7 +12237,7 @@ async function tcgOpenPack(){
   const ov = document.createElement('div');
   ov.className = 'tcgo';
   ov.innerHTML = `<div class="tcgo-flash"></div>
-    <div class="tcgo-hint">Tear open your pack</div>
+    <div class="tcgo-hint">Drag across the top to tear it open &mdash; or just click the pack</div>
     <button class="tcgo-mute" title="Sound on / off">${tcgSfx.isMuted() ? '&#128263;' : '&#128266;'}</button>
     <div class="tcgo-stage">
       ${tcgPackHtml(pw, true)}
@@ -12306,6 +12306,8 @@ async function tcgOpenPack(){
     if(tap || p > .55) autoTear();                         // past halfway it finishes on its own
   };
   strip.addEventListener('pointerup', up); strip.addEventListener('pointercancel', up);
+  // clicking anywhere else on the pack tears it open for you (for anyone who'd rather not drag)
+  pack.addEventListener('click', e => { if(!torn && !drag && !e.target.closest('.tpk-strip')) autoTear(); });
 
   // ---- revealing ----
   let left = cards.length, busy = 0;
