@@ -7589,7 +7589,7 @@ const CAMPFIRE_FLINT = `<svg viewBox="0 0 120 70" class="cf-flint"><defs><linear
 
 function startCampfireEvent(rect, pendingId, params){
   const p = Object.assign({ strike_ms: 1100, strike_win: 0.16, strike_tries: 3, blow_ticks: 480, blow_need: 90, blow_lo: 0.45, blow_hi: 0.75,
-    blow_up: 0.012, blow_down: 0.007, feed_decay: 0.16, tray: ['log', 'tinder', 'wet', 'kindling', 'sticks', 'stone'] }, params || {});
+    blow_up: 0.012, blow_down: 0.007, feed_decay: 0.11, tray: ['log', 'tinder', 'wet', 'kindling', 'sticks', 'stone'] }, params || {});
   const enc = openEncounterCard(rect, {
     cls: 'enc-campfire', icon: '&#128293;', title: 'Light the Campfire',
     instruction: 'Strike the flint when the spark reaches the <b style="color:#ffb347">hot zone</b> on the right!',
@@ -8636,7 +8636,7 @@ if(typeof isStaging !== 'undefined' && isStaging){
       rarespawn: () => startRareSpawnEvent(rect, 'preview', { jump_ms: 650, duration_ms: 3250, radius: 95, hits_needed: 3, positions: [[200, 300], [750, 650], [400, 800], [850, 250], [500, 450]] }),
       mining: () => startMiningEvent(rect, 'preview', { gem_start: 0, reveal_ms: 1600, swap_ms: 310, pick_ms: 6000, swaps: [[0, 1], [1, 2], [0, 2], [0, 1], [1, 2], [0, 1], [0, 2], [1, 2], [0, 1], [0, 2], [1, 2]] }),
       campfire: () => startCampfireEvent(rect, 'preview', { strike_ms: 1100, strike_win: 0.16, strike_tries: 3, blow_ticks: 480, blow_need: 90, blow_lo: 0.45, blow_hi: 0.75,
-        blow_up: 0.012, blow_down: 0.007, feed_decay: 0.16, rounds: CAMPFIRE_ORDER.map(k => [k, CAMPFIRE_ORDER.filter(o => o !== k)[Math.floor(Math.random() * 3)], ['wet', 'leaves', 'stone'][Math.floor(Math.random() * 3)]].sort(() => Math.random() - 0.5)) }),
+        blow_up: 0.012, blow_down: 0.007, feed_decay: 0.11, rounds: CAMPFIRE_ORDER.map(k => [k, CAMPFIRE_ORDER.filter(o => o !== k)[Math.floor(Math.random() * 3)], ['wet', 'leaves', 'stone'][Math.floor(Math.random() * 3)]].sort(() => Math.random() - 0.5)) }),
       trivia: () => startTriviaEvent(rect, 'preview', { question: 'Who is the final boss of Molten Core?', category: 'World', time_ms: 15000, answers: ['Ragnaros', 'Golemagg', 'Majordomo Executus', 'Baron Geddon'] })
     };
     (demo[type] || demo.fishing)();
