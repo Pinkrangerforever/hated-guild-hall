@@ -1339,6 +1339,11 @@
   .tcgo-card .in{ --flip:0deg; position:relative; width:100%; height:100%; transform-style:preserve-3d; transform:rotateX(var(--rx, 0deg)) rotateY(calc(var(--ry, 0deg) + var(--flip))); transition:transform .15s; }
   .tcgo-card.flip .in{ --flip:180deg; transition:transform .8s cubic-bezier(.3,1.5,.5,1); }
   .tcgo-card.flip{ z-index:5; }
+  /* a revealed card grows when hovered (pulled toward the middle so edge cards stay on screen); click to see it full size */
+  .tcgo-card.shown{ transition:transform .25s ease-out; cursor:zoom-in; }
+  .tcgo-card.shown:hover{ z-index:10; transform:translate(calc(var(--x) * .55), calc(var(--y) * .55)) scale(1.75); }
+  .tcgo-card.shown:hover .tcgo-tag{ opacity:0; }
+  .tcgo-card.shown.zoom{ z-index:10; transform:translate(0, 0) scale(var(--zs, 2.2)); }
   .tcgo-card.pop{ animation:tcgPop .8s; } @keyframes tcgPop{ 40%{ scale:1.12; } }
   .tcgo-card .face{ position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
   .tcgo-card .back{ background:url(https://assets.hatedforever.com/tcg/cardback.webp?v=2) center/88% auto no-repeat; filter:drop-shadow(0 0 8px var(--glow)) drop-shadow(0 0 3px var(--glow)); }
@@ -12113,7 +12118,7 @@ async function tcgOpenPack(){
   // ---- revealing ----
   let left = cards.length;
   const done = () => {
-    hint.textContent = 'Added to your binder';
+    hint.textContent = 'Added to your binder — hover a card to read it, click to enlarge';
     const d = ov.querySelector('.tcgo-done'); d.style.display = 'flex';
     const again = ov.querySelector('#tcgo-again');
     if(out.points < TCG_PACK_PRICE) again.disabled = true;
@@ -12125,6 +12130,7 @@ async function tcgOpenPack(){
     const c = out.cards[i], col = TCG_RARITY[c.rarity].color;
     const inner = el.querySelector('.in'); inner.style.removeProperty('--rx'); inner.style.removeProperty('--ry');
     el.classList.add('flip', 'pop');
+    setTimeout(() => el.classList.add('shown'), 900);       // after the flip it can be hovered / clicked to read
     setTimeout(() => {
       if(c.rarity === 'legendary'){
         tcgBurst(el, col, 60, true); flash('rgba(255,140,0,.85)'); ov.classList.remove('shake'); void ov.offsetWidth; ov.classList.add('shake');
@@ -12138,7 +12144,12 @@ async function tcgOpenPack(){
     if(--left === 0){ hint.style.opacity = 0; setTimeout(done, 900); }
   };
   cards.forEach((el, i) => {
-    el.addEventListener('click', () => reveal(el, i));
+    el.addEventListener('click', () => {
+      if(!el.classList.contains('shown')) return reveal(el, i);
+      const was = el.classList.contains('zoom');           // click a revealed card: blow it up in the middle (click again to put it back)
+      cards.forEach(x => x.classList.remove('zoom'));
+      if(!was){ el.style.setProperty('--zs', Math.min(2.4, (window.innerHeight * .8) / el.offsetHeight).toFixed(2)); el.classList.add('zoom'); }
+    });
     // tilt toward the pointer while it's face down
     el.addEventListener('pointermove', e => {
       if(el.classList.contains('flip') || !el.classList.contains('out')) return;
