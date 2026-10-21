@@ -12303,11 +12303,13 @@ function wireTcgDecks(){
   const showPeek = (el, id) => {
     if(peekFor === el) return;
     hidePeek();
-    const side = document.querySelector('.tcgd-side'); if(!side) return;
-    const sr = side.getBoundingClientRect(), from = el.getBoundingClientRect();
-    const w = Math.min(340, sr.left - 24), h = w * 874 / 655;
-    if(w < 180) return;                                    // no room beside the panel (phones): skip
-    const left = sr.left - w - 12, top = Math.max(10, Math.min(window.innerHeight - h - 10, sr.top + 10));
+    const side = document.querySelector('.tcgd-side'), pool = document.querySelector('.tcgd-pool'); if(!side || !pool) return;
+    const sr = side.getBoundingClientRect(), pr = pool.getBoundingClientRect(), from = el.getBoundingClientRect();
+    // the empty page margin left of your collection; if the window is too narrow for that, beside the deck panel
+    let w = Math.min(340, pr.left - 24), left = pr.left - w - 14;
+    if(w < 180){ w = Math.min(340, sr.left - 24); left = sr.left - w - 12; }
+    if(w < 180) return;                                    // no room at all (phones): skip
+    const h = w * 874 / 655, top = Math.max(10, Math.min(window.innerHeight - h - 10, Math.max(pr.top, 10)));
     peek = document.createElement('div'); peekFor = el;
     peek.className = 'tcgd-peek';
     const own = state.tcgMine.owned[id];
