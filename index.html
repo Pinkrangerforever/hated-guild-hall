@@ -1333,8 +1333,9 @@
   .tcgo-flash{ position:absolute; inset:0; pointer-events:none; opacity:0; background:radial-gradient(circle, var(--fc, #fff), transparent 65%); }
   .tcgo-flash.go{ animation:tcgFlash .8s ease-out; } @keyframes tcgFlash{ 0%{ opacity:0; } 15%{ opacity:.9; } 100%{ opacity:0; } }
   .tcgo-card{ position:absolute; left:0; top:0; width:var(--cw); height:calc(var(--cw) * 1.334); margin:calc(var(--cw) * -.667) 0 0 calc(var(--cw) * -.5); perspective:1000px; cursor:pointer; z-index:2;
-    transform:translate(0, calc(var(--cw) * .35)) scale(.82); transition:transform .75s cubic-bezier(.2,.9,.25,1.12); }
-  .tcgo-card.rise{ transform:translate(var(--sx, 0), calc(var(--cw) * -.95)) scale(.85) rotate(var(--sr, 0deg)); transition-duration:.6s; }
+    transform:translate(0, calc(var(--cw) * .2)) scale(.8); visibility:hidden; transition:transform .75s cubic-bezier(.2,.9,.25,1.12); }
+  /* hidden inside the pack until it's torn open, then they slide up out of it (behind the pack's front) */
+  .tcgo-card.rise{ visibility:visible; transform:translate(var(--sx, 0), calc(var(--cw) * -.95)) scale(.85) rotate(var(--sr, 0deg)); transition-duration:.6s; }
   .tcgo-card.out{ z-index:4; transform:translate(var(--x), var(--y)) scale(1); }
   .tcgo-card .in{ --flip:0deg; position:relative; width:100%; height:100%; transform-style:preserve-3d; transform:rotateX(var(--rx, 0deg)) rotateY(calc(var(--ry, 0deg) + var(--flip))); transition:transform .15s; }
   .tcgo-card.flip .in{ --flip:180deg; transition:transform .8s cubic-bezier(.3,1.5,.5,1); }
