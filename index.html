@@ -14220,7 +14220,7 @@ const ADDON_DB = 'hated-addon';
 // TCG_ADDON_SHEETS: how many Cards/cNN.blp sheets tools/tcg_art/make_addon_cards.py made (12 cards each) - update it when cards are added
 const TCG_ADDON_SHEETS = 82;
 const ADDON_FILES = ['HatedCompanion.toc', 'HatedCompanion.lua', 'HatedPlanUI.lua', 'HatedMinimap.lua', 'HatedTCG.lua', 'HatedTCGCards.lua', 'HatedTCGBinder.lua', 'HatedProfessions.lua', 'HatedHub.lua',
-  'Media/Banner.tga', 'Media/Icon.tga', 'Media/CardBack.tga', 'Media/Dot.tga', 'Media/SwitchOn.tga', 'Media/SwitchOff.tga', 'Media/SwitchKnob.tga', 'Media/CardGlow.tga', 'Media/Holo.tga',
+  'Media/Banner.tga', 'Media/Icon.tga', 'Media/CardBack.tga', 'Media/Dot.tga', 'Media/SwitchOn.tga', 'Media/SwitchOff.tga', 'Media/SwitchKnob.tga', 'Media/Holo.tga', 'Media/Glow_minion.tga', 'Media/Glow_spell.tga', 'Media/Glow_alliance.tga', 'Media/Glow_horde.tga', 'Media/Glow_neutral.tga',
   ...Array.from({ length: TCG_ADDON_SHEETS }, (_, i) => 'Cards/c' + String(i + 1).padStart(2, '0') + '.blp')];
 function addonIdb(){ return new Promise((res, rej) => { const r = indexedDB.open(ADDON_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 async function addonGet(k){ try{ const db = await addonIdb(); return await new Promise(res => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(undefined); }); }catch(e){ return undefined; } }

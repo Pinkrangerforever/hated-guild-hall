@@ -28,8 +28,8 @@ end
 local holos = {}
 local function makeCard(parent, w, h)
   local b = CreateFrame("Button", nil, parent); b:SetSize(w, h)
-  b.glow = b:CreateTexture(nil, "BACKGROUND"); b.glow:SetTexture(ADDON .. "Media\\CardGlow"); b.glow:SetBlendMode("ADD")
-  b.glow:SetPoint("TOPLEFT", -w * 0.28, h * 0.17); b.glow:SetPoint("BOTTOMRIGHT", w * 0.28, -h * 0.17)
+  -- the rarity glow: shaped like the card's frame (Media\Glow_<frame>; the card sits centred in it at 124 x 170 of 256)
+  b.glow = b:CreateTexture(nil, "BACKGROUND"); b.glow:SetPoint("CENTER"); b.glow:SetSize(w * 256 / 124, h * 256 / 170)
   b.art = b:CreateTexture(nil, "ARTWORK"); b.art:SetAllPoints()
   b.holo = b:CreateTexture(nil, "OVERLAY"); b.holo:SetTexture(ADDON .. "Media\\Holo", "REPEAT", "REPEAT"); b.holo:SetBlendMode("ADD")
   b.holo:SetPoint("TOPLEFT", w * 0.04, -h * 0.03); b.holo:SetPoint("BOTTOMRIGHT", -w * 0.04, h * 0.03); b.holo:SetAlpha(0.45); b.holo:Hide()
@@ -41,7 +41,8 @@ local function makeCard(parent, w, h)
     if not c then self:Hide(); return end
     setArt(self.art, dbf)
     local r = RARITY[c[2]] or RARITY[1]
-    self.glow:SetVertexColor(r[1], r[2], r[3]); self.glow:SetAlpha(c[2] >= 4 and 0.95 or 0.6)
+    self.glow:SetTexture(ADDON .. "Media\\Glow_" .. (c[12] or "minion"))
+    self.glow:SetVertexColor(r[1], r[2], r[3]); self.glow:SetAlpha(c[2] >= 4 and 1 or 0.8)
     self.holo:SetShown(own and (own.h or 0) > 0)
     self.count:SetText(own and own.n > 1 and ("x" .. own.n .. ((own.h or 0) > 0 and " |cffff7ad9holo|r" or "")) or ((own and (own.h or 0) > 0) and "|cffff7ad9holo|r" or ""))
     self:Show()
@@ -82,7 +83,7 @@ local W
 local function build()
   if W then return W end
   local w = CreateFrame("Frame", "HatedTCGBinder", UIParent, "BackdropTemplate"); w:Hide()
-  w:SetSize(880, 610); w:SetPoint("CENTER"); w:SetFrameStrata("HIGH"); w:SetToplevel(true)
+  w:SetSize(880, 640); w:SetPoint("CENTER"); w:SetFrameStrata("HIGH"); w:SetToplevel(true)
   w:SetMovable(true); w:EnableMouse(true); w:RegisterForDrag("LeftButton"); w:SetClampedToScreen(true)
   w:SetScript("OnDragStart", w.StartMoving); w:SetScript("OnDragStop", w.StopMovingOrSizing)
   flat(w, 0.035, 0.055, 0.06, 0.97, 0.25, 0.95, 0.85, 0.7)
@@ -107,10 +108,18 @@ local function build()
     f:SetScript("OnClick", function() w.cls = cl; w.page = 1; w.refresh() end)
     f.cls = cl; bp.filters[i] = f; prev = f
   end
+  bp.types = {}
+  local tprev
+  for i, ty in ipairs({ { "ALL", "All types" }, { "M", "Minions" }, { "S", "Spells" }, { "W", "Weapons" }, { "H", "Heroes" } }) do
+    local f = smallButton(bp, ty[2], 78)
+    if tprev then f:SetPoint("LEFT", tprev, "RIGHT", 2, 0) else f:SetPoint("TOPLEFT", 14, -26) end
+    f:SetScript("OnClick", function() w.typ = ty[1]; w.page = 1; w.refresh() end)
+    f.typ = ty[1]; bp.types[i] = f; tprev = f
+  end
   bp.cards = {}
   for i = 1, PER_PAGE do
     local c = makeCard(bp, CW, CH)
-    c:SetPoint("TOPLEFT", 40 + ((i - 1) % COLS) * (CW + 18), -44 - math.floor((i - 1) / COLS) * (CH + 30))
+    c:SetPoint("TOPLEFT", 40 + ((i - 1) % COLS) * (CW + 18), -62 - math.floor((i - 1) / COLS) * (CH + 26))
     c:SetScript("OnEnter", function(self) showZoom(self, self.dbf) end); c:SetScript("OnLeave", hideZoom)
     bp.cards[i] = c
   end
@@ -174,7 +183,7 @@ local function build()
         total = total + 1
         if own[dbf] then
           have = have + 1
-          if not w.cls or w.cls == "ALL" or c[7] == w.cls then list[#list + 1] = dbf end
+          if (not w.cls or w.cls == "ALL" or c[7] == w.cls) and (not w.typ or w.typ == "ALL" or c[6] == w.typ) then list[#list + 1] = dbf end
         end
       end
       local order = {}; for i, cl in ipairs(CLASSES) do order[cl] = i end
@@ -192,6 +201,7 @@ local function build()
         if dbf then bp.cards[i]:set(dbf, own[dbf]) else bp.cards[i]:Hide() end
       end
       for _, f in ipairs(bp.filters) do f:SetEnabled(f.cls ~= (w.cls or "ALL")) end
+      for _, f in ipairs(bp.types) do f:SetEnabled(f.typ ~= (w.typ or "ALL")) end
       bp.pageT:SetText(string.format("Page %d / %d   -   %d / %d cards collected", w.page, pages, have, total))
       bp.prevB:SetEnabled(w.page > 1); bp.nextB:SetEnabled(w.page < pages)
       bp.pageT:SetShown(any); bp.prevB:SetShown(any); bp.nextB:SetShown(any)
