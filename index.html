@@ -12023,8 +12023,13 @@ const TCG_RARITY = {
   legendary: { label: 'Legendary', color: '#ff8000', odds: '1%' },
 };
 const TCG_RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+// Our sets, in binder order. Several Hearthstone sets can share one of ours: the hand-picked classic-WoW cards
+// (C'Thun, Hakkar, the Hoggers...) come from 8 Hearthstone sets and are one set here, "Legends of Azeroth".
 const TCG_SETS = { VANILLA: 'Classic', NAXX: 'Naxxramas', BRM: 'Blackrock Mountain', THE_BARRENS: 'The Barrens',
-  STORMWIND: 'Stormwind', ALTERAC_VALLEY: 'Alterac Valley', HERO_SKINS: 'Heroes', CORE: 'Heroes' };
+  STORMWIND: 'Stormwind', ALTERAC_VALLEY: 'Alterac Valley',
+  OG: 'Legends of Azeroth', TROLL: 'Legends of Azeroth', EMERALD_DREAM: 'Legends of Azeroth', GILNEAS: 'Legends of Azeroth',
+  ESCAPEFROM_VIOLET_HOLD: 'Legends of Azeroth', SCHOLOMANCE: 'Legends of Azeroth', GVG: 'Legends of Azeroth', LOE: 'Legends of Azeroth',
+  BASIC: 'Heroes', LEGACY: 'Heroes', HERO_SKINS: 'Heroes', CORE: 'Heroes' };
 const TCG_CLASSES = ['NEUTRAL', 'DRUID', 'HUNTER', 'MAGE', 'PALADIN', 'PRIEST', 'ROGUE', 'SHAMAN', 'WARLOCK', 'WARRIOR', 'DEMONHUNTER', 'DEATHKNIGHT'];
 const tcgClassName = c => ({ DEMONHUNTER: 'Demon Hunter', DEATHKNIGHT: 'Death Knight' })[c] || (c ? c[0] + c.slice(1).toLowerCase() : '');
 const tcgSetName = s => TCG_SETS[s] || 'Other';
@@ -12044,7 +12049,7 @@ async function loadTcgCatalog(){
   all.sort((a, b) => order(a.set_code) - order(b.set_code) || TCG_CLASSES.indexOf(a.card_class) - TCG_CLASSES.indexOf(b.card_class)
     || (a.cost ?? 99) - (b.cost ?? 99) || a.name.localeCompare(b.name));
   state.tcgCards = all; state.tcgCardById = Object.fromEntries(all.map(c => [c.id, c]));
-  const n = {}; all.forEach(c => { c.slot = n[c.set_code] = (n[c.set_code] || 0) + 1; });
+  const n = {}; all.forEach(c => { const k = tcgSetName(c.set_code); c.slot = n[k] = (n[k] || 0) + 1; });   // number within our set
   state.tcgCardsLoading = false; render();
 }
 async function loadTcgMine(){
@@ -12119,19 +12124,19 @@ function renderTcgBinder(){
   if(!cards || !M) return '<p class="muted sans">Loading your binder&hellip;</p>';
   const F = state.tcgFilter || (state.tcgFilter = { set: '', cls: '', rarity: '', owned: false, q: '', limit: 120 });
   const q = F.q.trim().toLowerCase();
-  const list = cards.filter(c => (!F.set || c.set_code === F.set) && (!F.cls || c.card_class === F.cls) && (!F.rarity || c.rarity === F.rarity)
+  const list = cards.filter(c => (!F.set || tcgSetName(c.set_code) === F.set) && (!F.cls || c.card_class === F.cls) && (!F.rarity || c.rarity === F.rarity)
     && (!F.owned || M.owned[c.id]) && (!q || (M.owned[c.id] && c.name.toLowerCase().includes(q))));
-  const pool = cards.filter(c => (!F.set || c.set_code === F.set));
+  const pool = cards.filter(c => (!F.set || tcgSetName(c.set_code) === F.set));
   const have = pool.filter(c => M.owned[c.id]).length;
-  const sets = [...new Set(cards.map(c => c.set_code))];
+  const sets = [...new Set(cards.map(c => tcgSetName(c.set_code)))];
   const opt = (v, label, cur) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(label)}</option>`;
   return `<div class="tcgb-bar">
-      <select id="tcgb-set">${opt('', 'All sets', F.set)}${sets.map(s => opt(s, tcgSetName(s), F.set)).join('')}</select>
+      <select id="tcgb-set">${opt('', 'All sets', F.set)}${sets.map(s => opt(s, s, F.set)).join('')}</select>
       <select id="tcgb-cls">${opt('', 'All classes', F.cls)}${TCG_CLASSES.map(c => opt(c, tcgClassName(c), F.cls)).join('')}</select>
       <select id="tcgb-rar">${opt('', 'All rarities', F.rarity)}${TCG_RARITY_ORDER.map(r => opt(r, TCG_RARITY[r].label, F.rarity)).join('')}</select>
       <input type="search" id="tcgb-q" placeholder="Search your cards" value="${esc(F.q)}">
       <label><input type="checkbox" id="tcgb-owned" ${F.owned ? 'checked' : ''}> Owned only</label>
-      <span class="tcgb-prog">${have} / ${pool.length} collected${F.set ? ' in ' + esc(tcgSetName(F.set)) : ''}</span>
+      <span class="tcgb-prog">${have} / ${pool.length} collected${F.set ? ' in ' + esc(F.set) : ''}</span>
     </div>
     ${ list.length ? `<div class="tcgb-grid">${list.slice(0, F.limit).map(c => { const o = M.owned[c.id], R = TCG_RARITY[c.rarity];
       if(!o) return `<div class="tcgb-card missing" title="Not found yet"><div class="tcgb-myst" style="--glow:${R.color}"><b>?</b><span>${esc(tcgSetName(c.set_code))} #${tcgSlot(c)}<br>${R.label}</span></div></div>`;
@@ -12385,14 +12390,14 @@ function tcgCompletions(before, pulled){
   const cards = state.tcgCards || [];
   if(!cards.length) return [];
   const after = new Set(before); pulled.forEach(c => after.add(c.id));
-  const out = [], sets = [...new Set(pulled.filter(c => c.new).map(c => (state.tcgCardById[c.id] || {}).set_code).filter(Boolean))];
+  const out = [], sets = [...new Set(pulled.filter(c => c.new).map(c => (state.tcgCardById[c.id] || {}).set_code).filter(Boolean).map(tcgSetName))];
   for(const set of sets){
-    const inSet = cards.filter(c => c.set_code === set);
-    if(inSet.every(c => after.has(c.id))){ out.push({ big: true, text: `${tcgSetName(set)} complete!`, sub: `All ${inSet.length} cards collected` }); continue; }
+    const inSet = cards.filter(c => tcgSetName(c.set_code) === set);
+    if(inSet.every(c => after.has(c.id))){ out.push({ big: true, text: `${set} complete!`, sub: `All ${inSet.length} cards collected` }); continue; }
     for(const r of TCG_RARITY_ORDER){
       const group = inSet.filter(c => c.rarity === r);
       if(group.length && group.every(c => after.has(c.id)) && !group.every(c => before.has(c.id)))
-        out.push({ text: `Every ${tcgSetName(set)} ${TCG_RARITY[r].label}!`, sub: `${group.length} of ${group.length} collected`, color: TCG_RARITY[r].color });
+        out.push({ text: `Every ${set} ${TCG_RARITY[r].label}!`, sub: `${group.length} of ${group.length} collected`, color: TCG_RARITY[r].color });
     }
   }
   return out;
