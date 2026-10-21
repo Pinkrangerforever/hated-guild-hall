@@ -84,7 +84,9 @@ def fit(d, text, maxw, size, minsize=16):
     return font('cinzel', minsize)
 
 def clean_text(raw):
-    raw = (raw or '').replace('[x]', '').replace('\n', ' ')
+    raw = raw or ''
+    # Hearthstone's line breaks are real ("Taunt" on its own line); "[x]" just means the breaks were placed by hand
+    raw = raw.replace('[x]', '').replace('\n', ' ¶ ')
     raw = re.sub(r'[$#][a-z]?(\d+)', r'\1', raw).replace('_', ' ')
     raw = re.sub(r'(\d+)(\D{0,12}?)\|4\(([^,)]*),([^)]*)\)', lambda m: m.group(1) + m.group(2) + (m.group(3) if m.group(1) == '1' else m.group(4)), raw)
     raw = re.sub(r'\{\d+\}', 'X', raw)
@@ -107,6 +109,9 @@ def rich_text(d, box, raw):
         reg, bol, ita = font('georgia.ttf', size), font('georgiab.ttf', size), font('georgiai.ttf', size)
         sp = d.textlength(' ', font=reg); lines, line, lw = [], [], 0
         for w, b, i, g in tokens:
+            if w == '¶':                                 # forced line break
+                if line: lines.append((line, lw)); line, lw = [], 0
+                continue
             f = bol if b else ita if i else reg; ww = d.textlength(w, font=f)
             gap = 0 if (g or not line) else sp
             if line and not g and lw + gap + ww > (x1 - x0):
@@ -179,6 +184,8 @@ def plate_of(card):
     if t == 'LOCATION': return 'Location'
     return ''
 
+PLAIN_DIR = None
+
 def render(card, art_path, by_dbf):
     kind = kind_of(card)
     L = LAYOUT[kind]
@@ -237,6 +244,9 @@ def render(card, art_path, by_dbf):
         keep = [(*L[k], 64) for k in ('attack', 'health', 'loc_dur') if k in L]    # the sword disc / shield sitting on the edge
         if 'attack' in L and not L.get('hero'):                                    # and the two lower sword blades
             ax, ay = L['attack']; keep += [(ax - 48, ay + 46, 20), (ax + 50, ay + 47, 20)]
+    if PLAIN_DIR:                                    # the WoW addon draws its own glow: keep a copy without it
+        img.save(os.path.join(PLAIN_DIR, card['id'] + '.png'))
+    if rated:
         img = glow(img, color, 1.0 if rarity_of(card) in ('EPIC', 'LEGENDARY') else 0.55)
     return img
 
@@ -245,11 +255,15 @@ def main():
     ap.add_argument('--data', default=DATA)
     ap.add_argument('--ids', nargs='*')
     ap.add_argument('--sheet', action='store_true')
+    ap.add_argument('--plain', action='store_true', help='also save each card without its rarity glow to cards_plain/ (for the WoW addon)')
     args = ap.parse_args()
     cards = json.load(open(os.path.join(args.data, 'cards.json'), encoding='utf-8'))
     by_dbf = {c.get('dbfId'): c for c in cards}
     todo = [c for c in cards if kind_of(c) and (not args.ids or c['id'] in args.ids)]
     out_dir = os.path.join(args.data, 'cards'); os.makedirs(out_dir, exist_ok=True)
+    global PLAIN_DIR
+    if args.plain:
+        PLAIN_DIR = os.path.join(args.data, 'cards_plain'); os.makedirs(PLAIN_DIR, exist_ok=True)
     manifest, rendered = [], []
     for c in todo:
         art = os.path.join(args.data, 'art', c['id'] + '.jpg')

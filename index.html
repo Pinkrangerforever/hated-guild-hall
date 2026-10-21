@@ -12013,7 +12013,7 @@ function wireTcg(){
    Card art is pre-rendered (tools/tcg_art/render_cards.py) and served from R2: tcg/cards/<id>.webp.
    The catalog is tcg_cards; what a player owns is tcg_collection. Packs are rolled on the server
    (tcg_open_pack RPC), the page only animates the result. */
-const TCG_IMG = id => `https://assets.hatedforever.com/tcg/cards/${encodeURIComponent(id)}.webp`;
+const TCG_IMG = id => `https://assets.hatedforever.com/tcg/cards/${encodeURIComponent(id)}.webp?v=2`;   // bump v when the card images are re-rendered
 const TCG_PACK_PRICE = 100;
 const TCG_RARITY = {
   common:    { label: 'Common',    color: '#e8e8e8', odds: '64%' },
@@ -14175,7 +14175,11 @@ function wireRaidPlan(){
    Access); the chosen folder is remembered. Browsers won't open folders inside Program Files, so for a WoW install
    there the Plan folder is a link to Documents\HatedPlan (one command, see the help on the page). */
 const ADDON_DB = 'hated-addon';
-const ADDON_FILES = ['HatedCompanion.toc', 'HatedCompanion.lua', 'HatedPlanUI.lua', 'HatedMinimap.lua', 'HatedTCG.lua', 'HatedHub.lua', 'Media/Banner.tga', 'Media/Icon.tga', 'Media/CardBack.tga', 'Media/Dot.tga', 'Media/SwitchOn.tga', 'Media/SwitchOff.tga', 'Media/SwitchKnob.tga'];
+// TCG_ADDON_SHEETS: how many Cards/cNN.blp sheets tools/tcg_art/make_addon_cards.py made (12 cards each) - update it when cards are added
+const TCG_ADDON_SHEETS = 82;
+const ADDON_FILES = ['HatedCompanion.toc', 'HatedCompanion.lua', 'HatedPlanUI.lua', 'HatedMinimap.lua', 'HatedTCG.lua', 'HatedTCGCards.lua', 'HatedTCGBinder.lua', 'HatedHub.lua',
+  'Media/Banner.tga', 'Media/Icon.tga', 'Media/CardBack.tga', 'Media/Dot.tga', 'Media/SwitchOn.tga', 'Media/SwitchOff.tga', 'Media/SwitchKnob.tga', 'Media/CardGlow.tga', 'Media/Holo.tga',
+  ...Array.from({ length: TCG_ADDON_SHEETS }, (_, i) => 'Cards/c' + String(i + 1).padStart(2, '0') + '.blp')];
 function addonIdb(){ return new Promise((res, rej) => { const r = indexedDB.open(ADDON_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 async function addonGet(k){ try{ const db = await addonIdb(); return await new Promise(res => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(undefined); }); }catch(e){ return undefined; } }
 async function addonSet(k, v){ try{ const db = await addonIdb(); await new Promise(res => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = res; }); }catch(e){} }

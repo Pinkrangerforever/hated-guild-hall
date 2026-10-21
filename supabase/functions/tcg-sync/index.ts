@@ -38,6 +38,12 @@ const balanceCode = (points: number, lifetime: number, lastT: number) => {
   return `HTCG:${body}:${h}`;
 };
 
+const collectionCode = (points: number, lifetime: number, lastT: number, cards: string, decks: string) => {
+  const body = `${points}:${lifetime}:${lastT}:${cards}:${decks}`;
+  let h = 7; for (const c of body) h = (h * 31 + c.charCodeAt(0)) % 1000003;
+  return `HTCG3:${body}:${h}`;
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
@@ -69,7 +75,21 @@ Deno.serve(async (req) => {
   // ---------- the code to show the balance in game ----------
   if (body.action === 'code') {
     const { data: a } = await db.from('tcg_accounts').select('points, lifetime, last_t').eq('user_id', uid).maybeSingle();
-    return json({ ok: true, code: balanceCode(a?.points || 0, a?.lifetime || 0, a?.last_t || 0) });
+    // v3 also carries the cards you own and your decks, by Hearthstone card number (dbf) in base 36:
+    //   HTCG3:<points>:<lifetime>:<last kill time>:<cards>:<decks>:<check>
+    //   cards: <dbf>[*<count>][!<holo count>] joined by ","     decks: <name>~<hero dbf>~<dbf>.<dbf>... joined by ";"
+    const [{ data: cat }, { data: own }, { data: decks }] = await Promise.all([
+      db.from('tcg_cards').select('id, dbf').range(0, 9999),
+      db.from('tcg_collection').select('card_id, count, holo').eq('user_id', uid).range(0, 9999),
+      db.from('tcg_decks').select('name, hero_id, cards').eq('user_id', uid).order('updated_at', { ascending: false }),
+    ]);
+    const dbf = new Map((cat || []).map((c: { id: string; dbf: number | null }) => [c.id, c.dbf]));
+    const b36 = (n: number) => n.toString(36);
+    const cards = (own || []).filter((o: { card_id: string; count: number }) => o.count > 0 && dbf.get(o.card_id))
+      .map((o: { card_id: string; count: number; holo: number }) => b36(dbf.get(o.card_id)!) + (o.count > 1 ? '*' + b36(o.count) : '') + (o.holo > 0 ? '!' + b36(o.holo) : '')).join(',');
+    const deckStr = (decks || []).map((d: { name: string; hero_id: string; cards: string[] }) =>
+      [d.name.replace(/[^\w '\-!?.&]/g, '').slice(0, 30), b36(dbf.get(d.hero_id) || 0), (d.cards || []).map(id => b36(dbf.get(id) || 0)).join('.')].join('~')).join(';');
+    return json({ ok: true, code: collectionCode(a?.points || 0, a?.lifetime || 0, a?.last_t || 0, cards, deckStr) });
   }
 
   if (body.action !== 'sync') return json({ error: 'Unknown action' }, 400);

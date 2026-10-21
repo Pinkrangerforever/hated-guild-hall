@@ -415,7 +415,7 @@ local function build()
 
   -- paste the website's code
   local box = CreateFrame("EditBox", nil, w, "InputBoxTemplate")
-  box:SetPoint("BOTTOMLEFT", 22, 46); box:SetSize(270, 24); box:SetAutoFocus(false); box:SetMaxLetters(80)
+  box:SetPoint("BOTTOMLEFT", 22, 46); box:SetSize(270, 24); box:SetAutoFocus(false); box:SetMaxLetters(0)   -- the card code is long
   box:SetScript("OnEscapePressed", box.ClearFocus)
   local hint = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); hint:SetPoint("BOTTOMLEFT", box, "TOPLEFT", -4, 4)
   hint:SetText("2.  Import from website (from Export Cards to WoW! on your profile):")
@@ -425,9 +425,16 @@ local function build()
   ehint:SetText("1.  Copy your new kills to the website (Profile > Hated TCG):")
   local ok = CreateFrame("Button", nil, w, "UIPanelButtonTemplate"); ok:SetSize(90, 24); ok:SetPoint("LEFT", box, "RIGHT", 8, 0); ok:SetText("Import")
   local function apply()
-    local s = checkCode(box:GetText())
+    local s, cards, decks = nil, nil, nil
+    if HatedTCG_ReadCode then s, cards, decks = HatedTCG_ReadCode(box:GetText()) end    -- HTCG3: points + cards + decks
+    if not s then s = checkCode(box:GetText()) end                                       -- HTCG: points only (after a sync)
     if not s then say("that code doesn't look right - copy it again from the website."); return end
     local d = db(); d.server = s
+    if cards then
+      d.cards, d.decks = cards, decks
+      local n = 0; for _, o in pairs(cards) do n = n + o.n end
+      say(string.format("binder updated: %d cards, %d deck%s. Open it with the Binder button or /binder.", n, #decks, #decks == 1 and "" or "s"))
+    end
     -- the website has counted everything up to s.lastT: drop those lines so exports (and this file) stay small
     local keep, edited = {}, d.tampered
     for _, e in ipairs(d.log) do local ts = tonumber(e:match("^%a,(%d+),")); if not ts or ts > s.lastT then keep[#keep + 1] = e end end
@@ -436,8 +443,9 @@ local function build()
     say(string.format("account total updated: %d points.", s.points))
   end
   ok:SetScript("OnClick", apply); box:SetScript("OnEnterPressed", apply)
-  local soon = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); soon:SetPoint("BOTTOM", 0, 16)
-  soon:SetText("Card packs and your binder are coming - spend points on hatedforever.com.")
+  local binder = CreateFrame("Button", nil, w, "UIPanelButtonTemplate"); binder:SetSize(170, 24); binder:SetPoint("BOTTOM", 0, 12)
+  binder:SetText("Binder & Decks")
+  binder:SetScript("OnClick", function() w:Hide(); if HatedTCGBinder_Toggle then HatedTCGBinder_Toggle("binder") end end)
 
   w.refresh = function()
     local t = db(); local new, n = sinceSync()
@@ -469,6 +477,8 @@ local function build()
   TCGUI = w
   return w
 end
+
+function HatedTCG_DB() return db() end          -- the binder (HatedTCGBinder.lua) keeps its cards and decks here too
 
 function HatedTCG_Toggle(open)
   local w = build()
