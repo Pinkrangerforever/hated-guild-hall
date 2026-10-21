@@ -43,11 +43,34 @@ local function saveProf(prof, rank, max, ids)
   local changed = not old or old.r ~= rank
   for _, id in ipairs(ids) do if not set[id] then set[id] = true; list[#list + 1] = id; changed = true end end
   c.profs[prof] = { r = rank, m = max, ids = list }
+  if changed then say(string.format("saved %d %s recipes for %s - shared with the guild.", #list, prof, name)) end
   if changed then c.t = time(); DB().chars[name] = c; if HatedProf_Share then HatedProf_Share(name) end end
   DB().chars[name] = c
 end
 
+-- newer clients: C_TradeSkillUI (recipe ids are spell ids; link the item made when there is one)
+local function scanModern()
+  local T = C_TradeSkillUI
+  local info = T.GetBaseProfessionInfo and T.GetBaseProfessionInfo()
+  local prof, rank, max
+  if info and info.professionName then prof, rank, max = info.professionName, info.skillLevel, info.maxSkillLevel
+  elseif T.GetTradeSkillLine then local _, n, r, m = T.GetTradeSkillLine(); prof, rank, max = n, r, m end
+  if T.IsTradeSkillLinked and T.IsTradeSkillLinked() then return end          -- someone else's linked profession
+  if T.IsTradeSkillGuild and T.IsTradeSkillGuild() then return end
+  local ids = {}
+  for _, rid in ipairs(T.GetAllRecipeIDs() or {}) do
+    local r = T.GetRecipeInfo(rid)
+    if r and r.learned and r.type ~= "header" then
+      local link = T.GetRecipeItemLink and T.GetRecipeItemLink(rid)
+      local item = link and link:match("item:(%d+)")
+      ids[#ids + 1] = item and ("i" .. item) or ("e" .. rid)
+    end
+  end
+  saveProf(prof, rank or 0, max or 0, ids)
+end
+
 local function scanTradeSkill()
+  if C_TradeSkillUI and C_TradeSkillUI.GetAllRecipeIDs then return scanModern() end
   if not GetTradeSkillLine or not GetNumTradeSkills then return end
   local prof, rank, max = GetTradeSkillLine()
   -- expand collapsed headers so every recipe is listed
@@ -158,10 +181,11 @@ local function onMessage(msg, sender)
 end
 
 local ev = CreateFrame("Frame")
-ev:RegisterEvent("PLAYER_LOGIN"); ev:RegisterEvent("CHAT_MSG_ADDON")
-ev:RegisterEvent("TRADE_SKILL_SHOW"); ev:RegisterEvent("TRADE_SKILL_UPDATE")
-pcall(ev.RegisterEvent, ev, "CRAFT_SHOW"); pcall(ev.RegisterEvent, ev, "CRAFT_UPDATE")
-ev:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+-- WoW versions name these differently: register every one this client knows, quietly skip the rest
+for _, name in ipairs({ "PLAYER_LOGIN", "CHAT_MSG_ADDON", "GET_ITEM_INFO_RECEIVED",
+    "TRADE_SKILL_SHOW", "TRADE_SKILL_UPDATE", "TRADE_SKILL_LIST_UPDATE", "TRADE_SKILL_DATA_SOURCE_CHANGED", "CRAFT_SHOW", "CRAFT_UPDATE" }) do
+  pcall(ev.RegisterEvent, ev, name)
+end
 local scanTimer
 ev:SetScript("OnEvent", function(_, e, a1, a2, a3, a4)
   if e == "PLAYER_LOGIN" then
@@ -175,12 +199,12 @@ ev:SetScript("OnEvent", function(_, e, a1, a2, a3, a4)
       local from = short(a4 or "")
       if from ~= me() then onMessage(a2, from) end
     end
-  elseif e == "TRADE_SKILL_SHOW" or e == "TRADE_SKILL_UPDATE" then
+  elseif e == "TRADE_SKILL_SHOW" or e == "TRADE_SKILL_UPDATE" or e == "TRADE_SKILL_LIST_UPDATE" or e == "TRADE_SKILL_DATA_SOURCE_CHANGED" then
     if scanTimer then scanTimer:Cancel() end
-    scanTimer = C_Timer.NewTimer(0.6, function() pcall(scanTradeSkill) end)
+    scanTimer = C_Timer.NewTimer(0.6, function() local ok, err = pcall(scanTradeSkill); if not ok then say("couldn't read this profession: " .. tostring(err)) end end)
   elseif e == "CRAFT_SHOW" or e == "CRAFT_UPDATE" then
     if scanTimer then scanTimer:Cancel() end
-    scanTimer = C_Timer.NewTimer(0.6, function() pcall(scanCraft) end)
+    scanTimer = C_Timer.NewTimer(0.6, function() local ok, err = pcall(scanCraft); if not ok then say("couldn't read this profession: " .. tostring(err)) end end)
   elseif e == "GET_ITEM_INFO_RECEIVED" then
     if HatedProfFrame and HatedProfFrame:IsShown() then HatedProfFrame.dirty = true end
   end
