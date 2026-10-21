@@ -17075,7 +17075,7 @@ function bindApp(){
 
 // FOOTPRINT TRAIL SYSTEM
 // One trail at a time: 3 glowing footprints (below the banner, halfway, 3/4 down), then the Shadowy
-// Dealer's face peeks out by the footer and can be clicked. Repeats every ~41 s. render() calls
+// Dealer's face peeks out by the footer and can be clicked. Every 4-5 minutes (random). render() calls
 // startFootprintTrail() constantly, so starting is idempotent; every timer is tracked so stopping is instant.
 const footprintTrail = { running: false, timers: [] };
 
@@ -17177,25 +17177,24 @@ function stopFootprintTrail() {
   if (shadow) shadow.style.display = 'none';
 }
 
+// How long the trail waits before each walk: a random 4-5 minutes on the site (first one included), so he's rare
+const FOOTPRINT_WAIT = () => (240 + Math.random() * 60) * 1000;
 function startFootprintTrail() {
   if (!shouldShowFootprints()) { if (footprintTrail.running) stopFootprintTrail(); return; }
-  if (footprintTrail.running) return; // already going: redraws don't start another
+  if (footprintTrail.running) return; // already waiting or walking: redraws don't start another
   footprintTrail.running = true;
-  const cycle = () => {
-    walkFootprints(30000);                     // the walk down the page takes 30 s...
-    trailLater(31000, spawnDealerShadow);      // ...and he appears where it ends
-    // next lap (if the tab was hidden, the steps were skipped but the lap still repeats)
-    const id = setTimeout(() => {
-      footprintTrail.timers = footprintTrail.timers.filter(t => t !== id);
-      if (footprintTrail.running && shouldShowFootprints()) cycle(); else stopFootprintTrail();
-    }, 43000);
+  const later = (ms, fn) => {                  // a tracked timer that still fires in a background tab
+    const id = setTimeout(() => { footprintTrail.timers = footprintTrail.timers.filter(t => t !== id); fn(); }, ms);
     footprintTrail.timers.push(id);
   };
-  if (document.hidden) { // don't start drawing in a background tab; begin when it's visible
-    footprintTrail.running = false;
-    return;
-  }
-  cycle();
+  const next = () => later(FOOTPRINT_WAIT(), function go(){
+    if (!footprintTrail.running || !shouldShowFootprints()) { stopFootprintTrail(); return; }
+    if (document.hidden) { later(5000, go); return; }   // the tab is in the background: walk once they're back
+    walkFootprints(30000);                     // the walk down the page takes 30 s...
+    trailLater(31000, spawnDealerShadow);      // ...he appears where it ends and stays 10 s...
+    later(41000, next);                        // ...then another 4-5 minutes before the next walk
+  });
+  next();
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && state.view === 'app') startFootprintTrail(); });
 
