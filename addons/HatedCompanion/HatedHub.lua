@@ -52,7 +52,7 @@ end
 local function build()
   if hub then return hub end
   local f = CreateFrame("Frame", "HatedHubFrame", UIParent, "BackdropTemplate"); f:Hide()   -- created hidden, so the first click opens it
-  f:SetSize(640, 392); f:SetPoint("CENTER", 0, 40); f:SetFrameStrata("HIGH"); f:SetToplevel(true)
+  f:SetSize(950, 392); f:SetPoint("CENTER", 0, 40); f:SetFrameStrata("HIGH"); f:SetToplevel(true)   -- wide enough for three tiles
   f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton"); f:SetClampedToScreen(true)
   f:SetScript("OnDragStart", f.StartMoving); f:SetScript("OnDragStop", f.StopMovingOrSizing)
   flat(f, BG[1], BG[2], BG[3], 0.97, 0.75, 0.6, 0.3, 0.9)
@@ -62,7 +62,7 @@ local function build()
   local banner = f:CreateTexture(nil, "ARTWORK")
   banner:SetPoint("TOPLEFT", 1, -1); banner:SetPoint("TOPRIGHT", -1, -1); banner:SetHeight(104)
   banner:SetTexture(MEDIA .. "Banner")
-  local A, ART = 638 / 104, 1024 / 171
+  local A, ART = 948 / 104, 1024 / 171
   local vh = (171 / 256) * ART / A; local v0 = math.max(0, 0.47 * 171 / 256 - vh / 2)
   banner:SetTexCoord(0, 1, v0, v0 + vh)
   local fade = f:CreateTexture(nil, "ARTWORK", nil, 2); fade:SetPoint("BOTTOMLEFT", banner); fade:SetPoint("BOTTOMRIGHT", banner); fade:SetHeight(50)
@@ -72,7 +72,7 @@ local function build()
   local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"); title:SetPoint("TOP", banner, "BOTTOM", 0, -6)
   title:SetText("H A T E D   C O M P A N I O N"); title:SetTextColor(1, 0.85, 0.48); title:SetShadowOffset(1, -1)
   for _, side in ipairs({ -1, 1 }) do
-    local rule = f:CreateTexture(nil, "ARTWORK"); rule:SetHeight(1); rule:SetWidth(170)
+    local rule = f:CreateTexture(nil, "ARTWORK"); rule:SetHeight(1); rule:SetWidth(300)
     if side < 0 then rule:SetPoint("RIGHT", title, "LEFT", -14, 0) else rule:SetPoint("LEFT", title, "RIGHT", 14, 0) end
     rule:SetColorTexture(1, 1, 1, 1)
     local a1, a2 = side < 0 and 0 or 0.7, side < 0 and 0.7 or 0
@@ -95,6 +95,14 @@ local function build()
   tcg.title:SetPoint("TOPLEFT", 96, -26); tcg.sub:SetPoint("TOPLEFT", tcg.title, "BOTTOMLEFT", 0, -6); tcg.sub:SetWidth(180)
   tcg.live:SetPoint("BOTTOMLEFT", 96, 30); tcg.live:SetWidth(180)
   f.tcg = tcg
+
+  -- Guild Professions
+  local prof = tile(f, { 0.55, 0.85, 1 }, "Guild Professions", "Who in the guild can craft what:\nsearch any recipe or enchant.", function() if HatedProf_Toggle then HatedProf_Toggle() end end)
+  prof:SetPoint("TOP", 0, -146)
+  prof.art:SetTexture("Interface\\Icons\\Trade_BlackSmithing"); prof.art:SetSize(60, 60); prof.art:SetPoint("LEFT", 18, 6)
+  prof.title:SetPoint("TOPLEFT", 96, -26); prof.sub:SetPoint("TOPLEFT", prof.title, "BOTTOMLEFT", 0, -6); prof.sub:SetWidth(180)
+  prof.live:SetPoint("BOTTOMLEFT", 18, 12); prof.live:SetWidth(200)
+  f.prof = prof
 
   -- footer: a switch for the TCG nameplate dots, and the addon's version
   -- the switch: a pill track (teal when on, dark leather when off) with a metal knob that slides across
@@ -152,6 +160,10 @@ local function build()
     local n, raids = 0, 0
     for _, raid in ipairs((HatedPlan and HatedPlan.raids) or {}) do raids = raids + 1; n = n + #(raid.bosses or {}) end
     boss.live:SetText(n > 0 and string.format("|cffc8b48a%d boss%s in %d raid%s|r", n, n == 1 and "" or "es", raids, raids == 1 and "" or "s") or "|cff8f7f62No plan yet|r")
+    -- professions shared so far
+    local chars, recipes = 0, 0
+    if HatedProf_Summary then chars, recipes = HatedProf_Summary() end
+    prof.live:SetText(chars > 0 and string.format("|cff9fd8ff%d crafter%s - %d recipes|r", chars, chars == 1 and "" or "s", recipes) or "|cff6f8a9aOpen a profession window to start|r")
     -- points
     f.refreshTcgLine()
   end
@@ -173,6 +185,7 @@ SlashCmdList.HATEDPLAN = function(msg)
     -- if a plan window is already open, the same command closes it
     if HatedPlanFrame and HatedPlanFrame:IsShown() then HatedPlanFrame:Hide(); return end
     if HatedTCGFrame and HatedTCGFrame:IsShown() then HatedTCGFrame:Hide(); return end
+    if HatedProfFrame and HatedProfFrame:IsShown() then HatedProfFrame:Hide(); return end
     HatedHub_Toggle(); return
   end
   if m == "plan" then return prev("") end

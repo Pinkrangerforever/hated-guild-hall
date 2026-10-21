@@ -1,8 +1,8 @@
 ## Interface: 16001
 ## Title: Hated Companion
-## Notes: Hated guild: boss plans, Hated TCG points, binder and decks (/hated, /tcg, /binder), and guild bank records for the website.
+## Notes: Hated guild: boss plans, Hated TCG points, binder and decks, guild professions (/hated, /tcg, /binder, /prof), and guild bank records for the website.
 ## Author: Hated
-## Version: 3.4.0
+## Version: 3.5.0
 ## SavedVariables: HatedCompanionDB
 
 HatedCompanion.lua
@@ -12,4 +12,5 @@ HatedMinimap.lua
 HatedTCG.lua
 HatedTCGCards.lua
 HatedTCGBinder.lua
+HatedProfessions.lua
 HatedHub.lua

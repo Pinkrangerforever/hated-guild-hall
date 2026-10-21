@@ -14177,7 +14177,7 @@ function wireRaidPlan(){
 const ADDON_DB = 'hated-addon';
 // TCG_ADDON_SHEETS: how many Cards/cNN.blp sheets tools/tcg_art/make_addon_cards.py made (12 cards each) - update it when cards are added
 const TCG_ADDON_SHEETS = 82;
-const ADDON_FILES = ['HatedCompanion.toc', 'HatedCompanion.lua', 'HatedPlanUI.lua', 'HatedMinimap.lua', 'HatedTCG.lua', 'HatedTCGCards.lua', 'HatedTCGBinder.lua', 'HatedHub.lua',
+const ADDON_FILES = ['HatedCompanion.toc', 'HatedCompanion.lua', 'HatedPlanUI.lua', 'HatedMinimap.lua', 'HatedTCG.lua', 'HatedTCGCards.lua', 'HatedTCGBinder.lua', 'HatedProfessions.lua', 'HatedHub.lua',
   'Media/Banner.tga', 'Media/Icon.tga', 'Media/CardBack.tga', 'Media/Dot.tga', 'Media/SwitchOn.tga', 'Media/SwitchOff.tga', 'Media/SwitchKnob.tga', 'Media/CardGlow.tga', 'Media/Holo.tga',
   ...Array.from({ length: TCG_ADDON_SHEETS }, (_, i) => 'Cards/c' + String(i + 1).padStart(2, '0') + '.blp')];
 function addonIdb(){ return new Promise((res, rej) => { const r = indexedDB.open(ADDON_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
