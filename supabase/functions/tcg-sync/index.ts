@@ -24,6 +24,9 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const FIRST = 10, REPEAT = 1, REPEAT_ELITE = 3;
 const DUNGEON_BOSS = 10, DUNGEON_LAST = 20, RAID_FIRST = 100, RAID_REPEAT = 20;
 const MAX_AGE = 31 * 86400;              // the addon keeps 30 days
+// Kills before this moment never count (the clean start at launch: addons still hold older kill logs). Set the
+// TCG_START secret to a unix time in seconds (e.g. the launch moment); unset = no cutoff.
+const TCG_START = Number(Deno.env.get('TCG_START') || 0) || 0;
 const MAX_ENTRIES = 100000;
 // suspicion: held for the Raid Leader instead of credited
 const MAX_KILLS_PER_MINUTE = 40, MAX_KILLS_PER_DAY = 6000, MAX_LEVELS_ABOVE = 15;
@@ -108,7 +111,7 @@ Deno.serve(async (req) => {
   for (const line of lines) {
     const f = line.split(',');
     const t = +f[1];
-    if (!t || t <= lastT || t < now - MAX_AGE || t > now + 300) continue;
+    if (!t || t <= lastT || t < TCG_START || t < now - MAX_AGE || t > now + 300) continue;
     if (f[0] === 'm' && f.length >= 10) {
       if (f[5]) { if (inBatch.has(f[5])) continue; inBatch.add(f[5]); }
       items.push({ kind: 'm', t, char: f[2], plvl: +f[3] || 0, id: +f[4], guid: f[5], lvl: +f[8] || 0, cls: f[9], raid: false, bossKey: '' });
