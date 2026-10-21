@@ -17,3 +17,6 @@ private/
 
 # local working image, not part of the site
 guild-war/zone-regions.png
+
+# launch checklist (internal ops notes)
+LAUNCH_CHECKLIST_*.md
