@@ -1397,12 +1397,31 @@
   .tcgb-myst b{ position:relative; font:900 44px Cinzel, Georgia, serif; color:rgba(255,255,255,.85); text-shadow:0 0 12px var(--glow), 0 2px 4px #000; }
   .tcgb-myst span{ position:absolute; left:8%; right:8%; bottom:9%; text-align:center; font:700 10px system-ui; letter-spacing:.04em; color:var(--glow); text-shadow:0 1px 2px #000; line-height:1.3; }
   .tcgb-card.missing{ cursor:default; } .tcgb-card.missing:hover{ transform:none; }
-  /* holographic foil */
-  .tcg-holo{ position:relative; display:block; overflow:hidden; border-radius:8px; }
-  .tcg-holo::after{ content:''; position:absolute; inset:0; pointer-events:none; mix-blend-mode:color-dodge; opacity:.55;
-    background:linear-gradient(115deg, transparent 20%, rgba(255,0,180,.55) 30%, rgba(0,255,230,.55) 40%, rgba(255,255,0,.5) 50%, rgba(120,80,255,.55) 60%, transparent 72%);
-    background-size:250% 250%; animation:tcgHolo 3s linear infinite; -webkit-mask:var(--mask) center/contain no-repeat; mask:var(--mask) center/contain no-repeat; }
-  @keyframes tcgHolo{ 0%{ background-position:100% 0; } 100%{ background-position:-150% 0; } }
+  /* holographic foil: rainbow bands + glitter + a light glare that follow the pointer (with a small 3D tilt);
+     when nobody's pointing at it the foil drifts on its own. The foil covers the card body (the image host doesn't allow image masks). */
+  @property --mx{ syntax:'<percentage>'; inherits:true; initial-value:50%; }
+  @property --my{ syntax:'<percentage>'; inherits:true; initial-value:50%; }
+  @property --hh{ syntax:'<number>'; inherits:true; initial-value:0; }
+  .tcg-holo{ position:relative; display:block; --mx:50%; --my:50%; transform:perspective(900px) rotateX(var(--hx, 0deg)) rotateY(var(--hy, 0deg));
+    transition:transform .25s ease-out; animation:tcgHoloIdle 7s ease-in-out infinite, tcgHoloHue 6s linear infinite; }
+  .tcg-holo.live{ animation:tcgHoloHue 6s linear infinite; transition:transform .06s linear; }
+  .tcg-holo > img{ filter:drop-shadow(0 0 5px hsl(calc(var(--hh) * 1deg) 100% 62%)) drop-shadow(0 0 2px hsl(calc(var(--hh) * 1deg + 120deg) 100% 70%)); }
+  .tcg-holo::before, .tcg-holo::after{ content:''; position:absolute; inset:3.4% 4.6%; border-radius:2.5% / 2%; pointer-events:none; z-index:1; }   /* the card inside its 30px glow margin (images are 655x874) */
+  /* the foil: diagonal rainbow bands that slide with the pointer */
+  .tcg-holo::before{ mix-blend-mode:color-dodge; opacity:.42; filter:brightness(.55) contrast(1.8) saturate(1.4);
+    -webkit-mask:linear-gradient(#000 0 54%, rgba(0,0,0,.18) 62% 100%); mask:linear-gradient(#000 0 54%, rgba(0,0,0,.18) 62% 100%);   /* strong over the art, faint over the text */
+    background:
+      repeating-linear-gradient(115deg, #ff3c78 0%, #ffbe3c 4%, #e6ff50 8%, #3cffb4 12%, #3cbeff 16%, #a050ff 20%, #ff3c78 24%),
+      repeating-linear-gradient(25deg, rgba(255,255,255,.0) 0 2.5%, rgba(255,255,255,.35) 3%, rgba(255,255,255,0) 3.5% 6%);
+    background-size:300% 300%, 220% 220%; background-position:var(--mx) var(--my), calc(100% - var(--mx)) var(--my); }
+  /* glitter + glare */
+  .tcg-holo::after{ mix-blend-mode:overlay; opacity:.7;
+    background:
+      radial-gradient(circle at var(--mx) var(--my), rgba(255,255,255,.85) 0%, rgba(255,255,255,.25) 22%, rgba(0,0,0,.35) 70%),
+      radial-gradient(circle, rgba(255,255,255,.9) 0 .6px, transparent 1.4px) 0 0/17px 17px,
+      radial-gradient(circle, rgba(255,255,255,.7) 0 .5px, transparent 1.2px) 8px 11px/29px 23px; }
+  @keyframes tcgHoloIdle{ 0%,100%{ --mx:15%; --my:30%; } 50%{ --mx:85%; --my:70%; } }
+  @keyframes tcgHoloHue{ to{ --hh:360; } }
   /* binder */
   .tcgb-bar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:14px; }
   .tcgb-bar select, .tcgb-bar input[type=search]{ background:rgba(0,0,0,.45); color:#d9efec; border:1px solid rgba(63,242,217,.3); border-radius:4px; padding:6px 8px; font-size:13px; }
@@ -12355,6 +12374,22 @@ function renderLegendaryFeed(){
   </div>`;
 }
 
+// Holo cards follow the pointer: the foil shifts, the glare moves and the card tilts a little
+if(!window.__tcgHoloWired){
+  window.__tcgHoloWired = true;
+  let cur = null;
+  const off = h => { h.classList.remove('live'); h.style.removeProperty('--hx'); h.style.removeProperty('--hy'); h.style.removeProperty('--mx'); h.style.removeProperty('--my'); };
+  document.addEventListener('pointermove', e => {
+    const h = e.target.closest && e.target.closest('.tcg-holo');
+    if(cur && cur !== h){ off(cur); cur = null; }
+    if(!h) return;
+    cur = h;
+    const r = h.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    h.classList.add('live');
+    h.style.setProperty('--mx', (x * 100).toFixed(1) + '%'); h.style.setProperty('--my', (y * 100).toFixed(1) + '%');
+    h.style.setProperty('--hy', ((x - .5) * 14).toFixed(1) + 'deg'); h.style.setProperty('--hx', ((.5 - y) * 14).toFixed(1) + 'deg');
+  }, { passive: true });
+}
 function wireTcgPage(){
   document.querySelectorAll('[data-tcg-zoom]').forEach(el => el.addEventListener('click', () => { const [id, h] = el.dataset.tcgZoom.split('|'); tcgZoom(id, h === '1'); }));
   if(state.tab !== 'tcg') return;
