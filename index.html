@@ -11808,7 +11808,7 @@ async function loadTcg(userId){
     queue = q.data || [];
   }
   state.tcg = { userId, account: a.data || null, syncs: s.data || [], queue, loading: null };
-  if(state.tab === 'profile') render();
+  if(state.tab === 'tcg' || state.tab === 'profile') render();
 }
 function tcgSummaryText(sm){
   if(!sm) return '';
