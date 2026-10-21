@@ -1459,6 +1459,9 @@
   .tcgd-side-hero{ width:110px; margin:0 auto 8px; } .tcgd-side-hero img{ width:100%; display:block; }
   .tcgd-side input{ width:100%; box-sizing:border-box; background:rgba(0,0,0,.45); color:#e8fffb; border:1px solid rgba(63,242,217,.35); border-radius:4px; padding:6px 8px; font:700 14px Cinzel, Georgia, serif; text-align:center; }
   .tcgd-count{ text-align:center; margin:8px 0 4px; font:700 18px Cinzel, Georgia, serif; color:#9cc7c1; } .tcgd-count.full{ color:#3ff2d9; text-shadow:0 0 8px rgba(63,242,217,.6); }
+  .tcgd-types{ display:flex; gap:4px; margin-bottom:8px; }
+  .tcgd-type{ flex:1; cursor:pointer; padding:4px 2px; border-radius:4px; border:1px solid rgba(63,242,217,.25); background:rgba(0,0,0,.35); color:#9cc7c1; font:600 10px system-ui; text-transform:uppercase; letter-spacing:.04em; }
+  .tcgd-type b{ display:block; font:700 15px Cinzel, Georgia, serif; color:#e8fffb; } .tcgd-type.on{ border-color:#3ff2d9; box-shadow:0 0 8px rgba(63,242,217,.4); }
   .tcgd-curve{ display:flex; gap:3px; height:46px; align-items:flex-end; margin-bottom:8px; }
   .tcgd-curve div{ flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; }
   .tcgd-curve span{ width:100%; min-height:2px; background:linear-gradient(#7ff9ea, #1c9d90); border-radius:2px 2px 0 0; } .tcgd-curve em{ font:600 9px system-ui; font-style:normal; color:#7fb5ad; }
@@ -12196,11 +12199,12 @@ function renderTcgDecks(){
 function renderTcgDeckEditor(){
   const E = state.tcgDeckEdit, C = state.tcgCardById, M = state.tcgMine, hero = C[E.hero_id];
   const cls = hero ? hero.card_class : 'NEUTRAL';
-  const F = E.filter || (E.filter = { cost: -1, q: '', side: 'all' });
+  const F = E.filter || (E.filter = { cost: -1, q: '', side: 'all', type: 'all' });
   const inDeck = {}; E.cards.forEach(id => inDeck[id] = (inDeck[id] || 0) + 1);
   const q = F.q.trim().toLowerCase();
   const pool = state.tcgCards.filter(c => !tcgIsHero(c) && M.owned[c.id] && (c.card_class === cls || c.card_class === 'NEUTRAL')
     && (F.side === 'all' || (F.side === 'class' ? c.card_class === cls : c.card_class === 'NEUTRAL'))
+    && (!F.type || F.type === 'all' || c.card_type === F.type)
     && (F.cost < 0 || (F.cost === 7 ? (c.cost || 0) >= 7 : (c.cost || 0) === F.cost)) && (!q || c.name.toLowerCase().includes(q)))
     .sort((a, b) => (a.card_class === 'NEUTRAL') - (b.card_class === 'NEUTRAL') || (a.cost || 0) - (b.cost || 0) || a.name.localeCompare(b.name));
   const rows = Object.keys(inDeck).map(id => C[id]).filter(Boolean).sort((a, b) => (a.cost || 0) - (b.cost || 0) || a.name.localeCompare(b.name));
@@ -12210,6 +12214,7 @@ function renderTcgDeckEditor(){
       <div class="tcgb-bar">
         <div class="tcgd-costs">${['All', 0, 1, 2, 3, 4, 5, 6, '7+'].map((v, i) => `<button class="tcgd-cost ${F.cost === i - 1 ? 'on' : ''}" data-tcgd-cost="${i - 1}">${v}</button>`).join('')}</div>
         <select id="tcgd-side"><option value="all">${esc(tcgClassName(cls))} + Neutral</option><option value="class" ${F.side === 'class' ? 'selected' : ''}>${esc(tcgClassName(cls))} only</option><option value="neutral" ${F.side === 'neutral' ? 'selected' : ''}>Neutral only</option></select>
+        <select id="tcgd-type">${[['all', 'All types'], ['MINION', 'Minions'], ['SPELL', 'Spells'], ['WEAPON', 'Weapons'], ['HERO', 'Hero cards']].map(([v, l]) => `<option value="${v}" ${(F.type || 'all') === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <input type="search" id="tcgd-q" placeholder="Search your cards" value="${esc(F.q)}">
       </div>
       ${ pool.length ? `<div class="tcgb-grid">${pool.map(c => { const o = M.owned[c.id], max = tcgMaxCopies(c, o), used = inDeck[c.id] || 0, can = used < max && !full;
@@ -12220,6 +12225,9 @@ function renderTcgDeckEditor(){
       <div class="tcgd-side-hero">${hero ? tcgCardImg(hero.id, false) : ''}</div>
       <input id="tcgd-name" maxlength="30" value="${esc(E.name)}" placeholder="Deck name">
       <div class="tcgd-count ${full ? 'full' : ''}">${E.cards.length} / ${TCG_DECK_SIZE}</div>
+      <div class="tcgd-types">${(() => { const t = { MINION: 0, SPELL: 0, WEAPON: 0, HERO: 0 }; E.cards.forEach(id => { const c = C[id]; if(c && t[c.card_type] !== undefined) t[c.card_type]++; });
+        return [['MINION', 'Minions'], ['SPELL', 'Spells'], ['WEAPON', 'Weapons'], ['HERO', 'Heroes']].filter(([k]) => k !== 'HERO' || t.HERO)
+          .map(([k, l]) => `<button class="tcgd-type ${F.type === k ? 'on' : ''}" data-tcgd-type="${k}" title="Show only ${l.toLowerCase()} on the left"><b>${t[k]}</b>${l}</button>`).join(''); })()}</div>
       <div class="tcgd-curve">${curve.map((n, i) => `<div><span style="height:${Math.round(n / top * 100)}%"></span><em>${i === 7 ? '7+' : i}</em></div>`).join('')}</div>
       <div class="tcgd-rows">${ rows.length ? rows.map(c => `<div class="tcgd-row" data-tcgd-remove="${esc(c.id)}" data-tcgd-peek="${esc(c.id)}" title="Click to remove one">
           <span class="tcgd-mana">${c.cost ?? 0}</span><span class="tcgd-nm" style="color:${TCG_RARITY[c.rarity].color}">${esc(c.name)}</span>${inDeck[c.id] > 1 ? `<b>&times;${inDeck[c.id]}</b>` : ''}</div>`).join('')
@@ -12284,6 +12292,8 @@ function wireTcgDecks(){
     const i = E.cards.lastIndexOf(el.dataset.tcgdRemove); if(i >= 0){ keepName(); E.cards.splice(i, 1); render(); }
   }));
   document.querySelectorAll('[data-tcgd-cost]').forEach(el => el.addEventListener('click', () => { keepName(); E.filter.cost = +el.dataset.tcgdCost; render(); }));
+  const ty = document.getElementById('tcgd-type'); if(ty) ty.addEventListener('change', () => { keepName(); E.filter.type = ty.value; render(); });
+  document.querySelectorAll('[data-tcgd-type]').forEach(b => b.addEventListener('click', () => { keepName(); E.filter.type = E.filter.type === b.dataset.tcgdType ? 'all' : b.dataset.tcgdType; render(); }));
   const side = document.getElementById('tcgd-side'); if(side) side.addEventListener('change', () => { keepName(); E.filter.side = side.value; render(); });
   const q = document.getElementById('tcgd-q');
   if(q) q.addEventListener('input', () => { keepName(); E.filter.q = q.value; render(); const n = document.getElementById('tcgd-q'); if(n){ n.focus(); n.setSelectionRange(n.value.length, n.value.length); } });
