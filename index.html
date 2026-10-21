@@ -14318,6 +14318,8 @@ async function buildAddonZip(stamp){
   for(const f of ADDON_FILES){
     const r = await fetch('addons/HatedCompanion/' + f, { cache: 'no-store' });
     if(!r.ok) throw new Error(f + ': HTTP ' + r.status);
+    // a file the site doesn't have comes back as the home page (200, HTML): never pack that as a texture or script
+    if(/text\/html/i.test(r.headers.get('content-type') || '')) throw new Error(f + " isn't on the site yet (wait for the deploy to finish, then try again)");
     let data = new Uint8Array(await r.arrayBuffer());
     if(f.endsWith('.toc')){
       let text = new TextDecoder().decode(data);
@@ -14403,6 +14405,8 @@ async function exportAddonPlan(){
     for(const f of ADDON_FILES){
       const r = await fetch('addons/HatedCompanion/' + f, { cache: 'no-store' });
       if(!r.ok) throw new Error(f + ': HTTP ' + r.status);
+    // a file the site doesn't have comes back as the home page (200, HTML): never pack that as a texture or script
+    if(/text\/html/i.test(r.headers.get('content-type') || '')) throw new Error(f + " isn't on the site yet (wait for the deploy to finish, then try again)");
       const bytes = new Uint8Array(await r.arrayBuffer());
       if(f.endsWith('.toc')){ const text = new TextDecoder().decode(bytes); if(text !== (await addonGet('tocText'))){ restart = true; await addonSet('tocText', text); } }
       const parts = f.split('/'); let d = dir;
