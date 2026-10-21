@@ -13476,7 +13476,7 @@ function renderShopModal(){
         <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
         <div class="shop-card-footer">
           <span class="nav-gold-badge">${goldIconHtml()} ${item.cost}</span>
-          ${ officer ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
+          ${ testIsRaidLeader() ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
         </div>
         ${ isRaidLeader ? `
         <div style="display:flex; gap:6px; margin-top:8px;">
@@ -13508,7 +13508,7 @@ function renderShopModal(){
         <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
         <div class="shop-card-footer">
           <span class="nav-gold-badge">${goldIconHtml()} ${item.cost}</span>
-          ${ officer ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
+          ${ testIsRaidLeader() ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
         </div>
         ${ isRaidLeader ? `
         <div style="display:flex; gap:6px; margin-top:8px;">
@@ -13539,7 +13539,7 @@ function renderShopModal(){
         <div class="shop-card-desc muted sans">${esc(item.description||'')}</div>
         <div class="shop-card-footer">
           <span class="nav-gold-badge">${goldIconHtml()} ${item.cost}</span>
-          ${ officer ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
+          ${ testIsRaidLeader() ? `<button class="btn secondary" type="button" data-edit-shop-item="${item.id}">Edit</button>` : '' }
         </div>
         ${ owned ? `<div class="shop-owned-badge">&#10003; Owned</div>` :
           `<button class="btn" type="button" data-buy-rank="${item.id}" ${disabled?'disabled':''} style="width:100%; margin-top:10px;">${buttonLabel}</button>`
@@ -13556,7 +13556,7 @@ function renderShopModal(){
         <div class="shop-card-name">${esc(img.caption||'Sticker')}</div>
         <div class="shop-card-footer">
           <span class="nav-gold-badge">${goldIconHtml()} ${price}</span>
-          ${ officer ? `<button class="btn secondary" type="button" data-edit-sticker-price="${img.id}|${price}" style="font-size:11px; padding:4px 8px;">Edit</button>` : '' }
+          ${ testIsRaidLeader() ? `<button class="btn secondary" type="button" data-edit-sticker-price="${img.id}|${price}" style="font-size:11px; padding:4px 8px;">Edit</button>` : '' }
         </div>
         <button class="btn" type="button" data-buy-sticker="${img.id}" ${canAfford?'':'disabled'} style="width:100%; margin-top:10px;">
           ${ canAfford ? 'Place on Wall' : 'Not enough gold' }
