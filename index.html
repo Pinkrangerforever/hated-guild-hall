@@ -14219,6 +14219,23 @@ function wireRaidPlan(){
 const ADDON_DB = 'hated-addon';
 // TCG_ADDON_SHEETS: how many Cards/cNN.blp sheets tools/tcg_art/make_addon_cards.py made (12 cards each) - update it when cards are added
 const TCG_ADDON_SHEETS = 82;
+// The files to pack: addons/HatedCompanion/files.json (written by tools/addon_manifest.py), read fresh every time so
+// a page left open since before an update still packs what's on the site now. ADDON_FILES is only the fallback.
+async function addonFileList(){
+  try{
+    const r = await fetch('addons/HatedCompanion/files.json', { cache: 'no-store' });
+    const list = r.ok ? JSON.parse(new TextDecoder().decode(new Uint8Array(await r.arrayBuffer()))) : null;
+    if(Array.isArray(list) && list.length) return list;
+  }catch(e){}
+  return ADDON_FILES;
+}
+// A file the site doesn't have comes back as the home page (200, and the site labels everything text/html), so look
+// at the bytes: a web page must never be packed as a texture or script.
+function addonNotAPage(f, bytes){
+  if(/\.html?$/i.test(f)) return;
+  const head = new TextDecoder().decode(bytes.slice(0, 64)).trimStart().toLowerCase();
+  if(head.startsWith('<!doctype') || head.startsWith('<html')) throw new Error(f + " isn't on the site yet (wait a few minutes for the deploy to finish, then try again)");
+}
 const ADDON_FILES = ['HatedCompanion.toc', 'HatedCompanion.lua', 'HatedPlanUI.lua', 'HatedMinimap.lua', 'HatedTCG.lua', 'HatedTCGCards.lua', 'HatedTCGBinder.lua', 'HatedProfessions.lua', 'HatedHub.lua',
   'Media/Banner.tga', 'Media/Icon.tga', 'Media/CardBack.tga', 'Media/Dot.tga', 'Media/SwitchOn.tga', 'Media/SwitchOff.tga', 'Media/SwitchKnob.tga', 'Media/Holo.tga', 'Media/Glow_minion.tga', 'Media/Glow_spell.tga', 'Media/Glow_alliance.tga', 'Media/Glow_horde.tga', 'Media/Glow_neutral.tga',
   ...Array.from({ length: TCG_ADDON_SHEETS }, (_, i) => 'Cards/c' + String(i + 1).padStart(2, '0') + '.blp')];
@@ -14315,12 +14332,11 @@ window.downloadAddonZip = (...a) => downloadAddonZip(...a);
 async function buildAddonZip(stamp){
   const files = [];
   let version = '';
-  for(const f of ADDON_FILES){
+  for(const f of await addonFileList()){
     const r = await fetch('addons/HatedCompanion/' + f, { cache: 'no-store' });
     if(!r.ok) throw new Error(f + ': HTTP ' + r.status);
-    // a file the site doesn't have comes back as the home page (200, HTML): never pack that as a texture or script
-    if(/text\/html/i.test(r.headers.get('content-type') || '')) throw new Error(f + " isn't on the site yet (wait for the deploy to finish, then try again)");
     let data = new Uint8Array(await r.arrayBuffer());
+    addonNotAPage(f, data);
     if(f.endsWith('.toc')){
       let text = new TextDecoder().decode(data);
       const m = text.match(/^## Version:\s*(\S+)/m); version = m ? m[1] : '1.0';
@@ -14402,12 +14418,11 @@ async function exportAddonPlan(){
   // the addon itself: always the newest files from this site
   let restart = false;
   try{
-    for(const f of ADDON_FILES){
+    for(const f of await addonFileList()){
       const r = await fetch('addons/HatedCompanion/' + f, { cache: 'no-store' });
       if(!r.ok) throw new Error(f + ': HTTP ' + r.status);
-    // a file the site doesn't have comes back as the home page (200, HTML): never pack that as a texture or script
-    if(/text\/html/i.test(r.headers.get('content-type') || '')) throw new Error(f + " isn't on the site yet (wait for the deploy to finish, then try again)");
       const bytes = new Uint8Array(await r.arrayBuffer());
+      addonNotAPage(f, bytes);
       if(f.endsWith('.toc')){ const text = new TextDecoder().decode(bytes); if(text !== (await addonGet('tocText'))){ restart = true; await addonSet('tocText', text); } }
       const parts = f.split('/'); let d = dir;
       for(const sub of parts.slice(0, -1)) d = await d.getDirectoryHandle(sub, { create: true });   // e.g. Media/
