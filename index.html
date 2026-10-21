@@ -1425,6 +1425,51 @@
   @keyframes tcgFresh{ 50%{ filter:drop-shadow(0 0 18px #3ff2d9) drop-shadow(0 0 6px #fff); } }
   .tcgb-fresh{ position:absolute; left:50%; top:3%; translate:-50% 0; padding:1px 8px; border-radius:10px; background:#ff3b3b; color:#fff; font:800 10px system-ui; letter-spacing:.06em; box-shadow:0 0 8px rgba(255,59,59,.7); }
   .tcgp-tab .cnt{ display:inline-block; min-width:16px; margin-left:6px; padding:0 5px; border-radius:9px; background:#ff3b3b; color:#fff; font:800 11px system-ui; line-height:16px; }
+  /* bulk opening: every card in a scrolling grid */
+  .tcgo.bulk{ overflow-y:auto; }
+  .tcgo-packs{ position:absolute; top:calc(5% + 28px); left:0; right:0; text-align:center; font:800 14px Cinzel, Georgia, serif; color:#ffd36a; letter-spacing:.08em; z-index:4; }
+  .tcgo-grid{ position:relative; display:grid; grid-template-columns:repeat(auto-fill, var(--gw, 120px)); justify-content:center; gap:22px 12px; padding:100px 20px 120px; }
+  .tcgo-grid .tcgo-card{ position:relative; left:auto; top:auto; margin:0; transform:none; visibility:visible; opacity:0; z-index:auto; }
+  .tcgo-grid .tcgo-card.out{ transform:none; animation:tcgDeal .45s cubic-bezier(.2,.9,.3,1.2) var(--d) forwards; }
+  .tcgo-grid .tcgo-card.flip.out{ transform:none; }
+  .tcgo-grid .tcgo-tag{ font-size:9px; bottom:-18px; }
+  @keyframes tcgDeal{ from{ opacity:0; transform:translateY(-40px) scale(.6) rotate(-6deg); } to{ opacity:1; transform:none; } }
+  .tcgo-revealall{ display:none; position:fixed; left:50%; bottom:4%; translate:-50% 0; z-index:9; padding:10px 26px !important; font-size:15px !important; box-shadow:0 6px 18px rgba(0,0,0,.6); }
+  .tcgo.bulk .tcgo-done{ position:fixed; z-index:9; }
+  .tcgo.bulk .tcgo-hint{ position:fixed; z-index:9; }
+  .tcgp-bulk{ display:flex; align-items:center; gap:6px; margin-top:10px; font:700 12px Cinzel, Georgia, serif; color:#9cc7c1; }
+  .tcgp-bulk input{ width:52px; background:rgba(0,0,0,.45); color:#e8fffb; border:1px solid rgba(63,242,217,.35); border-radius:4px; padding:5px; text-align:center; }
+  .tcgp-bulk .btn{ flex:1; padding:6px 8px !important; font-size:12px !important; }
+  /* decks */
+  .tcgd-head{ display:flex; align-items:center; gap:12px; margin-bottom:12px; } .tcgd-head h3{ margin:0; font:700 18px Cinzel, Georgia, serif; color:#bff7ef; } .tcgd-head .btn{ margin-left:auto; }
+  .tcgd-heroes{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:14px; }
+  .tcgd-hero{ cursor:pointer; transition:transform .15s; } .tcgd-hero:hover{ transform:translateY(-4px); } .tcgd-hero img{ width:100%; display:block; }
+  .tcgd-hero.locked{ cursor:default; opacity:.7; } .tcgd-hero.locked:hover{ transform:none; }
+  .tcgd-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+  .tcgd-deck{ display:flex; gap:12px; align-items:center; padding:10px; border-radius:6px; cursor:pointer; border:1px solid rgba(63,242,217,.25); background:linear-gradient(160deg, #10181a, #0b0d0f); color:#d9efec; font-size:13px; }
+  .tcgd-deck:hover{ border-color:#3ff2d9; box-shadow:0 0 12px rgba(63,242,217,.2); } .tcgd-deck b{ font:700 15px Cinzel, Georgia, serif; color:#e8fffb; }
+  .tcgd-deck-hero{ flex:0 0 64px; } .tcgd-deck-hero img{ width:64px; display:block; }
+  .tcgd-warn{ color:#ffb35c; font-size:12px; margin-top:4px; } .tcgd-ok{ color:#3ff2d9; font-size:12px; margin-top:4px; }
+  .tcgd-editor{ display:flex; gap:18px; align-items:flex-start; }
+  .tcgd-pool{ flex:1; min-width:0; } .tcgd-pool .tcgb-grid{ grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); }
+  .tcgd-add.used img{ filter:grayscale(.8) brightness(.5); } .tcgd-add.used{ cursor:not-allowed; } .tcgd-add.used:hover{ transform:none; }
+  .tcgd-costs{ display:flex; gap:3px; } .tcgd-cost{ cursor:pointer; min-width:30px; height:30px; border-radius:50%; border:1px solid rgba(120,140,255,.5); background:radial-gradient(circle at 35% 30%, #6b7dff, #232a7a); color:#fff; font:700 12px system-ui; }
+  .tcgd-cost:first-child{ border-radius:15px; padding:0 8px; } .tcgd-cost.on{ box-shadow:0 0 0 2px #3ff2d9, 0 0 10px #3ff2d9; }
+  .tcgd-side{ flex:0 0 250px; position:sticky; top:12px; padding:12px; border-radius:8px; border:1px solid rgba(63,242,217,.3); background:linear-gradient(160deg, #10181a, #0b0d0f); }
+  .tcgd-side-hero{ width:110px; margin:0 auto 8px; } .tcgd-side-hero img{ width:100%; display:block; }
+  .tcgd-side input{ width:100%; box-sizing:border-box; background:rgba(0,0,0,.45); color:#e8fffb; border:1px solid rgba(63,242,217,.35); border-radius:4px; padding:6px 8px; font:700 14px Cinzel, Georgia, serif; text-align:center; }
+  .tcgd-count{ text-align:center; margin:8px 0 4px; font:700 18px Cinzel, Georgia, serif; color:#9cc7c1; } .tcgd-count.full{ color:#3ff2d9; text-shadow:0 0 8px rgba(63,242,217,.6); }
+  .tcgd-curve{ display:flex; gap:3px; height:46px; align-items:flex-end; margin-bottom:8px; }
+  .tcgd-curve div{ flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; }
+  .tcgd-curve span{ width:100%; min-height:2px; background:linear-gradient(#7ff9ea, #1c9d90); border-radius:2px 2px 0 0; } .tcgd-curve em{ font:600 9px system-ui; font-style:normal; color:#7fb5ad; }
+  .tcgd-rows{ max-height:46vh; overflow:auto; }
+  .tcgd-row{ display:flex; align-items:center; gap:6px; padding:3px 6px; margin-bottom:2px; border-radius:3px; cursor:pointer; background:linear-gradient(90deg, rgba(0,0,0,.55), rgba(40,40,40,.35)); font-size:12px; }
+  .tcgd-row:hover{ background:rgba(255,90,74,.18); }
+  .tcgd-mana{ flex:0 0 20px; height:20px; border-radius:50%; text-align:center; line-height:20px; font:800 11px system-ui; color:#fff; background:radial-gradient(circle at 35% 30%, #6b7dff, #232a7a); }
+  .tcgd-nm{ flex:1; font-weight:700; text-shadow:0 1px 2px #000; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; } .tcgd-row b{ color:#ffd36a; font-size:12px; }
+  .tcgd-act{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; } .tcgd-act .btn{ flex:1; padding:6px 8px !important; font-size:12px !important; }
+  .tcgd-peek{ position:fixed; z-index:100001; width:230px; pointer-events:none; filter:drop-shadow(0 8px 20px rgba(0,0,0,.7)); } .tcgd-peek img{ width:100%; display:block; }
+  @media (max-width:760px){ .tcgd-editor{ flex-direction:column-reverse; } .tcgd-side{ position:static; flex:none; width:100%; box-sizing:border-box; } }
   /* binder: cards you haven't found yet */
   .tcgb-myst{ position:relative; aspect-ratio:655/874; display:flex; align-items:center; justify-content:center; }
   .tcgb-myst::before{ content:''; position:absolute; inset:0; background:url(https://assets.hatedforever.com/tcg/cardback.webp?v=2) center/88% auto no-repeat;
@@ -11875,7 +11920,7 @@ function renderTcgPanel(p, isMe){
     </div>
     ${ isMe ? `<div class="tcg-sync">
         <button type="button" class="btn tcg-btn" id="tcg-paste-open" ${state.tcgBusy ? 'disabled' : ''}>${state.tcgBusy ? 'Syncing…' : '&#10227; Paste from game'}</button>
-        <button type="button" class="btn tcg-export" id="tcg-code" title="Copies a code with your points (and soon your cards) to paste into the TCG window in game">&#11014; Export Cards to WoW!</button>
+        <button type="button" class="btn tcg-export" id="tcg-code" title="Copies a code with your points, cards and decks to paste into the TCG window in game (Import from website)">&#11014; Export Cards to WoW!</button>
         <span class="tcg-hint">In game type <b>/tcg</b> (or right-click the <b>H</b>), click <b>Export points</b>, press <b>Ctrl+C</b>, then click <b>Paste from game</b> here. Afterwards click <b>Export Cards to WoW!</b> and import it in game, so your next export only holds new kills. Every character on the account adds to the same points. Syncing twice never counts a kill twice. The addon keeps 30 days of kills, so sync at least once a month.</span>
       </div>
       <details class="tcg-rules"><summary>How points work</summary>
@@ -12026,10 +12071,10 @@ function renderTcgPage(){
   const M = state.tcgMine, view = state.tcgView || 'shop';
   return `<div class="tcgp">
     <div class="tcgp-top"><h2>Hated TCG</h2>
-      <div class="tcgp-tabs"><button class="tcgp-tab ${view === 'shop' ? 'on' : ''}" data-tcg-view="shop">Card Shop</button><button class="tcgp-tab ${view === 'binder' ? 'on' : ''}" data-tcg-view="binder">My Binder${ view !== 'binder' && tcgFreshCount() ? `<span class="cnt">${tcgFreshCount()}</span>` : '' }</button><button class="tcgp-tab ${view === 'points' ? 'on' : ''}" data-tcg-view="points">Points &amp; Sync</button></div>
+      <div class="tcgp-tabs"><button class="tcgp-tab ${view === 'shop' ? 'on' : ''}" data-tcg-view="shop">Card Shop</button><button class="tcgp-tab ${view === 'binder' ? 'on' : ''}" data-tcg-view="binder">My Binder${ view !== 'binder' && tcgFreshCount() ? `<span class="cnt">${tcgFreshCount()}</span>` : '' }</button><button class="tcgp-tab ${view === 'decks' ? 'on' : ''}" data-tcg-view="decks">Decks</button><button class="tcgp-tab ${view === 'points' ? 'on' : ''}" data-tcg-view="points">Points &amp; Sync</button></div>
       <span class="tcgp-bal">${M ? M.points.toLocaleString() : '&hellip;'} points</span>
     </div>
-    ${ view === 'binder' ? renderTcgBinder() : view === 'points' ? (state.profile ? renderTcgPanel(state.profile, true) : '') : renderTcgShop() }
+    ${ view === 'binder' ? renderTcgBinder() : view === 'decks' ? renderTcgDecks() : view === 'points' ? (state.profile ? renderTcgPanel(state.profile, true) : '') : renderTcgShop() }
   </div>`;
 }
 
@@ -12042,6 +12087,9 @@ function renderTcgShop(){
     <div class="tcgp-product">
       ${tcgPackHtml(200, false)}
       <button class="btn tcg-btn tcgp-buy" id="tcg-buy" ${can && !state.tcgOpeningBusy ? '' : 'disabled'}>Open a pack &mdash; ${TCG_PACK_PRICE} points</button>
+      ${ M && Math.floor(M.points / TCG_PACK_PRICE) >= 2 && state.tcgCards ? (() => { const max = Math.min(50, Math.floor(M.points / TCG_PACK_PRICE)), n = Math.min(state.tcgBulkN || max, max);
+        return `<div class="tcgp-bulk"><span>Bulk open</span><input type="number" id="tcg-bulk-n" min="2" max="${max}" value="${n}">
+          <button class="btn tcg-btn" id="tcg-bulk" ${state.tcgOpeningBusy ? 'disabled' : ''}>Open ${n} packs &mdash; ${(n * TCG_PACK_PRICE).toLocaleString()}</button></div>`; })() : '' }
       ${ M && M.points < TCG_PACK_PRICE ? `<p class="muted sans" style="font-size:12px;margin:8px 0 0;">You need ${TCG_PACK_PRICE - M.points} more points. Earn them killing things in game, then sync on your profile.</p>` : '' }
     </div>
     <div class="tcgp-odds"><h3>What's inside</h3>
@@ -12092,6 +12140,155 @@ function renderTcgBinder(){
         <span class="tcgb-n">x${o.count}</span>${o.holo ? `<span class="tcgb-h">HOLO${o.holo > 1 ? ' x' + o.holo : ''}</span>` : ''}</div>`; }).join('')}</div>
       ${ list.length > F.limit ? `<button class="btn secondary tcgb-more" id="tcgb-more">Show more (${list.length - F.limit} left)</button>` : '' }`
       : `<div class="tcgb-empty">${F.owned && !Object.keys(M.owned).length ? 'Your binder is empty. Open a pack in the Card Shop!' : 'No cards match.'}</div>` }`;
+}
+
+// ---------- Decks (Hearthstone rules: a hero, 30 cards of the hero's class or neutral, 2 copies max, 1 of a Legendary) ----------
+const TCG_DECK_SIZE = 30;
+async function loadTcgDecks(){
+  if(state.tcgDecks || state.tcgDecksLoading) return;
+  state.tcgDecksLoading = true;
+  const { data, error } = await sb.from('tcg_decks').select('*').order('updated_at', { ascending: false });
+  if(error) showToast('Could not load your decks: ' + error.message, true);
+  state.tcgDecks = data || []; state.tcgDecksLoading = false; render();
+}
+const tcgIsHero = c => c && /^HERO_\d\d$/.test(c.id);
+const tcgMaxCopies = (c, owned) => Math.min(c.rarity === 'legendary' ? 1 : 2, owned ? owned.count : 0);
+function tcgDeckProblems(d){
+  const out = [], C = state.tcgCardById || {}, M = state.tcgMine;
+  if(d.cards.length !== TCG_DECK_SIZE) out.push(`${d.cards.length}/${TCG_DECK_SIZE} cards`);
+  const n = {}; d.cards.forEach(id => n[id] = (n[id] || 0) + 1);
+  for(const id in n){ const c = C[id]; if(c && n[id] > tcgMaxCopies(c, M && M.owned[id])) out.push(`too many ${c.name}`); }
+  return out;
+}
+function tcgCostCurve(cards){
+  const b = [0, 0, 0, 0, 0, 0, 0, 0];
+  cards.forEach(id => { const c = state.tcgCardById[id]; if(c) b[Math.min(7, c.cost || 0)]++; });
+  return b;
+}
+
+function renderTcgDecks(){
+  loadTcgDecks();
+  const cards = state.tcgCards, M = state.tcgMine, D = state.tcgDecks;
+  if(!cards || !M || !D) return '<p class="muted sans">Loading your decks&hellip;</p>';
+  if(state.tcgDeckEdit) return renderTcgDeckEditor();
+  if(state.tcgDeckPickHero){
+    const heroes = cards.filter(c => tcgIsHero(c));
+    return `<div class="tcgd-head"><h3>Choose a hero</h3><button class="btn secondary" data-tcgd="cancel">Cancel</button></div>
+      <p class="muted sans">Your hero sets the deck's class. Heroes come from packs: you can only lead with heroes you own.</p>
+      <div class="tcgd-heroes">${heroes.map(h => { const own = M.owned[h.id];
+        return `<div class="tcgd-hero ${own ? '' : 'locked'}" ${own ? `data-tcgd-hero="${esc(h.id)}"` : ''} title="${own ? esc(h.name) : 'Not found yet'}">
+          ${own ? tcgCardImg(h.id, own.holo) : `<div class="tcgb-myst" style="--glow:${TCG_RARITY[h.rarity].color}"><b>?</b><span>${esc(tcgClassName(h.card_class))}</span></div>`}</div>`; }).join('')}</div>`;
+  }
+  return `<div class="tcgd-head"><h3>Your decks <span class="muted">(${D.length}/18)</span></h3><button class="btn tcg-btn" data-tcgd="new" ${D.length >= 18 ? 'disabled' : ''}>+ New deck</button></div>
+    ${ D.length ? `<div class="tcgd-list">${D.map(d => { const h = state.tcgCardById[d.hero_id], probs = tcgDeckProblems(d);
+      return `<div class="tcgd-deck" data-tcgd-open="${d.id}">
+        <div class="tcgd-deck-hero">${h ? tcgCardImg(h.id, false) : ''}</div>
+        <div><b>${esc(d.name)}</b><div class="muted">${esc(tcgClassName(h ? h.card_class : ''))} &middot; ${d.cards.length}/${TCG_DECK_SIZE} cards</div>
+        ${ probs.length ? `<div class="tcgd-warn">&#9888; ${esc(probs[0])}</div>` : '<div class="tcgd-ok">&#10003; Ready to play</div>' }</div></div>`; }).join('')}</div>`
+      : `<div class="tcgb-empty">No decks yet. Build one from the cards you've pulled &mdash; it comes with you to WoW in the <b>Export Cards to WoW!</b> code.</div>` }`;
+}
+
+function renderTcgDeckEditor(){
+  const E = state.tcgDeckEdit, C = state.tcgCardById, M = state.tcgMine, hero = C[E.hero_id];
+  const cls = hero ? hero.card_class : 'NEUTRAL';
+  const F = E.filter || (E.filter = { cost: -1, q: '', side: 'all' });
+  const inDeck = {}; E.cards.forEach(id => inDeck[id] = (inDeck[id] || 0) + 1);
+  const q = F.q.trim().toLowerCase();
+  const pool = state.tcgCards.filter(c => !tcgIsHero(c) && M.owned[c.id] && (c.card_class === cls || c.card_class === 'NEUTRAL')
+    && (F.side === 'all' || (F.side === 'class' ? c.card_class === cls : c.card_class === 'NEUTRAL'))
+    && (F.cost < 0 || (F.cost === 7 ? (c.cost || 0) >= 7 : (c.cost || 0) === F.cost)) && (!q || c.name.toLowerCase().includes(q)))
+    .sort((a, b) => (a.card_class === 'NEUTRAL') - (b.card_class === 'NEUTRAL') || (a.cost || 0) - (b.cost || 0) || a.name.localeCompare(b.name));
+  const rows = Object.keys(inDeck).map(id => C[id]).filter(Boolean).sort((a, b) => (a.cost || 0) - (b.cost || 0) || a.name.localeCompare(b.name));
+  const curve = tcgCostCurve(E.cards), top = Math.max(1, ...curve), full = E.cards.length >= TCG_DECK_SIZE;
+  return `<div class="tcgd-editor">
+    <div class="tcgd-pool">
+      <div class="tcgb-bar">
+        <div class="tcgd-costs">${['All', 0, 1, 2, 3, 4, 5, 6, '7+'].map((v, i) => `<button class="tcgd-cost ${F.cost === i - 1 ? 'on' : ''}" data-tcgd-cost="${i - 1}">${v}</button>`).join('')}</div>
+        <select id="tcgd-side"><option value="all">${esc(tcgClassName(cls))} + Neutral</option><option value="class" ${F.side === 'class' ? 'selected' : ''}>${esc(tcgClassName(cls))} only</option><option value="neutral" ${F.side === 'neutral' ? 'selected' : ''}>Neutral only</option></select>
+        <input type="search" id="tcgd-q" placeholder="Search your cards" value="${esc(F.q)}">
+      </div>
+      ${ pool.length ? `<div class="tcgb-grid">${pool.map(c => { const o = M.owned[c.id], max = tcgMaxCopies(c, o), used = inDeck[c.id] || 0, can = used < max && !full;
+        return `<div class="tcgb-card tcgd-add ${can ? '' : 'used'}" data-tcgd-add="${esc(c.id)}" title="${esc(c.name)}${can ? ' - click to add' : ''}">${tcgCardImg(c.id, o.holo)}
+          <span class="tcgb-n">${used}/${max}</span></div>`; }).join('')}</div>` : '<div class="tcgb-empty">No cards you own match.</div>' }
+    </div>
+    <aside class="tcgd-side">
+      <div class="tcgd-side-hero">${hero ? tcgCardImg(hero.id, false) : ''}</div>
+      <input id="tcgd-name" maxlength="30" value="${esc(E.name)}" placeholder="Deck name">
+      <div class="tcgd-count ${full ? 'full' : ''}">${E.cards.length} / ${TCG_DECK_SIZE}</div>
+      <div class="tcgd-curve">${curve.map((n, i) => `<div><span style="height:${Math.round(n / top * 100)}%"></span><em>${i === 7 ? '7+' : i}</em></div>`).join('')}</div>
+      <div class="tcgd-rows">${ rows.length ? rows.map(c => `<div class="tcgd-row" data-tcgd-remove="${esc(c.id)}" data-tcgd-peek="${esc(c.id)}" title="Click to remove one">
+          <span class="tcgd-mana">${c.cost ?? 0}</span><span class="tcgd-nm" style="color:${TCG_RARITY[c.rarity].color}">${esc(c.name)}</span>${inDeck[c.id] > 1 ? `<b>&times;${inDeck[c.id]}</b>` : ''}</div>`).join('')
+        : '<p class="muted sans" style="font-size:12px;">Click cards on the left to add them.</p>' }</div>
+      <div class="tcgd-act">
+        <button class="btn tcg-btn" data-tcgd="save" ${state.tcgDeckSaving ? 'disabled' : ''}>${state.tcgDeckSaving ? 'Saving&hellip;' : 'Save deck'}</button>
+        <button class="btn secondary" data-tcgd="close">Back</button>
+        ${E.id ? '<button class="btn danger" data-tcgd="delete">Delete</button>' : ''}
+      </div>
+      ${ E.cards.length < TCG_DECK_SIZE ? `<p class="muted sans" style="font-size:11px;margin:6px 0 0;">You can save an unfinished deck; it needs ${TCG_DECK_SIZE} cards to play.</p>` : '' }
+    </aside>
+  </div>`;
+}
+
+async function tcgSaveDeck(){
+  const E = state.tcgDeckEdit;
+  const name = (document.getElementById('tcgd-name') || {}).value || E.name;
+  E.name = name.trim().slice(0, 30) || 'New deck';
+  state.tcgDeckSaving = true; render();
+  const row = { name: E.name, hero_id: E.hero_id, cards: E.cards, user_id: state.profile.id };
+  const res = E.id ? await sb.from('tcg_decks').update(row).eq('id', E.id).select().single() : await sb.from('tcg_decks').insert(row).select().single();
+  state.tcgDeckSaving = false;
+  if(res.error){ showToast('Could not save: ' + res.error.message, true); render(); return; }
+  E.id = res.data.id; state.tcgDecks = null;
+  showToast('Deck saved. Use Export Cards to WoW! (Points & Sync) to take it into the game.');
+  render();
+}
+
+function wireTcgDecks(){
+  document.querySelectorAll('.tcgd-peek').forEach(x => x.remove());
+  document.querySelectorAll('[data-tcgd]').forEach(b => b.addEventListener('click', async () => {
+    const a = b.dataset.tcgd, E = state.tcgDeckEdit;
+    if(a === 'new'){ state.tcgDeckPickHero = true; render(); }
+    else if(a === 'cancel'){ state.tcgDeckPickHero = false; render(); }
+    else if(a === 'close'){ state.tcgDeckEdit = null; state.tcgDecks = null; render(); }
+    else if(a === 'save') tcgSaveDeck();
+    else if(a === 'delete' && E && E.id && confirm(`Delete "${E.name}"?`)){
+      const { error } = await sb.from('tcg_decks').delete().eq('id', E.id);
+      if(error){ showToast('Could not delete: ' + error.message, true); return; }
+      state.tcgDeckEdit = null; state.tcgDecks = null; render();
+    }
+  }));
+  document.querySelectorAll('[data-tcgd-hero]').forEach(el => el.addEventListener('click', () => {
+    const h = state.tcgCardById[el.dataset.tcgdHero];
+    state.tcgDeckPickHero = false;
+    state.tcgDeckEdit = { name: tcgClassName(h.card_class) + ' deck', hero_id: h.id, cards: [] }; render();
+  }));
+  document.querySelectorAll('[data-tcgd-open]').forEach(el => el.addEventListener('click', () => {
+    const d = state.tcgDecks.find(x => x.id === el.dataset.tcgdOpen);
+    if(d) state.tcgDeckEdit = { id: d.id, name: d.name, hero_id: d.hero_id, cards: [...d.cards] }; render();
+  }));
+  const E = state.tcgDeckEdit;
+  if(!E) return;
+  const keepName = () => { const n = document.getElementById('tcgd-name'); if(n) E.name = n.value; };
+  document.querySelectorAll('[data-tcgd-add]').forEach(el => el.addEventListener('click', () => {
+    const id = el.dataset.tcgdAdd, c = state.tcgCardById[id], used = E.cards.filter(x => x === id).length;
+    if(E.cards.length >= TCG_DECK_SIZE){ showToast('A deck holds 30 cards.', true); return; }
+    if(used >= tcgMaxCopies(c, state.tcgMine.owned[id])){ showToast(c.rarity === 'legendary' ? 'Only 1 copy of a Legendary.' : used >= 2 ? 'At most 2 copies of a card.' : "You don't own another copy.", true); return; }
+    keepName(); E.cards.push(id); render();
+  }));
+  document.querySelectorAll('[data-tcgd-remove]').forEach(el => el.addEventListener('click', () => {
+    const i = E.cards.lastIndexOf(el.dataset.tcgdRemove); if(i >= 0){ keepName(); E.cards.splice(i, 1); render(); }
+  }));
+  document.querySelectorAll('[data-tcgd-cost]').forEach(el => el.addEventListener('click', () => { keepName(); E.filter.cost = +el.dataset.tcgdCost; render(); }));
+  const side = document.getElementById('tcgd-side'); if(side) side.addEventListener('change', () => { keepName(); E.filter.side = side.value; render(); });
+  const q = document.getElementById('tcgd-q');
+  if(q) q.addEventListener('input', () => { keepName(); E.filter.q = q.value; render(); const n = document.getElementById('tcgd-q'); if(n){ n.focus(); n.setSelectionRange(n.value.length, n.value.length); } });
+  // hover a deck row: show the card
+  let peek = null;
+  document.querySelectorAll('[data-tcgd-peek]').forEach(el => {
+    el.addEventListener('mouseenter', () => { peek = document.createElement('div'); peek.className = 'tcgd-peek'; peek.innerHTML = tcgCardImg(el.dataset.tcgdPeek, false);
+      const r = el.getBoundingClientRect(); peek.style.top = Math.max(8, Math.min(window.innerHeight - 330, r.top - 120)) + 'px'; peek.style.left = Math.max(8, r.left - 250) + 'px'; document.body.appendChild(peek); });
+    el.addEventListener('mouseleave', () => { if(peek){ peek.remove(); peek = null; } });
+  });
 }
 
 function tcgZoom(id, holo){
@@ -12205,13 +12402,14 @@ function tcgCompletions(before, pulled){
 // - it glows the colour of the best card inside as it tears - the cards rise out face down, the pack drops
 // away, and each card is clicked to turn it over (Epic / Legendary cards charge up first). The cards were
 // already rolled on the server; this only shows them.
-async function tcgOpenPack(){
+async function tcgOpenPack(count){
+  count = Math.max(1, Math.min(50, count | 0 || 1));       // more than 1 = bulk: every card laid out face down in a grid
   if(state.tcgOpeningBusy) return;
   state.tcgOpeningBusy = true; render();
   const before = new Set(Object.keys((state.tcgMine && state.tcgMine.owned) || {}));
   let out;
   try{
-    const { data, error } = await sb.rpc('tcg_open_pack');
+    const { data, error } = count > 1 ? await sb.rpc('tcg_open_packs', { n: count }) : await sb.rpc('tcg_open_pack');
     if(error) throw error;
     out = data;
   }catch(e){ showToast('Could not open the pack: ' + (e.message || e), true); state.tcgOpeningBusy = false; render(); return; }
@@ -12234,17 +12432,23 @@ async function tcgOpenPack(){
   const spots = [-2, -1, 0, 1, 2].map(i => [i * w * 1.1, botY]);
   const tops = narrow ? [[-1.05, 0], [0, 0], [1.05, 0], [-.53, 1], [.53, 1]].map(([x, r]) => [x * big, r ? lastTop : topY])
                       : [-2, -1, 0, 1, 2].map(i => [i * big * 1.05, topY]);
+  const bulk = count > 1;
+  const gw = Math.floor(Math.max(72, Math.min(132, (VW - 48) / (VW < 600 ? 4.4 : 9.6))));   // a card in the bulk grid
   const ov = document.createElement('div');
-  ov.className = 'tcgo';
+  ov.className = 'tcgo' + (bulk ? ' bulk' : '');
   ov.innerHTML = `<div class="tcgo-flash"></div>
     <div class="tcgo-hint">Drag across the top to tear it open &mdash; or just click the pack</div>
     <button class="tcgo-mute" title="Sound on / off">${tcgSfx.isMuted() ? '&#128263;' : '&#128266;'}</button>
+    ${bulk ? `<div class="tcgo-packs">&times;${count} packs &middot; ${out.cards.length} cards</div>` : ''}
     <div class="tcgo-stage">
       ${tcgPackHtml(pw, true)}
-      ${out.cards.map((c, i) => `<div class="tcgo-card ${c.rarity}" style="--cw:${w}px;--x:${spots[i][0]}px;--y:${spots[i][1]}px;--tx:${tops[i][0]}px;--ty:${tops[i][1]}px;--ts:${(big / w).toFixed(3)};--sx:${(i - 2) * 6}px;--sr:${(i - 2) * 3}deg;--glow:${TCG_RARITY[c.rarity].color}">
+    </div>
+    <div class="${bulk ? 'tcgo-grid' : 'tcgo-stage tcgo-cards'}"${bulk ? ` style="display:none;--gw:${gw}px"` : ''}>
+      ${out.cards.map((c, i) => `<div class="tcgo-card ${c.rarity}" style="--cw:${bulk ? gw : w}px;--d:${(i * 0.025).toFixed(3)}s;--x:${(spots[i] || spots[0])[0]}px;--y:${(spots[i] || spots[0])[1]}px;--tx:${(tops[i] || tops[0])[0]}px;--ty:${(tops[i] || tops[0])[1]}px;--ts:${(big / w).toFixed(3)};--sx:${(i - 2) * 6}px;--sr:${(i - 2) * 3}deg;--glow:${TCG_RARITY[c.rarity].color}">
         <div class="in"><div class="face back"></div><div class="face front">${tcgCardImg(c.id, c.holo)}${c.new ? '<span class="tcgo-new">New</span>' : ''}</div></div>
         <span class="tcgo-tag" style="color:${TCG_RARITY[c.rarity].color}">${c.holo ? 'HOLO ' : ''}${TCG_RARITY[c.rarity].label}</span></div>`).join('')}
     </div>
+    ${bulk ? '<button class="btn tcg-btn tcgo-revealall">Reveal all</button>' : ''}
     <div class="tcgo-done" style="display:none"><button class="btn tcg-btn" id="tcgo-again">Open another (${TCG_PACK_PRICE})</button><button class="btn secondary" id="tcgo-close">Done</button></div>`;
   document.body.appendChild(ov);
   const pack = ov.querySelector('.tpk'), strip = ov.querySelector('.tpk-strip'), hint = ov.querySelector('.tcgo-hint');
@@ -12274,6 +12478,14 @@ async function tcgOpenPack(){
     hint.style.opacity = 0;
     await wait(350);
     tcgSfx.whoosh();
+    if(bulk){                                              // the whole haul spills out into a grid
+      await wait(300); pack.classList.add('drop');
+      const g = ov.querySelector('.tcgo-grid'); g.style.display = 'grid';
+      cards.forEach(el => el.classList.add('out'));
+      hint.textContent = 'Click cards to reveal them — or Reveal all'; hint.style.opacity = 1;
+      ov.querySelector('.tcgo-revealall').style.display = 'block';
+      return;
+    }
     cards.forEach((el, i) => setTimeout(() => el.classList.add('rise'), i * 70));   // up out of the pack
     await wait(900);
     pack.classList.add('drop');
@@ -12328,10 +12540,11 @@ async function tcgOpenPack(){
   const done = async () => {
     hint.textContent = 'Added to your binder — click a card to enlarge it';
     if(completions.length){ hint.style.opacity = 0; await celebrate(); hint.style.opacity = 1; }
+    if(ra) ra.style.display = 'none';
     const d = ov.querySelector('.tcgo-done'); d.style.display = 'flex';
     const again = ov.querySelector('#tcgo-again');
     if(out.points < TCG_PACK_PRICE) again.disabled = true;
-    again.addEventListener('click', () => { ov.remove(); state.tcgOpeningBusy = false; tcgOpenPack(); });
+    again.addEventListener('click', () => { ov.remove(); state.tcgOpeningBusy = false; tcgOpenPack(1); });
     ov.querySelector('#tcgo-close').addEventListener('click', () => { ov.remove(); state.tcgOpeningBusy = false; render(); });
   };
   const reveal = async (el, i) => {
@@ -12366,6 +12579,7 @@ async function tcgOpenPack(){
   cards.forEach((el, i) => {
     el.addEventListener('click', () => {
       if(!el.classList.contains('shown')) return reveal(el, i);
+      if(bulk) return tcgZoom(out.cards[i].id, out.cards[i].holo);
       const was = el.classList.contains('zoom');           // click a revealed card: blow it up in the middle (click again to put it back)
       cards.forEach(x => x.classList.remove('zoom'));
       if(!was){ el.style.setProperty('--zs', Math.min((window.innerHeight * .85) / el.offsetHeight, (window.innerWidth * .9) / el.offsetWidth).toFixed(2)); el.classList.add('zoom'); }
@@ -12377,6 +12591,12 @@ async function tcgOpenPack(){
       const inner = el.querySelector('.in'); inner.style.setProperty('--ry', (x * 22).toFixed(1) + 'deg'); inner.style.setProperty('--rx', (-y * 22).toFixed(1) + 'deg');
     });
     el.addEventListener('pointerleave', () => { const inner = el.querySelector('.in'); inner.style.removeProperty('--rx'); inner.style.removeProperty('--ry'); });
+  });
+  const ra = ov.querySelector('.tcgo-revealall');
+  if(ra) ra.addEventListener('click', async () => {
+    ra.disabled = true;
+    for(let i = 0; i < cards.length; i++){ if(!cards[i].classList.contains('flip')){ await reveal(cards[i], i); await wait(70); } }
+    ra.style.display = 'none';
   });
   // keyboard: space / enter tears the pack, then reveals everything (one at a time)
   const key = async e => {
@@ -12431,9 +12651,13 @@ if(!window.__tcgHoloWired){
 function wireTcgPage(){
   document.querySelectorAll('[data-tcg-zoom]').forEach(el => el.addEventListener('click', () => { const [id, h] = el.dataset.tcgZoom.split('|'); tcgZoom(id, h === '1'); }));
   if(state.tab !== 'tcg') return;
+  if(state.tcgView === 'decks') wireTcgDecks();
   document.querySelectorAll('[data-tcg-view]').forEach(b => b.addEventListener('click', () => { if(state.tcgView === 'binder') state.tcgBinderSince = undefined; state.tcgView = b.dataset.tcgView; render(); }));
   const buy = document.getElementById('tcg-buy');
-  if(buy) buy.addEventListener('click', tcgOpenPack);
+  if(buy) buy.addEventListener('click', () => tcgOpenPack(1));
+  const bn = document.getElementById('tcg-bulk-n'), bb = document.getElementById('tcg-bulk');
+  if(bn) bn.addEventListener('change', () => { state.tcgBulkN = Math.max(2, Math.min(+bn.max, +bn.value || 2)); render(); });
+  if(bb) bb.addEventListener('click', () => tcgOpenPack(Math.max(2, Math.min(+bn.max, +bn.value || 2))));
   const F = state.tcgFilter;
   if(!F) return;
   const bind = (id, key, ev, val) => { const el = document.getElementById(id); if(el) el.addEventListener(ev, () => { F[key] = val(el); F.limit = 120; render();
