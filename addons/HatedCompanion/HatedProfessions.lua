@@ -17,7 +17,7 @@
 
 local PREFIX = "HatedProf"
 local GOLD = { 1, 0.82, 0.4 }
-local ROWS, ROW_H = 18, 22
+local ROW_H = 22
 local function say(m) DEFAULT_CHAT_FRAME:AddMessage("|cffffd36aHated Professions:|r " .. m) end
 
 local function DB()
@@ -280,14 +280,16 @@ local function build()
   local h1 = w:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); h1:SetPoint("TOPLEFT", 18, -112); h1:SetText("Recipe"); h1:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
   local h2 = w:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); h2:SetPoint("TOPLEFT", 300, -112); h2:SetText("Can craft it"); h2:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
 
+  -- rows: as many as fit; made on demand when the window is resized bigger
   w.rows = {}
-  for i = 1, ROWS do
-    local r = CreateFrame("Button", nil, w); r:SetSize(730, ROW_H); r:SetPoint("TOPLEFT", 14, -128 - (i - 1) * ROW_H)
+  local function makeRow(i)
+    local r = CreateFrame("Button", nil, w); r:SetHeight(ROW_H)
+    r:SetPoint("TOPLEFT", 14, -128 - (i - 1) * ROW_H); r:SetPoint("RIGHT", w, "RIGHT", -16, 0)
     r.bg = r:CreateTexture(nil, "BACKGROUND"); r.bg:SetAllPoints(); r.bg:SetColorTexture(1, 1, 1, i % 2 == 0 and 0.03 or 0)
     local hl = r:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints(); hl:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.1)
     r.icon = r:CreateTexture(nil, "ARTWORK"); r.icon:SetSize(18, 18); r.icon:SetPoint("LEFT", 4, 0)
     r.name = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); r.name:SetPoint("LEFT", 28, 0); r.name:SetWidth(255); r.name:SetJustifyH("LEFT"); r.name:SetWordWrap(false)
-    r.who = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); r.who:SetPoint("LEFT", 286, 0); r.who:SetWidth(440); r.who:SetJustifyH("LEFT"); r.who:SetWordWrap(false)
+    r.who = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); r.who:SetPoint("LEFT", 286, 0); r.who:SetPoint("RIGHT", -6, 0); r.who:SetJustifyH("LEFT"); r.who:SetWordWrap(false)
     r:RegisterForClicks("AnyUp")
     r:SetScript("OnEnter", function(self)
       if not self.hyper then return end
@@ -297,11 +299,25 @@ local function build()
     end)
     r:SetScript("OnLeave", GameTooltip_Hide)
     r:SetScript("OnClick", function(self) if IsShiftKeyDown() and self.link and ChatEdit_InsertLink then ChatEdit_InsertLink(self.link) end end)
-    w.rows[i] = r
+    return r
   end
-  w.count = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); w.count:SetPoint("BOTTOMLEFT", 18, 14)
-  local help = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); help:SetPoint("BOTTOMRIGHT", -18, 14)
-  help:SetText("Mouse wheel: scroll   Shift+click: link in chat   Open your profession windows to share your recipes")
+  w.fit = function()                                   -- how many rows fit between the headers and the footer
+    w.visible = math.max(3, math.floor((w:GetHeight() - 128 - 50) / ROW_H))
+    for i = #w.rows + 1, w.visible do w.rows[i] = makeRow(i) end
+    for i, r in ipairs(w.rows) do if i > w.visible then r:Hide() end end
+  end
+  -- footer: two lines under the list (the count, then the help)
+  w.count = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); w.count:SetPoint("BOTTOMLEFT", 18, 28); w.count:SetPoint("RIGHT", w, "RIGHT", -30, 0); w.count:SetJustifyH("LEFT")
+  local help = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); help:SetPoint("BOTTOMLEFT", 18, 12); help:SetPoint("RIGHT", w, "RIGHT", -30, 0); help:SetJustifyH("LEFT")
+  help:SetText("Mouse wheel: scroll   -   Shift+click: link in chat   -   Open your profession windows to share your recipes   -   Drag the corner to resize")
+  -- resizable from the bottom-right corner
+  w:SetResizable(true)
+  if w.SetResizeBounds then w:SetResizeBounds(620, 380, 1600, 1200) elseif w.SetMinResize then w:SetMinResize(620, 380) end
+  local grip = CreateFrame("Button", nil, w); grip:SetSize(16, 16); grip:SetPoint("BOTTOMRIGHT", -4, 4)
+  grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up"); grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight"); grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+  grip:SetScript("OnMouseDown", function() w:StartSizing("BOTTOMRIGHT") end)
+  grip:SetScript("OnMouseUp", function() w:StopMovingOrSizing(); w.fit(); w.refresh() end)
+  w:SetScript("OnSizeChanged", function() if w.refresh then w.fit(); w.refresh() end end)
   w:EnableMouseWheel(true)
   w:SetScript("OnMouseWheel", function(_, d) w.offset = math.max(0, (w.offset or 0) - d * 3); w.refresh() end)
   w:SetScript("OnShow", function() if C_GuildInfo and C_GuildInfo.GuildRoster then C_GuildInfo.GuildRoster() elseif GuildRoster then GuildRoster() end end)
@@ -347,9 +363,9 @@ local function build()
       end
     end
     table.sort(list, function(a, b) return a.name < b.name end)
-    w.offset = math.min(w.offset or 0, math.max(0, #list - ROWS))
+    w.offset = math.min(w.offset or 0, math.max(0, #list - w.visible))
     for i, row in ipairs(w.rows) do
-      local e = list[w.offset + i]
+      local e = i <= w.visible and list[w.offset + i]
       if e then
         row.icon:SetTexture(e.icon or 134400); row.name:SetText(e.name); row.name:SetTextColor(e.r, e.g, e.b)
         table.sort(e.who, function(a, b) local ao, bo = on[a] or a == myName, on[b] or b == myName; if ao ~= bo then return ao end return a < b end)
@@ -366,6 +382,7 @@ local function build()
       or string.format("%d recipes  -  %d characters  -  online in white%s", #list, chars, waiting > 0 and "  -  loading item names..." or ""))
     if waiting > 0 then w.dirty = true end
   end
+  w.fit()
   W = w
   return w
 end
