@@ -17103,7 +17103,7 @@ function bindApp(){
 function placeNavLogo(){
   const logo = document.querySelector('.top-nav .nav-logo'), items = document.querySelector('.top-nav .nav-items');
   if(!logo || !items) return;
-  if(window.innerWidth >= 1500){ const r = items.getBoundingClientRect(); logo.style.left = Math.max(10, r.left - logo.offsetWidth - 48) + 'px'; }
+  if(window.innerWidth >= 1500){ const r = items.getBoundingClientRect(); logo.style.left = Math.max(10, r.left - logo.offsetWidth - 148) + 'px'; }
   else logo.style.left = '';
 }
 window.addEventListener('resize', placeNavLogo);
