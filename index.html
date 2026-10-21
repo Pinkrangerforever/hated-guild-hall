@@ -1418,8 +1418,9 @@
   .tcgb-h{ position:absolute; left:6%; bottom:4%; padding:1px 7px; border-radius:11px; background:linear-gradient(90deg, #ff4fd8, #3ff2d9, #ffe94f); color:#111; font:800 10px system-ui; }
   .tcgb-more{ display:block; margin:18px auto 0; }
   .tcgb-zoom{ position:fixed; inset:0; z-index:100000; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center; cursor:zoom-out; }
-  .tcgb-zoom .tcg-holo, .tcgb-zoom > img{ width:min(420px, 86vw); }
-  .tcgb-zoom img{ width:100%; display:block; }
+  /* sized to fit the screen both ways (a card is 655 x 874) */
+  .tcgb-zoom .tcg-holo, .tcgb-zoom > img{ width:min(420px, 86vw, 80vh * .75); height:auto; display:block; }
+  .tcgb-zoom .tcg-holo img{ width:100%; display:block; }
   .tcgb-empty{ padding:30px; text-align:center; color:#7fb5ad; }
   @media (max-width:600px){ .tcgb-grid{ grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); gap:8px; } .tcgp-product{ width:100%; } }
   .strat-breadcrumb{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); margin-bottom:4px; }
