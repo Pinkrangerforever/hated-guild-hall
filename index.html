@@ -12258,7 +12258,6 @@ async function tcgSaveDeck(){
 }
 
 function wireTcgDecks(){
-  document.querySelectorAll('.tcgd-peek').forEach(x => x.remove());
   document.querySelectorAll('[data-tcgd]').forEach(b => b.addEventListener('click', async () => {
     const a = b.dataset.tcgd, E = state.tcgDeckEdit;
     if(a === 'new'){ state.tcgDeckPickHero = true; render(); }
@@ -12299,10 +12298,11 @@ function wireTcgDecks(){
   const q = document.getElementById('tcgd-q');
   if(q) q.addEventListener('input', () => { keepName(); E.filter.q = q.value; render(); const n = document.getElementById('tcgd-q'); if(n){ n.focus(); n.setSelectionRange(n.value.length, n.value.length); } });
   // pointing at a card (in your collection or the deck list) flies a big copy out of it, beside the deck panel, to read
-  let peek = null, peekFor = null;
-  const hidePeek = () => { if(peek){ const p = peek; peek = null; peekFor = null; p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120 }).onfinish = () => p.remove(); } };
+  // the preview lives across re-renders (clicking a card redraws the page): it only flies out for a different card
+  const P = window.__tcgPeek || (window.__tcgPeek = { el: null, id: null });
+  const hidePeek = () => { if(P.el){ const p = P.el; P.el = null; P.id = null; p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120 }).onfinish = () => p.remove(); } };
   const showPeek = (el, id) => {
-    if(peekFor === el) return;
+    if(P.el && P.id === id) return;                        // same card (e.g. just clicked it): leave it where it is
     hidePeek();
     const side = document.querySelector('.tcgd-side'), pool = document.querySelector('.tcgd-pool'); if(!side || !pool) return;
     const sr = side.getBoundingClientRect(), pr = pool.getBoundingClientRect(), from = el.getBoundingClientRect();
@@ -12311,7 +12311,7 @@ function wireTcgDecks(){
     if(w < 180){ w = Math.min(340, sr.left - 24); left = sr.left - w - 12; }
     if(w < 180) return;                                    // no room at all (phones): skip
     const h = w * 874 / 655, top = Math.max(10, Math.min(window.innerHeight - h - 10, Math.max(pr.top, 10)));
-    peek = document.createElement('div'); peekFor = el;
+    const peek = document.createElement('div'); P.el = peek; P.id = id;
     peek.className = 'tcgd-peek';
     const own = state.tcgMine.owned[id];
     peek.innerHTML = tcgCardImg(id, own && own.holo);
@@ -12326,6 +12326,9 @@ function wireTcgDecks(){
     el.addEventListener('mouseenter', () => showPeek(el, el.dataset.tcgdAdd || el.dataset.tcgdPeek));
     el.addEventListener('mouseleave', hidePeek);
   });
+  // after a redraw: keep the preview only if the pointer is still on that card
+  const over = [...document.querySelectorAll('[data-tcgd-add]:hover, [data-tcgd-peek]:hover')].pop();
+  if(P.el && (!over || (over.dataset.tcgdAdd || over.dataset.tcgdPeek) !== P.id)) hidePeek();
 }
 
 function tcgZoom(id, holo){
@@ -12687,6 +12690,9 @@ if(!window.__tcgHoloWired){
 }
 function wireTcgPage(){
   document.querySelectorAll('[data-tcg-zoom]').forEach(el => el.addEventListener('click', () => { const [id, h] = el.dataset.tcgZoom.split('|'); tcgZoom(id, h === '1'); }));
+  // the deck builder's card preview only belongs on the deck editor
+  const P = window.__tcgPeek;
+  if(P && P.el && !(state.tab === 'tcg' && state.tcgView === 'decks' && state.tcgDeckEdit)){ P.el.remove(); P.el = null; P.id = null; }
   if(state.tab !== 'tcg') return;
   if(state.tcgView === 'decks') wireTcgDecks();
   document.querySelectorAll('[data-tcg-view]').forEach(b => b.addEventListener('click', () => { if(state.tcgView === 'binder') state.tcgBinderSince = undefined; state.tcgView = b.dataset.tcgView; render(); }));
