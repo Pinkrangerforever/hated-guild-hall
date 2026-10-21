@@ -363,6 +363,7 @@ document.addEventListener('DOMContentLoaded', () => curtainFlags(window.WAR_FLAG
   #gate, #signup{ position:fixed; inset:0; z-index:8; display:none; align-items:center; justify-content:center; background:rgba(5,3,2,0.75); }
   #gate .card, #signup .card{ background:var(--panel); border:1px solid var(--edge); border-radius:12px; padding:22px 26px; max-width:520px; width:92vw; text-align:center; }
   #signup .card{ text-align:left; max-height:80vh; overflow:auto; }
+  body.signupOpen .bar{ z-index:9; }   /* the sign-ups window must not cover Back to site */
   #signupList{ columns:2; font-size:14px; margin:10px 0; }
   .tag{ font-size:11px; padding:1px 6px; border-radius:8px; background:#3a2a50; color:#d4a8ff; margin-left:4px; }
   .cards{ display:flex; flex-wrap:wrap; gap:4px; font-size:12px; }
@@ -1290,6 +1291,7 @@ function joinNow(){ act('join', {}, () => E.joinLate(G, { id: me.id, name: me.na
 function renderSignup(){
   const el = document.getElementById('signup');
   const S = G.phase === 'signup' && !G.none ? G : null;
+  document.body.classList.toggle('signupOpen', !!S);   // keeps the top bar (Back to site) above the sign-ups
   if(!S){ el.style.display = 'none'; return; }
   el.style.display = 'flex';
   const mine = S.signups.some(s => s.id === me.id);
