@@ -211,10 +211,13 @@ ev:SetScript("OnEvent", function(_, e, a1, a2, a3, a4)
 end)
 
 -- ---------- the window ----------
+-- newer clients moved these into C_Item / C_Spell
+local ItemInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+local function SpellLink(id) local f = (C_Spell and C_Spell.GetSpellLink) or GetSpellLink; return f and f(id) end
 local function recipeInfo(id)                -- name, icon, colour, link
   local kind, n = id:sub(1, 1), tonumber(id:sub(2))
   if kind == "i" then
-    local name, link, q, _, _, _, _, _, _, icon = GetItemInfo(n)
+    local name, link, q, _, _, _, _, _, _, icon = ItemInfo(n)
     if not name then return nil end
     local r, g, b = 1, 1, 1
     if q and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q] then r, g, b = ITEM_QUALITY_COLORS[q].r, ITEM_QUALITY_COLORS[q].g, ITEM_QUALITY_COLORS[q].b end
@@ -224,7 +227,7 @@ local function recipeInfo(id)                -- name, icon, colour, link
     if C_Spell and C_Spell.GetSpellInfo then local s = C_Spell.GetSpellInfo(n); if s then name, icon = s.name, s.iconID end
     else name, _, icon = GetSpellInfo(n) end
     if not name then return nil end
-    return name, icon, 0.75, 0.9, 1, (GetSpellLink and GetSpellLink(n)) or name, "enchant:" .. n
+    return name, icon, 0.75, 0.9, 1, SpellLink(n) or name, "enchant:" .. n
   end
 end
 
