@@ -14912,9 +14912,8 @@ function renderNews(){
       <!-- MOBILE: Full-width single column -->
       <div class="layout-mobile">
         <div class="module-wrapper">${renderAnnouncementsModule(officer)}</div>
-        <div class="module-wrapper">${renderLegendaryFeed()}</div>
         <div class="module-wrapper">${renderRosterModule()}</div>
-        <div class="module-wrapper">${renderDonationLeaderboard()}${renderAddonCard()}</div>
+        <div class="module-wrapper">${renderDonationLeaderboard()}${renderAddonCard()}${renderLegendaryFeed()}</div>
         <div class="module-wrapper">${renderGuildBoardModule()}</div>
         <div class="module-wrapper">${renderGoldLeaderboard()}</div>
         ${officer ? `<div class="module-wrapper">${renderAnnouncementsFormModule()}</div>` : ''}
@@ -14922,13 +14921,13 @@ function renderNews(){
 
       <!-- DESKTOP: Three-column layout with sidebars -->
       <div class="layout-desktop">
-        <aside class="layout-sidebar">${renderComingUp()}${renderLegendaryFeed()}${renderGoldLeaderboard()}</aside>
+        <aside class="layout-sidebar">${renderComingUp()}${renderGoldLeaderboard()}</aside>
         <main class="layout-main">
           <div class="module-wrapper">${renderAnnouncementsModule(officer)}</div>
           <div class="module-wrapper">${renderRosterModule()}</div>
           ${officer ? `<div class="module-wrapper">${renderAnnouncementsFormModule()}</div>` : ''}
         </main>
-        <aside class="layout-sidebar-right">${renderDonationLeaderboard()}${renderAddonCard()}${renderGuildBoardModule()}</aside>
+        <aside class="layout-sidebar-right">${renderDonationLeaderboard()}${renderAddonCard()}${renderLegendaryFeed()}${renderGuildBoardModule()}</aside>
       </div>
     </div>
   `;
