@@ -1369,11 +1369,20 @@
   .tcgo-card.charging .back{ animation:none; filter:drop-shadow(0 0 34px var(--glow)) drop-shadow(0 0 12px var(--glow)) brightness(1.35); transition:filter .5s; }
   .tcgo-card.legendary.charging{ animation-duration:.08s; }
   @keyframes tcgCharge{ 0%{ translate:-3px 1px; rotate:-1.5deg; } 25%{ translate:3px -2px; rotate:1.5deg; } 50%{ translate:-2px -1px; rotate:-1deg; } 75%{ translate:2px 2px; rotate:1deg; } }
-  /* NEW! stamp on a first copy */
-  .tcgo-new{ position:absolute; left:50%; top:36%; translate:-50% -50%; rotate:-14deg; padding:2px 10px; border:3px solid #ff3b3b; border-radius:6px; color:#ff3b3b; background:rgba(255,255,255,.85);
-    font:900 calc(var(--cw) * .17) Cinzel, Georgia, serif; letter-spacing:.06em; box-shadow:0 0 0 2px rgba(255,59,59,.35), 0 4px 10px rgba(0,0,0,.5); opacity:0; pointer-events:none; }
-  .tcgo-card.flip .tcgo-new{ animation:tcgStamp .45s cubic-bezier(.2,1.6,.4,1) 1s forwards; }
-  @keyframes tcgStamp{ 0%{ opacity:0; scale:3; } 60%{ opacity:1; scale:.9; } 100%{ opacity:1; scale:1; } }
+  /* NEW ribbon on a first copy: a gilded banner on the card's bottom edge, between attack and health */
+  .tcgo-new{ position:absolute; left:50%; bottom:1.2%; translate:-50% 0; z-index:2; padding:.32em 1.25em .28em; pointer-events:none; opacity:0;
+    font:900 calc(var(--cw) * .085) Cinzel, Georgia, serif; letter-spacing:.14em; color:#ffe9a8; white-space:nowrap;
+    text-shadow:0 1px 0 #3a2208, 0 0 6px rgba(255,200,90,.8);
+    background:linear-gradient(#f5d77a, #b07d2a 55%, #e7c062); filter:drop-shadow(0 3px 4px rgba(0,0,0,.7));
+    clip-path:polygon(0 0, 100% 0, 92% 50%, 100% 100%, 0 100%, 8% 50%); }
+  .tcgo-new::before{ content:''; position:absolute; inset:2px 3px; z-index:-1; background:linear-gradient(#4a3420, #24180c);
+    clip-path:polygon(0 0, 100% 0, 92% 50%, 100% 100%, 0 100%, 8% 50%); }
+  .tcgo-new::after{ content:''; position:absolute; inset:0; background:linear-gradient(105deg, transparent 35%, rgba(255,240,200,.55) 50%, transparent 65%) no-repeat;
+    background-size:250% 100%; background-position:150% 0; }
+  .tcgo-card.flip .tcgo-new{ animation:tcgNewIn .55s cubic-bezier(.2,1.5,.4,1) 1s forwards; }
+  .tcgo-card.flip .tcgo-new::after{ animation:tcgNewShine 1.1s ease-in-out 1.45s; }
+  @keyframes tcgNewIn{ 0%{ opacity:0; translate:-50% -60%; scale:.4; } 100%{ opacity:1; translate:-50% 0; scale:1; } }
+  @keyframes tcgNewShine{ to{ background-position:-50% 0; } }
   /* set / rarity completed */
   .tcgo-complete{ top:30%; font-size:clamp(26px, 5.5vw, 52px); color:var(--bc, #ffd84a); text-shadow:0 0 18px var(--bc, #ffb300), 0 0 40px var(--bc, #ff8000), 0 4px 8px #000; animation-duration:2.8s; }
   .tcgo-complete.big{ font-size:clamp(32px, 7vw, 72px); color:#ffe27a; }
@@ -12206,7 +12215,7 @@ async function tcgOpenPack(){
     <div class="tcgo-stage">
       ${tcgPackHtml(pw, true)}
       ${out.cards.map((c, i) => `<div class="tcgo-card ${c.rarity}" style="--cw:${w}px;--x:${spots[i][0]}px;--y:${spots[i][1]}px;--tx:${tops[i][0]}px;--ty:${tops[i][1]}px;--ts:${(big / w).toFixed(3)};--sx:${(i - 2) * 6}px;--sr:${(i - 2) * 3}deg;--glow:${TCG_RARITY[c.rarity].color}">
-        <div class="in"><div class="face back"></div><div class="face front">${tcgCardImg(c.id, c.holo)}${c.new ? '<span class="tcgo-new">NEW!</span>' : ''}</div></div>
+        <div class="in"><div class="face back"></div><div class="face front">${tcgCardImg(c.id, c.holo)}${c.new ? '<span class="tcgo-new">New</span>' : ''}</div></div>
         <span class="tcgo-tag" style="color:${TCG_RARITY[c.rarity].color}">${c.holo ? 'HOLO ' : ''}${TCG_RARITY[c.rarity].label}</span></div>`).join('')}
     </div>
     <div class="tcgo-done" style="display:none"><button class="btn tcg-btn" id="tcgo-again">Open another (${TCG_PACK_PRICE})</button><button class="btn secondary" id="tcgo-close">Done</button></div>`;
