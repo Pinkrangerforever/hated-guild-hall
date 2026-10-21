@@ -68,6 +68,12 @@
   .nav-items{
     display:flex; gap:2px; flex:1; justify-content:center;   /* centred between the logo and your wallet */
   }
+  /* wide screens: centre the links on the page itself (in line with the banner), not in the space left of the wallet */
+  @media (min-width:1500px){
+    .nav-container{ position:relative; }
+    .nav-items{ position:absolute; left:50%; transform:translateX(-50%); flex:none; }
+    .nav-user-section{ margin-left:auto; }
+  }
   .nav-beta{ font-size:9px; font-weight:800; letter-spacing:.06em; padding:1px 5px; margin-left:4px; border-radius:3px; background:#ff8800; color:#1a0f05; vertical-align:middle; }
   #admin-btn{ display:none !important; }   /* Admin lives in your name menu */
   .nav-link{
