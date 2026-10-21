@@ -1471,7 +1471,7 @@
   .tcgd-mana{ flex:0 0 20px; height:20px; border-radius:50%; text-align:center; line-height:20px; font:800 11px system-ui; color:#fff; background:radial-gradient(circle at 35% 30%, #6b7dff, #232a7a); }
   .tcgd-nm{ flex:1; font-weight:700; text-shadow:0 1px 2px #000; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; } .tcgd-row b{ color:#ffd36a; font-size:12px; }
   .tcgd-act{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; } .tcgd-act .btn{ flex:1; padding:6px 8px !important; font-size:12px !important; }
-  .tcgd-peek{ position:fixed; z-index:100001; width:230px; pointer-events:none; filter:drop-shadow(0 8px 20px rgba(0,0,0,.7)); } .tcgd-peek img{ width:100%; display:block; }
+  .tcgd-peek{ position:fixed; z-index:100001; pointer-events:none; transform-origin:0 0; filter:drop-shadow(0 10px 26px rgba(0,0,0,.8)); } .tcgd-peek img{ width:100%; display:block; }
   @media (max-width:760px){ .tcgd-editor{ flex-direction:column-reverse; } .tcgd-side{ position:static; flex:none; width:100%; box-sizing:border-box; } }
   /* binder: cards you haven't found yet */
   .tcgb-myst{ position:relative; aspect-ratio:655/874; display:flex; align-items:center; justify-content:center; }
@@ -12297,12 +12297,31 @@ function wireTcgDecks(){
   const side = document.getElementById('tcgd-side'); if(side) side.addEventListener('change', () => { keepName(); E.filter.side = side.value; render(); });
   const q = document.getElementById('tcgd-q');
   if(q) q.addEventListener('input', () => { keepName(); E.filter.q = q.value; render(); const n = document.getElementById('tcgd-q'); if(n){ n.focus(); n.setSelectionRange(n.value.length, n.value.length); } });
-  // hover a deck row: show the card
-  let peek = null;
-  document.querySelectorAll('[data-tcgd-peek]').forEach(el => {
-    el.addEventListener('mouseenter', () => { peek = document.createElement('div'); peek.className = 'tcgd-peek'; peek.innerHTML = tcgCardImg(el.dataset.tcgdPeek, false);
-      const r = el.getBoundingClientRect(); peek.style.top = Math.max(8, Math.min(window.innerHeight - 330, r.top - 120)) + 'px'; peek.style.left = Math.max(8, r.left - 250) + 'px'; document.body.appendChild(peek); });
-    el.addEventListener('mouseleave', () => { if(peek){ peek.remove(); peek = null; } });
+  // pointing at a card (in your collection or the deck list) flies a big copy out of it, beside the deck panel, to read
+  let peek = null, peekFor = null;
+  const hidePeek = () => { if(peek){ const p = peek; peek = null; peekFor = null; p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120 }).onfinish = () => p.remove(); } };
+  const showPeek = (el, id) => {
+    if(peekFor === el) return;
+    hidePeek();
+    const side = document.querySelector('.tcgd-side'); if(!side) return;
+    const sr = side.getBoundingClientRect(), from = el.getBoundingClientRect();
+    const w = Math.min(340, sr.left - 24), h = w * 874 / 655;
+    if(w < 180) return;                                    // no room beside the panel (phones): skip
+    const left = sr.left - w - 12, top = Math.max(10, Math.min(window.innerHeight - h - 10, sr.top + 10));
+    peek = document.createElement('div'); peekFor = el;
+    peek.className = 'tcgd-peek';
+    const own = state.tcgMine.owned[id];
+    peek.innerHTML = tcgCardImg(id, own && own.holo);
+    peek.style.cssText = `left:${left}px;top:${top}px;width:${w}px`;
+    document.body.appendChild(peek);
+    // start where the card is, fly to the spot beside the panel
+    const sx = from.width / w, dx = from.left - left, dy = from.top - top;
+    peek.animate([{ transform: `translate(${dx}px, ${dy}px) scale(${sx})`, opacity: .4 }, { transform: 'none', opacity: 1 }],
+      { duration: 260, easing: 'cubic-bezier(.2,.9,.3,1.1)' });
+  };
+  document.querySelectorAll('[data-tcgd-add], [data-tcgd-peek]').forEach(el => {
+    el.addEventListener('mouseenter', () => showPeek(el, el.dataset.tcgdAdd || el.dataset.tcgdPeek));
+    el.addEventListener('mouseleave', hidePeek);
   });
 }
 
