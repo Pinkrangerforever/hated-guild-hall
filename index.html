@@ -12658,7 +12658,7 @@ function renderLegendaryFeed(){
   if(!state.session) return '';
   if(!state.tcgFeed && !state.tcgFeedLoading){
     state.tcgFeedLoading = true;
-    sb.from('tcg_highlights').select('id,user_id,card_id,rarity,holo,at,tcg_cards(name)').order('at', { ascending: false }).limit(10)
+    sb.from('tcg_highlights').select('id,user_id,card_id,rarity,holo,at,tcg_cards(name)').order('at', { ascending: false }).limit(5)   // the newest 5
       .then(({ data }) => { state.tcgFeed = data || []; state.tcgFeedLoading = false; if(state.tab === 'news') render(); });
   }
   const F = state.tcgFeed;
