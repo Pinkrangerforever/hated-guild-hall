@@ -1287,7 +1287,17 @@
   .tcgp-history img{ width:46px; border-radius:3px; cursor:pointer; }
   .tcgp-history .tcg-holo, .tcg-feed-card .tcg-holo{ width:max-content; }   /* foil only as wide as the little card */
   /* the pack: a sealed foil pouch, ridged heat seals top and bottom, a tear strip across the top */
-  .tpk{ position:relative; width:var(--pw, 200px); height:calc(var(--pw, 200px) * 1.5); margin:0 auto; filter:drop-shadow(0 14px 24px rgba(0,0,0,.65)) drop-shadow(0 0 18px rgba(63,242,217,.25)); user-select:none; -webkit-user-select:none; }
+  .tpk{ position:relative; width:var(--pw, 200px); height:calc(var(--pw, 200px) * 1.5); margin:0 auto; user-select:none; -webkit-user-select:none;
+    filter:drop-shadow(3px 2px 0 #06302c) drop-shadow(1px 1px 0 #0d4a44) drop-shadow(0 18px 22px rgba(0,0,0,.7)) drop-shadow(0 0 18px rgba(63,242,217,.22)); }
+  /* soft shadow on the ground under the pack */
+  .tpk::after{ content:''; position:absolute; left:8%; right:8%; bottom:-7%; height:9%; border-radius:50%; background:radial-gradient(ellipse at center, rgba(0,0,0,.6), transparent 70%); z-index:-1; pointer-events:none; }
+  .tcgo .tpk.open::after, .tcgo .tpk.drop::after{ opacity:0; }
+  /* a filled pouch: it bulges, so the sides fall into shadow and a highlight runs down the middle */
+  .tpk-body::after, .tpk-strip > div::after{ content:''; position:absolute; inset:0; pointer-events:none; z-index:2;
+    background:linear-gradient(90deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.18) 7%, transparent 16%, rgba(255,255,255,.16) 38%, rgba(255,255,255,.04) 50%, transparent 62%, rgba(0,0,0,.2) 86%, rgba(0,0,0,.6) 100%); }
+  .tpk-body::before{ content:''; position:absolute; inset:0; pointer-events:none; z-index:2;
+    background:linear-gradient(180deg, rgba(0,0,0,.25) 0%, transparent 10%, transparent 82%, rgba(0,0,0,.35) 93%, rgba(0,0,0,.15) 100%),
+      repeating-linear-gradient(172deg, transparent 0 34px, rgba(255,255,255,.05) 35px, transparent 37px); }
   .tpk-foil{ position:absolute; inset:0; border-radius:4px;
     background:linear-gradient(150deg, #13786e 0%, #2fc8b6 10%, #128a7e 24%, #6ff3e2 40%, #e6fffb 47%, #3fd9c6 54%, #0f6d65 75%, #061f1d 100%); }
   .tpk-foil::before{ content:''; position:absolute; inset:0; border-radius:inherit; background:
@@ -1296,11 +1306,11 @@
   .tpk-foil::after{ content:''; position:absolute; inset:0; border-radius:inherit; overflow:hidden;
       background:linear-gradient(105deg, transparent 42%, rgba(255,255,255,.55) 50%, transparent 58%) no-repeat; background-size:300% 100%; animation:tpkSheen 3.8s ease-in-out infinite; }
   @keyframes tpkSheen{ 0%{ background-position:120% 0; } 55%,100%{ background-position:-20% 0; } }
-  .tpk-body{ position:absolute; left:0; right:0; top:13%; bottom:0; overflow:hidden; border-radius:0 0 4px 4px; }
+  .tpk-body{ position:absolute; left:0; right:0; top:13%; bottom:0; overflow:hidden; border-radius:0 0 6px 6px / 0 0 10px 10px; }
   .tpk-body .tpk-foil{ top:-15%; }
-  .tpk-seal{ position:absolute; left:0; right:0; height:7%; background:repeating-linear-gradient(90deg, rgba(0,0,0,.28) 0 2px, rgba(255,255,255,.18) 2px 4px); }
+  .tpk-seal{ position:absolute; left:0; right:0; height:7%; z-index:3; background:repeating-linear-gradient(90deg, rgba(0,0,0,.32) 0 2px, rgba(255,255,255,.2) 2px 4px), linear-gradient(rgba(255,255,255,.12), rgba(0,0,0,.25)); box-shadow:0 -3px 6px rgba(0,0,0,.35); }
   .tpk-body .tpk-seal{ bottom:0; }
-  .tpk-art{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4%; padding-bottom:6%; }
+  .tpk-art{ position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4%; padding-bottom:6%; }
   .tpk-art img{ width:52%; filter:drop-shadow(0 4px 10px rgba(0,0,0,.6)); }
   .tpk-art b{ font:800 calc(var(--pw, 200px) * .105) Cinzel, Georgia, serif; color:#fff; letter-spacing:.08em; text-shadow:0 2px 6px #000, 0 0 12px rgba(63,242,217,.9); }
   .tpk-art i{ font:600 calc(var(--pw, 200px) * .05) system-ui; font-style:normal; color:#e0fffb; letter-spacing:.25em; text-transform:uppercase; text-shadow:0 1px 3px #000; }
@@ -1322,7 +1332,8 @@
   .tpk.torn .tpk-hint, .tpk.tearing .tpk-hint{ opacity:0; transition:opacity .2s; }
   .tpk-strip.fly > .tpk-lift{ clip-path:none; transition:transform .7s cubic-bezier(.3,.6,.4,1), opacity .7s; transform:translate(-40%, -240%) rotate(-38deg); opacity:0; }
   .tpk-strip.fly > .tpk-stay, .tpk-strip.fly .tpk-rip{ display:none; }
-  .tcgp-product .tpk{ cursor:default; } .tcgp-product .tpk-strip{ cursor:default; }
+  .tcgp-product .tpk{ cursor:default; transform:perspective(800px) rotateY(-14deg) rotateX(5deg); transition:transform .5s cubic-bezier(.2,.9,.3,1.2); }
+  .tcgp-product:hover .tpk{ transform:perspective(800px) rotateY(6deg) rotateX(2deg) translateY(-6px); } .tcgp-product .tpk-strip{ cursor:default; }
   /* opening overlay */
   .tcgo{ position:fixed; inset:0; z-index:100000; background:radial-gradient(ellipse at center, rgba(10,40,38,.94), rgba(0,0,0,.97)); overflow:hidden; }
   .tcgo.shake{ animation:tcgoShake .5s; } @keyframes tcgoShake{ 20%{ transform:translate(-8px,4px); } 40%{ transform:translate(7px,-5px); } 60%{ transform:translate(-5px,3px); } 80%{ transform:translate(3px,-2px); } }
