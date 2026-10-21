@@ -1277,7 +1277,7 @@
   .tcgp-tabs{ display:flex; gap:6px; } .tcgp-tab{ cursor:pointer; padding:7px 16px; border-radius:4px; border:1px solid rgba(63,242,217,.3); background:rgba(0,0,0,.35); color:#9cc7c1; font:700 13px Cinzel, Georgia, serif; }
   .tcgp-tab.on{ background:linear-gradient(#3ff2d9, #1c9d90); color:#032421; border-color:#7ff9ea; }
   .tcgp-shop{ display:flex; flex-wrap:wrap; gap:28px; align-items:flex-start; }
-  .tcgp-product{ width:280px; padding:18px; text-align:center; border-radius:8px; border:1px solid rgba(63,242,217,.3); background:linear-gradient(160deg, #10181a, #0b0d0f); }
+  .tcgp-product{ width:280px; padding:26px 18px 18px; text-align:center; border-radius:8px; border:1px solid rgba(63,242,217,.3); background:radial-gradient(ellipse at 50% 38%, rgba(63,242,217,.22), transparent 58%), radial-gradient(ellipse at 50% 100%, rgba(233,196,106,.1), transparent 50%), linear-gradient(160deg, #10181a, #0b0d0f); }
   .tcgp-odds{ flex:1; min-width:260px; font-size:14px; color:#c6e3df; line-height:1.7; }
   .tcgp-odds h3{ font:700 16px Cinzel, Georgia, serif; color:#bff7ef; margin:0 0 6px; }
   .tcgp-odds .r{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; vertical-align:middle; }
@@ -1299,7 +1299,10 @@
     background:linear-gradient(180deg, rgba(0,0,0,.25) 0%, transparent 10%, transparent 82%, rgba(0,0,0,.35) 93%, rgba(0,0,0,.15) 100%),
       repeating-linear-gradient(172deg, transparent 0 34px, rgba(255,255,255,.05) 35px, transparent 37px); }
   .tpk-foil{ position:absolute; inset:0; border-radius:4px;
-    background:linear-gradient(150deg, #13786e 0%, #2fc8b6 10%, #128a7e 24%, #6ff3e2 40%, #e6fffb 47%, #3fd9c6 54%, #0f6d65 75%, #061f1d 100%); }
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.035) 0 1px, transparent 1px 11px),
+      repeating-linear-gradient(-45deg, rgba(0,0,0,.12) 0 1px, transparent 1px 11px),
+      linear-gradient(150deg, #0d3d38 0%, #146b62 14%, #0b3a35 30%, #1d8a7f 44%, #8ff5e8 49%, #1d8a7f 54%, #0b3a35 70%, #082623 86%, #041312 100%); }
   .tpk-foil::before{ content:''; position:absolute; inset:0; border-radius:inherit; background:
       repeating-linear-gradient(100deg, transparent 0 22px, rgba(255,255,255,.06) 22px 24px),
       radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.35), transparent 45%); mix-blend-mode:screen; }
@@ -1310,10 +1313,22 @@
   .tpk-body .tpk-foil{ top:-15%; }
   .tpk-seal{ position:absolute; left:0; right:0; height:7%; z-index:3; background:repeating-linear-gradient(90deg, rgba(0,0,0,.32) 0 2px, rgba(255,255,255,.2) 2px 4px), linear-gradient(rgba(255,255,255,.12), rgba(0,0,0,.25)); box-shadow:0 -3px 6px rgba(0,0,0,.35); }
   .tpk-body .tpk-seal{ bottom:0; }
-  .tpk-art{ position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4%; padding-bottom:6%; }
-  .tpk-art img{ width:52%; filter:drop-shadow(0 4px 10px rgba(0,0,0,.6)); }
-  .tpk-art b{ font:800 calc(var(--pw, 200px) * .105) Cinzel, Georgia, serif; color:#fff; letter-spacing:.08em; text-shadow:0 2px 6px #000, 0 0 12px rgba(63,242,217,.9); }
-  .tpk-art i{ font:600 calc(var(--pw, 200px) * .05) system-ui; font-style:normal; color:#e0fffb; letter-spacing:.25em; text-transform:uppercase; text-shadow:0 1px 3px #000; }
+  .tpk-art{ position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3%; padding-bottom:8%; }
+  /* gold double border inside the pouch */
+  .tpk-art::after{ content:''; position:absolute; inset:5% 7% 11%; border:1.5px solid rgba(233,196,106,.75); border-radius:3px;
+    box-shadow:0 0 0 3px rgba(0,0,0,.25), 0 0 0 4.5px rgba(233,196,106,.35), inset 0 0 18px rgba(0,0,0,.35); pointer-events:none; }
+  /* light rays fanning out behind the crest */
+  .tpk-art::before{ content:''; position:absolute; left:50%; top:34%; width:150%; aspect-ratio:1; translate:-50% -50%; pointer-events:none;
+    background:repeating-conic-gradient(rgba(143,245,232,.22) 0 5deg, transparent 5deg 15deg);
+    -webkit-mask:radial-gradient(circle, #000 8%, transparent 48%); mask:radial-gradient(circle, #000 8%, transparent 48%); animation:tpkRays 24s linear infinite; }
+  @keyframes tpkRays{ to{ rotate:360deg; } }
+  .tpk-art img{ position:relative; width:60%; filter:drop-shadow(0 0 14px rgba(127,249,234,.55)) drop-shadow(0 6px 10px rgba(0,0,0,.7)); }
+  .tpk-art b{ position:relative; font:900 calc(var(--pw, 200px) * .12) Cinzel, Georgia, serif; letter-spacing:.06em; color:transparent;
+    background:linear-gradient(#fff6d0 10%, #f0cd6e 45%, #a8741f 60%, #f3d684 90%); -webkit-background-clip:text; background-clip:text;
+    filter:drop-shadow(0 2px 0 #2a1806) drop-shadow(0 0 8px rgba(0,0,0,.8)); }
+  .tpk-art i{ position:relative; padding:.45em 1.2em; font:700 calc(var(--pw, 200px) * .048) Cinzel, Georgia, serif; font-style:normal; color:#f3e2b0; letter-spacing:.22em; text-transform:uppercase;
+    background:linear-gradient(90deg, transparent, rgba(0,0,0,.55) 15%, rgba(0,0,0,.55) 85%, transparent);
+    border-top:1px solid rgba(233,196,106,.55); border-bottom:1px solid rgba(233,196,106,.55); }
   .tpk-mouth{ position:absolute; left:3%; right:3%; top:-6px; height:16px; border-radius:50%; background:radial-gradient(ellipse at center, #000 30%, rgba(0,0,0,.6) 60%, transparent 72%); opacity:0; transition:opacity .3s; }
   .tpk.open .tpk-mouth{ opacity:1; }
   /* the strip above the tear line; it's two copies: the part already torn (lifts away) and the part still attached */
@@ -12141,7 +12156,7 @@ function tcgPackHtml(pw, hint){
   const strip = `<div class="tpk-foil"></div><div class="tpk-seal"></div><div class="tpk-line"></div>`;
   return `<div class="tpk" style="--pw:${pw}px">
     <div class="tpk-body"><div class="tpk-foil"></div><div class="tpk-mouth"></div>
-      <div class="tpk-art"><img src="guild-icon.png" alt=""><b>HATED TCG</b><i>5 cards</i></div><div class="tpk-seal"></div></div>
+      <div class="tpk-art"><img src="guild-icon.png" alt=""><b>HATED TCG</b><i>Booster &middot; 5 cards</i></div><div class="tpk-seal"></div></div>
     <div class="tpk-strip"><div class="tpk-stay">${strip}</div><div class="tpk-lift">${strip}</div><span class="tpk-rip"></span><span class="tpk-notch"></span></div>
     ${hint ? `<div class="tpk-hint">&#9664; Tear here &#9654;</div>` : ''}
   </div>`;
