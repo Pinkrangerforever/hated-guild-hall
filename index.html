@@ -1341,10 +1341,10 @@
   .tcgo-card.flip .in{ --flip:180deg; transition:transform .8s cubic-bezier(.3,1.5,.5,1); }
   .tcgo-card.flip{ z-index:5; }
   /* a revealed card grows when hovered (pulled toward the middle so edge cards stay on screen); click to see it full size */
-  .tcgo-card.shown{ transition:transform .25s ease-out; cursor:zoom-in; }
-  .tcgo-card.shown:hover{ z-index:10; transform:translate(calc(var(--x) * .55), calc(var(--y) * .55)) scale(1.75); }
-  .tcgo-card.shown:hover .tcgo-tag{ opacity:0; }
-  .tcgo-card.shown.zoom{ z-index:10; transform:translate(0, 0) scale(var(--zs, 2.2)); }
+  .tcgo-card.flip.out{ transform:translate(var(--tx), var(--ty)) scale(var(--ts)); transition:transform .85s cubic-bezier(.3,1.15,.5,1); }
+  .tcgo-card.flip .tcgo-tag{ bottom:-22px; font-size:9px; }
+  .tcgo-card.shown{ cursor:zoom-in; }
+  .tcgo-card.shown.zoom{ z-index:10; transform:translate(0, 0) scale(var(--zs, 2.2)); transition:transform .35s ease-out; }
   .tcgo-card.pop{ animation:tcgPop .8s; } @keyframes tcgPop{ 40%{ scale:1.12; } }
   .tcgo-card .face{ position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
   .tcgo-card .back{ background:url(https://assets.hatedforever.com/tcg/cardback.webp?v=2) center/88% auto no-repeat; filter:drop-shadow(0 0 8px var(--glow)) drop-shadow(0 0 3px var(--glow)); }
@@ -12053,16 +12053,25 @@ async function tcgOpenPack(){
   state.tcgMine = null;                                    // reload balance / binder / history afterwards
   out.cards.forEach(c => { const im = new Image(); im.src = TCG_IMG(c.id); });   // start loading the art now
 
-  const w = Math.min(190, Math.floor((window.innerWidth - 40) / 3.2)), pw = Math.round(Math.min(w * 1.35, 240));
-  const wide = window.innerWidth > 5.6 * w;
-  const spots = wide ? [-2, -1, 0, 1, 2].map(i => [i * w * 1.12, 0]) : [[-1.1, -.72], [0, -.72], [1.1, -.72], [-.55, .72], [.55, .72]].map(([x, y]) => [x * w, y * w * 1.36]);
+  // Two rows: face-down cards wait in a row along the bottom; each one you turn over flips up into a row of
+  // big cards across the top (same column), so they can be read.
+  const VW = window.innerWidth, VH = window.innerHeight;
+  const narrow = VW < 600;                                                               // phones: revealed cards in rows of 3 + 2
+  const big = Math.floor(narrow ? Math.min((VW - 32) / 3.25, (VH * .5) / 2.8) : Math.min(250, (VW - 32) / 5.25, (VH * .52) / 1.334));
+  const w = Math.floor(Math.min(150, (VW - 32) / 5.6, big * .72));                        // face-down card width
+  const pw = Math.round(Math.min(240, VW * .55, (VH * .6) / 1.5));
+  const bh = big * 1.334, topY = -VH / 2 + 64 + bh / 2, lastTop = narrow ? topY + bh + 30 : topY;
+  const botY = Math.min(VH / 2 - 70 - w * 1.334 / 2, lastTop + bh / 2 + w * .667 + 40);
+  const spots = [-2, -1, 0, 1, 2].map(i => [i * w * 1.1, botY]);
+  const tops = narrow ? [[-1.05, 0], [0, 0], [1.05, 0], [-.53, 1], [.53, 1]].map(([x, r]) => [x * big, r ? lastTop : topY])
+                      : [-2, -1, 0, 1, 2].map(i => [i * big * 1.05, topY]);
   const ov = document.createElement('div');
   ov.className = 'tcgo';
   ov.innerHTML = `<div class="tcgo-flash"></div>
     <div class="tcgo-hint">Tear open your pack</div>
     <div class="tcgo-stage">
       ${tcgPackHtml(pw, true)}
-      ${out.cards.map((c, i) => `<div class="tcgo-card ${c.rarity}" style="--cw:${w}px;--x:${spots[i][0]}px;--y:${spots[i][1]}px;--sx:${(i - 2) * 6}px;--sr:${(i - 2) * 3}deg;--glow:${TCG_RARITY[c.rarity].color}">
+      ${out.cards.map((c, i) => `<div class="tcgo-card ${c.rarity}" style="--cw:${w}px;--x:${spots[i][0]}px;--y:${spots[i][1]}px;--tx:${tops[i][0]}px;--ty:${tops[i][1]}px;--ts:${(big / w).toFixed(3)};--sx:${(i - 2) * 6}px;--sr:${(i - 2) * 3}deg;--glow:${TCG_RARITY[c.rarity].color}">
         <div class="in"><div class="face back"></div><div class="face front">${tcgCardImg(c.id, c.holo)}</div></div>
         <span class="tcgo-tag" style="color:${TCG_RARITY[c.rarity].color}">${c.holo ? 'HOLO ' : ''}${TCG_RARITY[c.rarity].label}${c.new ? ' &middot; NEW' : ''}</span></div>`).join('')}
     </div>
@@ -12119,7 +12128,7 @@ async function tcgOpenPack(){
   // ---- revealing ----
   let left = cards.length;
   const done = () => {
-    hint.textContent = 'Added to your binder — hover a card to read it, click to enlarge';
+    hint.textContent = 'Added to your binder — click a card to enlarge it';
     const d = ov.querySelector('.tcgo-done'); d.style.display = 'flex';
     const again = ov.querySelector('#tcgo-again');
     if(out.points < TCG_PACK_PRICE) again.disabled = true;
@@ -12149,7 +12158,7 @@ async function tcgOpenPack(){
       if(!el.classList.contains('shown')) return reveal(el, i);
       const was = el.classList.contains('zoom');           // click a revealed card: blow it up in the middle (click again to put it back)
       cards.forEach(x => x.classList.remove('zoom'));
-      if(!was){ el.style.setProperty('--zs', Math.min(2.4, (window.innerHeight * .8) / el.offsetHeight).toFixed(2)); el.classList.add('zoom'); }
+      if(!was){ el.style.setProperty('--zs', Math.min((window.innerHeight * .85) / el.offsetHeight, (window.innerWidth * .9) / el.offsetWidth).toFixed(2)); el.classList.add('zoom'); }
     });
     // tilt toward the pointer while it's face down
     el.addEventListener('pointermove', e => {
