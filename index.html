@@ -7859,7 +7859,8 @@ function startTriviaEvent(rect, pendingId, params){
     const btns = [...enc.body.querySelectorAll('.trv-a')];
     btns.forEach(b => b.disabled = true);
     if(idx != null) btns[idx].classList.add('picked');
-    const data = await resolveSparkleEvent(pendingId, idx != null, rect.left + rect.width / 2, rect.top, idx == null ? [] : [ms, idx], { silent: true });
+    // the browser never knows the right answer (the server keeps it), so it claims nothing: the server decides
+    const data = await resolveSparkleEvent(pendingId, false, rect.left + rect.width / 2, rect.top, idx == null ? [] : [ms, idx], { silent: true });
     const answer = data && data.answer;
     if(answer != null && btns[answer]) btns[answer].classList.add('right');
     if(idx != null && answer != null && idx !== answer) btns[idx].classList.add('wrong');
@@ -7922,10 +7923,10 @@ function startLumberjackEvent(rect, pendingId, params){
 
   function chop(){
     if(done) return;
-    const t = performance.now() - start;
+    const t = Math.round(performance.now() - start);   // whole ms: judged exactly as the server judges the sent timings
     if(t - lastChop < 300) return; // the axe needs a moment between swings
     lastChop = t;
-    timings.push(Math.round(t));
+    timings.push(t);
     tries++;
     triesEl.textContent = `Swings: ${tries}/${maxTries}`;
     const good = Math.abs(markerAt(t) - notches[Math.min(hits, notches.length - 1)]) <= width / 2;
@@ -8297,7 +8298,8 @@ function startMiningEvent(rect, pendingId, params){
       openNode(nodeAt(slot));
     }
     const vr = enc.card.getBoundingClientRect();
-    const d = await resolveSparkleEvent(pendingId, slot != null, vr.left + vr.width / 2, vr.top + 20, slot == null ? [] : [ms, slot], { silent: true });
+    // the server follows the gem through the swaps and decides; the browser claims nothing (no false cheat flags on a wrong pick)
+    const d = await resolveSparkleEvent(pendingId, false, vr.left + vr.width / 2, vr.top + 20, slot == null ? [] : [ms, slot], { silent: true });
     const won = !!(d && d.won);
     const gemSlot = d && d.gem_slot != null ? d.gem_slot : null;
     if(gemSlot != null){
