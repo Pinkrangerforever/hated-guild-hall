@@ -1260,7 +1260,7 @@
   .tcg-st{ font:700 10px system-ui; border-radius:3px; padding:1px 6px; text-transform:uppercase; letter-spacing:.05em; }
   .tcg-st.held{ background:rgba(255,179,92,.2); color:#ffb35c; } .tcg-st.bad{ background:rgba(255,90,74,.2); color:#ff7b6a; } .tcg-st.ok{ background:rgba(63,242,217,.15); color:#3ff2d9; }
   .tcg-code{ margin-top:10px; padding:8px 10px; border:1px dashed rgba(63,242,217,.45); border-radius:4px; font-size:12px; color:#bfe9e3; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-  .tcg-code code{ background:rgba(0,0,0,.45); padding:3px 8px; border-radius:3px; color:#3ff2d9; user-select:all; font-size:13px; }
+  .tcg-code code{ display:block; width:100%; box-sizing:border-box; background:rgba(0,0,0,.45); padding:6px 8px; border-radius:3px; color:#3ff2d9; user-select:all; font-size:13px; white-space:pre-wrap; word-break:break-all; overflow-wrap:anywhere; max-height:220px; overflow-y:auto; }   /* long card codes wrap and grow downward */
   .tcg-paste{ margin-top:10px; display:flex; flex-direction:column; gap:8px; }
   .tcg-paste textarea{ width:100%; box-sizing:border-box; min-height:90px; resize:vertical; background:rgba(0,0,0,.45); border:1px solid rgba(63,242,217,.45); border-radius:4px; color:#bff7ef; font:12px ui-monospace, Consolas, monospace; padding:8px; word-break:break-all; }
   .tcg-paste textarea:focus{ outline:none; border-color:#5afff2; box-shadow:0 0 8px rgba(90,255,242,.3); }
