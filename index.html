@@ -12091,7 +12091,7 @@ const tcgSfx = (() => {
       n.forEach((f, i) => { tone(f, i * .07, rich ? 1.2 : .5, rich ? .14 : .1, 'sine'); if(rich) tone(f * 2, i * .07, .8, .04, 'triangle'); });
       if(rarity === 'legendary'){ tone(70, 0, 1.2, .5, 'sine', 40); noise(120, .7, .8, .5, 'lowpass'); }
     },
-    stamp(){ tone(110, 0, .14, .35, 'square', 60); noise(300, .8, .12, .4, 'lowpass'); },
+    stamp(){ [1047, 1319, 1568, 2093].forEach((f, i) => { tone(f, i * .06, .45, .09, 'sine'); tone(f * 2, i * .06, .25, .02, 'triangle'); }); },   // NEW!: a quick bright sparkle up
     fanfare(){ [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, i * .12, i === 5 ? 1.4 : .3, .13, 'triangle')); tone(65, 0, 1.6, .3, 'sine'); },
   };
 })();
