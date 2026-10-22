@@ -163,7 +163,9 @@ document.addEventListener('DOMContentLoaded', () => curtainFlags(window.WAR_FLAG
   .vs .n{ font-size:21px; }
   details.fold summary{ cursor:pointer; list-style:none; } details.fold summary::-webkit-details-marker{ display:none; }
   details.fold summary::before{ content:'▸ '; color:var(--gold); } details.fold[open] summary::before{ content:'▾ '; }
-  #feedList .day{ text-align:center; font:700 11px Cinzel, serif; letter-spacing:2px; color:#a8875a; margin:8px 0 4px; display:flex; align-items:center; gap:6px; border:0; }
+  #feedList .day{ text-align:center; font:700 12px Cinzel, serif; letter-spacing:2px; color:#a8875a; margin:8px 0 4px; display:flex; align-items:center; gap:6px; border:0; cursor:pointer; user-select:none; }
+  #feedList .day:hover{ color:#e0c07a; } #feedList .day .caret{ font-size:11px; }
+  #feedList .day .cnt{ font:600 10px system-ui; letter-spacing:0; color:#7d6a4a; background:rgba(214,169,64,0.12); border-radius:8px; padding:0 6px; }
   #feedList .day::before, #feedList .day::after{ content:''; flex:1; height:1px; background:rgba(214,169,64,0.3); }
   #feedList .ev{ display:grid; grid-template-columns:22px 1fr; gap:6px; align-items:start; padding:5px 6px; margin:2px 0; border-radius:5px; border-left:3px solid #4a4234; background:rgba(0,0,0,0.22); border-bottom:0; }
   #feedList .ev.h{ border-left-color:#c8342a; } #feedList .ev.a{ border-left-color:#3a72e0; } #feedList .ev.hi{ background:linear-gradient(90deg, rgba(214,169,64,0.18), rgba(0,0,0,0.2)); }
@@ -865,15 +867,23 @@ function describe(e){
   }
 }
 const FEED_ICON = { signup: '✍', start: '🎺', join: '🤝', deploy: '🪖', move: '🥾', attack: '⚔', fortify: '🧱', build: '🏗', craft: '📜', shieldwall: '🛡', trade: '⚖', pet: '🐾', autopilot: '🤖', dawn: '☀', end: '🏆' };
+const feedDayToggled = {};   // day -> true when the player flipped it from its default (today open, earlier days collapsed)
+function feedDayOpen(d){ const today = E.day(G); const def = d >= today; return feedDayToggled[d] ? !def : def; }
+function toggleFeedDay(d){ feedDayToggled[d] = !feedDayToggled[d]; renderFeed(); }
 function renderFeed(){
-  const list = document.getElementById('feedList'); let lastDay = null, out = '';
+  const list = document.getElementById('feedList');
+  const days = []; let cur = null;
   G.log.slice(-150).reverse().forEach(e => {
-    if(e.day !== lastDay){ out += `<div class="day">Day ${e.day + 1}</div>`; lastDay = e.day; }
+    if(!cur || cur.day !== e.day){ cur = { day: e.day, rows: [] }; days.push(cur); }
     const ico = e.type === 'attack' && e.captured ? '⚑' : FEED_ICON[e.type] || '•';
     const big = (e.type === 'attack' && e.captured) || e.type === 'end' || e.type === 'start';
-    out += `<div data-seq="${e.seq}" class="ev ${FC(e.faction)} ${big ? "hi" : ""}"><span class="ico">${ico}</span><span class="tx">${describe(e)}</span></div>`;
+    cur.rows.push(`<div data-seq="${e.seq}" class="ev ${FC(e.faction)} ${big ? "hi" : ""}"><span class="ico">${ico}</span><span class="tx">${describe(e)}</span></div>`);
   });
-  list.innerHTML = out;
+  list.innerHTML = days.map(g => {
+    const open = feedDayOpen(g.day);
+    return `<div class="day ${open ? 'open' : ''}" role="button" tabindex="0" onclick="toggleFeedDay(${g.day})" title="${open ? 'Hide' : 'Show'} day ${g.day + 1}">
+        <span class="caret">${open ? '▾' : '▸'}</span> Day ${g.day + 1}${open ? '' : ` <span class="cnt">${g.rows.length}</span>`}</div>${open ? g.rows.join('') : ''}`;
+  }).join('');
 }
 function highlightFeed(seq){
   document.querySelectorAll('#feedList .now').forEach(d => d.classList.remove('now'));
@@ -894,7 +904,7 @@ function renderLedger(){
     return `<div class="ledCol ${f}"><h4><span>${f === 'horde' ? 'The Horde' : 'The Alliance'} · ${list.length}</span><span class="lbl">${waiting} troops to deploy</span></h4>
       ${list.map(p => `<div class="ledRow ${p.id === playAs ? 'me' : ''}"><span>${esc(p.name)}${p.bot ? ' <span class="tag">bot</span>' : ''}</span>
         <span class="ap" title="${p.ap} AP left">${Array.from({ length: E.RULES.apPerDay }, (_, i) => `<i class="${i < p.ap ? 'on' : ''}"></i>`).join('')}</span>
-        <span class="st ${p.reinforce ? 'wait' : 'done'}" title="Troops this player can still deploy today">🪖 ${p.reinforce || 0} to deploy</span></div>`).join('')}
+        <span class="st ${p.reinforce ? 'wait' : 'done'}" title="Troops this player can still deploy today">${TROOP_ICON(p.faction)} ${p.reinforce || 0} to deploy</span></div>`).join('')}
     </div>`;
   };
   l.innerHTML = `<div class="ph"><div class="crest" style="font-size:18px">📒</div><div style="flex:1"><div class="t">War Ledger</div><div class="s">Day ${d + 1} · who serves where</div></div><button class="btn sm" onclick="toggleLedger()">✕</button></div>
