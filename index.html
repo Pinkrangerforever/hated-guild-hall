@@ -11983,15 +11983,40 @@ async function tcgCall(body){
 }
 // The addon's "Export points" code -> log lines. Format: HTCG2|first time|edited|chars|creatures|entries|check
 const TCG_CLS = { n: 'normal', e: 'elite', r: 'rare', R: 'rareelite', w: 'worldboss', t: 'trivial', m: 'minus', x: '?' };
+// The addon's export: HTCG4~first~edited~chars~creatures~entries~check (3.6+), or the older HTCG2 with "|" separators.
+// WoW treats "|" + certain letters as UI codes (|r ends a colour, |n is a new line...) and drops them from an edit box,
+// so an HTCG2 code can arrive with a "|R"/"|r"/"|N"/"|n" missing (a character named Raphaello came through as
+// "|0aphaello"). If the checksum fails, put back each such pair (up to two of them) until it checks out.
+function tcgCheck(body){ let h = 7; for(const b of new TextEncoder().encode(body)) h = (h * 31 + b) % 1000003; return h; }
+function tcgRepairPipes(body, check){
+  const eaten = ['|R', '|r', '|N', '|n'];
+  const head = Math.min(body.length, (body.indexOf(';') > 0 ? body.indexOf(';') : body.length) + 4);   // eaten pairs sit before the entries
+  for(let i = 6; i <= head; i++) for(const e of eaten){
+    const one = body.slice(0, i) + e + body.slice(i);
+    if(tcgCheck(one) === check) return one;
+  }
+  for(let i = 6; i <= head; i++) for(const e of eaten){
+    const one = body.slice(0, i) + e + body.slice(i);
+    for(let j = i + 2; j <= head + 2; j++) for(const f of eaten){
+      const two = one.slice(0, j) + f + one.slice(j);
+      if(tcgCheck(two) === check) return two;
+    }
+  }
+  return null;
+}
 function tcgDecodeExport(code){
   code = (code || '').replace(/\s+/g, '');
-  const at = code.lastIndexOf('|');
-  if(!code.startsWith('HTCG2|') || at < 0) throw new Error("that isn't an export code from the addon (it starts with HTCG2)");
-  const body = code.slice(0, at), check = +code.slice(at + 1);
-  // the addon sums the code's BYTES (UTF-8); accented character names are 2 bytes each, so sum bytes here too
-  let hh = 7; for(const b of new TextEncoder().encode(body)) hh = (hh * 31 + b) % 1000003;
-  if(hh !== check) throw new Error('the code is incomplete or changed - copy it again in game (Select all, then Ctrl+C)');
-  const [, first, edited, charList, npcList, entryList] = body.split('|');
+  const sep = code.startsWith('HTCG4~') ? '~' : code.startsWith('HTCG2|') ? '|' : null;
+  const at = sep ? code.lastIndexOf(sep) : -1;
+  if(!sep || at < 0) throw new Error("that isn't an export code from the addon (it starts with HTCG4 or HTCG2)");
+  let body = code.slice(0, at);
+  const check = +code.slice(at + 1);
+  if(tcgCheck(body) !== check){
+    const fixed = sep === '|' ? tcgRepairPipes(body, check) : null;
+    if(!fixed) throw new Error('the code is incomplete or changed - copy it again in game (Select all, then Ctrl+C)');
+    body = fixed;
+  }
+  const [, first, edited, charList, npcList, entryList] = body.split(sep);
   const chars = charList ? charList.split(',') : [], npcs = npcList ? npcList.split(',').map(x => parseInt(x, 36)) : [];
   const lines = []; let t = +first;
   for(const e of (entryList ? entryList.split(';') : [])){

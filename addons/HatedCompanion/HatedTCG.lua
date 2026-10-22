@@ -298,7 +298,8 @@ local function sinceSync()
   return sum, n
 end
 -- ---------- the export code: your kills since the last sync, packed small, to paste on the website ----------
--- HTCG2|<first kill time>|<edited? 0/1>|<character names>|<creature ids>|<entries>|<check>
+-- HTCG4~<first kill time>~<edited? 0/1>~<character names>~<creature ids>~<entries>~<check>
+-- ("~", not "|": WoW reads "|" + some letters as UI codes and drops them from the edit box - a name like Raphaello broke the old HTCG2 code)
 -- entries (base 36, ";" between):  m<time step>,<creature #>,<mob level>,<class>,<character #>,<character level>
 --                                  b<time step>,<encounter id>,<r|d>,<character #>,<character level>
 local B36 = "0123456789abcdefghijklmnopqrstuvwxyz"
@@ -311,7 +312,7 @@ local CLS = { normal = "n", elite = "e", rare = "r", rareelite = "R", worldboss 
 local function exportCode()
   local t = db(); local since = (t.server and t.server.lastT) or 0
   local chars, charIx, npcs, npcIx, out, prev, first, n = {}, {}, {}, {}, {}, nil, nil, 0
-  local function ci(c) if not charIx[c] then chars[#chars + 1] = (c:gsub("[|,;]", "")); charIx[c] = #chars - 1 end return charIx[c] end
+  local function ci(c) if not charIx[c] then chars[#chars + 1] = (c:gsub("[|~,;]", "")); charIx[c] = #chars - 1 end return charIx[c] end
   for _, e in ipairs(t.log) do
     local f = { strsplit(",", e) }
     local ts = tonumber(f[2])
@@ -330,9 +331,9 @@ local function exportCode()
     end
   end
   if n == 0 then return nil, 0 end
-  local body = table.concat({ "HTCG2", first, t.tampered and 1 or 0, table.concat(chars, ","), table.concat(npcs, ","), table.concat(out, ";") }, "|")
+  local body = table.concat({ "HTCG4", first, t.tampered and 1 or 0, table.concat(chars, ","), table.concat(npcs, ","), table.concat(out, ";") }, "~")
   local h = 7; for i = 1, #body do h = (h * 31 + body:byte(i)) % 1000003 end
-  return body .. "|" .. h, n
+  return body .. "~" .. h, n
 end
 
 local exporter
