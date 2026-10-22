@@ -11988,7 +11988,8 @@ function tcgDecodeExport(code){
   const at = code.lastIndexOf('|');
   if(!code.startsWith('HTCG2|') || at < 0) throw new Error("that isn't an export code from the addon (it starts with HTCG2)");
   const body = code.slice(0, at), check = +code.slice(at + 1);
-  let hh = 7; for(let i = 0; i < body.length; i++) hh = (hh * 31 + body.charCodeAt(i)) % 1000003;
+  // the addon sums the code's BYTES (UTF-8); accented character names are 2 bytes each, so sum bytes here too
+  let hh = 7; for(const b of new TextEncoder().encode(body)) hh = (hh * 31 + b) % 1000003;
   if(hh !== check) throw new Error('the code is incomplete or changed - copy it again in game (Select all, then Ctrl+C)');
   const [, first, edited, charList, npcList, entryList] = body.split('|');
   const chars = charList ? charList.split(',') : [], npcs = npcList ? npcList.split(',').map(x => parseInt(x, 36)) : [];
