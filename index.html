@@ -11932,7 +11932,7 @@ function tcgSummaryText(sm){
   if(sm.grey) bits.push(sm.grey + ' grey (no points)');
   if(sm.capped) bits.push(sm.capped + ' over the daily cap');
   if(sm.unverified) bits.push(sm.unverified + ' without a spawn id (plain kills - update the addon)');
-  if(sm.rejected) bits.push(sm.rejected + ' rejected (spawn id didn't check out)');
+  if(sm.rejected) bits.push(sm.rejected + ' rejected (spawn id did not check out)');
   return bits.join(' · ');
 }
 function renderTcgPanel(p, isMe){
