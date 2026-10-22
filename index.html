@@ -6622,7 +6622,7 @@ async function addLoot(){
   const item = (c.querySelector('[name=item]').value||'').trim();
   const winner = (c.querySelector('[name=winner]').value||'').trim();
   const boss = (c.querySelector('[name=boss]').value||'').trim();
-  const date = c.querySelector('[name=date]').value || new Date().toISOString().slice(0,10);
+  const date = c.querySelector('[name=date]').value || (d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'))(new Date());   // today, local
   const errEl = document.getElementById('loot-error');
   if(!item || !winner){ errEl.textContent = 'Item and winner are both required.'; errEl.style.display='block'; return; }
   const { data, error } = await sb.from('loot_log').insert({ item, winner, boss, date }).select().single();
