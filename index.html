@@ -1647,7 +1647,8 @@
   @media (max-width:860px){ .comp-groups{ grid-template-columns:repeat(2, 1fr); } }
   @media (max-width:520px){ .comp-groups{ grid-template-columns:1fr; } }
   .comp-group{ display:flex; flex-direction:column; height:100%; }
-  .roster-container .comp-groups{ gap:8px; }   /* home roster: 4 full-size groups fit the panel (less side padding + gap, not smaller groups) */
+  .roster-container .comp-groups{ gap:8px; }
+  .roster-container .comp-slot.home-slot-link{ cursor:pointer; } .roster-container .comp-slot.home-slot-link:hover{ filter:brightness(1.15); }   /* home roster: 4 full-size groups fit the panel (less side padding + gap, not smaller groups) */
   .comp-group-title{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:8px; text-align:center; }
   .comp-slot{
     display:flex; align-items:center; gap:8px; min-height:59px; padding:12px 16px; margin-bottom:8px;
@@ -15008,7 +15009,7 @@ async function toggleAttendance(key){
 function renderRosterGroups(){
   const officer = testCanManage();
   const isRaidLeader = testIsRaidLeader();
-  const canEdit = officer || isRaidLeader;
+  const canEdit = false;   // the home roster is read-only: names open profiles, the roster is changed on the Roster page
 
   function slotAt(g,s){ return state.compSlots.find(row=>row.group_index===g && row.slot_index===s) || null; }
 
@@ -15020,18 +15021,18 @@ function renderRosterGroups(){
           ${ [0,1,2,3,4].map(si=>{
             const slot = slotAt(gi,si);
             const specLabel = slot ? CLASS_SPECS[slot.class_key].specs.find(s=>s.key===slot.spec_key).label : '';
-            const clickAttr = canEdit ? `data-slot-click="${gi}|${si}"` : '';
             let slotClasses = `${slot?'filled':''} ${canEdit?'editable':''}`;
             let customization = { border: '', nameCustom: '', nameplateIcon: '' };
             if(slot) {
               const profiles = Object.values(state.profilesById || {});
               const userId = profiles.find(p => p.character_name === slot.character_name)?.id;
               customization = getUserNameCustomization(userId);
+              if(userId) slotClasses += ' home-slot-link';
               if(customization.border) slotClasses += ` ${customization.border}`;
               if(customization.nameCustom) slotClasses += ` ${customization.nameCustom}`;
             }
             return `
-            <div class="comp-slot ${slotClasses}" ${clickAttr} style="${slot && !customization.border?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
+            <div class="comp-slot ${slotClasses}" ${ slot ? (() => { const uid = (Object.values(state.profilesById || {}).find(p => p.character_name === slot.character_name) || {}).id; return uid ? `data-profile-id="${uid}" title="View ${esc(slot.character_name)}'s profile"` : ''; })() : '' } style="${slot && !customization.border?`border-left:3px solid ${CLASS_SPECS[slot.class_key].color};`:''}">
               ${ slot ? `
                 <span class="spec-icon-sm" style="${specIconStyle(slot.class_key)}">${specIconHtml(slot.class_key, slot.spec_key)}</span>
                 <span class="comp-slot-info">
