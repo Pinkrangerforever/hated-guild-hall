@@ -12042,7 +12042,7 @@ async function tcgSyncEntries(entries, tampered){
     if(out.code){ state.tcgCode = out.code; try{ await navigator.clipboard.writeText(out.code); }catch(e){} }
     showToast(out.held ? `Sync held for the Raid Leader to review (${out.points} points).` : (out.points ? `+${out.points} TCG points! (${tcgSummaryText(out.summary)}) Your new code is copied - paste it in game.` : 'Synced - nothing new since your last sync.'), out.held);
   }catch(e){ showToast('Could not sync: ' + e.message, true); }
-  state.tcgBusy = false; state.tcg = null; render();
+  state.tcgBusy = false; state.tcg = null; state.tcgMine = null; render();   // reload the panel AND the balance / shop / binder
 }
 function wireTcg(){
   const po = document.getElementById('tcg-paste-open');
@@ -12061,7 +12061,7 @@ function wireTcg(){
     if(decision === 'reject' && !confirm('Reject these points? They will not be credited.')) return;
     try{ await tcgCall({ action: 'review', id: +id, decision }); showToast(decision === 'approve' ? 'Approved and credited.' : 'Rejected.'); }
     catch(e){ showToast('Could not save: ' + e.message, true); }
-    state.tcg = null; render();
+    state.tcg = null; state.tcgMine = null; render();
   }));
 }
 
