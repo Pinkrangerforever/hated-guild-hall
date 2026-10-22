@@ -119,7 +119,7 @@ async function mutate(fn: (s: any, g: Game) => any, opts: { create?: () => any, 
       s.stats = {}; Object.values(st).forEach((x: any) => { s.stats[x.p.id] = { caps: x.caps, kills: x.kills, builds: x.builds, forts: x.forts, score: x.score }; });
     }
     // each entry carries the acting player's public bits so other boards can keep their ledger current
-    entries.forEach((e: any) => { const p = e.pid && s.players[e.pid]; if(p) e.pl = { id: p.id, name: p.name, bot: !!p.bot, faction: p.faction, lastActiveDay: p.lastActiveDay, petZone: p.petZone ?? null, petDown: p.petDown ?? 0, pet: p.pet ?? null }; });
+    entries.forEach((e: any) => { const p = e.pid && s.players[e.pid]; if(p) e.pl = { id: p.id, name: p.name, bot: !!p.bot, faction: p.faction, lastActiveDay: p.lastActiveDay, ap: p.ap, reinforce: p.reinforce, petZone: p.petZone ?? null, petDown: p.petDown ?? 0, pet: p.pet ?? null }; });   // ap + reinforce keep everyone's Ledger live
     const { data: upd, error } = await db.from('guild_war_games').update({ state: s, version: g.version + 1, updated_at: new Date().toISOString() })
       .eq('id', g.id).eq('version', g.version).select('id');
     if(error) throw error;

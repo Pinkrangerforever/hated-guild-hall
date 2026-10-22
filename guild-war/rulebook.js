@@ -36,7 +36,7 @@ const WAR_RULEBOOK = [
       <li>A fallen pet recovers in <b>24 hours at level 1</b>, down to <b>12 hours at level 10</b>, then can join the board again.</li></ul>` },
   { id: 'move', icon: '🥾', title: 'Moving', tags: 'move march once per day connected forced',
     body: `<p>Move <b>ready</b> troops between your own zones that are connected through your territory. Costs 1 AP.</p>
-      <ul><li>Each zone can send troops out <b>once a day</b> (a <b>Forced March</b> card lets it go again).</li>
+      <ul><li>Each zone can send troops out <b>once a day</b> (a <b>Forced March</b> card lets it go again, and moves tired troops too).</li>
       <li>At least <b>one troop must stay behind</b>.</li><li>Moved troops arrive <b>fresh 💤</b>.</li></ul>` },
   { id: 'attack', icon: '⚔', title: 'Attacking & Dice', tags: 'attack battle dice roll defender attacker capture risk ties combat',
     body: `<p>Attack a bordering zone (or across a route) with ready troops. Costs 1 AP. The battle is fought out at once in rounds:</p>
@@ -63,7 +63,7 @@ const WAR_RULEBOOK = [
     body: `<p>Craft cards from resources (free, no AP) and play them when you need them:</p>
       <table><tr><td>📯 <b>Warcry</b></td><td>1 wood + 1 ore</td><td>+1 attack die for one battle.</td></tr>
       <tr><td>🛡 <b>Shield Wall</b></td><td>1 ore + 1 food</td><td>Raise on one of your zones: the next attack on it loses its best die in the first round.</td></tr>
-      <tr><td>🥾 <b>Forced March</b></td><td>1 food + 1 wood</td><td>Move from a zone that already sent troops today.</td></tr>
+      <tr><td>🥾 <b>Forced March</b></td><td>1 food + 1 wood</td><td>Move from a zone that already sent troops today, or move troops that only arrived today (💤).</td></tr>
       <tr><td>⛵ <b>Naval Landing</b></td><td>2 wood + 1 food</td><td>Attack across a boat or zeppelin route ignoring all defender bonuses.</td></tr>
       <tr><td>🪖 <b>+2 Troops</b></td><td>1 food + 1 ore</td><td>Two extra reinforcements right away.</td></tr></table>` },
   { id: 'trade', icon: '⚖', title: 'Trading', tags: 'trade bank port exchange rate 4:1 3:1',

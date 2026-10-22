@@ -355,7 +355,7 @@
         horde:    { url: 'models/war/horde-stronghold.gltf',    drop: /interior|foyer/i, mask: /hangingleather|clothroof/i, size: 0.5, rotY: Math.PI },
         horde_outpost: { url: 'models/war/horde-outpost.gltf', mask: /chain|clothfur|clothroof/i, size: 0.23, rotY: 0 },   // Warsong guard tower
         alliance_fortify: { url: 'models/war/fortify-alliance.gltf', size: 0.62, rotY: -1.309 },   // its gate (model +x, 15deg) turned to face the front   // Netherguard wall, a square enclosure round the zone's pieces
-        alliance_outpost: { url: 'models/war/alliance-outpost.gltf', size: 0.21, rotY: 0 },   // Caverns of Time mage tower
+        alliance_outpost: { url: 'models/war/alliance-outpost.gltf', size: 0.23, rotY: 0 },   // same as the Horde outpost   // Caverns of Time mage tower
         alliance: { sink: 0.14, url: 'models/war/alliance-stronghold.gltf', drop: /cellar|war_room|armordealer|weapondealer|generalarea/i, mask: /windows_01/i, size: 0.5, rotY: -Math.PI / 2 }
       };
       this.holdModels = {};
@@ -1088,6 +1088,7 @@
       // Onyxia's cave (a WoW cave mouth), two copies back to back so it reads as a cave from every side of the table;
       // the little rock above stays only if the model can't load
       const CAVE = 'https://assets.hatedforever.com/War%20Games/Game%20Pieces/Onyxia%20Cave/8zul_cavemicro01.gltf';
+      const caves = new THREE.Group(); lair.add(caves);   // only the cave model itself is clickable (not the rock, smoke or the marsh around it)
       this.loadGltf(CAVE).then(g => {
         const box = new THREE.Box3().setFromObject(g.scene), size = box.getSize(new THREE.Vector3());
         const s = 0.075 / Math.max(size.x, size.z);   // small: a quarter of the old rock's footprint
@@ -1096,7 +1097,7 @@
           const m = i ? g.scene.clone(true) : g.scene; this.prepModel(m);
           const holder = new THREE.Group(); holder.rotation.y = ry; holder.add(m);
           m.scale.setScalar(s); m.position.set((-box.min.x - size.x * 0.35) * s, -box.min.y * s - 0.003, -(box.min.z + box.max.z) / 2 * s);   // backs overlap: the halves sit snug
-          lair.add(holder);
+          caves.add(holder);
         });
         lair.rotation.y = Math.PI / 2;   // mouths facing along the coast
         rock.visible = false; mouth.visible = false;
@@ -1108,7 +1109,7 @@
       // whelps: the pet system's black whelp model (loaded on first use), a swarm of them bursting out when it's clicked
       const whelpGltf = () => this.whelpP || (this.whelpP = this.loadGltf('models/dragon-juvenile.gltf'));
       let busy = false;
-      this.egg(lair, () => {
+      this.egg(caves, () => {
         if(busy) return; busy = true; setTimeout(() => { busy = false; }, 4000);
         this.eggSay('onyxia', 'MANY WHELPS! HANDLE IT!');
         try{ const vo = new Audio('https://assets.hatedforever.com/War%20Games/Game%20Pieces/Onyxia%20Cave/Many%20Welps.mp3'); vo.volume = 0.8; vo.play().catch(() => {}); }catch(e){}
@@ -1442,15 +1443,26 @@
         WAR_ZONE_ORDER.forEach((k, i) => { own[i + 1] = this.ownerOf(k); });
         const sel = this.selected ? this.zoneVal[this.selected] : -1;
         const hl = new Set((this.highlights || []).map(k => this.zoneVal[k]));
+        // which zones you can move between: their shared border is drawn light; zones that touch but don't connect keep a dark line
+        if(!this.linked){
+          this.linked = new Uint8Array(256 * 256);
+          WAR_BORDERS.forEach(([a, c]) => { const va = this.zoneVal[a], vc = this.zoneVal[c]; if(va && vc){ this.linked[va * 256 + vc] = 1; this.linked[vc * 256 + va] = 1; } });
+        }
+        const LK = this.linked;
         for(let y = 0; y < RH; y++) for(let x = 0; x < RW; x++){
           const i = y * RW + x, z = R[i], o = i * 4;
           if(!isZone(z)) continue;
           const r = x + 1 < RW ? R[i + 1] : z, b = y + 1 < RH ? R[i + RW] : z, l = x > 0 ? R[i - 1] : z, t = y > 0 ? R[i - RW] : z;
-          let border = (isZone(r) && r !== z) || (isZone(b) && b !== z) || (isZone(l) && l !== z) || (isZone(t) && t !== z);
+          let border = false, open = true;   // open: every zone met here is one you can move into
+          [r, b, l, t].forEach(q => { if(isZone(q) && q !== z){ border = true; if(!LK[z * 256 + q]) open = false; } });
           if(!border && this.boldPx && this.boldPx[i]) border = true;   // borders drawn thicker where the painted shore hides them
           const hov = hr && this.regionOfPx[z] === hr;
           if(hov && this.regionEdge[i]){ const t = Math.min(1, this.regionEdge[i] / 4); d[o] = 255; d[o + 1] = 214; d[o + 2] = 120; d[o + 3] = Math.round(235 - t * 150); continue; }   // the region's rim, fading inward
-          if(border){ d[o] = 40; d[o + 1] = 24; d[o + 2] = 10; d[o + 3] = 200; continue; }
+          if(border){
+            if(open){ d[o] = 150; d[o + 1] = 118; d[o + 2] = 70; d[o + 3] = 120; }   // connected: a light, soft line
+            else { d[o] = 40; d[o + 1] = 24; d[o + 2] = 10; d[o + 3] = 200; }        // not connected: the dark line
+            continue;
+          }
           const c = COL[own[z]] || COL.neutral;
           let a = own[z] === 'neutral' ? 0 : 0.36, cr = c[0], cg = c[1], cb = c[2];
           if(hov){ cr = Math.round(cr * (1 - 0.4) + 255 * 0.4); cg = Math.round(cg * 0.6 + 220 * 0.4); cb = Math.round(cb * 0.6 + 140 * 0.4); a += 0.12; }   // hovered region: a faint warm glow
@@ -1853,10 +1865,20 @@
         const attWins = a[i].userData.val > d[i].userData.val + (i === 0 ? bonus : 0);
         const win = attWins ? a[i] : d[i], lose = attWins ? d[i] : a[i];
         win.userData.mats.forEach(mm => { mm.emissive.setHex(0xffc040); mm.emissiveMap = mm.map; mm.emissiveIntensity = 0; mm.needsUpdate = true; });
-        this.animate(500, t => { win.userData.mats.forEach(mm => { mm.emissiveIntensity = Math.sin(Math.min(1, t * 2) * Math.PI / 2) * 0.18; }); win.position.y = 0.08 + Math.sin(t * Math.PI) * 0.05; });
-        this.animate(500, t => { lose.userData.mats.forEach(mm => mm.color.setScalar(1 - 0.55 * t)); lose.position.y = 0.08 - 0.02 * t; });
-        this.sparks(win.position.clone().setY(0.12), 0xffc050, 14, 0.8);
-        await this.wait(160);
+        // a gold halo on the table under the winning die (cleared with the dice)
+        const halo = new THREE.Mesh(new THREE.CircleGeometry(0.17, 28), new THREE.MeshBasicMaterial({ map: this.glow, color: 0xffc040, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+        halo.rotation.x = -Math.PI / 2; halo.position.set(win.position.x, 0.008, win.position.z); this.scene.add(halo);
+        (this.diceHalos = this.diceHalos || []).push(halo);
+        this.animate(650, t => {
+          const k = Math.sin(Math.min(1, t * 1.6) * Math.PI / 2);
+          win.userData.mats.forEach(mm => { mm.emissiveIntensity = k * 0.6; });
+          win.scale.setScalar(1 + 0.25 * k);
+          win.position.y = 0.08 + Math.sin(t * Math.PI) * 0.09;
+          halo.material.opacity = 0.95 * k;
+        });
+        this.animate(650, t => { lose.userData.mats.forEach(mm => mm.color.setScalar(1 - 0.7 * t)); lose.position.y = 0.08 - 0.03 * t; lose.scale.setScalar(1 - 0.12 * t); });
+        this.sparks(win.position.clone().setY(0.12), 0xffc050, 22, 0.9);
+        await this.wait(280);
       }
       // the unmatched extra dice fade a touch
       a.slice(pairs).concat(d.slice(pairs)).forEach(x => x.userData.mats.forEach(mm => mm.color.setScalar(0.7)));
@@ -1878,7 +1900,10 @@
         pa.needsUpdate = true; pts.material.opacity = 1 - t * t;
       }).then(() => { this.scene.remove(pts); geo.dispose(); });
     }
-    clearDice(){ this.dice.forEach(d => { this.scene.remove(d); if(d.userData.shadow) this.scene.remove(d.userData.shadow); }); this.dice = []; }
+    clearDice(){
+      this.dice.forEach(d => { this.scene.remove(d); if(d.userData.shadow) this.scene.remove(d.userData.shadow); }); this.dice = [];
+      (this.diceHalos || []).forEach(h => { this.scene.remove(h); h.geometry.dispose(); h.material.dispose(); }); this.diceHalos = [];
+    }
 
     // ----- capture: a column of faction light, a fire-and-dust shockwave, rising embers, and the zone's
     // colour sweeping in from the centre -----
@@ -2468,8 +2493,8 @@
         const r = shown[i];
         this.clearDice();
         await Promise.all([
-          this.throwDice(r.ad, att, A, mid.clone().add(new THREE.Vector3(0, 0, -0.18)), 900),
-          this.throwDice(r.dd, def === 'neutral' ? 'neutral' : def, B, mid.clone().add(new THREE.Vector3(0, 0, 0.18)), 950)
+          this.throwDice(r.ad, att, A, mid.clone().add(new THREE.Vector3(0, 0, -0.18)), 1150),
+          this.throwDice(r.dd, def === 'neutral' ? 'neutral' : def, B, mid.clone().add(new THREE.Vector3(0, 0, 0.18)), 1200)
         ]);
         const attDice = this.dice.slice(0, r.ad.length), defDice = this.dice.slice(r.ad.length);
         await this.judgeDice(attDice, defDice, r.bonus || 0);
@@ -2479,7 +2504,7 @@
         if(r.al) this.floatText(e.from, `-${r.al}`, 'loss');
         if(r.dl) this.floatText(e.to, `-${r.dl}`, 'loss');
         armies.cull(Math.max(0, attLeft), Math.max(0, defLeft));
-        await this.wait(650);
+        await this.wait(900);   // a beat longer to read the dice
       }
       this.clearDice();
       if(e.rounds.length > 3){

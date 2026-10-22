@@ -63,6 +63,8 @@ const WAR_BORDERS = [
   ['feralas', 'thousand_needles'],
   ['durotar', 'barrens'],
   ['barrens', 'mulgore'], ['barrens', 'thousand_needles'], ['barrens', 'dustwallow'],
+  ['mulgore', 'stonetalon'],      // added 2026-10-22: up out of Mulgore into Stonetalon
+  ['shendralas', 'feralas'],     // added 2026-10-22: down from Shen'Dralas into Feralas
   ['thousand_needles', 'tanaris'],
   ['tanaris', 'ungoro'],
   ['ungoro', 'silithus'],

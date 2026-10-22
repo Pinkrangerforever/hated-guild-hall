@@ -12,7 +12,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     apPerDay: 5,
     baseReinforce: 3,
     startTroops: 6,           // on each starting stronghold
-    garrison: [2, 4],         // neutral defenders per zone
+    garrison: [1, 2],         // neutral defenders per zone: 2 three times in four, else 1 (light, so the board gets moving)
     fortifyHours: 24,
     richPerContinent: 3,      // each game, 3 zones per resource per continent are rich deposits (24 of 43)
     richYield: 2,             // a rich zone makes 2 of its resource a day (+1 per outpost / +2 stronghold); other zones make none
@@ -128,7 +128,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     s.strongholds = pickStrongholds(rng);
     s.rich = pickRich(rng);
     Object.keys(WAR_ZONES).forEach(k => {
-      const g = RULES.garrison[0] + Math.floor(rng() * (RULES.garrison[1] - RULES.garrison[0] + 1));
+      const g = rng() < 0.75 ? RULES.garrison[1] : RULES.garrison[0];
       s.zones[k] = { owner: 'neutral', ready: g, fresh: 0, fortifyUntil: 0, outpost: 0, movedDay: -1, shield: 0 };
     });
     ['horde', 'alliance'].forEach(f => s.strongholds[f].forEach(k => {
@@ -166,6 +166,7 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     const own = Object.values(s.players).filter(p => p.faction === f).length || 1;
     const opp = Object.values(s.players).filter(p => p.faction === enemyOf(f)).length || 1;
     if(own > opp) n = Math.max(2, Math.round(n * opp / own));
+    if(own < opp) n += 1;   // the smaller team's players get 1 extra a day: being outnumbered shouldn't feel hopeless
     return n;
   }
   // Zones linked by friendly territory (including friendly sea routes)
@@ -221,7 +222,9 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     const d = day(s);
     if(a.movedDay === d && !opts.march) return { ok: false, error: 'Troops already marched out of here today' };
     if(opts.march && p.cards.march < 1) return { ok: false, error: 'No Forced March card' };
-    if(!(n > 0) || n > a.ready || total(a) - n < 1) return { ok: false, error: 'Only ready troops can move, and one must stay' };
+    // Forced March also gets tired troops (those that arrived today) back on their feet
+    const movable = opts.march ? a.ready + a.fresh : a.ready;
+    if(!(n > 0) || n > movable || total(a) - n < 1) return { ok: false, error: opts.march ? 'One troop must stay behind' : 'Only ready troops can move, and one must stay' };
     if(!friendlyReach(s, p.faction, from).has(to)) return { ok: false, error: 'No friendly path to that zone' };
     const withPet = !!opts.pet;
     if(withPet){
@@ -232,7 +235,8 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     if(!spendAP(s, p)) return { ok: false, error: 'No action points left' };
     const before = snap(s, [from, to]);
     if(opts.march) p.cards.march--;
-    a.ready -= n; b.fresh += n; a.movedDay = d; active(s, p);
+    const fromReady = Math.min(a.ready, n); a.ready -= fromReady; a.fresh -= n - fromReady;   // ready troops first, then (Forced March) tired ones
+    b.fresh += n; a.movedDay = d; active(s, p);
     if(withPet){ p.petZone = to; p.petRestDay = d; }
     return { ok: true, entry: log(s, { type: 'move', pid, faction: p.faction, from, to, n, march: !!opts.march, pet: withPet }, before) };
   }
@@ -355,9 +359,12 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
       let dlost = total(b) - def; const takeFresh = Math.min(b.fresh, dlost); b.fresh -= takeFresh; b.ready -= (dlost - takeFresh);
     }
     active(s, p);
-    return { ok: true, entry: log(s, { type: 'attack', pid, faction: p.faction, defender, from, to, n, rounds, attLost: losses,
+    const entry = log(s, { type: 'attack', pid, faction: p.faction, defender, from, to, n, rounds, attLost: losses,
       defLost: before[to].ready + before[to].fresh - (captured ? 0 : def), captured, survivors: att, fortified, naval, warcry: !!opts.warcry,
-      aPet: aPet ? { pid: aPet.id, fell: !aPetUp } : null, dPet: dPet ? { pid: dPet.id, fell: !dPetUp } : null }, before) };
+      aPet: aPet ? { pid: aPet.id, fell: !aPetUp } : null, dPet: dPet ? { pid: dPet.id, fell: !dPetUp } : null }, before);
+    // a faction with no zones left can't deploy or fight back: the war ends at once and the attackers win
+    if(captured && defender !== 'neutral' && zonesOf(s, defender).length === 0) endGame(s, { winner: p.faction, wipe: defender });
+    return { ok: true, entry };
   }
 
   function fortify(s, pid, zone){
@@ -506,11 +513,13 @@ const __WAR_MAP = typeof WAR_ZONES !== 'undefined' ? { WAR_ZONES, WAR_BORDERS, W
     });
     return out;
   }
-  function endGame(s){
+  function endGame(s, opts){
+    opts = opts || {};
     if(s.phase !== 'live') return { ok: false, error: 'Game is not running' };
     const sc = score(s);
     s.phase = 'ended';
-    s.result = { score: sc, winner: sc.horde.total === sc.alliance.total ? 'draw' : (sc.horde.total > sc.alliance.total ? 'horde' : 'alliance') };
+    s.result = { score: sc, winner: opts.winner || (sc.horde.total === sc.alliance.total ? 'draw' : (sc.horde.total > sc.alliance.total ? 'horde' : 'alliance')) };
+    if(opts.wipe) s.result.wipe = opts.wipe;   // that faction was driven off the board
     return { ok: true, entry: log(s, { type: 'end', result: s.result }) };
   }
 
