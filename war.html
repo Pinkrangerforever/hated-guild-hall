@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => curtainFlags(window.WAR_FLAG
   @media (max-width: 760px){ .endCols{ grid-template-columns:1fr; gap:46px; } .verdict{ font-size:37px; } }
   .barMid{ display:flex; gap:6px; }
   @media (max-width:1899px){ .betaNote{ display:none; } }   /* room for the centred buttons; the note is on the Beta badge's tooltip */
-  @media (min-width:1100px){ .barMid{ position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); } }   /* centred in the top bar */
+  .barMid.centered{ position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); }   /* centred in the top bar, only when it clears its neighbours (placeBarMid) */
   #ledger{ display:none; left:50%; top:62px; transform:translateX(-50%); width:min(640px, calc(100vw - 20px)); max-height:calc(100vh - 140px); overflow-y:auto; z-index:6; }
   #ledger.show{ display:block; }
   .ledCols{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -1028,8 +1028,23 @@ function refreshUI(){
   const d = E.day(G), dn = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][d % 7];
   document.getElementById('clock').textContent = G.phase === 'signup' ? 'Sign-ups open' : G.phase === 'ended' ? 'War over' : `Day ${d + 1} · ${dn}${d >= 6 ? ' · ends 8pm' : ''}`;
   renderMe(); renderZone(); renderFeed(); renderSignup();
+  placeBarMid();
   if(document.getElementById('admin').style.display === 'block') renderAdmin();
 }
+// centre the Ledger/Results buttons in the top bar unless that would cover the clock, score or the buttons on the right
+function placeBarMid(){
+  const mid = document.querySelector('.barMid'); if(!mid) return;
+  const bar = mid.parentElement, br = bar.getBoundingClientRect(), w = mid.getBoundingClientRect().width;
+  const L = br.left + br.width / 2 - w / 2, R = L + w;
+  let ok = window.innerWidth >= 1100;
+  for(const el of bar.children){
+    if(el === mid || el.classList.contains('spacer') || el.offsetParent === null) continue;
+    const r = el.getBoundingClientRect();
+    if(r.right > L - 8 && r.left < R + 8) ok = false;
+  }
+  mid.classList.toggle('centered', ok);
+}
+window.addEventListener('resize', placeBarMid);
 function nextSignupHtml(){
   if(!NEXT && !(G.none && LIVE)) return '';
   if(!NEXT) return `<div class="sec">The war</div><div class="muted">No war is running right now.</div>`;
