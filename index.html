@@ -15078,17 +15078,18 @@ function renderRosterGroups(){
 
 /* ---- coming up events panel ---- */
 function renderComingUp(disableClicks = false){
-  const today = new Date().toISOString().split('T')[0];
+  // local calendar dates (toISOString is UTC: in the Americas it rolled "today" over to tomorrow in the evening)
+  const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const today = ymd(new Date());
   const thirtyDaysOut = new Date();
   thirtyDaysOut.setDate(thirtyDaysOut.getDate() + 30);
-  const maxDate = thirtyDaysOut.toISOString().split('T')[0];
+  const maxDate = ymd(thirtyDaysOut);
 
   const upcomingEvents = (state.events || [])
     .filter(ev => ev.date >= today && ev.date <= maxDate)
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 5); // Show max 5 events
 
-  console.log('Coming Up Debug:', { allEvents: state.events?.length || 0, upcomingEvents: upcomingEvents.length, today, maxDate });
 
   // Always render panel even if empty (for styling visibility)
   // if(upcomingEvents.length === 0) {
@@ -15096,9 +15097,10 @@ function renderComingUp(disableClicks = false){
   // }
 
   const eventRows = upcomingEvents.map(ev => {
-    const eventDate = new Date(ev.date + 'T00:00:00Z');
-    const todayDate = new Date(today + 'T00:00:00Z');
-    const daysUntil = Math.ceil((eventDate - todayDate) / (1000 * 60 * 60 * 24));
+    // read the date as a local day (with "Z" it was UTC midnight, which shows as the day before in the Americas)
+    const eventDate = new Date(ev.date + 'T00:00:00');
+    const todayDate = new Date(today + 'T00:00:00');
+    const daysUntil = Math.round((eventDate - todayDate) / (1000 * 60 * 60 * 24));
     const dateStr = eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     const clickAttr = disableClicks ? '' : `data-open-event="${ev.id}"`;
 
