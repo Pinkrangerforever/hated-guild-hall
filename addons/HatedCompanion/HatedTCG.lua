@@ -309,10 +309,38 @@ local function b36(n)
   return s
 end
 local CLS = { normal = "n", elite = "e", rare = "r", rareelite = "R", worldboss = "w", trivial = "t", minus = "m" }
+-- HTCG5~<first kill time>~<scrambled block>~<check>. The block (the kills, each with its full spawn id) is scrambled
+-- with a key so the code can't be read or hand-edited; the website unscrambles it and the server checks every spawn id.
+-- (The addon's code is public, so this stops casual editing, not a determined reader: the real checks are server-side.)
+-- Unscrambled block:  <edited 0/1>~<character names>~<creature ids>~<server ids>~<entries ";">
+--   m<time step>,<creature #>,<mob level>,<class>,<character #>,<char level>,<spawn: C|V><server #>.<instance>.<map>.<spawn hex>
+--   b<time step>,<encounter id>,<r|d>,<character #>,<character level>
+local SCRAMBLE_KEY = "hated-forever-tcg-5"
+local B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+local function scramble(plain, salt)
+  local s = 7
+  local seed = SCRAMBLE_KEY .. salt
+  for i = 1, #seed do s = (s * 31 + seed:byte(i)) % 2147483646 + 1 end
+  local bytes = {}
+  for i = 1, #plain do
+    s = (s * 48271) % 2147483647
+    bytes[i] = (plain:byte(i) + s % 256) % 256
+  end
+  local out = {}
+  for i = 1, #bytes, 3 do
+    local a, b, c = bytes[i], bytes[i + 1], bytes[i + 2]
+    local v = a * 65536 + (b or 0) * 256 + (c or 0)
+    local q = { math.floor(v / 262144) % 64, math.floor(v / 4096) % 64, math.floor(v / 64) % 64, v % 64 }
+    local keep = c and 4 or (b and 3 or 2)
+    for k = 1, keep do out[#out + 1] = B64:sub(q[k] + 1, q[k] + 1) end
+  end
+  return table.concat(out)
+end
 local function exportCode()
   local t = db(); local since = (t.server and t.server.lastT) or 0
-  local chars, charIx, npcs, npcIx, out, prev, first, n = {}, {}, {}, {}, {}, nil, nil, 0
+  local chars, charIx, npcs, npcIx, srvs, srvIx, out, prev, first, n = {}, {}, {}, {}, {}, {}, {}, nil, nil, 0
   local function ci(c) if not charIx[c] then chars[#chars + 1] = (c:gsub("[|~,;]", "")); charIx[c] = #chars - 1 end return charIx[c] end
+  local function si(v) if not srvIx[v] then srvs[#srvs + 1] = b36(v); srvIx[v] = #srvs - 1 end return srvIx[v] end
   for _, e in ipairs(t.log) do
     local f = { strsplit(",", e) }
     local ts = tonumber(f[2])
@@ -323,7 +351,13 @@ local function exportCode()
       if f[1] == "m" then
         local id = tonumber(f[5]) or 0
         if not npcIx[id] then npcs[#npcs + 1] = b36(id); npcIx[id] = #npcs - 1 end
-        out[#out + 1] = "m" .. dt .. "," .. b36(npcIx[id]) .. "," .. b36(f[9]) .. "," .. (CLS[f[10]] or "x") .. "," .. b36(ci(f[3] or "?")) .. "," .. b36(f[4])
+        -- the spawn id: Creature-0-<server>-<instance>-<map>-<npc>-<spawn hex>
+        local g = ""
+        local kind, _, srv, inst, map, _, spawn = strsplit("-", f[6] or "")
+        if (kind == "Creature" or kind == "Vehicle") and tonumber(srv) and tonumber(inst) and tonumber(map) and spawn and spawn:match("^%x+$") then
+          g = (kind == "Vehicle" and "V" or "C") .. b36(si(tonumber(srv))) .. "." .. b36(inst) .. "." .. b36(map) .. "." .. spawn
+        end
+        out[#out + 1] = "m" .. dt .. "," .. b36(npcIx[id]) .. "," .. b36(f[9]) .. "," .. (CLS[f[10]] or "x") .. "," .. b36(ci(f[3] or "?")) .. "," .. b36(f[4]) .. "," .. g
       elseif f[1] == "b" then
         out[#out + 1] = "b" .. dt .. "," .. b36(f[5]) .. "," .. (f[6] == "r" and "r" or "d") .. "," .. b36(ci(f[3] or "?")) .. "," .. b36(f[4])
       end
@@ -331,7 +365,8 @@ local function exportCode()
     end
   end
   if n == 0 then return nil, 0 end
-  local body = table.concat({ "HTCG4", first, t.tampered and 1 or 0, table.concat(chars, ","), table.concat(npcs, ","), table.concat(out, ";") }, "~")
+  local plain = table.concat({ t.tampered and 1 or 0, table.concat(chars, ","), table.concat(npcs, ","), table.concat(srvs, ","), table.concat(out, ";") }, "~")
+  local body = "HTCG5~" .. first .. "~" .. scramble(plain, tostring(first))
   local h = 7; for i = 1, #body do h = (h * 31 + body:byte(i)) % 1000003 end
   return body .. "~" .. h, n
 end

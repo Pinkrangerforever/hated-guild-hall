@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
   const lastT = acct0?.last_t || 0;
 
   const now = Math.floor(Date.now() / 1000);
-  type E = { kind: string; t: number; char: string; plvl: number; id: number; guid: string; lvl: number; cls: string; raid: boolean; bossKey: string };
+  type E = { kind: string; t: number; char: string; plvl: number; id: number; guid: string; lvl: number; cls: string; raid: boolean; bossKey: string; srv?: number; map?: number };
   const items: E[] = [];
   const flags: string[] = [];
   if (body.tampered) flags.push('The log was edited outside the game (its seal does not match).');
@@ -144,8 +144,57 @@ Deno.serve(async (req) => {
   for (const [d, n] of perDay) if (n > MAX_KILLS_PER_DAY) flags.push(`${n} kills on ${d}.`);
   const high = fresh.filter(i => i.kind === 'm' && i.lvl > 0 && i.plvl > 0 && i.lvl > i.plvl + MAX_LEVELS_ABOVE).length;
   if (high) flags.push(`${high} kill(s) of mobs more than ${MAX_LEVELS_ABOVE} levels above the character.`);
-  const badGuid = fresh.filter(i => i.kind === 'm' && i.guid !== '' && !new RegExp(`^(Creature|Vehicle)-\\d+-\\d+-\\d+-\\d+-${i.id}-[0-9A-F]+$`).test(i.guid)).length;
-  if (badGuid) flags.push(`${badGuid} kill(s) with a spawn id that doesn't match its creature.`);
+  // ---- spawn id checks (addon 3.6+ sends each kill's spawn id: Creature-0-<server>-<instance>-<map>-<npc>-<spawn>) ----
+  // A kill whose spawn id doesn't add up is DROPPED (no points, nothing held for review). Kills with no spawn id
+  // (older addons, hand-made codes) still count, but only as plain kills: no first-kill or elite bonus.
+  const GUID = /^(Creature|Vehicle)-0-(\d+)-(\d+)-(\d+)-(\d+)-([0-9A-F]{6,})$/;
+  let rejected = 0;
+  const bad = new Set<E>();
+  for (const i of fresh) if (i.kind === 'm' && i.guid) {
+    const g = i.guid.match(GUID);
+    if (!g || +g[5] !== i.id) { bad.add(i); continue; }
+    i.srv = +g[2]; i.map = +g[4];
+  }
+  // the account's WoW server: locked to the first one its spawn ids show, and it must be the guild's server
+  const srvCount = new Map<number, number>();
+  for (const i of fresh) if (i.srv != null && !bad.has(i)) srvCount.set(i.srv, (srvCount.get(i.srv) || 0) + 1);
+  const { data: srvRows } = await db.from('tcg_accounts').select('wow_server').not('wow_server', 'is', null);
+  const guildSrv = new Map<number, number>();
+  (srvRows || []).forEach((r: { wow_server: number }) => guildSrv.set(r.wow_server, (guildSrv.get(r.wow_server) || 0) + 1));
+  const guildTop = [...guildSrv.entries()].sort((a, b) => b[1] - a[1])[0];
+  let accountSrv: number | null = acct0?.wow_server ?? null;
+  if (accountSrv == null && srvCount.size) {
+    const mine = [...srvCount.entries()].sort((a, b) => b[1] - a[1])[0][0];
+    accountSrv = (guildTop && guildTop[1] >= 2) ? guildTop[0] : mine;   // a guild majority wins over a newcomer's claim
+  }
+  for (const i of fresh) if (i.srv != null && accountSrv != null && i.srv !== accountSrv) bad.add(i);
+  // the same spawn can't be claimed twice by one account (it's remembered for ~8 days, like the other seen keys)
+  const guidKeys = [...new Set(fresh.filter(i => i.srv != null && !bad.has(i)).map(i => 'g:' + i.guid))];
+  const seenGuid = new Set<string>();
+  for (let k = 0; k < guidKeys.length; k += 500) {
+    const { data } = await db.from('tcg_seen').select('key').eq('user_id', uid).in('key', guidKeys.slice(k, k + 500));
+    (data || []).forEach((r: { key: string }) => seenGuid.add(r.key));
+  }
+  for (const i of fresh) if (i.srv != null && seenGuid.has('g:' + i.guid)) bad.add(i);
+  // where each creature lives: once 2+ other players have seen it, a kill on a map nobody else saw it on is dropped
+  const npcIds = [...new Set(fresh.filter(i => i.map != null && !bad.has(i)).map(i => i.id))];
+  const others = new Map<number, Map<number, Set<string>>>();
+  for (let k = 0; k < npcIds.length; k += 500) {
+    const { data } = await db.from('tcg_npc_maps').select('npc_id, map_id, user_id').in('npc_id', npcIds.slice(k, k + 500)).neq('user_id', uid);
+    (data || []).forEach((r: { npc_id: number; map_id: number; user_id: string }) => {
+      if (!others.has(r.npc_id)) others.set(r.npc_id, new Map());
+      const m = others.get(r.npc_id)!; if (!m.has(r.map_id)) m.set(r.map_id, new Set()); m.get(r.map_id)!.add(r.user_id);
+    });
+  }
+  for (const i of fresh) if (i.map != null && !bad.has(i)) {
+    const maps = others.get(i.id);
+    if (!maps) continue;
+    const people = new Set<string>(); maps.forEach(u => u.forEach(x => people.add(x)));
+    if (people.size >= 2 && !maps.has(i.map)) bad.add(i);
+  }
+  rejected = bad.size;
+  const kept = fresh.filter(i => !bad.has(i));
+  fresh.length = 0; fresh.push(...kept);
 
   // what's already been killed on this account
   const { data: firstRows } = await db.from('tcg_first_kills').select('key').eq('user_id', uid);
@@ -155,10 +204,11 @@ Deno.serve(async (req) => {
 
   let points = 0;
   const newFirsts: string[] = [];
-  const summary: Record<string, number> = { firstKills: 0, repeatKills: 0, eliteKills: 0, grey: 0, dungeonBosses: 0, raidBosses: 0 };
+  const summary: Record<string, number> = { firstKills: 0, repeatKills: 0, eliteKills: 0, grey: 0, dungeonBosses: 0, raidBosses: 0, rejected, unverified: 0 };
   for (const i of fresh) {
     if (i.kind === 'm') {
       if (i.lvl > 0 && i.plvl > 0 && i.lvl <= greyLevel(i.plvl)) { summary.grey++; continue; }
+      if (i.srv == null) { points += REPEAT; summary.repeatKills++; summary.unverified++; continue; }   // no spawn id: a plain kill
       const key = 'n:' + i.id;
       if (!firsts.has(key)) { firsts.add(key); newFirsts.push(key); points += FIRST; summary.firstKills++; continue; }
       if (ELITE.has(i.cls)) { points += REPEAT_ELITE; summary.eliteKills++; } else { points += REPEAT; summary.repeatKills++; }
@@ -181,6 +231,10 @@ Deno.serve(async (req) => {
   const stamp = new Date().toISOString();
   const lockRows = fresh.filter(i => i.kind === 'b').map(i => ({ user_id: uid, key: i.bossKey, seen_at: stamp }));
   if (lockRows.length) await db.from('tcg_seen').upsert(lockRows, { onConflict: 'user_id,key', ignoreDuplicates: true });
+  const guidRows = fresh.filter(i => i.srv != null).map(i => ({ user_id: uid, key: 'g:' + i.guid, seen_at: stamp }));
+  for (let k = 0; k < guidRows.length; k += 1000) await db.from('tcg_seen').upsert(guidRows.slice(k, k + 1000), { onConflict: 'user_id,key', ignoreDuplicates: true });
+  const mapRows = [...new Map(fresh.filter(i => i.map != null).map(i => [i.id + ':' + i.map, { npc_id: i.id, map_id: i.map!, user_id: uid }])).values()];
+  for (let k = 0; k < mapRows.length; k += 1000) await db.from('tcg_npc_maps').upsert(mapRows.slice(k, k + 1000), { onConflict: 'npc_id,map_id,user_id', ignoreDuplicates: true });
   if (newFirsts.length) {
     for (let i = 0; i < newFirsts.length; i += 1000)
       await db.from('tcg_first_kills').upsert(newFirsts.slice(i, i + 1000).map(key => ({ user_id: uid, key })), { onConflict: 'user_id,key', ignoreDuplicates: true });
@@ -188,7 +242,7 @@ Deno.serve(async (req) => {
   const acct = acct0 || { points: 0, lifetime: 0, held: 0 };
   const next = held ? { held: acct.held + points } : { points: acct.points + points, lifetime: acct.lifetime + points };
   const final = { points: acct.points, lifetime: acct.lifetime, held: acct.held, ...next };
-  await db.from('tcg_accounts').upsert({ user_id: uid, ...final, last_t: newLastT, last_sync: stamp, updated_at: stamp }, { onConflict: 'user_id' });
+  await db.from('tcg_accounts').upsert({ user_id: uid, ...final, wow_server: accountSrv, last_t: newLastT, last_sync: stamp, updated_at: stamp }, { onConflict: 'user_id' });
   await db.from('tcg_syncs').insert({ user_id: uid, entries: lines.length, counted: fresh.length, points, summary, flags, status: held ? 'held' : 'ok' });
   await db.from('tcg_seen').delete().eq('user_id', uid).lt('seen_at', new Date(Date.now() - 15 * 86400000).toISOString());
 

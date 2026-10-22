@@ -11931,6 +11931,8 @@ function tcgSummaryText(sm){
   if(sm.raidBosses) bits.push(sm.raidBosses + ' raid boss' + (sm.raidBosses === 1 ? '' : 'es'));
   if(sm.grey) bits.push(sm.grey + ' grey (no points)');
   if(sm.capped) bits.push(sm.capped + ' over the daily cap');
+  if(sm.unverified) bits.push(sm.unverified + ' without a spawn id (plain kills - update the addon)');
+  if(sm.rejected) bits.push(sm.rejected + ' rejected (spawn id didn't check out)');
   return bits.join(' · ');
 }
 function renderTcgPanel(p, isMe){
@@ -12004,8 +12006,52 @@ function tcgRepairPipes(body, check){
   }
   return null;
 }
+// HTCG5 (addon 3.6+): the kills - each with its spawn id - are scrambled with the addon's key (see HatedTCG.lua scramble)
+const TCG_SCRAMBLE_KEY = 'hated-forever-tcg-5';
+const TCG_B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+function tcgUnscramble(blob, salt){
+  const bytes = [];
+  for(let i = 0; i < blob.length; i += 4){
+    const chunk = blob.slice(i, i + 4); let v = 0;
+    for(let k = 0; k < 4; k++){ const d = k < chunk.length ? TCG_B64.indexOf(chunk[k]) : 0; if(d < 0) throw new Error('bad character'); v = v * 64 + d; }
+    const three = [Math.floor(v / 65536) % 256, Math.floor(v / 256) % 256, v % 256];
+    bytes.push(...three.slice(0, chunk.length - 1));
+  }
+  let st = 7; const seed = TCG_SCRAMBLE_KEY + salt;
+  for(let i = 0; i < seed.length; i++) st = (st * 31 + seed.charCodeAt(i)) % 2147483646 + 1;
+  for(let i = 0; i < bytes.length; i++){ st = (st * 48271) % 2147483647; bytes[i] = (bytes[i] - st % 256 + 256) % 256; }
+  return new TextDecoder().decode(new Uint8Array(bytes));
+}
+function tcgDecodeExport5(code){
+  const parts = code.split('~');                     // HTCG5 ~ first ~ blob ~ check
+  if(parts.length !== 4) throw new Error('the code is incomplete or changed - copy it again in game (Select all, then Ctrl+C)');
+  const body = parts.slice(0, 3).join('~');
+  if(tcgCheck(body) !== +parts[3]) throw new Error('the code is incomplete or changed - copy it again in game (Select all, then Ctrl+C)');
+  let plain;
+  try{ plain = tcgUnscramble(parts[2], parts[1]); }catch(e){ throw new Error('the code is incomplete or changed - copy it again in game (Select all, then Ctrl+C)'); }
+  const [edited, charList, npcList, srvList, entryList] = plain.split('~');
+  const chars = charList ? charList.split(',') : [], npcs = npcList ? npcList.split(',').map(x => parseInt(x, 36)) : [];
+  const srvs = srvList ? srvList.split(',').map(x => parseInt(x, 36)) : [];
+  const lines = []; let t = +parts[1];
+  for(const e of (entryList ? entryList.split(';') : [])){
+    const kind = e[0], f = e.slice(1).split(',');
+    t += parseInt(f[0], 36) || 0;
+    if(kind === 'm'){
+      const npc = npcs[parseInt(f[1], 36)] || 0;
+      let guid = '', inst = 0, map = 0;
+      const g = (f[6] || '').match(/^([CV])([0-9a-z]+)\.([0-9a-z]+)\.([0-9a-z]+)\.([0-9A-Fa-f]+)$/);
+      if(g){
+        inst = parseInt(g[3], 36); map = parseInt(g[4], 36);
+        guid = (g[1] === 'V' ? 'Vehicle' : 'Creature') + '-0-' + srvs[parseInt(g[2], 36)] + '-' + inst + '-' + map + '-' + npc + '-' + g[5].toUpperCase();
+      }
+      lines.push(['m', t, chars[parseInt(f[4], 36)] || '?', parseInt(f[5], 36) || 0, npc, guid, inst, map, parseInt(f[2], 36) || 0, TCG_CLS[f[3]] || '?', 0].join(','));
+    } else if(kind === 'b') lines.push(['b', t, chars[parseInt(f[3], 36)] || '?', parseInt(f[4], 36) || 0, parseInt(f[1], 36) || 0, f[2] === 'r' ? 'r' : 'd', 0, 0, 0, 0, 0].join(','));
+  }
+  return { lines, tampered: edited === '1' };
+}
 function tcgDecodeExport(code){
   code = (code || '').replace(/\s+/g, '');
+  if(code.startsWith('HTCG5~')) return tcgDecodeExport5(code);
   const sep = code.startsWith('HTCG4~') ? '~' : code.startsWith('HTCG2|') ? '|' : null;
   const at = sep ? code.lastIndexOf(sep) : -1;
   if(!sep || at < 0) throw new Error("that isn't an export code from the addon (it starts with HTCG4 or HTCG2)");
