@@ -68,6 +68,7 @@ HatedTCGDrops_Classify, HatedTCGDrops_Roll = classify, roll   -- (HatedTCG.lua, 
 
 -- ---------- the reveal: the card pops out of the creature face down, glowing its rarity; click to turn it over ----------
 local CW, CH = 150, 206
+local BIG = 1.8                                    -- how much bigger it gets in the middle of the screen
 local cards = {}                                   -- reveal frames (reused)
 local live = 0                                     -- how many are on screen (to fan them out)
 local function rgb(col) return tonumber(col:sub(3, 4), 16) / 255, tonumber(col:sub(5, 6), 16) / 255, tonumber(col:sub(7, 8), 16) / 255 end
@@ -121,16 +122,30 @@ local function makeReveal()
   local out = f:CreateAnimationGroup()
   local o1 = out:CreateAnimation("Translation"); o1:SetOffset(0, 40); o1:SetDuration(0.5)
   local o2 = out:CreateAnimation("Alpha"); o2:SetFromAlpha(1); o2:SetToAlpha(0); o2:SetDuration(0.5)
-  out:SetScript("OnFinished", function() f:Hide(); f.bob:Stop(); f.breathe:Stop(); f.spin:Stop(); live = math.max(0, live - 1); f.busy = false end)
+  out:SetScript("OnFinished", function() f:Hide(); f.bob:Stop(); f.breathe:Stop(); f.spin:Stop(); f:SetScale(1); live = math.max(0, live - 1); f.busy = false end)
   f.out = out
+  -- clicked: from its spot at the top, it grows into the middle of the screen, then turns over
+  local big = f:CreateAnimationGroup()
+  local m1 = big:CreateAnimation("Translation"); m1:SetDuration(0.35); m1:SetSmoothing("IN_OUT")
+  local m2 = big:CreateAnimation("Scale"); m2:SetScaleFrom(1, 1); m2:SetScaleTo(BIG, BIG); m2:SetDuration(0.35); m2:SetSmoothing("IN_OUT")
+  big:SetScript("OnFinished", function()
+    f:SetScale(BIG); f:ClearAllPoints(); f:SetPoint("CENTER", UIParent, "CENTER", 0, 20 / BIG)
+    f.flipA:Play()
+  end)
+  f.big, f.bigMove = big, m1
+  function f.open()
+    f.flipAt = nil; f.bob:Stop(); f.breathe:Stop(); f.glow:SetAlpha(1); f.hint:Hide()
+    f.bigMove:SetOffset(UIParent:GetWidth() / 2 - f.tx, UIParent:GetHeight() / 2 + 20 - f.ty)
+    f.big:Play()
+  end
 
   f:SetScript("OnClick", function()
-    if f.out:IsPlaying() or f.flipA:IsPlaying() then return end
-    if not f.face:IsShown() then f.bob:Stop(); f.flipA:Play() else f.out:Play() end   -- first click turns it over, the next sends it away
+    if f.out:IsPlaying() or f.flipA:IsPlaying() or f.big:IsPlaying() then return end
+    if not f.face:IsShown() then f.open() else f.out:Play() end   -- first click brings it up and turns it over, the next sends it away
   end)
   f:SetScript("OnUpdate", function()
     if f.leaveAt and GetTime() > f.leaveAt and not f.out:IsPlaying() then f.leaveAt = nil; f.out:Play() end
-    if f.flipAt and GetTime() > f.flipAt and not f.face:IsShown() and not f.flipA:IsPlaying() then f.flipAt = nil; f.bob:Stop(); f.flipA:Play() end
+    if f.flipAt and GetTime() > f.flipAt and not f.face:IsShown() and not f.big:IsPlaying() then f.open() end
   end)
   f:SetScript("OnEnter", function() if not f.face:IsShown() then f.glow:SetAlpha(1); f.breathe:Pause() end end)
   f:SetScript("OnLeave", function() if not f.face:IsShown() then f.breathe:Play() end end)
@@ -144,7 +159,7 @@ local function reveal(dbf, why, at)
   local f
   for _, x in ipairs(cards) do if not x.busy then f = x; break end end
   if not f then f = makeReveal(); cards[#cards + 1] = f end
-  f.busy = true; f.dbf = dbf
+  f.busy = true; f.dbf = dbf; f:SetScale(1)
   local col = RARITY_COLOR[c[2]] or RARITY_COLOR[1]
   local r, g, b = rgb(col)
   f.glow:SetTexture(ADDON .. "Media\\Glow_" .. (c[12] or "minion")); f.glow:SetVertexColor(r, g, b); f.glow:SetAlpha(1)
@@ -152,13 +167,14 @@ local function reveal(dbf, why, at)
   f.face:set(dbf, { n = 1 }); f.face.glow:Hide(); f.face:Hide(); f.back:Show(); f.hint:Show()
   f.title:SetText("|c" .. col .. (c[6] == "H" and "Hero card!" or (RARITY_NAME[c[2]] .. " card!")) .. "|r"); f.title:Hide()
   f.sub:SetText(why); f.sub:Hide()
-  -- where it ends up: above the creature (fanned out if several are up), kept on screen
-  local W, H = UIParent:GetWidth(), UIParent:GetHeight()
-  -- (this client won't let addons measure where a nameplate is, so it rises from just in front of you: where the
+  -- it rises from the body to the top middle of the screen, out of the way (several fan out side by side).
+  -- (this client won't let addons measure where a nameplate is, so "the body" is just in front of you: where the
   -- creature you were fighting usually stands)
+  local W, H = UIParent:GetWidth(), UIParent:GetHeight()
   local sx, sy = (at and at[1]) or W / 2, (at and at[2]) or H * 0.4
-  local tx = math.min(math.max(sx + live * 40, CW), W - CW)
-  local ty = math.min(math.max(sy + 150, CH), H - CH / 2 - 40)
+  local side = live % 2 == 1 and 1 or -1
+  local tx = W / 2 + side * math.ceil(live / 2) * (CW + 16)
+  local ty = H - CH / 2 - 70
   f.tx, f.ty = tx, ty
   live = live + 1
   f:ClearAllPoints(); f:SetPoint("CENTER", UIParent, "BOTTOMLEFT", sx, sy)
