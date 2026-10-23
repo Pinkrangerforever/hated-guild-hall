@@ -274,7 +274,7 @@ Deno.serve(async (req) => {
 
   // ---- card drops: each kill's roll again, from its spawn id (or a boss's key) - see drops.ts ----
   summary.drops = 0; summary.dropsRejected = 0;
-  type Drop = { card_id?: string; dbf: number; kill_key: string; hero: boolean; npc: number; char: string; rarity: string; at: number };
+  type Drop = { card_id?: string; dbf: number; kill_key: string; hero: boolean; holo: boolean; npc: number; char: string; rarity: string; at: number };
   const dropKills = fresh.filter(i => i.grp !== undefined && (i.kind === 'b' || (!i.grey && i.srv != null)));
   const drops: Drop[] = [];
   const tagRows: { npc_key: number; tag: string; user_id: string }[] = [];
@@ -300,8 +300,8 @@ Deno.serve(async (req) => {
       const kind = i.kind === 'b' ? (i.raid ? 'raidboss' : 'dungeonboss') : killKind(i.cls);
       const r = roll(key, grp, cls, kind);
       const base = { kill_key: key, npc: i.kind === 'b' ? -i.id : i.id, char: i.char, at: i.t };
-      if (r.drop) drops.push({ ...base, dbf: r.drop, hero: false, rarity: rarityOf(r.drop) });
-      if (r.hero) drops.push({ ...base, dbf: r.hero, hero: true, rarity: rarityOf(r.hero) });
+      if (r.drop) drops.push({ ...base, dbf: r.drop, hero: false, holo: r.dropHolo, rarity: rarityOf(r.drop) });
+      if (r.hero) drops.push({ ...base, dbf: r.hero, hero: true, holo: r.heroHolo, rarity: rarityOf(r.hero) });
     }
   }
 

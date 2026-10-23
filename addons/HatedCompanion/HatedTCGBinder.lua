@@ -181,7 +181,7 @@ local function build()
       for k, v in pairs(own) do merged[k] = v end
       for _, p in ipairs(s.pending) do
         local o = merged[p.dbf]
-        merged[p.dbf] = { n = (o and o.n or 0) + 1, h = o and o.h or 0, u = (o and o.u or 0) + 1 }
+        merged[p.dbf] = { n = (o and o.n or 0) + 1, h = (o and o.h or 0) + (p.holo and 1 or 0), u = (o and o.u or 0) + 1 }
       end
       own = merged
     end

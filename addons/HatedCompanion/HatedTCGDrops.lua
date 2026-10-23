@@ -39,9 +39,7 @@ local function rng(seed)
   for i = 1, #seed do s = (s * 31 + seed:byte(i)) % 2147483646 + 1 end
   return function(n) s = (s * 48271) % 2147483647; return s % n end
 end
--- kind: normal / elite / rare / worldboss / dungeonboss / raidboss. Returns the dropped card (dbf) or nil, and a hero (dbf) or nil.
-local function roll(key, group, cls, kind)
-  local r = rng("hated-drop-" .. X.version .. "|" .. key)
+local function pick(r, group, cls, kind)
   local hero
   if cls ~= "" and X.heroes[cls] and r(X.heroOdds) == 0 then local h = X.heroes[cls]; hero = h[r(#h) + 1] end
   local named = group:sub(1, 2) == "n." and X.named[group:sub(3)]
@@ -63,6 +61,15 @@ local function roll(key, group, cls, kind)
     end
   end
   return nil, hero
+end
+-- kind: normal / elite / rare / worldboss / dungeonboss / raidboss. Returns the dropped card (dbf) or nil, a hero
+-- (dbf) or nil, and whether each is holographic (Rare and up, 1 in holoOdds)
+local function roll(key, group, cls, kind)
+  local r = rng("hated-drop-" .. X.version .. "|" .. key)
+  local drop, hero = pick(r, group, cls, kind)
+  local dropHolo = drop ~= nil and (X.rarity[drop] or 1) >= 3 and r(X.holoOdds) == 0
+  local heroHolo = hero ~= nil and r(X.holoOdds) == 0
+  return drop, hero, dropHolo, heroHolo
 end
 HatedTCGDrops_Classify, HatedTCGDrops_Roll = classify, roll   -- (HatedTCG.lua, and the tests)
 
@@ -153,7 +160,7 @@ local function makeReveal()
 end
 
 -- at: where the creature was on screen when it died ({ x, y } from the bottom left), or nil
-local function reveal(dbf, why, at)
+local function reveal(dbf, why, at, holo)
   local c = HatedTCG_CARDS and HatedTCG_CARDS[dbf]
   if not c or not HatedTCGBinder_MakeCard then return end
   local f
@@ -164,8 +171,8 @@ local function reveal(dbf, why, at)
   local r, g, b = rgb(col)
   f.glow:SetTexture(ADDON .. "Media\\Glow_" .. (c[12] or "minion")); f.glow:SetVertexColor(r, g, b); f.glow:SetAlpha(1)
   f.burst:SetVertexColor(r, g, b, c[2] >= 4 and 0.9 or 0.5); f.burst:Hide()
-  f.face:set(dbf, { n = 1 }); f.face.glow:Hide(); f.face:Hide(); f.back:Show(); f.hint:Show()
-  f.title:SetText("|c" .. col .. (c[6] == "H" and "Hero card!" or (RARITY_NAME[c[2]] .. " card!")) .. "|r"); f.title:Hide()
+  f.face:set(dbf, { n = 1, h = holo and 1 or 0 }); f.face.glow:Hide(); f.face:Hide(); f.back:Show(); f.hint:Show()
+  f.title:SetText("|c" .. col .. (holo and "Holo " or "") .. (c[6] == "H" and "Hero card!" or (RARITY_NAME[c[2]] .. " card!")) .. "|r"); f.title:Hide()
   f.sub:SetText(why); f.sub:Hide()
   -- it rises from the body to the top middle of the screen, out of the way (several fan out side by side).
   -- (this client won't let addons measure where a nameplate is, so "the body" is just in front of you: where the
@@ -188,21 +195,21 @@ end
 -- at: where the creature was on screen when it died (or nil)
 function HatedTCGDrops_OnKill(key, group, cls, kind, creatureName, at)
   if HatedCompanionDB and HatedCompanionDB.tcgDropTest then HatedTCGDrops_ShowTest(key, group, cls, creatureName, at) end
-  local drop, hero = roll(key, group, cls, kind)
+  local drop, hero, dropHolo, heroHolo = roll(key, group, cls, kind)
   for k = 1, 2 do                                   -- (not ipairs: the drop can be nil with a hero after it)
-    local dbf; if k == 1 then dbf = drop else dbf = hero end
+    local dbf, holo; if k == 1 then dbf, holo = drop, dropHolo else dbf, holo = hero, heroHolo end
     local c = dbf and HatedTCG_CARDS and HatedTCG_CARDS[dbf]
     if c then
       local t = HatedTCG_DB(); t.pending = t.pending or {}
-      table.insert(t.pending, { dbf = dbf, t = time(), from = creatureName or "" })
-      say(string.format("|c%s[%s]|r dropped from %s! It's in your binder, unsealed until you sync on the website.",
-        RARITY_COLOR[c[2]] or RARITY_COLOR[1], c[1], creatureName or "a kill"))
-      reveal(dbf, "from " .. (creatureName or "a kill") .. "  -  sync to seal it", at)
+      table.insert(t.pending, { dbf = dbf, t = time(), from = creatureName or "", holo = holo or nil })
+      say(string.format("%s|c%s[%s]|r dropped from %s! It's in your binder, unsealed until you sync on the website.",
+        holo and "|cffff7ad9Holo|r " or "", RARITY_COLOR[c[2]] or RARITY_COLOR[1], c[1], creatureName or "a kill"))
+      reveal(dbf, "from " .. (creatureName or "a kill") .. "  -  sync to seal it", at, holo)
     end
   end
 end
 -- test: /tcg droptest <dbf>
-function HatedTCGDrops_Test(dbf) reveal(dbf, "a test (not a real drop)") end
+function HatedTCGDrops_Test(dbf, holo) reveal(dbf, "a test (not a real drop)", nil, holo) end
 -- test: /tcg dropall - every kill shows what it COULD drop (only the visual: nothing is added or synced)
 function HatedTCGDrops_ShowTest(key, group, cls, creatureName, at)
   if live >= 3 then return end                   -- don't stack up a long line of reveals while pulling packs of mobs

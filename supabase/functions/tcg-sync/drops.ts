@@ -13,9 +13,16 @@ export const validGroup = (g: string) => g === '' || (g.startsWith('n.') && !!X.
   || (g.startsWith('t.') && !!X.tribes[g.slice(2)]) || (g.startsWith('c.') && !!X.classes[g.slice(2)]);
 export const validClass = (c: string) => c === '' || !!X.heroes[c];
 
-// kind: normal / elite / rare / worldboss / dungeonboss / raidboss -> { drop, hero } card dbf ids (or undefined)
-export function roll(key: string, group: string, cls: string, kind: string): { drop?: number; hero?: number } {
+// kind: normal / elite / rare / worldboss / dungeonboss / raidboss -> { drop, hero } card dbf ids (or undefined), and
+// whether each is holographic (Rare and up, 1 in holoOdds)
+export function roll(key: string, group: string, cls: string, kind: string): { drop?: number; hero?: number; dropHolo: boolean; heroHolo: boolean } {
   const r = rng(`hated-drop-${X.version}|${key}`);
+  const { drop, hero } = pick(r, group, cls, kind);
+  const dropHolo = drop !== undefined && (X.rarity[drop] || 1) >= 3 && r(X.holoOdds) === 0;
+  const heroHolo = hero !== undefined && r(X.holoOdds) === 0;
+  return { drop, hero, dropHolo, heroHolo };
+}
+function pick(r: (n: number) => number, group: string, cls: string, kind: string): { drop?: number; hero?: number } {
   const out: { drop?: number; hero?: number } = {};
   if (cls !== '' && X.heroes[cls] && r(X.heroOdds) === 0) { const h = X.heroes[cls]; out.hero = h[r(h.length)]; }
   const named: number[] | undefined = group.startsWith('n.') ? X.named[group.slice(2)] : undefined;

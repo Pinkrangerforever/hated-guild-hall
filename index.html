@@ -12104,7 +12104,7 @@ async function tcgSyncEntries(entries, tampered){
     const out = await tcgCall({ action: 'sync', entries, tampered: !!tampered });
     if(out.code){ state.tcgCode = out.code; try{ await navigator.clipboard.writeText(out.code); }catch(e){} }
     const drops = (out.drops || []).filter(d => d.name);
-    if(drops.length) setTimeout(() => showToast('Card drops added to your collection: ' + drops.map(d => d.name + (d.hero ? ' (hero!)' : '') + (d.new ? ' - new!' : '')).join(', ')), 4200);
+    if(drops.length) setTimeout(() => showToast('Card drops added to your collection: ' + drops.map(d => (d.holo ? 'holo ' : '') + d.name + (d.hero ? ' (hero!)' : '') + (d.new ? ' - new!' : '')).join(', ')), 4200);
     showToast(out.held ? `Sync held for the Raid Leader to review (${out.points} points).` : (out.points ? `+${out.points} TCG points! (${tcgSummaryText(out.summary)}) Your new code is copied - paste it in game.` : 'Synced - nothing new since your last sync.'), out.held);
   }catch(e){ showToast('Could not sync: ' + e.message, true); }
   state.tcgBusy = false; state.tcg = null; state.tcgMine = null; render();   // reload the panel AND the balance / shop / binder

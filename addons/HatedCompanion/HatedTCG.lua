@@ -576,7 +576,7 @@ SlashCmdList.HATEDTCG = function(msg)
     HatedCompanionDB = HatedCompanionDB or {}; HatedCompanionDB.tcgDropTest = not HatedCompanionDB.tcgDropTest
     say(HatedCompanionDB.tcgDropTest and "drop test ON: every kill shows a card it could drop (just the visual - nothing is added). /tcg dropall again to stop." or "drop test off."); return
   end
-  local dt = (msg or ""):match("^droptest%s*(%d*)")
-  if dt and HatedTCGDrops_Test then HatedTCGDrops_Test(tonumber(dt) or 1066); return end
+  local dt = (msg or ""):match("^droptest%s*(%d*)")   -- /tcg droptest [card number] [holo]
+  if dt and HatedTCGDrops_Test then HatedTCGDrops_Test(tonumber(dt) or 1066, (msg or ""):lower():match("holo") ~= nil); return end
   HatedTCG_Toggle()
 end
