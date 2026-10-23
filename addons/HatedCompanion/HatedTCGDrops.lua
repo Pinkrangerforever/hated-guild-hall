@@ -106,6 +106,7 @@ end
 
 -- from HatedTCG.lua after each kill is logged. key: the roll's seed (the spawn id, or the boss's own key)
 function HatedTCGDrops_OnKill(key, group, cls, kind, creatureName)
+  if HatedCompanionDB and HatedCompanionDB.tcgDropTest then HatedTCGDrops_ShowTest(key, group, cls, creatureName) end
   local drop, hero = roll(key, group, cls, kind)
   for k = 1, 2 do                                   -- (not ipairs: the drop can be nil with a hero after it)
     local dbf; if k == 1 then dbf = drop else dbf = hero end
@@ -122,3 +123,19 @@ function HatedTCGDrops_OnKill(key, group, cls, kind, creatureName)
 end
 -- test: /tcg droptest <dbf>
 function HatedTCGDrops_Test(dbf) queue[#queue + 1] = { dbf, "a test (not a real drop)" }; showNext() end
+-- test: /tcg dropall - every kill shows what it COULD drop (only the visual: nothing is added or synced)
+function HatedTCGDrops_ShowTest(key, group, cls, creatureName)
+  if #queue >= 3 then return end                   -- don't stack up a long line of reveals while pulling packs of mobs
+  local r = rng("hated-droptest|" .. key .. "|" .. time())
+  local pool
+  if group:sub(1, 2) == "n." then pool = X.named[group:sub(3)]
+  else
+    local pools = X.neutral
+    if group:sub(1, 2) == "t." then pools = X.tribes[group:sub(3)] or pools elseif group:sub(1, 2) == "c." then pools = X.classes[group:sub(3)] or pools end
+    pool = {}; for _, p in ipairs(pools) do for _, d in ipairs(p) do pool[#pool + 1] = d end end
+  end
+  local what = group == "" and "neutral" or group:sub(3):lower()
+  if pool and #pool > 0 then queue[#queue + 1] = { pool[r(#pool) + 1], "TEST from " .. (creatureName or "?") .. " (" .. what .. ")" } end
+  if cls ~= "" and X.heroes[cls] and r(4) == 0 then local h = X.heroes[cls]; queue[#queue + 1] = { h[r(#h) + 1], "TEST hero from " .. (creatureName or "?") } end
+  showNext()
+end
