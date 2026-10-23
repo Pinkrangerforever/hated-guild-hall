@@ -570,7 +570,7 @@ SlashCmdList.HATEDTCG = function(msg)
     HatedCompanionDB = HatedCompanionDB or {}; HatedCompanionDB.tcgDebug = not HatedCompanionDB.tcgDebug
     say("debug " .. (HatedCompanionDB.tcgDebug and "on: kills are reported in chat (/tcg debug again to stop)." or "off.")); return
   end
-  if (msg or ""):lower():match("test") then popup(10, nil); say("that was a test popup (no points)."); return end
+  if (msg or ""):lower():match("^%s*test%s*$") then popup(10, nil); say("that was a test popup (no points)."); return end
   if (msg or ""):lower():match("daily") then HatedTCG_Toggle(true); return end
   if (msg or ""):lower():match("^dropall") then
     HatedCompanionDB = HatedCompanionDB or {}; HatedCompanionDB.tcgDropTest = not HatedCompanionDB.tcgDropTest
