@@ -570,13 +570,6 @@ SlashCmdList.HATEDTCG = function(msg)
     HatedCompanionDB = HatedCompanionDB or {}; HatedCompanionDB.tcgDebug = not HatedCompanionDB.tcgDebug
     say("debug " .. (HatedCompanionDB.tcgDebug and "on: kills are reported in chat (/tcg debug again to stop)." or "off.")); return
   end
-  if (msg or ""):lower():match("^%s*test%s*$") then popup(10, nil); say("that was a test popup (no points)."); return end
   if (msg or ""):lower():match("daily") then HatedTCG_Toggle(true); return end
-  if (msg or ""):lower():match("^dropall") then
-    HatedCompanionDB = HatedCompanionDB or {}; HatedCompanionDB.tcgDropTest = not HatedCompanionDB.tcgDropTest
-    say(HatedCompanionDB.tcgDropTest and "drop test ON: every kill shows a card it could drop (just the visual - nothing is added). /tcg dropall again to stop." or "drop test off."); return
-  end
-  local dt = (msg or ""):match("^droptest%s*(%d*)")   -- /tcg droptest [card number] [holo]
-  if dt and HatedTCGDrops_Test then HatedTCGDrops_Test(tonumber(dt) or 1066, (msg or ""):lower():match("holo") ~= nil); return end
   HatedTCG_Toggle()
 end

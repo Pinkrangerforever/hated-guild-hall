@@ -194,7 +194,6 @@ end
 -- from HatedTCG.lua after each kill is logged. key: the roll's seed (the spawn id, or the boss's own key)
 -- at: where the creature was on screen when it died (or nil)
 function HatedTCGDrops_OnKill(key, group, cls, kind, creatureName, at)
-  if HatedCompanionDB and HatedCompanionDB.tcgDropTest then HatedTCGDrops_ShowTest(key, group, cls, creatureName, at) end
   local drop, hero, dropHolo, heroHolo = roll(key, group, cls, kind)
   for k = 1, 2 do                                   -- (not ipairs: the drop can be nil with a hero after it)
     local dbf, holo; if k == 1 then dbf, holo = drop, dropHolo else dbf, holo = hero, heroHolo end
@@ -207,21 +206,4 @@ function HatedTCGDrops_OnKill(key, group, cls, kind, creatureName, at)
       reveal(dbf, "from " .. (creatureName or "a kill") .. "  -  sync to seal it", at, holo)
     end
   end
-end
--- test: /tcg droptest <dbf>
-function HatedTCGDrops_Test(dbf, holo) reveal(dbf, "a test (not a real drop)", nil, holo) end
--- test: /tcg dropall - every kill shows what it COULD drop (only the visual: nothing is added or synced)
-function HatedTCGDrops_ShowTest(key, group, cls, creatureName, at)
-  if live >= 3 then return end                   -- don't stack up a long line of reveals while pulling packs of mobs
-  local r = rng("hated-droptest|" .. key .. "|" .. time())
-  local pool
-  if group:sub(1, 2) == "n." then pool = X.named[group:sub(3)]
-  else
-    local pools = X.neutral
-    if group:sub(1, 2) == "t." then pools = X.tribes[group:sub(3)] or pools elseif group:sub(1, 2) == "c." then pools = X.classes[group:sub(3)] or pools end
-    pool = {}; for _, p in ipairs(pools) do for _, d in ipairs(p) do pool[#pool + 1] = d end end
-  end
-  local what = group == "" and "neutral" or group:sub(3):lower()
-  if pool and #pool > 0 then reveal(pool[r(#pool) + 1], "TEST from " .. (creatureName or "?") .. " (" .. what .. ")", at) end
-  if cls ~= "" and X.heroes[cls] and r(4) == 0 then local h = X.heroes[cls]; reveal(h[r(#h) + 1], "TEST hero from " .. (creatureName or "?"), at) end
 end
