@@ -196,7 +196,7 @@ local function mobKilled(guid)
   -- a card drop (only kills with a real spawn id can drop: the website rolls them again from it)
   if HatedTCGDrops_OnKill and guid:match("^%a+%-0%-%d+%-%d+%-%d+%-%d+%-%x+$") then
     local kind = cls == "worldboss" and "worldboss" or (cls == "rare" or cls == "rareelite") and "rare" or cls == "elite" and "elite" or "normal"
-    HatedTCGDrops_OnKill(guid, grp, ncls, kind, i.name)
+    HatedTCGDrops_OnKill(guid, grp, ncls, kind, i.name, i.at)
   end
   dbg(string.format("logged %s (npc %d) for %d points; log has %d lines", tostring(i.name), id, amount, #db().log))
   award(key, first, amount, guid)
@@ -261,6 +261,12 @@ local function watch(unit)
   if UnitIsTapDenied(unit) then dbg("skipped " .. tostring(UnitName(unit)) .. ": another player tagged it"); return end
   if not engaged[guid] then dbg("skipped " .. tostring(UnitName(unit)) .. ": it died without fighting you or your group"); return end
   learn(unit)
+  -- where its body is on screen (a card drop pops out of it): its nameplate, while it's still up
+  local plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit and C_NamePlate.GetNamePlateForUnit(unit)
+  if plate and plate:IsVisible() and info[guid] then
+    local x, y = plate:GetCenter()
+    if x then local k = plate:GetEffectiveScale() / UIParent:GetEffectiveScale(); info[guid].at = { x * k, y * k - 40 } end
+  end
   local wait = IsInInstance() and 1.5 or 0      -- in an instance it might be a boss: give the encounter credit a moment
   dbg("mob died: " .. tostring(UnitName(unit)) .. (wait > 0 and " (checking for a boss first)" or ""))
   if wait > 0 then C_Timer.After(wait, function() mobKilled(guid); info[guid] = nil end) else mobKilled(guid); info[guid] = nil end

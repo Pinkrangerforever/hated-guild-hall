@@ -7,7 +7,6 @@
 ]]
 
 local X = HatedTCG_DROPS
-local unpack = unpack or table.unpack
 local ADDON = "Interface\\AddOns\\HatedCompanion\\"
 local RARITY_NAME = { "Common", "Uncommon", "Rare", "Epic", "Legendary" }
 local RARITY_COLOR = { "ffffffff", "ff1eff00", "ff0070dd", "ffa335ee", "ffff8000" }
@@ -67,46 +66,110 @@ local function roll(key, group, cls, kind)
 end
 HatedTCGDrops_Classify, HatedTCGDrops_Roll = classify, roll   -- (HatedTCG.lua, and the tests)
 
--- ---------- the reveal: the card flips up in the middle of the screen ----------
-local queue, showing = {}, false
-local reveal
-local function showNext()
-  if showing or #queue == 0 then return end
-  local dbf, why = unpack(table.remove(queue, 1))
+-- ---------- the reveal: the card pops out of the creature face down, glowing its rarity; click to turn it over ----------
+local CW, CH = 150, 206
+local cards = {}                                   -- reveal frames (reused)
+local live = 0                                     -- how many are on screen (to fan them out)
+local function rgb(col) return tonumber(col:sub(3, 4), 16) / 255, tonumber(col:sub(5, 6), 16) / 255, tonumber(col:sub(7, 8), 16) / 255 end
+
+local function makeReveal()
+  local f = CreateFrame("Button", nil, UIParent); f:SetSize(CW, CH); f:SetFrameStrata("FULLSCREEN_DIALOG"); f:Hide()
+  f:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+  -- the rarity glow round the card (shaped like the card frame: the card sits centred in it at 124 x 170 of 256)
+  f.glow = f:CreateTexture(nil, "BACKGROUND"); f.glow:SetPoint("CENTER"); f.glow:SetSize(CW * 256 / 124, CH * 256 / 170)
+  f.glow:SetTexture(ADDON .. "Media\\Glow_minion"); f.glow:SetBlendMode("ADD")
+  f.burst = f:CreateTexture(nil, "BACKGROUND", nil, -1); f.burst:SetPoint("CENTER"); f.burst:SetSize(460, 460)
+  f.burst:SetTexture("Interface\\Cooldown\\star4"); f.burst:SetBlendMode("ADD"); f.burst:Hide()
+  f.back = f:CreateTexture(nil, "ARTWORK"); f.back:SetAllPoints(); f.back:SetTexture(ADDON .. "Media\\CardBack"); f.back:SetTexCoord(0, 1, 0, 382 / 512)
+  f.face = HatedTCGBinder_MakeCard(f, CW, CH); f.face:SetAllPoints(); f.face:EnableMouse(false); f.face.glow:Hide(); f.face:Hide()
+  f.hint = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.hint:SetPoint("TOP", f, "BOTTOM", 0, -4); f.hint:SetText("|cffffd36aClick to turn over|r")
+  f.title = f:CreateFontString(nil, "OVERLAY"); f.title:SetFont(STANDARD_TEXT_FONT, 17, "OUTLINE"); f.title:SetPoint("BOTTOM", f, "TOP", 0, 6)
+  f.sub = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.sub:SetPoint("TOP", f, "BOTTOM", 0, -4); f.sub:SetWidth(240)
+
+  -- out of the body: up in an arc, growing from small
+  local pop = f:CreateAnimationGroup()
+  local up = pop:CreateAnimation("Translation"); up:SetDuration(0.55); up:SetSmoothing("OUT")
+  local grow = pop:CreateAnimation("Scale"); grow:SetScaleFrom(0.15, 0.15); grow:SetScaleTo(1, 1); grow:SetDuration(0.55); grow:SetSmoothing("OUT")
+  local fin = pop:CreateAnimation("Alpha"); fin:SetFromAlpha(0); fin:SetToAlpha(1); fin:SetDuration(0.2)
+  pop:SetScript("OnFinished", function() f:ClearAllPoints(); f:SetPoint("CENTER", UIParent, "BOTTOMLEFT", f.tx, f.ty); f.bob:Play() end)
+  f.pop, f.up = pop, up
+  -- waiting to be clicked: a gentle bob and a breathing glow
+  local bob = f:CreateAnimationGroup(); bob:SetLooping("BOUNCE")
+  local b1 = bob:CreateAnimation("Translation"); b1:SetOffset(0, 6); b1:SetDuration(0.9); b1:SetSmoothing("IN_OUT")
+  f.bob = bob
+  local breathe = f.glow:CreateAnimationGroup(); breathe:SetLooping("BOUNCE")
+  local a1 = breathe:CreateAnimation("Alpha"); a1:SetFromAlpha(1); a1:SetToAlpha(0.45); a1:SetDuration(0.8)
+  f.breathe = breathe
+  -- turning over: squeeze to an edge, swap back for face, open out again
+  local flipA = f:CreateAnimationGroup()
+  local s1 = flipA:CreateAnimation("Scale"); s1:SetScaleFrom(1, 1); s1:SetScaleTo(0.02, 1.06); s1:SetDuration(0.14); s1:SetSmoothing("IN")
+  local flipB = f:CreateAnimationGroup()
+  local s2 = flipB:CreateAnimation("Scale"); s2:SetScaleFrom(0.02, 1.06); s2:SetScaleTo(1, 1); s2:SetDuration(0.16); s2:SetSmoothing("OUT")
+  flipA:SetScript("OnFinished", function()
+    f.back:Hide(); f.face:Show(); f.hint:Hide()
+    f.burst:Show(); f.spin:Play(); f.title:Show(); f.sub:Show()
+    flipB:Play()
+    local c = HatedTCG_CARDS[f.dbf]
+    if PlaySound and SOUNDKIT then pcall(PlaySound, c[2] >= 4 and (SOUNDKIT.UI_LEGENDARY_LOOT_TOAST or 63971) or (SOUNDKIT.UI_EPICLOOT_TOAST or 31578)) end
+    f.leaveAt = GetTime() + 5
+  end)
+  f.flipA = flipA
+  local spin = f.burst:CreateAnimationGroup(); spin:SetLooping("REPEAT")
+  local rot = spin:CreateAnimation("Rotation"); rot:SetDegrees(-360); rot:SetDuration(8)
+  f.spin = spin
+  -- away: drift up and fade
+  local out = f:CreateAnimationGroup()
+  local o1 = out:CreateAnimation("Translation"); o1:SetOffset(0, 40); o1:SetDuration(0.5)
+  local o2 = out:CreateAnimation("Alpha"); o2:SetFromAlpha(1); o2:SetToAlpha(0); o2:SetDuration(0.5)
+  out:SetScript("OnFinished", function() f:Hide(); f.bob:Stop(); f.breathe:Stop(); f.spin:Stop(); live = math.max(0, live - 1); f.busy = false end)
+  f.out = out
+
+  f:SetScript("OnClick", function()
+    if f.out:IsPlaying() or f.flipA:IsPlaying() then return end
+    if not f.face:IsShown() then f.bob:Stop(); f.flipA:Play() else f.out:Play() end   -- first click turns it over, the next sends it away
+  end)
+  f:SetScript("OnUpdate", function()
+    if f.leaveAt and GetTime() > f.leaveAt and not f.out:IsPlaying() then f.leaveAt = nil; f.out:Play() end
+    if f.flipAt and GetTime() > f.flipAt and not f.face:IsShown() and not f.flipA:IsPlaying() then f.flipAt = nil; f.bob:Stop(); f.flipA:Play() end
+  end)
+  f:SetScript("OnEnter", function() if not f.face:IsShown() then f.glow:SetAlpha(1); f.breathe:Pause() end end)
+  f:SetScript("OnLeave", function() if not f.face:IsShown() then f.breathe:Play() end end)
+  return f
+end
+
+-- at: where the creature was on screen when it died ({ x, y } from the bottom left), or nil
+local function reveal(dbf, why, at)
   local c = HatedTCG_CARDS and HatedTCG_CARDS[dbf]
-  if not c or not HatedTCGBinder_MakeCard then return showNext() end
-  if not reveal then
-    reveal = CreateFrame("Frame", "HatedTCGReveal", UIParent); reveal:SetSize(260, 360); reveal:SetPoint("CENTER", 0, 80)
-    reveal:SetFrameStrata("FULLSCREEN_DIALOG"); reveal:Hide()
-    reveal.burst = reveal:CreateTexture(nil, "BACKGROUND"); reveal.burst:SetPoint("CENTER"); reveal.burst:SetSize(620, 620)
-    reveal.burst:SetTexture("Interface\\Cooldown\\star4"); reveal.burst:SetBlendMode("ADD")
-    reveal.card = HatedTCGBinder_MakeCard(reveal, 220, 302); reveal.card:SetPoint("CENTER", 0, 10); reveal.card:EnableMouse(false)
-    reveal.title = reveal:CreateFontString(nil, "OVERLAY"); reveal.title:SetFont(STANDARD_TEXT_FONT, 20, "OUTLINE"); reveal.title:SetPoint("BOTTOM", reveal, "TOP", 0, 0)
-    reveal.sub = reveal:CreateFontString(nil, "OVERLAY", "GameFontHighlight"); reveal.sub:SetPoint("TOP", reveal, "BOTTOM", 0, 2)
-    local ag = reveal:CreateAnimationGroup()
-    local grow = ag:CreateAnimation("Scale"); grow:SetScaleFrom(0.05, 1); grow:SetScaleTo(1, 1); grow:SetDuration(0.35); grow:SetSmoothing("OUT")   -- the flip
-    local fadeIn = ag:CreateAnimation("Alpha"); fadeIn:SetFromAlpha(0); fadeIn:SetToAlpha(1); fadeIn:SetDuration(0.25)
-    local fadeOut = ag:CreateAnimation("Alpha"); fadeOut:SetFromAlpha(1); fadeOut:SetToAlpha(0); fadeOut:SetStartDelay(3.4); fadeOut:SetDuration(0.6)
-    ag:SetScript("OnFinished", function() reveal:Hide(); showing = false; C_Timer.After(0.2, showNext) end)
-    reveal.ag = ag
-    local spin = reveal.burst:CreateAnimationGroup(); spin:SetLooping("REPEAT")
-    local rot = spin:CreateAnimation("Rotation"); rot:SetDegrees(-360); rot:SetDuration(8)
-    reveal.spin = spin
-  end
-  showing = true
-  reveal.card:set(dbf, { n = 1 })
+  if not c or not HatedTCGBinder_MakeCard then return end
+  local f
+  for _, x in ipairs(cards) do if not x.busy then f = x; break end end
+  if not f then f = makeReveal(); cards[#cards + 1] = f end
+  f.busy = true; f.dbf = dbf
   local col = RARITY_COLOR[c[2]] or RARITY_COLOR[1]
-  local r, g, b = tonumber(col:sub(3, 4), 16) / 255, tonumber(col:sub(5, 6), 16) / 255, tonumber(col:sub(7, 8), 16) / 255
-  reveal.burst:SetVertexColor(r, g, b, c[2] >= 4 and 0.9 or 0.55)
-  reveal.title:SetText("|c" .. col .. (c[6] == "H" and "Hero card!" or (RARITY_NAME[c[2]] .. " card drop!")) .. "|r")
-  reveal.sub:SetText(why)
-  reveal:Show(); reveal.spin:Play(); reveal.ag:Stop(); reveal.ag:Play()
-  if PlaySound and SOUNDKIT then pcall(PlaySound, c[2] >= 4 and (SOUNDKIT.UI_LEGENDARY_LOOT_TOAST or 63971) or (SOUNDKIT.UI_EPICLOOT_TOAST or 31578)) end
+  local r, g, b = rgb(col)
+  f.glow:SetTexture(ADDON .. "Media\\Glow_" .. (c[12] or "minion")); f.glow:SetVertexColor(r, g, b); f.glow:SetAlpha(1)
+  f.burst:SetVertexColor(r, g, b, c[2] >= 4 and 0.9 or 0.5); f.burst:Hide()
+  f.face:set(dbf, { n = 1 }); f.face.glow:Hide(); f.face:Hide(); f.back:Show(); f.hint:Show()
+  f.title:SetText("|c" .. col .. (c[6] == "H" and "Hero card!" or (RARITY_NAME[c[2]] .. " card!")) .. "|r"); f.title:Hide()
+  f.sub:SetText(why); f.sub:Hide()
+  -- where it ends up: above the creature (fanned out if several are up), kept on screen
+  local W, H = UIParent:GetWidth(), UIParent:GetHeight()
+  local sx, sy = (at and at[1]) or W / 2, (at and at[2]) or H * 0.45
+  local tx = math.min(math.max(sx + live * 40, CW), W - CW)
+  local ty = math.min(math.max(sy + 150, CH), H - CH / 2 - 40)
+  f.tx, f.ty = tx, ty
+  live = live + 1
+  f:ClearAllPoints(); f:SetPoint("CENTER", UIParent, "BOTTOMLEFT", sx, sy)
+  f.up:SetOffset(tx - sx, ty - sy)
+  f.leaveAt = nil; f.flipAt = GetTime() + 45            -- not clicked after 45 seconds: it turns itself over
+  f:SetAlpha(1); f:Show(); f.breathe:Play(); f.pop:Stop(); f.pop:Play()
+  if PlaySound and SOUNDKIT then pcall(PlaySound, SOUNDKIT.UI_GARRISON_MISSION_COMPLETE_ENCOUNTER_CHANCE or SOUNDKIT.IG_BACKPACK_OPEN or 862) end
 end
 
 -- from HatedTCG.lua after each kill is logged. key: the roll's seed (the spawn id, or the boss's own key)
-function HatedTCGDrops_OnKill(key, group, cls, kind, creatureName)
-  if HatedCompanionDB and HatedCompanionDB.tcgDropTest then HatedTCGDrops_ShowTest(key, group, cls, creatureName) end
+-- at: where the creature was on screen when it died (or nil)
+function HatedTCGDrops_OnKill(key, group, cls, kind, creatureName, at)
+  if HatedCompanionDB and HatedCompanionDB.tcgDropTest then HatedTCGDrops_ShowTest(key, group, cls, creatureName, at) end
   local drop, hero = roll(key, group, cls, kind)
   for k = 1, 2 do                                   -- (not ipairs: the drop can be nil with a hero after it)
     local dbf; if k == 1 then dbf = drop else dbf = hero end
@@ -116,16 +179,15 @@ function HatedTCGDrops_OnKill(key, group, cls, kind, creatureName)
       table.insert(t.pending, { dbf = dbf, t = time(), from = creatureName or "" })
       say(string.format("|c%s[%s]|r dropped from %s! It's in your binder, unsealed until you sync on the website.",
         RARITY_COLOR[c[2]] or RARITY_COLOR[1], c[1], creatureName or "a kill"))
-      queue[#queue + 1] = { dbf, "from " .. (creatureName or "a kill") .. "  -  sync to seal it" }
-      showNext()
+      reveal(dbf, "from " .. (creatureName or "a kill") .. "  -  sync to seal it", at)
     end
   end
 end
 -- test: /tcg droptest <dbf>
-function HatedTCGDrops_Test(dbf) queue[#queue + 1] = { dbf, "a test (not a real drop)" }; showNext() end
+function HatedTCGDrops_Test(dbf) reveal(dbf, "a test (not a real drop)") end
 -- test: /tcg dropall - every kill shows what it COULD drop (only the visual: nothing is added or synced)
-function HatedTCGDrops_ShowTest(key, group, cls, creatureName)
-  if #queue >= 3 then return end                   -- don't stack up a long line of reveals while pulling packs of mobs
+function HatedTCGDrops_ShowTest(key, group, cls, creatureName, at)
+  if live >= 3 then return end                   -- don't stack up a long line of reveals while pulling packs of mobs
   local r = rng("hated-droptest|" .. key .. "|" .. time())
   local pool
   if group:sub(1, 2) == "n." then pool = X.named[group:sub(3)]
@@ -135,7 +197,6 @@ function HatedTCGDrops_ShowTest(key, group, cls, creatureName)
     pool = {}; for _, p in ipairs(pools) do for _, d in ipairs(p) do pool[#pool + 1] = d end end
   end
   local what = group == "" and "neutral" or group:sub(3):lower()
-  if pool and #pool > 0 then queue[#queue + 1] = { pool[r(#pool) + 1], "TEST from " .. (creatureName or "?") .. " (" .. what .. ")" } end
-  if cls ~= "" and X.heroes[cls] and r(4) == 0 then local h = X.heroes[cls]; queue[#queue + 1] = { h[r(#h) + 1], "TEST hero from " .. (creatureName or "?") } end
-  showNext()
+  if pool and #pool > 0 then reveal(pool[r(#pool) + 1], "TEST from " .. (creatureName or "?") .. " (" .. what .. ")", at) end
+  if cls ~= "" and X.heroes[cls] and r(4) == 0 then local h = X.heroes[cls]; reveal(h[r(#h) + 1], "TEST hero from " .. (creatureName or "?"), at) end
 end
