@@ -154,7 +154,9 @@ local function reveal(dbf, why, at)
   f.sub:SetText(why); f.sub:Hide()
   -- where it ends up: above the creature (fanned out if several are up), kept on screen
   local W, H = UIParent:GetWidth(), UIParent:GetHeight()
-  local sx, sy = (at and at[1]) or W / 2, (at and at[2]) or H * 0.45
+  -- (this client won't let addons measure where a nameplate is, so it rises from just in front of you: where the
+  -- creature you were fighting usually stands)
+  local sx, sy = (at and at[1]) or W / 2, (at and at[2]) or H * 0.4
   local tx = math.min(math.max(sx + live * 40, CW), W - CW)
   local ty = math.min(math.max(sy + 150, CH), H - CH / 2 - 40)
   f.tx, f.ty = tx, ty
