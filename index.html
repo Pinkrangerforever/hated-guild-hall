@@ -4464,6 +4464,22 @@
   .cal-attend-h b{ color:var(--hh-parchment, #e9dcc0); margin-left:4px; }
   .cal-attend-list{ display:flex; flex-direction:column; gap:4px; font-size:13px; }
   .cal-person{ display:flex; align-items:center; gap:6px; }
+  .spec-icon-xs{ width:22px; height:22px; border-radius:4px; border:1.5px solid transparent; flex-shrink:0; padding:2px; box-sizing:border-box;
+    background:radial-gradient(circle at 32% 26%, #2b2318 0%, #17130d 55%, #0e0b07 100%); display:inline-flex; align-items:center; justify-content:center; }
+  .spec-icon-xs svg, .spec-icon-xs img{ width:100%; height:100%; display:block; }
+  .ev-spec-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px 12px; margin-bottom:6px; }
+  .ev-spec-class{ display:flex; flex-direction:column; gap:4px; }
+  .ev-spec-cname{ font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+  .ev-spec-row{ display:flex; gap:5px; }
+  .ev-spec-btn{ width:34px; height:34px; padding:4px; cursor:pointer; opacity:.55; transition:opacity .12s, transform .12s, box-shadow .12s; }
+  .ev-spec-btn:hover{ opacity:1; transform:translateY(-2px); }
+  .ev-spec-btn.on{ opacity:1; transform:scale(1.12); outline:2px solid #ffd36a; outline-offset:1px; }
+  .ev-kind{ display:inline-block; vertical-align:middle; margin-left:6px; font:700 10px system-ui, sans-serif; letter-spacing:.06em; text-transform:uppercase;
+    padding:3px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.2); color:#ddd; background:rgba(255,255,255,.06); }
+  .ev-kind-raid{ color:#ffb38a; border-color:#c8642e; background:rgba(200,100,46,.18); }
+  .ev-kind-holiday{ color:#ffd36a; border-color:#b8902e; background:rgba(214,169,64,.16); }
+  .ev-kind-event{ color:#9fd3ff; border-color:#3f7fb8; background:rgba(63,127,184,.16); }
+  .ev-kind-notification{ color:#d8c8ff; border-color:#7a62b8; background:rgba(122,98,184,.16); }
 
   /* Absence summary in the theme */
   .cal-absence-summary{ background:rgba(0,0,0,0.3) !important; border:1px solid rgba(201,150,63,0.3) !important; border-radius:5px !important; }
@@ -6398,9 +6414,10 @@ async function addEvent(){
   const time = (c.querySelector('[name=time]').value||'').trim();
   const instance = (c.querySelector('[name=instance]').value||'').trim();
   const notes = (c.querySelector('[name=notes]').value||'').trim();
+  const kind = c.querySelector('[name=kind]').value || 'event';
   const errEl = document.getElementById('event-error');
   if(!title || !date){ errEl.textContent = 'Title and date are required.'; errEl.style.display='block'; return; }
-  const { data, error } = await sb.from('events').insert({ title, date, time, instance, notes }).select().single();
+  const { data, error } = await sb.from('events').insert({ title, date, time, instance, notes, kind }).select().single();
   if(error){ showToast("Couldn't save  try again", true); return; }
   state.events = [...state.events, data].sort((a,b)=>a.date.localeCompare(b.date));
   state.modal = null;
@@ -6418,13 +6435,22 @@ async function deleteEvent(id){
   showToast('Event removed');
   render();
 }
-async function setRsvp(eventId, status){
+// spec: { classKey, specKey } the player is bringing (raid / event types), or undefined to keep what's saved
+async function setRsvp(eventId, status, spec){
   const userId = state.session.user.id;
-  const { error } = await sb.from('rsvps').upsert({ event_id: eventId, user_id: userId, status, updated_at: new Date().toISOString() });
-  if(error){ showToast("Couldn't save your RSVP  try again", true); return; }
   const idx = state.rsvps.findIndex(r=>r.event_id===eventId && r.user_id===userId);
-  const row = { event_id: eventId, user_id: userId, status };
+  const old = idx >= 0 ? state.rsvps[idx] : null;
+  const row = { event_id: eventId, user_id: userId, status,
+    class_key: spec ? spec.classKey : (old ? old.class_key || null : null), spec_key: spec ? spec.specKey : (old ? old.spec_key || null : null) };
+  const { error } = await sb.from('rsvps').upsert({ ...row, updated_at: new Date().toISOString() });
+  if(error){ showToast("Couldn't save your RSVP  try again", true); return; }
   if(idx>=0) state.rsvps[idx] = row; else state.rsvps.push(row);
+  render();
+}
+async function setEventKind(eventId, kind){
+  const { error } = await sb.from('events').update({ kind }).eq('id', eventId);
+  if(error){ showToast("Couldn't change the event type  try again", true); return; }
+  const ev = state.events.find(e => e.id === eventId); if(ev) ev.kind = kind;
   render();
 }
 
@@ -13266,6 +13292,18 @@ function rsvpGroupsFor(eventId){
   });
   return groups;
 }
+const EVENT_KINDS = [
+  { key: 'raid', label: 'Raid', specs: true }, { key: 'holiday', label: 'Holiday', specs: false },
+  { key: 'event', label: 'Event', specs: true }, { key: 'notification', label: 'Notification', specs: false },
+];
+function eventTakesSpecs(eventId){ const ev = state.events.find(e => e.id === eventId); return !!(EVENT_KINDS.find(k => k.key === ((ev && ev.kind) || 'event')) || {}).specs; }
+function myRsvpSpec(eventId){ const r = state.rsvps.find(x => x.event_id === eventId && x.user_id === state.session.user.id); return r && r.class_key ? { classKey: r.class_key, specKey: r.spec_key } : null; }
+// the spec you picked last time (any event), to start from
+function lastRsvpSpec(){
+  try{ const [classKey, specKey] = (localStorage.getItem('hated-last-spec') || '').split('|');
+    if(CLASS_SPECS[classKey] && CLASS_SPECS[classKey].specs.some(x => x.key === specKey)) return { classKey, specKey }; }catch(e){}
+  return null;
+}
 function myRsvpFor(eventId){
   const row = state.rsvps.find(r=>r.event_id===eventId && r.user_id===state.session.user.id);
   return row ? row.status : null;
@@ -13774,9 +13812,10 @@ function renderAddEventModal(prefillDate){
           <div class="field"><label>Date</label><input name="date" type="date" value="${esc(prefillDate)}" required></div>
         </div>
         <div class="row">
+          <div class="field"><label>Event type</label><select name="kind">${EVENT_KINDS.map(k => `<option value="${k.key}" ${k.key === 'raid' ? 'selected' : ''}>${k.label}</option>`).join('')}</select></div>
           <div class="field"><label>Time (optional)</label><input name="time" placeholder="e.g. 8:00 PM server"></div>
-          <div class="field"><label>Instance (optional)</label><input name="instance" placeholder="e.g. Onyxia's Lair"></div>
         </div>
+        <div class="field"><label>Instance (optional)</label><input name="instance" placeholder="e.g. Onyxia's Lair"></div>
         <div class="field"><label>Notes (optional)</label><textarea name="notes" placeholder="Invites go out 30 min early, bring flasks"></textarea></div>
         <div id="event-error" class="field-error" style="display:none;"></div>
         <button class="btn" type="button" id="event-form-btn">Add to calendar</button>
@@ -13792,22 +13831,36 @@ function renderEventDetailModal(eventId){
   const mine = myRsvpFor(ev.id);
   const groups = rsvpGroupsFor(ev.id);
   function nameList(arr){ return arr.length ? esc(arr.join(', ')) : '<span class="muted">nobody yet</span>'; }
+  const kind = EVENT_KINDS.find(k => k.key === (ev.kind || 'event')) || EVENT_KINDS[2];
+  const withSpecs = kind.specs;
+  const myRow = state.rsvps.find(r => r.event_id === ev.id && r.user_id === state.session.user.id);
+  const pick = (state.rsvpSpecPick && state.rsvpSpecPick[ev.id]) || (myRow && myRow.class_key ? { classKey: myRow.class_key, specKey: myRow.spec_key } : lastRsvpSpec());
   const people = status => {
-    const ids = state.rsvps.filter(rv => rv.event_id === ev.id && rv.status === status).map(rv => rv.user_id);
-    return ids.length ? ids.map(id => `<span class="cal-person">${rankEmblemFor(id)}${esc(nameFor(id))}</span>`).join('') : '<span class="muted sans">nobody yet</span>';
+    const rows = state.rsvps.filter(rv => rv.event_id === ev.id && rv.status === status);
+    return rows.length ? rows.map(rv => {
+      const spec = withSpecs && status === 'going' && rv.class_key && CLASS_SPECS[rv.class_key] && CLASS_SPECS[rv.class_key].specs.find(x => x.key === rv.spec_key);
+      return `<span class="cal-person">${spec ? `<span class="spec-icon-xs" style="${specIconStyle(rv.class_key)}" title="${esc(spec.label + ' ' + CLASS_SPECS[rv.class_key].label)}">${specIconHtml(rv.class_key, rv.spec_key)}</span>` : ''}${rankEmblemFor(rv.user_id)}${esc(nameFor(rv.user_id))}</span>`;
+    }).join('') : '<span class="muted sans">nobody yet</span>';
   };
+  const specPicker = !withSpecs ? '' : `
+      <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">Your spec <span class="muted sans" style="text-transform:none; font-weight:400;">${pick ? '- ' + esc(CLASS_SPECS[pick.classKey].specs.find(x => x.key === pick.specKey).label + ' ' + CLASS_SPECS[pick.classKey].label) : '- pick what you are bringing'}</span></div>
+      <div class="ev-spec-grid">${Object.entries(CLASS_SPECS).map(([ck, c]) => `<div class="ev-spec-class"><span class="ev-spec-cname" style="color:${c.color}">${c.label}</span><div class="ev-spec-row">${c.specs.map(sp => {
+        const on = pick && pick.classKey === ck && pick.specKey === sp.key;
+        return `<button type="button" class="ev-spec-btn spec-icon-sm ${on ? 'on' : ''}" style="${specIconStyle(ck)}" data-ev-spec="${ck}|${sp.key}" title="${esc(sp.label + ' ' + c.label)}">${specIconHtml(ck, sp.key)}</button>`;
+      }).join('')}</div></div>`).join('')}</div>`;
   return `
   <div class="modal-backdrop" id="modal-backdrop">
     <div class="modal-panel" id="modal-panel">
       <div class="modal-header">
-        <h3>${esc(ev.title)}</h3>
+        <h3>${esc(ev.title)} <span class="ev-kind ev-kind-${kind.key}">${kind.label}</span></h3>
         <button class="modal-x" id="modal-close">&times;</button>
       </div>
       <div class="muted" style="margin-bottom:14px;"><span class="mono">${fmtDate(ev.date)}${ev.time?' &middot; '+esc(ev.time):''}</span>${ev.instance?' &middot; '+esc(ev.instance):''}</div>
       ${ ev.notes ? `<div style="margin-bottom:16px; line-height:1.6; white-space:pre-wrap;">${esc(ev.notes)}</div>` : '' }
 
       <div class="rule"></div>
-      <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">Your RSVP</div>
+      ${specPicker}
+      <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin:${withSpecs ? '14px' : '0'} 0 10px;">Your RSVP</div>
       <div class="rsvp-btns" style="margin-bottom:18px;">
         <button class="rsvp-btn ${mine==='going'?'sel-going':''}" data-modal-rsvp="going">Going</button>
         <button class="rsvp-btn ${mine==='maybe'?'sel-maybe':''}" data-modal-rsvp="maybe">Maybe</button>
@@ -13823,7 +13876,10 @@ function renderEventDetailModal(eventId){
 
       ${ officer ? `
       <div class="rule"></div>
-      <button class="btn danger" data-modal-delete-event="${ev.id}">Remove event</button>` : '' }
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <label class="muted sans" style="font-size:13px;">Event type <select id="ev-kind-select" data-event="${ev.id}">${EVENT_KINDS.map(k => `<option value="${k.key}" ${k.key === kind.key ? 'selected' : ''}>${k.label}</option>`).join('')}</select></label>
+        <button class="btn danger" data-modal-delete-event="${ev.id}" style="margin-left:auto;">Remove event</button>
+      </div>` : '' }
     </div>
   </div>`;
 }
@@ -16653,8 +16709,21 @@ function bindApp(){
   if(backdrop) backdrop.addEventListener('click', (ev)=>{ if(ev.target.id==='modal-backdrop'){ state.modal=null; render(); } });
 
   document.querySelectorAll('[data-modal-rsvp]').forEach(b=>b.addEventListener('click', ()=>{
-    if(state.modal && state.modal.type==='event-detail') setRsvp(state.modal.eventId, b.dataset.modalRsvp);
+    if(!(state.modal && state.modal.type==='event-detail')) return;
+    const id = state.modal.eventId, pick = state.rsvpSpecPick && state.rsvpSpecPick[id];
+    setRsvp(id, b.dataset.modalRsvp, pick || (eventTakesSpecs(id) && !myRsvpSpec(id) ? lastRsvpSpec() || undefined : undefined));
   }));
+  // picking a spec: remembered for this event; if you've already answered, it's saved straight away
+  document.querySelectorAll('[data-ev-spec]').forEach(b=>b.addEventListener('click', ()=>{
+    if(!(state.modal && state.modal.type==='event-detail')) return;
+    const id = state.modal.eventId, [classKey, specKey] = b.dataset.evSpec.split('|');
+    state.rsvpSpecPick = state.rsvpSpecPick || {}; state.rsvpSpecPick[id] = { classKey, specKey };
+    try{ localStorage.setItem('hated-last-spec', classKey + '|' + specKey); }catch(e){}
+    const mine = myRsvpFor(id);
+    if(mine) setRsvp(id, mine, { classKey, specKey }); else render();
+  }));
+  const kindSel = document.getElementById('ev-kind-select');
+  if(kindSel) kindSel.addEventListener('change', () => setEventKind(kindSel.dataset.event, kindSel.value));
   const modalDelBtn = document.querySelector('[data-modal-delete-event]');
   if(modalDelBtn) modalDelBtn.addEventListener('click', ()=>deleteEvent(modalDelBtn.dataset.modalDeleteEvent));
 
