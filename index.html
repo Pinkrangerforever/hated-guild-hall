@@ -4991,11 +4991,12 @@
   .gb-link-row{ display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.07); }
   .gb-link-row .gb-who{ flex:1; min-width:0; } .gb-link-row select{ max-width:150px; }
   .gb-linked summary{ cursor:pointer; margin-top:8px; font-size:13px; opacity:.85; } .gb-arrow{ opacity:.5; } .gb-member{ flex:1; font-weight:600; }
-  .gb-import{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:0 0 14px; }
+  .gb-import{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; max-width:1060px; margin:0 auto 14px; }
   .gb-hint{ font-size:12px; opacity:.75; } .gb-hint code{ font-size:11px; }
-  .gb-grid{ display:grid; grid-template-columns:minmax(0, 640px) minmax(280px, 1fr); gap:16px; align-items:start; }
+  .gb-grid{ display:grid; grid-template-columns:minmax(0, 640px) minmax(300px, 400px); justify-content:center; gap:18px; align-items:start; max-width:1060px; margin:0 auto; }
+  .main .gb-grid .panel{ margin:0; }   /* the side panels sit 18px apart, not the site-wide panel spacing */
   .gb-bank{ min-width:0; overflow:hidden; }
-  @media (max-width: 900px){ .gb-grid{ grid-template-columns:1fr; } }
+  @media (max-width: 900px){ .gb-grid{ grid-template-columns:minmax(0, 640px); } }
   .gb-side{ display:flex; flex-direction:column; gap:16px; }
   .gb-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
   .gb-head h3{ margin:0; }
@@ -5033,9 +5034,11 @@
   .gb-periods{ display:flex; gap:4px; } .gb-periods button{ background:none; border:1px solid rgba(255,255,255,.15); color:inherit; border-radius:12px; padding:3px 9px; font:inherit; font-size:12px; cursor:pointer; }
   .gb-periods button.on{ border-color:#d6a940; color:#ffd36a; }
   .gb-board, .gb-recent{ list-style:none; margin:0; padding:0; }
-  .gb-board li, .gb-recent li{ display:flex; align-items:center; gap:10px; padding:7px 4px; border-bottom:1px solid rgba(255,255,255,.07); }
+  .gb-board li, .gb-recent li{ display:flex; align-items:center; gap:10px; padding:7px 6px; border-bottom:1px solid rgba(255,255,255,.07); border-radius:4px; }
+  .gb-board li:last-child, .gb-recent li:last-child{ border-bottom:0; }
+  .gb-board li[data-profile-id]:hover{ background:rgba(214,169,64,.08); }
   .gb-pos{ width:26px; text-align:center; } .gb-rank{ opacity:.6; font-size:13px; }
-  .gb-who{ flex:1; font-weight:600; } .gb-amt{ white-space:nowrap; font-size:13px; } .gb-when{ font-size:12px; opacity:.6; }
+  .gb-who{ flex:1; font-weight:600; } .gb-amt{ white-space:nowrap; font-size:13px; } .gb-when{ font-size:12px; opacity:.6; min-width:68px; text-align:right; }
 </style>
 <script>const whTooltips = { colorLinks: false, iconizeLinks: true, renameLinks: false, iconSize: 'small' };</script>
 <script src="https://wow.zamimg.com/js/tooltips.js" async></script>
@@ -15723,7 +15726,7 @@ async function loadGuildBank(){
 const gbGold = copper => {
   copper = Math.max(0, Math.round(copper || 0));
   const g = Math.floor(copper / 10000), s = Math.floor(copper / 100) % 100, c = copper % 100;
-  return `${g ? `<span class="gb-g">${g.toLocaleString()}g</span> ` : ''}${g || s ? `<span class="gb-s">${s}s</span> ` : ''}<span class="gb-c">${c}c</span>`;
+  return [g ? `<span class="gb-g">${g.toLocaleString()}g</span>` : '', s ? `<span class="gb-s">${s}s</span>` : '', c || !copper ? `<span class="gb-c">${c}c</span>` : ''].filter(Boolean).join(' ');
 };
 // Donations in the chosen period, grouped: a member's linked characters add up under the member; any character not
 // linked to a member stands on its own. [{ profile, label, names: [character names], copper }] biggest first.
