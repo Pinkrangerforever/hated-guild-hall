@@ -5009,11 +5009,11 @@
   .gb-slot{ position:relative; aspect-ratio:1; min-width:0; cursor:pointer; border-radius:4px; background:#0a0705; border:1px solid var(--q, #3a2c1c);
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.6), 0 0 4px color-mix(in srgb, var(--q, transparent) 45%, transparent); overflow:hidden; display:block; }
   .gb-slot.gb-empty{ border-color:#2b2015; box-shadow:inset 0 0 6px rgba(0,0,0,.9); background:radial-gradient(#17100a, #0a0604); }
-  .gb-slot img{ position:absolute; inset:0; width:100%; height:100%; display:block; object-fit:cover; }
+  .gb-slot img{ position:absolute; inset:14%; width:72%; height:72%; display:block; object-fit:cover; border-radius:3px; }
   .gb-slot:not(.gb-empty):hover{ transform:translateY(-1px); border-color:#ffd36a; z-index:1; }
-  .gb-cnt{ position:absolute; right:2px; bottom:0; font:700 11px system-ui, sans-serif; color:#fff; text-shadow:0 0 2px #000, 1px 1px 1px #000, -1px -1px 1px #000; }
+  .gb-cnt{ position:absolute; right:2px; bottom:0; z-index:1; font:800 15px system-ui, sans-serif; line-height:1; color:#fff; text-shadow:0 0 2px #000, 1px 1px 1px #000, -1px -1px 1px #000; }
   .gb-noicon{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:700 11px system-ui; color:var(--q); }
-  @media (max-width: 600px){ .gb-slots{ gap:2px; padding:4px; } .gb-cnt{ font-size:9px; } }
+  @media (max-width: 600px){ .gb-slots{ gap:2px; padding:4px; } .gb-cnt{ font-size:11px; } }
   .gb-tip{ position:fixed; z-index:10000; display:none; max-width:320px; pointer-events:none; padding:8px 10px; border-radius:5px;
     background:rgba(9,8,22,.96); border:1px solid #5b5b6e; box-shadow:0 0 0 1px #000, 0 6px 18px rgba(0,0,0,.7);
     font:13px/1.35 Verdana, 'Segoe UI', sans-serif; color:#fff; }
@@ -15727,10 +15727,27 @@ const gbGold = copper => {
 };
 // Donations in the chosen period, grouped: a member's linked characters add up under the member; any character not
 // linked to a member stands on its own. [{ profile, label, names: [character names], copper }] biggest first.
+// Deposits that are real donations. Gold a member takes out (a plain withdraw, e.g. to buy things on the AH for the guild)
+// is owed back first: deposits pay that off before any of it counts as donated, across all of the member's linked
+// characters. The log's times are only to the hour, so within the same hour withdrawals go first (never over-credits).
+// [{ ...entry, amount: donated copper }] newest first, only entries that donated something.
+const gbOwner = name => { const pid = (gb.links || {})[name.toLowerCase()]; return pid ? 'p:' + pid : 'c:' + name.toLowerCase(); };
+function gbDonations(){
+  const owed = {}, out = [];
+  gb.log.filter(e => e.character_name && (e.kind === 'deposit' || e.kind === 'withdraw'))
+    .sort((a, b) => new Date(a.happened_at) - new Date(b.happened_at) || (a.kind === 'withdraw' ? -1 : 0) - (b.kind === 'withdraw' ? -1 : 0))
+    .forEach(e => {
+      const k = gbOwner(e.character_name), amt = Number(e.amount || 0), o = owed[k] || 0;
+      if(e.kind === 'withdraw'){ owed[k] = o + amt; return; }
+      owed[k] = Math.max(0, o - amt);
+      if(amt > o) out.push({ ...e, amount: amt - o });
+    });
+  return out.reverse();
+}
 function gbDonors(){
   const cut = { week: Date.now() - 7 * 864e5, month: Date.now() - 30 * 864e5, all: 0 }[gb.period];
   const groups = {};
-  gb.log.filter(e => e.kind === 'deposit' && e.character_name && new Date(e.happened_at).getTime() >= cut).forEach(e => {
+  gbDonations().filter(e => new Date(e.happened_at).getTime() >= cut).forEach(e => {
     const pid = (gb.links || {})[e.character_name.toLowerCase()], prof = pid && state.profilesById ? state.profilesById[pid] : null;
     const key = prof ? 'p:' + prof.id : 'c:' + e.character_name.toLowerCase();
     const g = groups[key] = groups[key] || { profile: prof, label: prof ? (prof.character_name || e.character_name) : e.character_name, names: [], copper: 0 };
@@ -15845,7 +15862,7 @@ function renderGuildBank(){
   const isRL = !!(state.profile && state.profile.protected);
   const s = gb.snap, tabs = (s && s.tabs) || [];
   const cut = { week: Date.now() - 7 * 864e5, month: Date.now() - 30 * 864e5, all: 0 }[gb.period];
-  const deposits = gb.log.filter(e => e.kind === 'deposit' && e.character_name);
+  const deposits = gbDonations();
   const ranked = gbDonors();
   const tab = tabs[Math.min(gb.tab, Math.max(0, tabs.length - 1))];
   const medal = i => ['🥇', '🥈', '🥉'][i] || `<span class="gb-rank">${i + 1}</span>`;
@@ -15872,7 +15889,7 @@ function renderGuildBank(){
           ${ranked.length ? `<ol class="gb-board">${ranked.slice(0, 25).map((d, i) => `<li ${d.profile ? `data-profile-id="${esc(d.profile.id)}" title="View profile" style="cursor:pointer"` : ''}><span class="gb-pos">${medal(i)}</span><span class="gb-who">${esc(d.label)}</span><span class="gb-amt">${gbGold(d.copper)}</span></li>`).join('')}</ol>`
             : emptyState('No gold donations recorded for this period yet.')}
         </div>
-        ${isRL ? gbLinkPanel(deposits) : ''}
+        ${isRL ? gbLinkPanel(gb.log.filter(e => e.kind === 'deposit' && e.character_name)) : ''}
         <div class="panel style-glass">
           <div class="gb-head"><h3>Recent donations</h3></div>
           ${deposits.length ? `<ul class="gb-recent">${deposits.slice(0, 15).map(e => `<li><span class="gb-who">${esc(e.character_name)}</span><span class="gb-amt">${gbGold(e.amount)}</span><span class="gb-when">${new Date(e.happened_at).toLocaleDateString()}</span></li>`).join('')}</ul>` : emptyState('None yet.')}

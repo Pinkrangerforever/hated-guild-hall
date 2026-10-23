@@ -89,7 +89,7 @@ local function scanMoneyLog()
   local now = time()
   local seen = {}
   local n = GetNumGuildBankMoneyTransactions() or 0
-  for i = n, 1, -1 do   -- the log's last index is its oldest entry
+  for i = 1, n do   -- index 1 is the oldest entry, n the newest (the history is kept oldest first)
     local kind, name, amount, years, months, days, hours = GetGuildBankMoneyTransaction(i)
     if kind then
       local age = (((years or 0) * 365 + (months or 0) * 30 + (days or 0)) * 24 + (hours or 0)) * 3600
