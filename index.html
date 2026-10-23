@@ -15727,20 +15727,24 @@ const gbGold = copper => {
 };
 // Donations in the chosen period, grouped: a member's linked characters add up under the member; any character not
 // linked to a member stands on its own. [{ profile, label, names: [character names], copper }] biggest first.
-// Deposits that are real donations. Gold a member takes out (a plain withdraw, e.g. to buy things on the AH for the guild)
-// is owed back first: deposits pay that off before any of it counts as donated, across all of the member's linked
-// characters. The log's times are only to the hour, so within the same hour withdrawals go first (never over-credits).
+// Deposits that are real donations. Gold someone takes out (a plain withdraw, e.g. to buy things on the AH for the guild)
+// and puts back within 2 hours is just managing the bank's funds: those deposits cancel the withdrawal instead of counting
+// as donated (across all of a member's linked characters). Only what goes in beyond what came out in the 2 hours before
+// counts. The log's times are only to the hour, so within the same hour withdrawals go first.
 // [{ ...entry, amount: donated copper }] newest first, only entries that donated something.
+const GB_RETURN_WINDOW = 2 * 3600e3;
 const gbOwner = name => { const pid = (gb.links || {})[name.toLowerCase()]; return pid ? 'p:' + pid : 'c:' + name.toLowerCase(); };
 function gbDonations(){
-  const owed = {}, out = [];
+  const out_ = {}, out = [];   // owner -> [{ t, left }] withdrawals not yet put back
   gb.log.filter(e => e.character_name && (e.kind === 'deposit' || e.kind === 'withdraw'))
     .sort((a, b) => new Date(a.happened_at) - new Date(b.happened_at) || (a.kind === 'withdraw' ? -1 : 0) - (b.kind === 'withdraw' ? -1 : 0))
     .forEach(e => {
-      const k = gbOwner(e.character_name), amt = Number(e.amount || 0), o = owed[k] || 0;
-      if(e.kind === 'withdraw'){ owed[k] = o + amt; return; }
-      owed[k] = Math.max(0, o - amt);
-      if(amt > o) out.push({ ...e, amount: amt - o });
+      const k = gbOwner(e.character_name), t = new Date(e.happened_at).getTime();
+      let amt = Number(e.amount || 0);
+      const pulls = out_[k] = (out_[k] || []).filter(w => w.left > 0 && t - w.t <= GB_RETURN_WINDOW);
+      if(e.kind === 'withdraw'){ pulls.push({ t, left: amt }); return; }
+      for(const w of pulls){ const n = Math.min(w.left, amt); w.left -= n; amt -= n; if(!amt) break; }
+      if(amt > 0) out.push({ ...e, amount: amt });
     });
   return out.reverse();
 }
