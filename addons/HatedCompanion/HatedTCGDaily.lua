@@ -5,7 +5,7 @@
   kill log proves (this window only shows progress).
 
   The board locks to the character's level at its first kill of the day, so levelling mid-day doesn't change it.
-  /tcg daily   the daily window
+  Shown in the Hated TCG window (/tcg); /tcg daily opens it too.
 ]]
 
 local D = HatedTCG_DAILY
@@ -126,81 +126,133 @@ function HatedTCGDaily_Note(kind, e)
     bump(p, "bmap:" .. e.key .. ":" .. (e.inst or 0))
   end
   check(s)
-  if UI and UI:IsShown() then UI.refresh() end
+  if UI and UI:IsVisible() then UI.refresh() end
 end
 
--- ---------- the window ----------
+-- ---------- the panel (inside the Hated TCG window: HatedTCG.lua places it) ----------
+local ICON = {
+  dungeon = "Interface\\Icons\\INV_Misc_Bone_HumanSkull_01",
+  beast = "Interface\\Icons\\Ability_Hunter_Pet_Bear", humanoid = "Interface\\Icons\\INV_Misc_Head_Human_01",
+  undead = "Interface\\Icons\\Spell_Shadow_RaiseDead", elemental = "Interface\\Icons\\Spell_Nature_EarthElemental_Totem",
+  demon = "Interface\\Icons\\Spell_Shadow_SummonImp", elite = "Interface\\Icons\\Ability_Warrior_Challange",
+  rare = "Interface\\Icons\\INV_Misc_Gem_Diamond_01", first = "Interface\\Icons\\INV_Misc_Spyglass_02",
+  any = "Interface\\Icons\\Ability_DualWield",
+}
+local GOLD = { 1, 0.83, 0.42 }
+local HOW = {
+  type = "Kills of this creature type that give experience (no grey mobs).",
+  elite = "Elite, rare elite or world boss kills.",
+  rare = "A rare or rare elite creature.",
+  first = "Creatures this account has never killed before (on any character).",
+  any = "Any kill that gives experience (no grey mobs).",
+}
+local PAID = "Checked and paid by the website when you sync (up to 7 days later)."
 local function flat(fr, r, g, b, a, er, eg, eb, ea)
   fr:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 })
   fr:SetBackdropColor(r, g, b, a); fr:SetBackdropBorderColor(er, eg, eb, ea)
 end
-local function build()
-  if UI then return UI end
-  local w = CreateFrame("Frame", "HatedTCGDailyFrame", UIParent, "BackdropTemplate"); w:Hide()
-  w:SetSize(400, 330); w:SetPoint("CENTER", -230, 0); w:SetFrameStrata("HIGH"); w:SetToplevel(true)
-  w:SetMovable(true); w:EnableMouse(true); w:RegisterForDrag("LeftButton"); w:SetClampedToScreen(true)
-  w:SetScript("OnDragStart", w.StartMoving); w:SetScript("OnDragStop", w.StopMovingOrSizing)
-  flat(w, 0.035, 0.055, 0.06, 0.97, 0.25, 0.95, 0.85, 0.7)
-  tinsert(UISpecialFrames, "HatedTCGDailyFrame")
-  local close = CreateFrame("Button", nil, w, "UIPanelCloseButton"); close:SetPoint("TOPRIGHT", 2, 2)
-  local title = w:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"); title:SetPoint("TOPLEFT", 16, -14); title:SetText("Daily Challenges")
-  title:SetTextColor(0.75, 1, 0.96)
-  w.sub = w:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); w.sub:SetPoint("TOPLEFT", 16, -38); w.sub:SetWidth(368); w.sub:SetJustifyH("LEFT")
-  w.rows = {}
-  for i = 1, 4 do
-    local y = -66 - (i - 1) * 56
-    local r = CreateFrame("Frame", nil, w, "BackdropTemplate"); r:SetPoint("TOPLEFT", 12, y); r:SetSize(376, 50)
-    flat(r, 0, 0, 0, 0.35, 0.25, 0.95, 0.85, 0.25)
-    r.label = r:CreateFontString(nil, "OVERLAY", "GameFontNormal"); r.label:SetPoint("TOPLEFT", 10, -8); r.label:SetWidth(280); r.label:SetJustifyH("LEFT")
-    r.pts = r:CreateFontString(nil, "OVERLAY", "GameFontNormal"); r.pts:SetPoint("TOPRIGHT", -10, -8)
-    local bar = CreateFrame("StatusBar", nil, r); bar:SetPoint("BOTTOMLEFT", 10, 9); bar:SetSize(290, 10)
-    bar:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8"); bar:SetStatusBarColor(TEAL[1], TEAL[2], TEAL[3], 0.85)
-    local bg = bar:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints(); bg:SetColorTexture(1, 1, 1, 0.08)
-    r.bar = bar
-    r.count = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); r.count:SetPoint("BOTTOMRIGHT", -10, 7)
-    w.rows[i] = r
-  end
-  w.foot = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); w.foot:SetPoint("BOTTOMLEFT", 16, 12); w.foot:SetWidth(368); w.foot:SetJustifyH("LEFT")
-  w.foot:SetText("Progress here is the addon's count; the website checks your kills and pays when you sync (up to 7 days later).")
+local ROW_H, PANEL_W = 46, 396
+local function makeRow(panel, i)
+  local r = CreateFrame("Button", nil, panel, "BackdropTemplate")
+  r:SetSize(PANEL_W, ROW_H); r:SetPoint("TOPLEFT", 0, -22 - (i - 1) * (ROW_H + 4))
+  flat(r, 0.02, 0.05, 0.05, 0.75, 0.25, 0.95, 0.85, 0.22)
+  r.edge = { 0.25, 0.95, 0.85, 0.22 }
+  -- hover: a teal wash from the left, a bright edge and a slightly bigger icon
+  r.glow = r:CreateTexture(nil, "BACKGROUND", nil, 2); r.glow:SetPoint("TOPLEFT", 1, -1); r.glow:SetPoint("BOTTOMRIGHT", -1, 1)
+  r.glow:SetColorTexture(1, 1, 1, 1)
+  if not (CreateColor and pcall(r.glow.SetGradient, r.glow, "HORIZONTAL", CreateColor(0.2, 0.9, 0.85, 0.3), CreateColor(0.2, 0.9, 0.85, 0))) then r.glow:SetColorTexture(0.2, 0.9, 0.85, 0.12) end
+  r.glow:SetAlpha(0)
+  r.iconBg = r:CreateTexture(nil, "ARTWORK"); r.iconBg:SetSize(36, 36); r.iconBg:SetPoint("LEFT", 6, 0); r.iconBg:SetColorTexture(0, 0, 0, 0.9)
+  r.icon = r:CreateTexture(nil, "ARTWORK", nil, 1); r.icon:SetSize(34, 34); r.icon:SetPoint("CENTER", r.iconBg); r.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+  r.check = r:CreateTexture(nil, "OVERLAY"); r.check:SetSize(20, 20); r.check:SetPoint("BOTTOMRIGHT", r.iconBg, 6, -5)
+  r.check:SetTexture("Interface\\RaidFrame\\ReadyCheck-Ready")
+  r.label = r:CreateFontString(nil, "OVERLAY", "GameFontNormal"); r.label:SetPoint("TOPLEFT", r.iconBg, "TOPRIGHT", 10, -3); r.label:SetWidth(270); r.label:SetJustifyH("LEFT")
+  r.pts = r:CreateFontString(nil, "OVERLAY"); r.pts:SetFont(STANDARD_TEXT_FONT, 15, "OUTLINE"); r.pts:SetPoint("TOPRIGHT", -10, -6)
+  local bar = CreateFrame("StatusBar", nil, r); bar:SetPoint("BOTTOMLEFT", r.iconBg, "BOTTOMRIGHT", 10, 3); bar:SetSize(250, 8)
+  bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+  local bg = bar:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints(); bg:SetColorTexture(1, 1, 1, 0.07)
+  r.bar = bar
+  r.count = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); r.count:SetPoint("BOTTOMRIGHT", -10, 6)
+  r:SetScript("OnEnter", function(self)
+    self.glow:SetAlpha(1); self:SetBackdropBorderColor(TEAL[1], TEAL[2], TEAL[3], 0.9); self.icon:SetSize(36, 36)
+    if self.tip then
+      GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+      GameTooltip:SetText(self.tip[1], 1, 1, 1)
+      for k = 2, #self.tip do local l = self.tip[k]; GameTooltip:AddLine(l[1], l[2] or 0.85, l[3] or 0.85, l[4] or 0.85, true) end
+      GameTooltip:Show()
+    end
+  end)
+  r:SetScript("OnLeave", function(self)
+    self.glow:SetAlpha(0); self:SetBackdropBorderColor(self.edge[1], self.edge[2], self.edge[3], self.edge[4]); self.icon:SetSize(34, 34)
+    GameTooltip:Hide()
+  end)
+  return r
+end
+local function fill(r, icon, label, have, need, points, done, tip)
+  r:Show()
+  r.icon:SetTexture(icon); r.icon:SetDesaturated(done and true or false); r.icon:SetAlpha(done and 0.7 or 1)
+  r.check:SetShown(done and true or false)
+  r.label:SetText(label); r.label:SetTextColor(done and 0.6 or 1, done and 0.9 or 0.93, done and 0.62 or 0.82)
+  r.pts:SetText("+" .. points)
+  if done then r.pts:SetTextColor(GOLD[1], GOLD[2], GOLD[3]) else r.pts:SetTextColor(TEAL[1], TEAL[2], TEAL[3]) end
+  r.bar:SetMinMaxValues(0, need); r.bar:SetValue(math.min(have, need))
+  if done then r.bar:SetStatusBarColor(GOLD[1], GOLD[2], GOLD[3], 0.9) else r.bar:SetStatusBarColor(TEAL[1], TEAL[2], TEAL[3], 0.85) end
+  r.count:SetText(done and "|cffffd36aComplete|r" or (math.min(have, need) .. " / " .. need))
+  r.edge = done and { GOLD[1], GOLD[2], GOLD[3], 0.45 } or { 0.25, 0.95, 0.85, 0.22 }
+  r:SetBackdropBorderColor(r.edge[1], r.edge[2], r.edge[3], r.edge[4])
+  r.tip = tip
+end
 
-  local function setRow(r, label, have, need, points, done)
-    r:Show()
-    r.label:SetText((done and "|cff5aff7a\226\156\147|r " or "") .. label)
-    r.label:SetTextColor(done and 0.6 or 1, done and 1 or 0.93, done and 0.65 or 0.8)
-    r.pts:SetText("|cff5afff2+" .. points .. "|r")
-    r.bar:SetMinMaxValues(0, need); r.bar:SetValue(math.min(have, need))
-    r.count:SetText(done and "done" or (math.min(have, need) .. " / " .. need))
-  end
-  w.refresh = function()
+-- the daily panel, built inside parent; returns it (it refreshes itself while shown)
+function HatedTCGDaily_Panel(parent)
+  local p = CreateFrame("Frame", nil, parent); p:SetSize(PANEL_W, 22 + 4 * (ROW_H + 4))
+  local head = p:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); head:SetPoint("TOPLEFT", 2, -4); head:SetText("DAILY CHALLENGES")
+  head:SetTextColor(0.5, 0.8, 0.76)
+  p.sub = p:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); p.sub:SetPoint("TOPRIGHT", -2, -4); p.sub:SetJustifyH("RIGHT")
+  p.rows = {}
+  for i = 1, 4 do p.rows[i] = makeRow(p, i) end
+  function p.refresh()
     local now = time()
     local day, shift = pacificDay(now)
     local char, lvl = UnitName("player"), UnitLevel("player")
     local fac = (UnitFactionGroup("player") or ""):sub(1, 1)
     local s = HatedCompanionDB and HatedCompanionDB.daily and HatedCompanionDB.daily[char]
     if not (s and s.day == day) then s = nil end
-    local b = board(day, s and s.lvl or lvl, fac)
+    local blvl = s and s.lvl or lvl
+    local b = board(day, blvl, fac)
+    local prog, done = s and s.prog or {}, s and s.done or {}
     local left = (day + 1) * 86400 - shift - now
-    w.sub:SetText(string.format("%s, level %d%s   |cff7fb5adNew board in %dh %dm|r", char, s and s.lvl or lvl,
-      s and "" or " (locks at your first kill today)", math.floor(left / 3600), math.floor(left % 3600 / 60)))
-    local p, done = s and s.prog or {}, s and s.done or {}
-    local i = 0
+    local n, total, earned, i = 0, 0, 0, 0
     if b.dungeon then
-      i = 1
+      i = 1; total = 1
       local d = b.dungeon
-      setRow(w.rows[1], string.format("Clear |cffffd36a%s|r (defeat %d bosses)", d.name, d.bosses), math.min(p["boss:" .. d.key] or 0, d.bosses), d.bosses, D.dungeonPoints, done.dungeon)
+      local downs = math.min(prog["boss:" .. d.key] or 0, d.bosses)
+      if done.dungeon then n = n + 1; earned = earned + D.dungeonPoints end
+      fill(p.rows[1], ICON.dungeon, "Clear |cffffd36a" .. d.name .. "|r", downs, d.bosses, D.dungeonPoints, done.dungeon, {
+        d.name,
+        { string.format("Levels %d-%d%s", d.lo, d.hi, d.fac == "H" and "  (Horde)" or d.fac == "A" and "  (Alliance)" or ""), GOLD[1], GOLD[2], GOLD[3] },
+        { string.format("Defeat %d of its bosses, plus at least %d other kills inside, on this character today.", d.bosses, D.dungeonTrash) },
+        { string.format("Bosses down: %d / %d", downs, d.bosses), TEAL[1], TEAL[2], TEAL[3] },
+        { PAID, 0.5, 0.65, 0.62 },
+      })
     end
     for _, t in ipairs(b.tasks) do
-      i = i + 1
-      setRow(w.rows[i], (t.label:gsub("{n}", t.need)), taskCount(p, t), t.need, t.points, done[t.id])
+      i = i + 1; total = total + 1
+      if done[t.id] then n = n + 1; earned = earned + t.points end
+      local label = (t.label:gsub("{n}", t.need))
+      fill(p.rows[i], ICON[t.id] or ICON.any, label, taskCount(prog, t), t.need, t.points, done[t.id], {
+        label, { HOW[t.kind] or "" },
+        { string.format("Progress: %d / %d", math.min(taskCount(prog, t), t.need), t.need), TEAL[1], TEAL[2], TEAL[3] },
+        { PAID, 0.5, 0.65, 0.62 },
+      })
     end
-    for k = i + 1, 4 do w.rows[k]:Hide() end
+    for k = i + 1, 4 do p.rows[k]:Hide() end
+    p.sub:SetText(string.format("%s%d/%d done|r  |cff5afff2+%d|r   |cff6f8f8aLv %d%s - new in %dh %dm|r",
+      (n == total and total > 0) and "|cffffd36a" or "|cffe8f6f3", n, total, earned, blvl, s and "" or " (locks at first kill)",
+      math.floor(left / 3600), math.floor(left % 3600 / 60)))
   end
-  w:SetScript("OnShow", function() w.refresh() end)
-  C_Timer.NewTicker(30, function() if w:IsShown() then w.refresh() end end)
-  UI = w
-  return w
-end
-function HatedTCGDaily_Toggle(open)
-  local w = build()
-  if w:IsShown() and not open then w:Hide() else w:Show() end
+  p:SetScript("OnShow", p.refresh)
+  C_Timer.NewTicker(30, function() if p:IsVisible() then p.refresh() end end)
+  UI = p
+  return p
 end

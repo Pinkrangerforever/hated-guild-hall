@@ -13,7 +13,7 @@
   (Profile > Hated TCG) at least once a month. /reload or log out first so WoW writes the file.
 
   /tcg   the Hated TCG window: your points (paste the code from the website to show your account total)
-  /tcg daily   today's daily challenges (HatedTCGDaily.lua)
+  /tcg daily   the same window (its Daily Challenges section: HatedTCGDaily.lua)
 ]]
 
 local KEEP_DAYS = 30
@@ -433,7 +433,7 @@ end
 local function build()
   if TCGUI then return TCGUI end
   local w = CreateFrame("Frame", "HatedTCGFrame", UIParent, "BackdropTemplate"); w:Hide()   -- created hidden, so the first click opens it
-  w:SetSize(420, 520); w:SetPoint("CENTER", 260, 0); w:SetFrameStrata("HIGH"); w:SetToplevel(true)
+  w:SetSize(420, 660); w:SetPoint("CENTER", 260, 0); w:SetFrameStrata("HIGH"); w:SetToplevel(true)
   w:SetMovable(true); w:EnableMouse(true); w:RegisterForDrag("LeftButton"); w:SetClampedToScreen(true)
   w:SetScript("OnDragStart", w.StartMoving); w:SetScript("OnDragStop", w.StopMovingOrSizing)
   flat(w, 0.035, 0.055, 0.06, 0.97, 0.25, 0.95, 0.85, 0.7)
@@ -452,11 +452,14 @@ local function build()
   w.totalLbl = w:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); w.totalLbl:SetPoint("TOP", w.total, "BOTTOM", 0, -2)
   w.detail = w:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); w.detail:SetPoint("TOP", w.totalLbl, "BOTTOM", 0, -6); w.detail:SetWidth(380)
 
-  local rl = w:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); rl:SetPoint("TOPLEFT", 16, -148); rl:SetText("RECENT"); rl:SetTextColor(0.5, 0.8, 0.76)
+  -- today's daily challenges (HatedTCGDaily.lua)
+  if HatedTCGDaily_Panel then w.daily = HatedTCGDaily_Panel(w); w.daily:SetPoint("TOPLEFT", 12, -138) end
+  local RECENT, top = 6, -372
+  local rl = w:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); rl:SetPoint("TOPLEFT", 16, top); rl:SetText("RECENT"); rl:SetTextColor(0.5, 0.8, 0.76)
   w.rows = {}
-  for i = 1, 10 do
-    local r = w:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); r:SetPoint("TOPLEFT", 16, -150 - i * 18); r:SetWidth(300); r:SetJustifyH("LEFT")
-    local a = w:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); a:SetPoint("TOPRIGHT", -16, -150 - i * 18); a:SetTextColor(TEAL[1], TEAL[2], TEAL[3])
+  for i = 1, RECENT do
+    local r = w:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); r:SetPoint("TOPLEFT", 16, top - 2 - i * 18); r:SetWidth(300); r:SetJustifyH("LEFT")
+    local a = w:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); a:SetPoint("TOPRIGHT", -16, top - 2 - i * 18); a:SetTextColor(TEAL[1], TEAL[2], TEAL[3])
     w.rows[i] = { r, a }
   end
 
@@ -490,14 +493,13 @@ local function build()
     say(string.format("account total updated: %d points.", s.points))
   end
   ok:SetScript("OnClick", apply); box:SetScript("OnEnterPressed", apply)
-  local daily = CreateFrame("Button", nil, w, "UIPanelButtonTemplate"); daily:SetSize(150, 24); daily:SetPoint("BOTTOMRIGHT", -16, 102); daily:SetText("Daily challenges")
-  daily:SetScript("OnClick", function() if HatedTCGDaily_Toggle then HatedTCGDaily_Toggle(true) end end)
   local binder = CreateFrame("Button", nil, w, "UIPanelButtonTemplate"); binder:SetSize(170, 24); binder:SetPoint("BOTTOM", 0, 12)
   binder:SetText("Binder & Decks")
   binder:SetScript("OnClick", function() w:Hide(); if HatedTCGBinder_Toggle then HatedTCGBinder_Toggle("binder") end end)
 
   w.refresh = function()
     local t = db(); local new, n = sinceSync()
+    if w.daily then w.daily.refresh() end
     if t.server then
       w.total:SetText(BreakUpLargeNumbers and BreakUpLargeNumbers(t.server.points + new) or (t.server.points + new))
       w.totalLbl:SetText("points on your account")
@@ -512,7 +514,7 @@ local function build()
     local shown = 0
     local recent = t.recent or t.log
     for i = #recent, 1, -1 do
-      if shown >= 10 then break end
+      if shown >= #w.rows then break end
       local e = entryOf(recent[i])
       if e then
         shown = shown + 1
@@ -521,7 +523,7 @@ local function build()
         row[2]:SetText(e.amount > 0 and ("+" .. e.amount) or "")
       end
     end
-    for i = shown + 1, 10 do w.rows[i][1]:SetText(i == 1 and "|cff6f8f8aNothing yet - go kill something!|r" or ""); w.rows[i][2]:SetText("") end
+    for i = shown + 1, #w.rows do w.rows[i][1]:SetText(i == 1 and "|cff6f8f8aNothing yet - go kill something!|r" or ""); w.rows[i][2]:SetText("") end
   end
   TCGUI = w
   return w
@@ -548,6 +550,6 @@ SlashCmdList.HATEDTCG = function(msg)
     say("debug " .. (HatedCompanionDB.tcgDebug and "on: kills are reported in chat (/tcg debug again to stop)." or "off.")); return
   end
   if (msg or ""):lower():match("test") then popup(10, nil); say("that was a test popup (no points)."); return end
-  if (msg or ""):lower():match("daily") then if HatedTCGDaily_Toggle then HatedTCGDaily_Toggle() end; return end
+  if (msg or ""):lower():match("daily") then HatedTCG_Toggle(true); return end
   HatedTCG_Toggle()
 end
