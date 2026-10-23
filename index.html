@@ -4993,7 +4993,7 @@
   .gb-linked summary{ cursor:pointer; margin-top:8px; font-size:13px; opacity:.85; } .gb-arrow{ opacity:.5; } .gb-member{ flex:1; font-weight:600; }
   .gb-import{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:0 0 14px; }
   .gb-hint{ font-size:12px; opacity:.75; } .gb-hint code{ font-size:11px; }
-  .gb-grid{ display:grid; grid-template-columns:minmax(0, 1.6fr) minmax(280px, 1fr); gap:16px; align-items:start; }
+  .gb-grid{ display:grid; grid-template-columns:minmax(0, 640px) minmax(280px, 1fr); gap:16px; align-items:start; }
   .gb-bank{ min-width:0; overflow:hidden; }
   @media (max-width: 900px){ .gb-grid{ grid-template-columns:1fr; } }
   .gb-side{ display:flex; flex-direction:column; gap:16px; }
@@ -5009,7 +5009,7 @@
   .gb-slot{ position:relative; aspect-ratio:1; min-width:0; cursor:pointer; border-radius:4px; background:#0a0705; border:1px solid var(--q, #3a2c1c);
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.6), 0 0 4px color-mix(in srgb, var(--q, transparent) 45%, transparent); overflow:hidden; display:block; }
   .gb-slot.gb-empty{ border-color:#2b2015; box-shadow:inset 0 0 6px rgba(0,0,0,.9); background:radial-gradient(#17100a, #0a0604); }
-  .gb-slot img{ position:absolute; inset:14%; width:72%; height:72%; display:block; object-fit:cover; border-radius:3px; }
+  .gb-slot img{ position:absolute; inset:0; width:100%; height:100%; display:block; object-fit:cover; }
   .gb-slot:not(.gb-empty):hover{ transform:translateY(-1px); border-color:#ffd36a; z-index:1; }
   .gb-cnt{ position:absolute; right:2px; bottom:0; z-index:1; font:800 15px system-ui, sans-serif; line-height:1; color:#fff; text-shadow:0 0 2px #000, 1px 1px 1px #000, -1px -1px 1px #000; }
   .gb-noicon{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:700 11px system-ui; color:var(--q); }
