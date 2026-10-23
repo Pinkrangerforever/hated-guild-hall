@@ -13,6 +13,7 @@
   (Profile > Hated TCG) at least once a month. /reload or log out first so WoW writes the file.
 
   /tcg   the Hated TCG window: your points (paste the code from the website to show your account total)
+  /tcg daily   today's daily challenges (HatedTCGDaily.lua)
 ]]
 
 local KEEP_DAYS = 30
@@ -185,7 +186,11 @@ local function mobKilled(guid)
   local first = not db().firsts[key]
   local elite = cls == "elite" or cls == "rareelite" or cls == "worldboss"
   local amount = first and 10 or (elite and 3 or 1)
-  append(table.concat({ "m", time(), UnitName("player"), plvl, id, guid, instId or 0, zone, i.lvl or 0, cls, amount, ((i.name or ""):gsub(",", "")) }, ","))
+  local ctype = (HatedTCG_DAILY and HatedTCG_DAILY.ctype[i.ctype or ""]) or ""
+  local fac = (UnitFactionGroup("player") or ""):sub(1, 1)
+  local now = time()
+  append(table.concat({ "m", now, UnitName("player"), plvl, id, guid, instId or 0, zone, i.lvl or 0, cls, amount, ((i.name or ""):gsub(",", "")), ctype, fac }, ","))
+  if HatedTCGDaily_Note then HatedTCGDaily_Note("m", { t = now, char = UnitName("player"), plvl = plvl, fac = fac, ctype = ctype, cls = cls, first = first, inst = instId or 0 }) end
   dbg(string.format("logged %s (npc %d) for %d points; log has %d lines", tostring(i.name), id, amount, #db().log))
   award(key, first, amount, guid)
 end
@@ -196,7 +201,11 @@ local function bossKilled(encounterID, name, difficultyID, groupSize)
   local key = "e:" .. encounterID
   local first = not db().firsts[key]
   local amount = kind == "r" and (first and 100 or 20) or 10
-  append(table.concat({ "b", time(), UnitName("player"), UnitLevel("player"), encounterID, kind, instId or 0, difficultyID or 0, groupSize or 0, GetNumGroupMembers(), amount, ((name or ""):gsub(",", "")) }, ","))
+  local dkey = kind == "d" and HatedTCGDaily_DungeonKey and HatedTCGDaily_DungeonKey() or ""
+  local fac = (UnitFactionGroup("player") or ""):sub(1, 1)
+  local now = time()
+  append(table.concat({ "b", now, UnitName("player"), UnitLevel("player"), encounterID, kind, instId or 0, difficultyID or 0, groupSize or 0, GetNumGroupMembers(), amount, ((name or ""):gsub(",", "")), dkey, fac }, ","))
+  if HatedTCGDaily_Note then HatedTCGDaily_Note("b", { t = now, char = UnitName("player"), plvl = UnitLevel("player"), fac = fac, key = dkey, inst = instId or 0, raid = kind == "r" }) end
   award(key, first, amount, nil)
 end
 
@@ -294,7 +303,7 @@ local function entryOf(e)
 end
 local function sinceSync()
   local t = db(); local last = (t.server and t.server.lastT) or 0; local sum, n = 0, 0
-  for _, e in ipairs(t.log) do local ts = tonumber(e:match("^%a,(%d+),")); if ts and ts > last then sum = sum + (tonumber(e:match(",(%d+),[^,]*$")) or 0); n = n + 1 end end
+  for _, e in ipairs(t.log) do local ts = tonumber(e:match("^%a,(%d+),")); if ts and ts > last then sum = sum + (tonumber((select(11, strsplit(",", e)))) or 0); n = n + 1 end end
   return sum, n
 end
 -- ---------- the export code: your kills since the last sync, packed small, to paste on the website ----------
@@ -315,6 +324,8 @@ local CLS = { normal = "n", elite = "e", rare = "r", rareelite = "R", worldboss 
 -- Unscrambled block:  <edited 0/1>~<character names>~<creature ids>~<server ids>~<entries ";">
 --   m<time step>,<creature #>,<mob level>,<class>,<character #>,<char level>,<spawn: C|V><server #>.<instance>.<map>.<spawn hex>
 --   b<time step>,<encounter id>,<r|d>,<character #>,<character level>
+-- HTCG6 (3.7+, daily challenges) adds: character names as <name>.<H|A>; m entries ,<creature type letter>;
+--   b entries ,<instance map id>,<dungeon key> (HatedTCGDailyData.lua)
 local SCRAMBLE_KEY = "hated-forever-tcg-5"
 local B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 local function scramble(plain, salt)
@@ -339,7 +350,7 @@ end
 local function exportCode()
   local t = db(); local since = (t.server and t.server.lastT) or 0
   local chars, charIx, npcs, npcIx, srvs, srvIx, out, prev, first, n = {}, {}, {}, {}, {}, {}, {}, nil, nil, 0
-  local function ci(c) if not charIx[c] then chars[#chars + 1] = (c:gsub("[|~,;]", "")); charIx[c] = #chars - 1 end return charIx[c] end
+  local function ci(c, fac) if not charIx[c] then chars[#chars + 1] = (c:gsub("[|~,;.]", "")) .. "." .. (fac or ""); charIx[c] = #chars - 1 end return charIx[c] end
   local function si(v) if not srvIx[v] then srvs[#srvs + 1] = b36(v); srvIx[v] = #srvs - 1 end return srvIx[v] end
   for _, e in ipairs(t.log) do
     local f = { strsplit(",", e) }
@@ -357,16 +368,16 @@ local function exportCode()
         if (kind == "Creature" or kind == "Vehicle") and tonumber(srv) and tonumber(inst) and tonumber(map) and spawn and spawn:match("^%x+$") then
           g = (kind == "Vehicle" and "V" or "C") .. b36(si(tonumber(srv))) .. "." .. b36(inst) .. "." .. b36(map) .. "." .. spawn
         end
-        out[#out + 1] = "m" .. dt .. "," .. b36(npcIx[id]) .. "," .. b36(f[9]) .. "," .. (CLS[f[10]] or "x") .. "," .. b36(ci(f[3] or "?")) .. "," .. b36(f[4]) .. "," .. g
+        out[#out + 1] = "m" .. dt .. "," .. b36(npcIx[id]) .. "," .. b36(f[9]) .. "," .. (CLS[f[10]] or "x") .. "," .. b36(ci(f[3] or "?", f[14])) .. "," .. b36(f[4]) .. "," .. g .. "," .. ((f[13] or ""):match("^%u?$") or "")
       elseif f[1] == "b" then
-        out[#out + 1] = "b" .. dt .. "," .. b36(f[5]) .. "," .. (f[6] == "r" and "r" or "d") .. "," .. b36(ci(f[3] or "?")) .. "," .. b36(f[4])
+        out[#out + 1] = "b" .. dt .. "," .. b36(f[5]) .. "," .. (f[6] == "r" and "r" or "d") .. "," .. b36(ci(f[3] or "?", f[14])) .. "," .. b36(f[4]) .. "," .. b36(f[7]) .. "," .. ((f[13] or ""):match("^%l*$") or "")
       end
       n = n + 1
     end
   end
   if n == 0 then return nil, 0 end
   local plain = table.concat({ t.tampered and 1 or 0, table.concat(chars, ","), table.concat(npcs, ","), table.concat(srvs, ","), table.concat(out, ";") }, "~")
-  local body = "HTCG5~" .. first .. "~" .. scramble(plain, tostring(first))
+  local body = "HTCG6~" .. first .. "~" .. scramble(plain, tostring(first))
   local h = 7; for i = 1, #body do h = (h * 31 + body:byte(i)) % 1000003 end
   return body .. "~" .. h, n
 end
@@ -479,6 +490,8 @@ local function build()
     say(string.format("account total updated: %d points.", s.points))
   end
   ok:SetScript("OnClick", apply); box:SetScript("OnEnterPressed", apply)
+  local daily = CreateFrame("Button", nil, w, "UIPanelButtonTemplate"); daily:SetSize(150, 24); daily:SetPoint("BOTTOMRIGHT", -16, 102); daily:SetText("Daily challenges")
+  daily:SetScript("OnClick", function() if HatedTCGDaily_Toggle then HatedTCGDaily_Toggle(true) end end)
   local binder = CreateFrame("Button", nil, w, "UIPanelButtonTemplate"); binder:SetSize(170, 24); binder:SetPoint("BOTTOM", 0, 12)
   binder:SetText("Binder & Decks")
   binder:SetScript("OnClick", function() w:Hide(); if HatedTCGBinder_Toggle then HatedTCGBinder_Toggle("binder") end end)
@@ -535,5 +548,6 @@ SlashCmdList.HATEDTCG = function(msg)
     say("debug " .. (HatedCompanionDB.tcgDebug and "on: kills are reported in chat (/tcg debug again to stop)." or "off.")); return
   end
   if (msg or ""):lower():match("test") then popup(10, nil); say("that was a test popup (no points)."); return end
+  if (msg or ""):lower():match("daily") then if HatedTCGDaily_Toggle then HatedTCGDaily_Toggle() end; return end
   HatedTCG_Toggle()
 end

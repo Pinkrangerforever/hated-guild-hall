@@ -90,6 +90,8 @@
 "HatedTCG.lua",
 "HatedTCGBinder.lua",
 "HatedTCGCards.lua",
+"HatedTCGDaily.lua",
+"HatedTCGDailyData.lua",
 "Media/Banner.tga",
 "Media/CardBack.tga",
 "Media/Dot.tga",

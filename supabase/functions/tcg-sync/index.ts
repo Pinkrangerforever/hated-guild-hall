@@ -9,10 +9,13 @@
 // Log lines (from addons/HatedCompanion/HatedTCG.lua):
 //   m,<time>,<char>,<char level>,<npc id>,<spawn guid>,<instance id>,<map id>,<mob level>,<classification>,<addon estimate>
 //   b,<time>,<char>,<char level>,<encounter id>,<r|d>,<instance id>,<difficulty>,<group size>,<group members>,<addon estimate>
+// addon 3.7+ (HTCG6) adds, after the name field (11): m lines ,<creature type letter>,<faction H|A>; b lines ,<dungeon key>,<faction>
+//   (they feed the daily challenges: daily.ts)
 //
 // Counting each kill once: the account remembers the newest kill time it has counted (last_t). A sync only counts
 // lines newer than that, so syncing the same file again adds nothing. Raid / dungeon boss lockouts are kept as keys.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { DAILY, board, dungeonDone, pacificDay, taskCount, type Prog } from './daily.ts';
 
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -28,6 +31,7 @@ const MAX_AGE = 31 * 86400;              // the addon keeps 30 days
 // TCG_START secret to a unix time in seconds (e.g. the launch moment); unset = no cutoff.
 const TCG_START = Number(Deno.env.get('TCG_START') || 0) || 0;
 const MAX_ENTRIES = 100000;
+const DAILY_CLAIM_DAYS = 7;              // a daily board can be paid up to this many days later
 // suspicion: held for the Raid Leader instead of credited
 const MAX_KILLS_PER_MINUTE = 40, MAX_KILLS_PER_DAY = 6000, MAX_LEVELS_ABOVE = 15;
 
@@ -103,7 +107,8 @@ Deno.serve(async (req) => {
   const lastT = acct0?.last_t || 0;
 
   const now = Math.floor(Date.now() / 1000);
-  type E = { kind: string; t: number; char: string; plvl: number; id: number; guid: string; lvl: number; cls: string; raid: boolean; bossKey: string; srv?: number; map?: number };
+  type E = { kind: string; t: number; char: string; plvl: number; id: number; guid: string; lvl: number; cls: string; raid: boolean; bossKey: string; srv?: number; map?: number;
+    ctype: string; fac: string; dkey: string; inst: number; first?: boolean; grey?: boolean };
   const items: E[] = [];
   const flags: string[] = [];
   if (body.tampered) flags.push('The log was edited outside the game (its seal does not match).');
@@ -114,12 +119,14 @@ Deno.serve(async (req) => {
     if (!t || t <= lastT || t < TCG_START || t < now - MAX_AGE || t > now + 300) continue;
     if (f[0] === 'm' && f.length >= 10) {
       if (f[5]) { if (inBatch.has(f[5])) continue; inBatch.add(f[5]); }
-      items.push({ kind: 'm', t, char: f[2], plvl: +f[3] || 0, id: +f[4], guid: f[5], lvl: +f[8] || 0, cls: f[9], raid: false, bossKey: '' });
+      items.push({ kind: 'm', t, char: f[2], plvl: +f[3] || 0, id: +f[4], guid: f[5], lvl: +f[8] || 0, cls: f[9], raid: false, bossKey: '',
+        ctype: /^[A-Z]$/.test(f[12] || '') ? f[12] : '', fac: /^[HA]$/.test(f[13] || '') ? f[13] : '', dkey: '', inst: +f[6] || 0 });
     } else if (f[0] === 'b' && f.length >= 10) {
       const raid = f[5] === 'r';
       // a raid boss counts once per character per lockout week; a dungeon boss once per character per hour
       const bucket = raid ? Math.floor((t - 4 * 86400) / (7 * 86400)) : Math.floor(t / 3600);
-      items.push({ kind: 'b', t, char: f[2], plvl: +f[3] || 0, id: +f[4], guid: '', lvl: 0, cls: '', raid, bossKey: `b:${f[4]}:${f[2]}:${bucket}` });
+      items.push({ kind: 'b', t, char: f[2], plvl: +f[3] || 0, id: +f[4], guid: '', lvl: 0, cls: '', raid, bossKey: `b:${f[4]}:${f[2]}:${bucket}`,
+        ctype: '', fac: /^[HA]$/.test(f[13] || '') ? f[13] : '', dkey: /^[a-z]{1,10}$/.test(f[12] || '') ? f[12] : '', inst: +f[6] || 0 });
     }
   }
   items.sort((a, b) => a.t - b.t);
@@ -207,10 +214,10 @@ Deno.serve(async (req) => {
   const summary: Record<string, number> = { firstKills: 0, repeatKills: 0, eliteKills: 0, grey: 0, dungeonBosses: 0, raidBosses: 0, rejected, unverified: 0 };
   for (const i of fresh) {
     if (i.kind === 'm') {
-      if (i.lvl > 0 && i.plvl > 0 && i.lvl <= greyLevel(i.plvl)) { summary.grey++; continue; }
+      if (i.lvl > 0 && i.plvl > 0 && i.lvl <= greyLevel(i.plvl)) { summary.grey++; i.grey = true; continue; }
       if (i.srv == null) { points += REPEAT; summary.repeatKills++; summary.unverified++; continue; }   // no spawn id: a plain kill
       const key = 'n:' + i.id;
-      if (!firsts.has(key)) { firsts.add(key); newFirsts.push(key); points += FIRST; summary.firstKills++; continue; }
+      if (!firsts.has(key)) { firsts.add(key); newFirsts.push(key); points += FIRST; summary.firstKills++; i.first = true; continue; }
       if (ELITE.has(i.cls)) { points += REPEAT_ELITE; summary.eliteKills++; } else { points += REPEAT; summary.repeatKills++; }
     } else {
       const key = 'e:' + i.id;
@@ -224,6 +231,43 @@ Deno.serve(async (req) => {
       }
     }
   }
+
+  // ---- daily challenges: each character's board for each day (only kills that passed the checks above) ----
+  const today = pacificDay(now);
+  const dailyItems = fresh.filter(i => i.fac && (i.kind === 'm' ? (!i.grey && i.srv != null) : !i.raid) && pacificDay(i.t) > today - DAILY_CLAIM_DAYS);
+  summary.dailies = 0; summary.dailyPoints = 0;
+  const dailyRows: Record<string, unknown>[] = [];
+  if (dailyItems.length) {
+    const chars = [...new Set(dailyItems.map(i => i.char))];
+    const { data: have } = await db.from('tcg_daily').select('*').eq('user_id', uid).in('char', chars).gt('day', today - DAILY_CLAIM_DAYS);
+    const rows = new Map<string, { char: string; day: number; level: number; fac: string; prog: Prog; done: string[]; points: number }>();
+    (have || []).forEach((r: any) => rows.set(r.char + '|' + r.day, r));
+    const touched = new Set<string>();
+    for (const i of dailyItems) {
+      const day = pacificDay(i.t), k = i.char + '|' + day;
+      let r = rows.get(k);
+      if (!r) { r = { char: i.char, day, level: i.plvl, fac: i.fac, prog: {}, done: [], points: 0 }; rows.set(k, r); }   // the board locks at the first kill
+      const p = r.prog, bump = (key: string) => { p[key] = (p[key] || 0) + 1; };
+      if (i.kind === 'm') {
+        bump('any');
+        if (i.ctype) bump('type:' + i.ctype);
+        if (ELITE.has(i.cls)) bump('elite');
+        if (i.cls === 'rare' || i.cls === 'rareelite') bump('rare');
+        if (i.first) bump('first');
+        if (i.map != null) bump('map:' + i.map);      // the instance the spawn id says it was in
+      } else if (i.dkey) { bump('boss:' + i.dkey); bump('bmap:' + i.dkey + ':' + i.inst); }
+      touched.add(k);
+    }
+    for (const k of touched) {
+      const r = rows.get(k)!, b = board(r.day, r.level, r.fac), pay = (id: string, pts: number) => {
+        if (r.done.includes(id)) return; r.done.push(id); r.points += pts; points += pts; summary.dailies++; summary.dailyPoints += pts;
+      };
+      if (b.dungeon && dungeonDone(r.prog, b.dungeon)) pay('dungeon', DAILY.dungeonPoints);
+      for (const t of b.tasks) if (taskCount(r.prog, t) >= t.need) pay(t.id, t.points);
+      dailyRows.push({ user_id: uid, char: r.char, day: r.day, level: r.level, fac: r.fac, prog: r.prog, done: r.done, points: r.points, updated_at: new Date().toISOString() });
+    }
+  }
+
   const held = flags.length > 0;
   const newLastT = items.reduce((m, i) => i.t > m ? i.t : m, lastT);
 
@@ -235,6 +279,7 @@ Deno.serve(async (req) => {
   for (let k = 0; k < guidRows.length; k += 1000) await db.from('tcg_seen').upsert(guidRows.slice(k, k + 1000), { onConflict: 'user_id,key', ignoreDuplicates: true });
   const mapRows = [...new Map(fresh.filter(i => i.map != null).map(i => [i.id + ':' + i.map, { npc_id: i.id, map_id: i.map!, user_id: uid }])).values()];
   for (let k = 0; k < mapRows.length; k += 1000) await db.from('tcg_npc_maps').upsert(mapRows.slice(k, k + 1000), { onConflict: 'npc_id,map_id,user_id', ignoreDuplicates: true });
+  if (dailyRows.length) await db.from('tcg_daily').upsert(dailyRows, { onConflict: 'user_id,char,day' });
   if (newFirsts.length) {
     for (let i = 0; i < newFirsts.length; i += 1000)
       await db.from('tcg_first_kills').upsert(newFirsts.slice(i, i + 1000).map(key => ({ user_id: uid, key })), { onConflict: 'user_id,key', ignoreDuplicates: true });
