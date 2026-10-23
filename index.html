@@ -11932,6 +11932,7 @@ function tcgSummaryText(sm){
   if(sm.eliteKills) bits.push(sm.eliteKills + ' elites');
   if(sm.dungeonBosses) bits.push(sm.dungeonBosses + ' dungeon boss' + (sm.dungeonBosses === 1 ? '' : 'es'));
   if(sm.raidBosses) bits.push(sm.raidBosses + ' raid boss' + (sm.raidBosses === 1 ? '' : 'es'));
+  if(sm.drops) bits.push(sm.drops + ' card drop' + (sm.drops === 1 ? '' : 's'));
   if(sm.dailies) bits.push(sm.dailies + ' daily challenge' + (sm.dailies === 1 ? '' : 's') + ' (+' + sm.dailyPoints + ')');
   if(sm.grey) bits.push(sm.grey + ' grey (no points)');
   if(sm.capped) bits.push(sm.capped + ' over the daily cap');
@@ -11963,6 +11964,7 @@ function renderTcgPanel(p, isMe){
         <ul><li>A creature you've never killed on this account: <b>10</b></li><li>After that: <b>1</b> (elites <b>3</b>), no daily limit; grey mobs give nothing</li>
         <li>Dungeon boss <b>10</b>, a dungeon's last boss <b>20</b></li><li>Raid boss <b>100</b> the first time, <b>20</b> after (once a week per character)</li>
         <li>Daily challenges (addon 3.7+, <b>/tcg daily</b>): each character gets a dungeon from its level bracket (<b>250</b>) and three smaller tasks (<b>25-75</b>) every day at midnight Pacific. Sync within 7 days to bank them.</li>
+        <li>Card drops (addon 3.8+): any kill can drop a card in game - the creature's own card if it has one (Hogger drops Hogger), else one of its tribe or class. About 1 in 200 kills (better from elites, rares and bosses); creatures with a class also have a 1 in 100 chance at that class's hero. Sync to add them to your collection.</li>
         <li>Group kills count for everyone who hit the mob. Spend points on card packs in the Card Shop (100 points a pack).</li></ul></details>
       ${ state.tcgPasteOpen ? `<div class="tcg-paste">
           <textarea id="tcg-paste" placeholder="Paste the code from Export points here (Ctrl+V). It starts with HTCG2|" spellcheck="false"></textarea>
@@ -12027,10 +12029,12 @@ function tcgUnscramble(blob, salt){
   for(let i = 0; i < bytes.length; i++){ st = (st * 48271) % 2147483647; bytes[i] = (bytes[i] - st % 256 + 256) % 256; }
   return new TextDecoder().decode(new Uint8Array(bytes));
 }
+// HTCG7 (addon 3.8+, card drops) adds each kill's drop group and class (tcg-sync's drops.ts rolls the drop again).
 // HTCG6 (addon 3.7+, daily challenges) is HTCG5 plus: characters as <name>.<H|A>, a creature type letter on each
 // kill, and the instance + dungeon key on each boss (tcg-sync's daily.ts uses them)
 function tcgDecodeExport5(code){
-  const parts = code.split('~');                     // HTCG5|HTCG6 ~ first ~ blob ~ check
+  const parts = code.split('~');                     // HTCG5|6|7 ~ first ~ blob ~ check
+  const v7 = parts[0] === 'HTCG7';
   if(parts.length !== 4) throw new Error('the code is incomplete or changed - copy it again in game (Select all, then Ctrl+C)');
   const body = parts.slice(0, 3).join('~');
   if(tcgCheck(body) !== +parts[3]) throw new Error('the code is incomplete or changed - copy it again in game (Select all, then Ctrl+C)');
@@ -12054,17 +12058,17 @@ function tcgDecodeExport5(code){
         guid = (g[1] === 'V' ? 'Vehicle' : 'Creature') + '-0-' + srvs[parseInt(g[2], 36)] + '-' + inst + '-' + map + '-' + npc + '-' + g[5].toUpperCase();
       }
       const c = parseInt(f[4], 36);
-      lines.push(['m', t, chars[c] || '?', parseInt(f[5], 36) || 0, npc, guid, inst, map, parseInt(f[2], 36) || 0, TCG_CLS[f[3]] || '?', 0, '', f[7] || '', facs[c] || ''].join(','));
+      lines.push(['m', t, chars[c] || '?', parseInt(f[5], 36) || 0, npc, guid, inst, map, parseInt(f[2], 36) || 0, TCG_CLS[f[3]] || '?', 0, '', f[7] || '', facs[c] || '', ...(v7 ? [f[8] || '', f[9] || ''] : [])].join(','));
     } else if(kind === 'b'){
       const c = parseInt(f[3], 36);
-      lines.push(['b', t, chars[c] || '?', parseInt(f[4], 36) || 0, parseInt(f[1], 36) || 0, f[2] === 'r' ? 'r' : 'd', parseInt(f[5], 36) || 0, 0, 0, 0, 0, '', f[6] || '', facs[c] || ''].join(','));
+      lines.push(['b', t, chars[c] || '?', parseInt(f[4], 36) || 0, parseInt(f[1], 36) || 0, f[2] === 'r' ? 'r' : 'd', parseInt(f[5], 36) || 0, 0, 0, 0, 0, '', f[6] || '', facs[c] || '', ...(v7 ? [f[7] || '', f[8] || ''] : [])].join(','));
     }
   }
   return { lines, tampered: edited === '1' };
 }
 function tcgDecodeExport(code){
   code = (code || '').replace(/\s+/g, '');
-  if(code.startsWith('HTCG5~') || code.startsWith('HTCG6~')) return tcgDecodeExport5(code);
+  if(/^HTCG[567]~/.test(code)) return tcgDecodeExport5(code);
   const sep = code.startsWith('HTCG4~') ? '~' : code.startsWith('HTCG2|') ? '|' : null;
   const at = sep ? code.lastIndexOf(sep) : -1;
   if(!sep || at < 0) throw new Error("that isn't an export code from the addon (it starts with HTCG4 or HTCG2)");
@@ -12099,6 +12103,8 @@ async function tcgSyncEntries(entries, tampered){
   try{
     const out = await tcgCall({ action: 'sync', entries, tampered: !!tampered });
     if(out.code){ state.tcgCode = out.code; try{ await navigator.clipboard.writeText(out.code); }catch(e){} }
+    const drops = (out.drops || []).filter(d => d.name);
+    if(drops.length) setTimeout(() => showToast('Card drops added to your collection: ' + drops.map(d => d.name + (d.hero ? ' (hero!)' : '') + (d.new ? ' - new!' : '')).join(', ')), 4200);
     showToast(out.held ? `Sync held for the Raid Leader to review (${out.points} points).` : (out.points ? `+${out.points} TCG points! (${tcgSummaryText(out.summary)}) Your new code is copied - paste it in game.` : 'Synced - nothing new since your last sync.'), out.held);
   }catch(e){ showToast('Could not sync: ' + e.message, true); }
   state.tcgBusy = false; state.tcg = null; state.tcgMine = null; render();   // reload the panel AND the balance / shop / binder

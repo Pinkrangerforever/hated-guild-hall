@@ -189,8 +189,15 @@ local function mobKilled(guid)
   local ctype = (HatedTCG_DAILY and HatedTCG_DAILY.ctype[i.ctype or ""]) or ""
   local fac = (UnitFactionGroup("player") or ""):sub(1, 1)
   local now = time()
-  append(table.concat({ "m", now, UnitName("player"), plvl, id, guid, instId or 0, zone, i.lvl or 0, cls, amount, ((i.name or ""):gsub(",", "")), ctype, fac }, ","))
+  local grp, ncls = "", ""
+  if HatedTCGDrops_Classify then grp, ncls = HatedTCGDrops_Classify(i.name, ctype) end
+  append(table.concat({ "m", now, UnitName("player"), plvl, id, guid, instId or 0, zone, i.lvl or 0, cls, amount, ((i.name or ""):gsub(",", "")), ctype, fac, grp, ncls }, ","))
   if HatedTCGDaily_Note then HatedTCGDaily_Note("m", { t = now, char = UnitName("player"), plvl = plvl, fac = fac, ctype = ctype, cls = cls, first = first, inst = instId or 0 }) end
+  -- a card drop (only kills with a real spawn id can drop: the website rolls them again from it)
+  if HatedTCGDrops_OnKill and guid:match("^%a+%-0%-%d+%-%d+%-%d+%-%d+%-%x+$") then
+    local kind = cls == "worldboss" and "worldboss" or (cls == "rare" or cls == "rareelite") and "rare" or cls == "elite" and "elite" or "normal"
+    HatedTCGDrops_OnKill(guid, grp, ncls, kind, i.name)
+  end
   dbg(string.format("logged %s (npc %d) for %d points; log has %d lines", tostring(i.name), id, amount, #db().log))
   award(key, first, amount, guid)
 end
@@ -204,7 +211,18 @@ local function bossKilled(encounterID, name, difficultyID, groupSize)
   local dkey = kind == "d" and HatedTCGDaily_DungeonKey and HatedTCGDaily_DungeonKey() or ""
   local fac = (UnitFactionGroup("player") or ""):sub(1, 1)
   local now = time()
-  append(table.concat({ "b", now, UnitName("player"), UnitLevel("player"), encounterID, kind, instId or 0, difficultyID or 0, groupSize or 0, GetNumGroupMembers(), amount, ((name or ""):gsub(",", "")), dkey, fac }, ","))
+  local grp, ncls = "", ""
+  if HatedTCGDrops_Classify then grp, ncls = HatedTCGDrops_Classify(name, "") end
+  append(table.concat({ "b", now, UnitName("player"), UnitLevel("player"), encounterID, kind, instId or 0, difficultyID or 0, groupSize or 0, GetNumGroupMembers(), amount, ((name or ""):gsub(",", "")), dkey, fac, grp, ncls }, ","))
+  if HatedTCGDrops_OnKill then
+    local t = db(); t.bossDrops = t.bossDrops or {}
+    local bucket = kind == "r" and math.floor((now - 4 * 86400) / (7 * 86400)) or math.floor(now / 3600)
+    local lock = encounterID .. ":" .. UnitName("player") .. ":" .. bucket
+    if not t.bossDrops[lock] then
+      t.bossDrops[lock] = now
+      HatedTCGDrops_OnKill("b|" .. encounterID .. "|" .. UnitName("player") .. "|" .. now, grp, ncls, kind == "r" and "raidboss" or "dungeonboss", name)
+    end
+  end
   if HatedTCGDaily_Note then HatedTCGDaily_Note("b", { t = now, char = UnitName("player"), plvl = UnitLevel("player"), fac = fac, key = dkey, inst = instId or 0, raid = kind == "r" }) end
   award(key, first, amount, nil)
 end
@@ -326,6 +344,7 @@ local CLS = { normal = "n", elite = "e", rare = "r", rareelite = "R", worldboss 
 --   b<time step>,<encounter id>,<r|d>,<character #>,<character level>
 -- HTCG6 (3.7+, daily challenges) adds: character names as <name>.<H|A>; m entries ,<creature type letter>;
 --   b entries ,<instance map id>,<dungeon key> (HatedTCGDailyData.lua)
+-- HTCG7 (3.8+, card drops) adds to m and b entries: ,<drop group>,<class> (HatedTCGDrops.lua)
 local SCRAMBLE_KEY = "hated-forever-tcg-5"
 local B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 local function scramble(plain, salt)
@@ -368,16 +387,16 @@ local function exportCode()
         if (kind == "Creature" or kind == "Vehicle") and tonumber(srv) and tonumber(inst) and tonumber(map) and spawn and spawn:match("^%x+$") then
           g = (kind == "Vehicle" and "V" or "C") .. b36(si(tonumber(srv))) .. "." .. b36(inst) .. "." .. b36(map) .. "." .. spawn
         end
-        out[#out + 1] = "m" .. dt .. "," .. b36(npcIx[id]) .. "," .. b36(f[9]) .. "," .. (CLS[f[10]] or "x") .. "," .. b36(ci(f[3] or "?", f[14])) .. "," .. b36(f[4]) .. "," .. g .. "," .. ((f[13] or ""):match("^%u?$") or "")
+        out[#out + 1] = "m" .. dt .. "," .. b36(npcIx[id]) .. "," .. b36(f[9]) .. "," .. (CLS[f[10]] or "x") .. "," .. b36(ci(f[3] or "?", f[14])) .. "," .. b36(f[4]) .. "," .. g .. "," .. ((f[13] or ""):match("^%u?$") or "") .. "," .. ((f[15] or ""):match("^[%a%.]*$") or "") .. "," .. ((f[16] or ""):match("^%u*$") or "")
       elseif f[1] == "b" then
-        out[#out + 1] = "b" .. dt .. "," .. b36(f[5]) .. "," .. (f[6] == "r" and "r" or "d") .. "," .. b36(ci(f[3] or "?", f[14])) .. "," .. b36(f[4]) .. "," .. b36(f[7]) .. "," .. ((f[13] or ""):match("^%l*$") or "")
+        out[#out + 1] = "b" .. dt .. "," .. b36(f[5]) .. "," .. (f[6] == "r" and "r" or "d") .. "," .. b36(ci(f[3] or "?", f[14])) .. "," .. b36(f[4]) .. "," .. b36(f[7]) .. "," .. ((f[13] or ""):match("^%l*$") or "") .. "," .. ((f[15] or ""):match("^[%a%.]*$") or "") .. "," .. ((f[16] or ""):match("^%u*$") or "")
       end
       n = n + 1
     end
   end
   if n == 0 then return nil, 0 end
   local plain = table.concat({ t.tampered and 1 or 0, table.concat(chars, ","), table.concat(npcs, ","), table.concat(srvs, ","), table.concat(out, ";") }, "~")
-  local body = "HTCG6~" .. first .. "~" .. scramble(plain, tostring(first))
+  local body = "HTCG7~" .. first .. "~" .. scramble(plain, tostring(first))
   local h = 7; for i = 1, #body do h = (h * 31 + body:byte(i)) % 1000003 end
   return body .. "~" .. h, n
 end
@@ -489,6 +508,8 @@ local function build()
     local keep, edited = {}, d.tampered
     for _, e in ipairs(d.log) do local ts = tonumber(e:match("^%a,(%d+),")); if not ts or ts > s.lastT then keep[#keep + 1] = e end end
     if #keep ~= #d.log then d.log = keep; d.seal = reseal(d); if edited then d.tampered = true end end
+    if d.pending then local p = {}; for _, x in ipairs(d.pending) do if x.t > s.lastT then p[#p + 1] = x end end; d.pending = p end
+    if d.bossDrops then for k, at in pairs(d.bossDrops) do if at < time() - 8 * 86400 then d.bossDrops[k] = nil end end end
     box:SetText(""); box:ClearFocus(); w.refresh()
     say(string.format("account total updated: %d points.", s.points))
   end
@@ -551,5 +572,7 @@ SlashCmdList.HATEDTCG = function(msg)
   end
   if (msg or ""):lower():match("test") then popup(10, nil); say("that was a test popup (no points)."); return end
   if (msg or ""):lower():match("daily") then HatedTCG_Toggle(true); return end
+  local dt = (msg or ""):match("^droptest%s*(%d*)")
+  if dt and HatedTCGDrops_Test then HatedTCGDrops_Test(tonumber(dt) or 1066); return end
   HatedTCG_Toggle()
 end

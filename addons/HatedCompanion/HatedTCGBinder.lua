@@ -45,6 +45,9 @@ local function makeCard(parent, w, h)
     self.glow:SetVertexColor(r[1], r[2], r[3]); self.glow:SetAlpha(c[2] >= 4 and 1 or 0.8)
     self.holo:SetShown(own and (own.h or 0) > 0)
     self.count:SetText(own and own.n > 1 and ("x" .. own.n .. ((own.h or 0) > 0 and " |cffff7ad9holo|r" or "")) or ((own and (own.h or 0) > 0) and "|cffff7ad9holo|r" or ""))
+    if own and (own.u or 0) > 0 then   -- dropped in game, not synced yet
+      self.count:SetText(self.count:GetText() .. (self.count:GetText() ~= "" and "  " or "") .. "|cffffd36a" .. (own.u > 1 and own.u .. " " or "") .. "unsealed|r")
+    end
     self:Show()
   end
   return b
@@ -68,6 +71,7 @@ local function showZoom(owner, dbf)
   zoom:Show()
 end
 local function hideZoom() if zoom then zoom:Hide() end end
+HatedTCGBinder_MakeCard = makeCard   -- the in-game drop reveal (HatedTCGDrops.lua) shows the card the same way
 
 local function flat(fr, r, g, b, a, er, eg, eb, ea)
   fr:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 })
@@ -172,6 +176,15 @@ local function build()
 
   w.refresh = function()
     local s = store(); local own = s.cards or {}
+    if s.pending and #s.pending > 0 then          -- card drops waiting for a sync count as owned, marked unsealed
+      local merged = {}
+      for k, v in pairs(own) do merged[k] = v end
+      for _, p in ipairs(s.pending) do
+        local o = merged[p.dbf]
+        merged[p.dbf] = { n = (o and o.n or 0) + 1, h = o and o.h or 0, u = (o and o.u or 0) + 1 }
+      end
+      own = merged
+    end
     w.view = w.view or "binder"
     w.tabBinder:SetEnabled(w.view ~= "binder"); w.tabDecks:SetEnabled(w.view ~= "decks")
     bp:SetShown(w.view == "binder"); dp:SetShown(w.view == "decks")

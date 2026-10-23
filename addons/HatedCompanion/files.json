@@ -92,6 +92,8 @@
 "HatedTCGCards.lua",
 "HatedTCGDaily.lua",
 "HatedTCGDailyData.lua",
+"HatedTCGDropData.lua",
+"HatedTCGDrops.lua",
 "Media/Banner.tga",
 "Media/CardBack.tga",
 "Media/Dot.tga",

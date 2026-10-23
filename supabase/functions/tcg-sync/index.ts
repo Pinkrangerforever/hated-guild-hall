@@ -11,11 +11,13 @@
 //   b,<time>,<char>,<char level>,<encounter id>,<r|d>,<instance id>,<difficulty>,<group size>,<group members>,<addon estimate>
 // addon 3.7+ (HTCG6) adds, after the name field (11): m lines ,<creature type letter>,<faction H|A>; b lines ,<dungeon key>,<faction>
 //   (they feed the daily challenges: daily.ts)
+// addon 3.8+ (HTCG7) adds to both: ,<drop group>,<class> (fields 14, 15): card drops, drops.ts
 //
 // Counting each kill once: the account remembers the newest kill time it has counted (last_t). A sync only counts
 // lines newer than that, so syncing the same file again adds nothing. Raid / dungeon boss lockouts are kept as keys.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { DAILY, board, dungeonDone, pacificDay, taskCount, type Prog } from './daily.ts';
+import { killKind, rarityOf, roll, validClass, validGroup } from './drops.ts';
 
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -108,7 +110,7 @@ Deno.serve(async (req) => {
 
   const now = Math.floor(Date.now() / 1000);
   type E = { kind: string; t: number; char: string; plvl: number; id: number; guid: string; lvl: number; cls: string; raid: boolean; bossKey: string; srv?: number; map?: number;
-    ctype: string; fac: string; dkey: string; inst: number; first?: boolean; grey?: boolean };
+    ctype: string; fac: string; dkey: string; inst: number; first?: boolean; grey?: boolean; grp?: string; ncls?: string };
   const items: E[] = [];
   const flags: string[] = [];
   if (body.tampered) flags.push('The log was edited outside the game (its seal does not match).');
@@ -120,13 +122,15 @@ Deno.serve(async (req) => {
     if (f[0] === 'm' && f.length >= 10) {
       if (f[5]) { if (inBatch.has(f[5])) continue; inBatch.add(f[5]); }
       items.push({ kind: 'm', t, char: f[2], plvl: +f[3] || 0, id: +f[4], guid: f[5], lvl: +f[8] || 0, cls: f[9], raid: false, bossKey: '',
-        ctype: /^[A-Z]$/.test(f[12] || '') ? f[12] : '', fac: /^[HA]$/.test(f[13] || '') ? f[13] : '', dkey: '', inst: +f[6] || 0 });
+        ctype: /^[A-Z]$/.test(f[12] || '') ? f[12] : '', fac: /^[HA]$/.test(f[13] || '') ? f[13] : '', dkey: '', inst: +f[6] || 0,
+        grp: f.length >= 16 ? f[14] : undefined, ncls: f.length >= 16 ? f[15] : undefined });
     } else if (f[0] === 'b' && f.length >= 10) {
       const raid = f[5] === 'r';
       // a raid boss counts once per character per lockout week; a dungeon boss once per character per hour
       const bucket = raid ? Math.floor((t - 4 * 86400) / (7 * 86400)) : Math.floor(t / 3600);
       items.push({ kind: 'b', t, char: f[2], plvl: +f[3] || 0, id: +f[4], guid: '', lvl: 0, cls: '', raid, bossKey: `b:${f[4]}:${f[2]}:${bucket}`,
-        ctype: '', fac: /^[HA]$/.test(f[13] || '') ? f[13] : '', dkey: /^[a-z]{1,10}$/.test(f[12] || '') ? f[12] : '', inst: +f[6] || 0 });
+        ctype: '', fac: /^[HA]$/.test(f[13] || '') ? f[13] : '', dkey: /^[a-z]{1,10}$/.test(f[12] || '') ? f[12] : '', inst: +f[6] || 0,
+        grp: f.length >= 16 ? f[14] : undefined, ncls: f.length >= 16 ? f[15] : undefined });
     }
   }
   items.sort((a, b) => a.t - b.t);
@@ -268,6 +272,39 @@ Deno.serve(async (req) => {
     }
   }
 
+  // ---- card drops: each kill's roll again, from its spawn id (or a boss's key) - see drops.ts ----
+  summary.drops = 0; summary.dropsRejected = 0;
+  type Drop = { card_id?: string; dbf: number; kill_key: string; hero: boolean; npc: number; char: string; rarity: string; at: number };
+  const dropKills = fresh.filter(i => i.grp !== undefined && (i.kind === 'b' || (!i.grey && i.srv != null)));
+  const drops: Drop[] = [];
+  const tagRows: { npc_key: number; tag: string; user_id: string }[] = [];
+  if (dropKills.length) {
+    // what the other players' addons say each creature is: 2+ of them agreeing outvotes a different claim
+    const npcKey = (i: E) => i.kind === 'b' ? -i.id : i.id;
+    const keys = [...new Set(dropKills.map(npcKey))];
+    const told = new Map<number, Map<string, Set<string>>>();
+    for (let k = 0; k < keys.length; k += 500) {
+      const { data } = await db.from('tcg_npc_tags').select('npc_key, tag, user_id').in('npc_key', keys.slice(k, k + 500)).neq('user_id', uid);
+      (data || []).forEach((r: { npc_key: number; tag: string; user_id: string }) => {
+        if (!told.has(r.npc_key)) told.set(r.npc_key, new Map());
+        const m = told.get(r.npc_key)!; if (!m.has(r.tag)) m.set(r.tag, new Set()); m.get(r.tag)!.add(r.user_id);
+      });
+    }
+    for (const i of dropKills) {
+      const grp = i.grp || '', cls = i.ncls || '', tag = grp + '|' + cls, nk = npcKey(i);
+      if (!validGroup(grp) || !validClass(cls)) { summary.dropsRejected++; continue; }
+      const others = told.get(nk);
+      if (others && !others.has(tag) && [...others.values()].some(u => u.size >= 2)) { summary.dropsRejected++; continue; }
+      tagRows.push({ npc_key: nk, tag, user_id: uid });
+      const key = i.kind === 'b' ? `b|${i.id}|${i.char}|${i.t}` : i.guid;
+      const kind = i.kind === 'b' ? (i.raid ? 'raidboss' : 'dungeonboss') : killKind(i.cls);
+      const r = roll(key, grp, cls, kind);
+      const base = { kill_key: key, npc: i.kind === 'b' ? -i.id : i.id, char: i.char, at: i.t };
+      if (r.drop) drops.push({ ...base, dbf: r.drop, hero: false, rarity: rarityOf(r.drop) });
+      if (r.hero) drops.push({ ...base, dbf: r.hero, hero: true, rarity: rarityOf(r.hero) });
+    }
+  }
+
   const held = flags.length > 0;
   const newLastT = items.reduce((m, i) => i.t > m ? i.t : m, lastT);
 
@@ -279,6 +316,19 @@ Deno.serve(async (req) => {
   for (let k = 0; k < guidRows.length; k += 1000) await db.from('tcg_seen').upsert(guidRows.slice(k, k + 1000), { onConflict: 'user_id,key', ignoreDuplicates: true });
   const mapRows = [...new Map(fresh.filter(i => i.map != null).map(i => [i.id + ':' + i.map, { npc_id: i.id, map_id: i.map!, user_id: uid }])).values()];
   for (let k = 0; k < mapRows.length; k += 1000) await db.from('tcg_npc_maps').upsert(mapRows.slice(k, k + 1000), { onConflict: 'npc_id,map_id,user_id', ignoreDuplicates: true });
+  // the drops: into the collection (not while the sync is held for review)
+  let dropped: unknown[] = [];
+  const uniqTags = [...new Map(tagRows.map(r => [r.npc_key + r.tag, r])).values()];
+  for (let k = 0; k < uniqTags.length; k += 1000) await db.from('tcg_npc_tags').upsert(uniqTags.slice(k, k + 1000), { onConflict: 'npc_key,tag,user_id', ignoreDuplicates: true });
+  if (drops.length && !held) {
+    const { data: ids } = await db.from('tcg_cards').select('id, dbf, name').in('dbf', [...new Set(drops.map(d => d.dbf))]);
+    const byDbf = new Map((ids || []).map((c: { id: string; dbf: number; name: string }) => [c.dbf, c]));
+    const rows = drops.filter(d => byDbf.has(d.dbf)).map(d => ({ ...d, card_id: byDbf.get(d.dbf)!.id }));
+    const { data: added, error: de } = await db.rpc('tcg_add_drops', { p_user: uid, p_drops: rows });
+    if (de) flags.push('Card drops could not be saved: ' + de.message);
+    dropped = ((added || []) as Drop[]).map(d => ({ ...d, name: byDbf.get(d.dbf)?.name }));
+    summary.drops = dropped.length;
+  } else if (drops.length) summary.dropsHeld = drops.length;
   if (dailyRows.length) await db.from('tcg_daily').upsert(dailyRows, { onConflict: 'user_id,char,day' });
   if (newFirsts.length) {
     for (let i = 0; i < newFirsts.length; i += 1000)
@@ -291,6 +341,6 @@ Deno.serve(async (req) => {
   await db.from('tcg_syncs').insert({ user_id: uid, entries: lines.length, counted: fresh.length, points, summary, flags, status: held ? 'held' : 'ok' });
   await db.from('tcg_seen').delete().eq('user_id', uid).lt('seen_at', new Date(Date.now() - 15 * 86400000).toISOString());
 
-  return json({ ok: true, points, counted: fresh.length, skipped: lines.length - fresh.length, held, flags, summary,
+  return json({ ok: true, points, counted: fresh.length, skipped: lines.length - fresh.length, held, flags, summary, drops: dropped,
     balance: final.points, code: balanceCode(final.points, final.lifetime, newLastT) });
 });

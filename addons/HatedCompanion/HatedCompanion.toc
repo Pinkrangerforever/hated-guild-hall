@@ -2,7 +2,7 @@
 ## Title: Hated Companion
 ## Notes: Hated guild: boss plans, Hated TCG points, binder and decks, guild professions (/hated, /tcg, /binder, /prof), and guild bank records for the website.
 ## Author: Hated
-## Version: 3.7.0
+## Version: 3.8.0
 ## SavedVariables: HatedCompanionDB
 
 HatedCompanion.lua
@@ -10,6 +10,8 @@ Plan\HatedPlan.lua
 HatedPlanUI.lua
 HatedMinimap.lua
 HatedTCGDailyData.lua
+HatedTCGDropData.lua
+HatedTCGDrops.lua
 HatedTCGDaily.lua
 HatedTCG.lua
 HatedTCGCards.lua
