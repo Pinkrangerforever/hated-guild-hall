@@ -5214,7 +5214,7 @@
 <!-- HATED BANNER SECTION -->
 <div id="banner-section" class="banner-section">
   <video id="hated-banner" class="hated-banner" autoplay muted loop playsinline preload="auto">
-    <source src="https://assets.hatedforever.com/HatedBanner.mp4" type="video/mp4">
+    <source src="https://assets.hatedforever.com/HatedBanner_v2.mp4" type="video/mp4">
   </video>
 </div>
 
@@ -17394,19 +17394,27 @@ function bindApp(){
 // loads a lot at once) and never resume it, so it freezes on a frame. Check every 2 s and nudge it back to playing.
 // It also pauses while scrolled out of view (decoding a 1920 x 640 video nobody can see costs the computer for nothing).
 let bannerInView = true;
+// ?lite in the address: no banner video and no looping animations (a test for slow computers / other windows lagging)
+const LITE = /[?&]lite/.test(location.search);
+if(LITE){
+  const st = document.createElement('style');
+  st.textContent = '*,*::before,*::after{animation:none !important;transition:none !important}';
+  document.head.appendChild(st);
+  const v = document.getElementById('hated-banner'); if(v){ v.removeAttribute('autoplay'); v.pause(); v.preload = 'none'; }
+}
 (function bannerVisibility(){
   const v = document.getElementById('hated-banner');
   if(!v || !('IntersectionObserver' in window)) return;
   new IntersectionObserver(([en]) => {
     bannerInView = en.isIntersecting;
-    if(bannerInView){ const p = v.play(); if(p && p.catch) p.catch(() => {}); } else v.pause();
+    if(bannerInView && !LITE){ const p = v.play(); if(p && p.catch) p.catch(() => {}); } else v.pause();
   }).observe(v);
 })();
 (function bannerWatchdog(){
   let last = -1;
   setInterval(() => {
     const v = document.getElementById('hated-banner');
-    if(!v || document.hidden || !bannerInView || !v.isConnected || v.offsetParent === null) return;
+    if(!v || LITE || document.hidden || !bannerInView || !v.isConnected || v.offsetParent === null) return;
     const stuck = v.paused || v.ended || (v.readyState >= 2 && Math.abs(v.currentTime - last) < 0.01);
     last = v.currentTime;
     if(stuck){ v.muted = true; const p = v.play(); if(p && p.catch) p.catch(() => {}); }
