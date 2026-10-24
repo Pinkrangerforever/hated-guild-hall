@@ -4947,6 +4947,109 @@
   .fsh-help{ align-self:center; width:120px; font-size:12px; color:var(--hh-muted, #a8977a); line-height:1.4; }
   .fsh-help b{ color:var(--hh-gold-bright, #f0d27a); }
   .fsh-track .fish-jump{ left:50%; top:20%; width:90px; height:60px; }
+
+  /* =====================================================================================================
+     High-fidelity panels (Coming Up, Gold Leaderboard, Announcements): a framed metal plaque with filigree
+     corners, a faint leather grain, torchlight from above, engraved title bars with a diamond divider, inset
+     rows, and a drop cap + signature on announcements. All static - nothing here animates on its own.
+     ===================================================================================================== */
+  :root{
+    --hf-tl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg fill='none' stroke='%23d9ab52' stroke-linecap='round'%3E%3Cpath d='M2 26V7a5 5 0 0 1 5-5h19' stroke-width='1.6'/%3E%3Cpath d='M6 20V10a4 4 0 0 1 4-4h10' stroke-width='.9' opacity='.7'/%3E%3Cpath d='M2 7c4 0 6 2 6 6M7 2c0 4 2 6 6 6' stroke-width='.9' opacity='.8'/%3E%3C/g%3E%3Ccircle cx='9.5' cy='9.5' r='1.8' fill='%23f3d488'/%3E%3C/svg%3E");
+    --hf-tr: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg transform='matrix(-1 0 0 1 40 0)'%3E%3Cg fill='none' stroke='%23d9ab52' stroke-linecap='round'%3E%3Cpath d='M2 26V7a5 5 0 0 1 5-5h19' stroke-width='1.6'/%3E%3Cpath d='M6 20V10a4 4 0 0 1 4-4h10' stroke-width='.9' opacity='.7'/%3E%3Cpath d='M2 7c4 0 6 2 6 6M7 2c0 4 2 6 6 6' stroke-width='.9' opacity='.8'/%3E%3C/g%3E%3Ccircle cx='9.5' cy='9.5' r='1.8' fill='%23f3d488'/%3E%3C/g%3E%3C/svg%3E");
+    --hf-bl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg transform='matrix(1 0 0 -1 0 40)'%3E%3Cg fill='none' stroke='%23d9ab52' stroke-linecap='round'%3E%3Cpath d='M2 26V7a5 5 0 0 1 5-5h19' stroke-width='1.6'/%3E%3Cpath d='M6 20V10a4 4 0 0 1 4-4h10' stroke-width='.9' opacity='.7'/%3E%3Cpath d='M2 7c4 0 6 2 6 6M7 2c0 4 2 6 6 6' stroke-width='.9' opacity='.8'/%3E%3C/g%3E%3Ccircle cx='9.5' cy='9.5' r='1.8' fill='%23f3d488'/%3E%3C/g%3E%3C/svg%3E");
+    --hf-br: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg transform='matrix(-1 0 0 -1 40 40)'%3E%3Cg fill='none' stroke='%23d9ab52' stroke-linecap='round'%3E%3Cpath d='M2 26V7a5 5 0 0 1 5-5h19' stroke-width='1.6'/%3E%3Cpath d='M6 20V10a4 4 0 0 1 4-4h10' stroke-width='.9' opacity='.7'/%3E%3Cpath d='M2 7c4 0 6 2 6 6M7 2c0 4 2 6 6 6' stroke-width='.9' opacity='.8'/%3E%3C/g%3E%3Ccircle cx='9.5' cy='9.5' r='1.8' fill='%23f3d488'/%3E%3C/g%3E%3C/svg%3E");
+    --hf-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .22 0 0 0 0 .1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    --hf-diamond: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 .5 11.5 6 6 11.5.5 6z' fill='%23f0cf7a' stroke='%236b4614' stroke-width='.8'/%3E%3C/svg%3E");
+  }
+  .coming-up-panel,
+  .gold-leaderboard-widget,
+  #module-announcements-display{
+    background:
+      var(--hf-tl) top 5px left 5px / 30px 30px no-repeat,
+      var(--hf-tr) top 5px right 5px / 30px 30px no-repeat,
+      var(--hf-bl) bottom 5px left 5px / 30px 30px no-repeat,
+      var(--hf-br) bottom 5px right 5px / 30px 30px no-repeat,
+      radial-gradient(ellipse 80% 55% at 50% -8%, rgba(255,170,80,0.16), transparent 70%),
+      radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,0.45) 100%),
+      var(--hf-grain),
+      var(--hh-panel-bg) !important;
+    border: 1px solid #120a05 !important;
+    box-shadow:
+      inset 0 0 0 1px rgba(226,182,96,0.55),
+      inset 0 0 0 3px rgba(18,10,5,0.85),
+      inset 0 0 0 4px rgba(226,182,96,0.18),
+      inset 0 1px 0 4px rgba(255,226,160,0.10),
+      inset 0 -10px 24px rgba(0,0,0,0.45),
+      0 2px 0 rgba(0,0,0,0.9),
+      0 16px 32px rgba(0,0,0,0.55),
+      0 4px 10px rgba(0,0,0,0.5) !important;
+  }
+  /* the corners on these panels come from the background now */
+  .coming-up-panel .ornate-corner{ display:none !important; }
+  .coming-up-panel, .gold-leaderboard-widget, #module-announcements-display{ position:relative; }
+
+  /* ---- title bars: an engraved band with a fading gold rule and a diamond in the middle ---- */
+  .coming-up-header,
+  .gold-leaderboard-widget-title,
+  #module-announcements-display .announcement-header{
+    position:relative;
+    padding:8px 12px 14px !important; margin:-2px -4px 14px !important;
+    background:
+      var(--hf-diamond) bottom 0 center / 11px 11px no-repeat,
+      linear-gradient(90deg, transparent, rgba(226,182,96,0.75) 22%, rgba(226,182,96,0.75) 78%, transparent) bottom 5px center / 100% 1px no-repeat,
+      linear-gradient(180deg, rgba(0,0,0,0.38), rgba(0,0,0,0.12) 70%, transparent) !important;
+    border-radius:4px 4px 0 0;
+  }
+  .coming-up-header::after{ display:none !important; }
+  .coming-up-header,
+  .gold-leaderboard-widget-title,
+  #module-announcements-display .announcement-header h3{
+    text-shadow: 0 1px 0 #000, 0 -1px 0 rgba(255,222,150,0.12), 0 0 14px rgba(226,182,96,0.25) !important;
+  }
+
+  /* ---- rows: set into the panel, a colour strip by event type, a countdown pill, a lift on hover ---- */
+  .coming-up-item,
+  .gold-leaderboard-entries .leaderboard-entry:not(.rank-top-3){
+    background: linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.32)) !important;
+    border: 1px solid rgba(201,150,63,0.16) !important;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.65), inset 0 -1px 0 rgba(255,222,150,0.06) !important;
+    transition: transform .15s, border-color .15s, box-shadow .15s, background .15s;
+  }
+  .coming-up-item{ border-left: 3px solid var(--strip, rgba(201,150,63,0.5)) !important; }
+  .coming-up-item.kind-raid{ --strip:#e0662a; }
+  .coming-up-item.kind-holiday{ --strip:#e6c35c; }
+  .coming-up-item.kind-event{ --strip:#5a9fd6; }
+  .coming-up-item:hover,
+  .gold-leaderboard-entries .leaderboard-entry:not(.rank-top-3):hover{
+    transform: translateY(-1px);
+    border-color: rgba(226,182,96,0.6) !important;
+    background: linear-gradient(180deg, rgba(60,36,14,0.55), rgba(0,0,0,0.35)) !important;
+    box-shadow: inset 0 1px 0 rgba(255,222,150,0.12), 0 4px 10px rgba(0,0,0,0.5) !important;
+  }
+  .coming-up-item:hover .coming-up-icon img{ filter: brightness(1.18) drop-shadow(0 0 4px rgba(255,190,90,0.5)); }
+  .coming-up-countdown{
+    padding:1px 8px; border-radius:999px; font-weight:700;
+    background: linear-gradient(180deg, rgba(226,182,96,0.22), rgba(120,80,20,0.25));
+    border: 1px solid rgba(226,182,96,0.55);
+    box-shadow: inset 0 1px 0 rgba(255,230,170,0.25);
+  }
+
+  /* ---- announcements: comfortable line length, a drop cap, gold emphasis, a signature ---- */
+  #module-announcements-display .list-item{ background:transparent !important; border:none !important; }
+  #module-announcements-display .ann-body{ max-width:68ch; }
+  #module-announcements-display .ann-body::first-letter{
+    float:left; font-family:'Cinzel', Georgia, serif; font-size:3.1em; line-height:.9; font-weight:700;
+    margin:4px 8px 0 0; padding:2px 6px 0; color:#f3d488;
+    text-shadow: 0 2px 0 #000, 0 0 12px rgba(226,182,96,0.45);
+    border:1px solid rgba(226,182,96,0.45); border-radius:3px;
+    background: linear-gradient(180deg, rgba(90,40,14,0.6), rgba(30,14,6,0.8));
+  }
+  #module-announcements-display .ann-body b,
+  #module-announcements-display .ann-body strong{ color:#f3d488; }
+  #module-announcements-display .ann-sign{
+    margin-top:12px; font-family:'Cinzel', Georgia, serif; font-style:italic; font-size:13px; color:#c9a35c;
+    padding-left:18px; background: linear-gradient(90deg, rgba(226,182,96,0.6), transparent) left center / 12px 1px no-repeat;
+  }
 </style>
 <style>
   /* Hated Companion download card (home page, under the Guild Vault) */
@@ -15303,7 +15406,7 @@ function renderComingUp(disableClicks = false){
     const clickAttr = disableClicks ? '' : `data-open-event="${ev.id}"`;
 
     return `
-      <div class="coming-up-item" ${clickAttr}>
+      <div class="coming-up-item kind-${eventKind(ev)}" ${clickAttr}>
         <div class="coming-up-icon"><img src="https://assets.hatedforever.com/ScrollIcon.png" alt="Event" style="width:28px; height:28px;"></div>
         <div class="coming-up-content">
           <div class="coming-up-title">${esc(ev.title)}</div>
@@ -15532,7 +15635,8 @@ function renderAnnouncementsModule(officer){
           <div style="flex:1;">
             <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
             <div class="muted"><span class="mono">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')}</span> &middot; ${esc(n.author||'')}</div>
-            <div style="margin-top:8px; line-height:1.5;">${n.body || ''}</div>
+            <div class="ann-body" style="margin-top:8px; line-height:1.5;">${n.body || ''}</div>
+            ${ n.author ? `<div class="ann-sign">${esc(n.author)}</div>` : '' }
           </div>
           ${ officer ? `<button class="btn danger" data-del-news="${n.id}">Remove</button>` : '' }
         </div>
@@ -15678,7 +15782,8 @@ function renderEntryAnnouncements(){
           <div style="flex:1;">
             <div style="font-weight:600; font-size:15px;">${esc(n.title)}</div>
             <div class="muted"><span class="mono">${fmtDate(n.created_at ? n.created_at.slice(0,10) : '')}</span> &middot; ${esc(n.author||'')}</div>
-            <div style="margin-top:8px; line-height:1.5;">${n.body || ''}</div>
+            <div class="ann-body" style="margin-top:8px; line-height:1.5;">${n.body || ''}</div>
+            ${ n.author ? `<div class="ann-sign">${esc(n.author)}</div>` : '' }
           </div>
         </div>
       `).join('') : `<div style="text-align:center; color:var(--text-muted); padding:20px;">No announcements yet</div>` }
