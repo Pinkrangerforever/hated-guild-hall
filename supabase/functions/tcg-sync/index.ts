@@ -17,7 +17,7 @@
 // lines newer than that, so syncing the same file again adds nothing. Raid / dungeon boss lockouts are kept as keys.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { DAILY, board, dungeonDone, pacificDay, taskCount, type Prog } from './daily.ts';
-import { killKind, rarityOf, roll, validClass, validGroup } from './drops.ts';
+import { expectedDrops, killKind, luckChance, rarityOf, roll, validClass, validGroup } from './drops.ts';
 
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -34,6 +34,7 @@ const MAX_AGE = 31 * 86400;              // the addon keeps 30 days
 const TCG_START = Number(Deno.env.get('TCG_START') || 0) || 0;
 const MAX_ENTRIES = 100000;
 const DAILY_CLAIM_DAYS = 7;              // a daily board can be paid up to this many days later
+const LUCK_LIMIT = 1e-4;                 // drops this unlikely (1 in 10,000) are held for the Raid Leader
 // suspicion: held for the Raid Leader instead of credited
 const MAX_KILLS_PER_MINUTE = 40, MAX_KILLS_PER_DAY = 6000, MAX_LEVELS_ABOVE = 15;
 
@@ -78,6 +79,21 @@ Deno.serve(async (req) => {
       }).eq('user_id', s.user_id);
     }
     await db.from('tcg_syncs').update({ status: approve ? 'approved' : 'rejected', reviewed_by: uid, reviewed_at: new Date().toISOString() }).eq('id', s.id);
+    return json({ ok: true });
+  }
+
+  // ---------- the Raid Leader reviews card drops held by the luck check ----------
+  if (body.action === 'review_drops') {
+    const { data: me } = await db.from('profiles').select('protected').eq('id', uid).maybeSingle();
+    if (!me?.protected) return json({ error: 'Only the Raid Leader can review card drops' }, 403);
+    const { data: h } = await db.from('tcg_held_drops').select('*').eq('id', body.id).maybeSingle();
+    if (!h || h.status !== 'held') return json({ error: 'Those drops are not waiting for review' }, 400);
+    const approve = body.decision === 'approve';
+    if (approve) {
+      const { error: ae } = await db.rpc('tcg_add_drops', { p_user: h.user_id, p_drops: h.drops });
+      if (ae) return json({ error: 'Could not add the cards: ' + ae.message }, 500);
+    }
+    await db.from('tcg_held_drops').update({ status: approve ? 'approved' : 'rejected', reviewed_by: uid, reviewed_at: new Date().toISOString() }).eq('id', h.id);
     return json({ ok: true });
   }
 
@@ -275,6 +291,7 @@ Deno.serve(async (req) => {
   // ---- card drops: each kill's roll again, from its spawn id (or a boss's key) - see drops.ts ----
   summary.drops = 0; summary.dropsRejected = 0;
   type Drop = { card_id?: string; dbf: number; kill_key: string; hero: boolean; holo: boolean; npc: number; char: string; rarity: string; at: number };
+  let expected = 0;
   const dropKills = fresh.filter(i => i.grp !== undefined && (i.kind === 'b' || (!i.grey && i.srv != null)));
   const drops: Drop[] = [];
   const tagRows: { npc_key: number; tag: string; user_id: string }[] = [];
@@ -298,6 +315,7 @@ Deno.serve(async (req) => {
       tagRows.push({ npc_key: nk, tag, user_id: uid });
       const key = i.kind === 'b' ? `b|${i.id}|${i.char}|${i.t}` : i.guid;
       const kind = i.kind === 'b' ? (i.raid ? 'raidboss' : 'dungeonboss') : killKind(i.cls);
+      expected += expectedDrops(grp, cls, kind);
       const r = roll(key, grp, cls, kind);
       const base = { kill_key: key, npc: i.kind === 'b' ? -i.id : i.id, char: i.char, at: i.t };
       if (r.drop) drops.push({ ...base, dbf: r.drop, hero: false, holo: r.dropHolo, rarity: rarityOf(r.drop) });
@@ -320,14 +338,23 @@ Deno.serve(async (req) => {
   let dropped: unknown[] = [];
   const uniqTags = [...new Map(tagRows.map(r => [r.npc_key + r.tag, r])).values()];
   for (let k = 0; k < uniqTags.length; k += 1000) await db.from('tcg_npc_tags').upsert(uniqTags.slice(k, k + 1000), { onConflict: 'npc_key,tag,user_id', ignoreDuplicates: true });
+  // the luck check: this account's drops so far against what its kills should have given
+  const totalExpected = (acct0?.drop_expected || 0) + expected, totalActual = (acct0?.drop_actual || 0) + drops.length;
+  const chance = luckChance(totalActual, totalExpected);
+  const tooLucky = drops.length > 0 && totalActual >= 3 && chance < LUCK_LIMIT;
   if (drops.length && !held) {
     const { data: ids } = await db.from('tcg_cards').select('id, dbf, name').in('dbf', [...new Set(drops.map(d => d.dbf))]);
     const byDbf = new Map((ids || []).map((c: { id: string; dbf: number; name: string }) => [c.dbf, c]));
     const rows = drops.filter(d => byDbf.has(d.dbf)).map(d => ({ ...d, card_id: byDbf.get(d.dbf)!.id }));
-    const { data: added, error: de } = await db.rpc('tcg_add_drops', { p_user: uid, p_drops: rows });
-    if (de) flags.push('Card drops could not be saved: ' + de.message);
-    dropped = ((added || []) as Drop[]).map(d => ({ ...d, name: byDbf.get(d.dbf)?.name }));
-    summary.drops = dropped.length;
+    if (tooLucky) {
+      await db.from('tcg_held_drops').insert({ user_id: uid, drops: rows, expected: totalExpected, actual: totalActual, chance });
+      summary.dropsHeld = rows.length;
+    } else {
+      const { data: added, error: de } = await db.rpc('tcg_add_drops', { p_user: uid, p_drops: rows });
+      if (de) flags.push('Card drops could not be saved: ' + de.message);
+      dropped = ((added || []) as Drop[]).map(d => ({ ...d, name: byDbf.get(d.dbf)?.name }));
+      summary.drops = dropped.length;
+    }
   } else if (drops.length) summary.dropsHeld = drops.length;
   if (dailyRows.length) await db.from('tcg_daily').upsert(dailyRows, { onConflict: 'user_id,char,day' });
   if (newFirsts.length) {
@@ -337,7 +364,8 @@ Deno.serve(async (req) => {
   const acct = acct0 || { points: 0, lifetime: 0, held: 0 };
   const next = held ? { held: acct.held + points } : { points: acct.points + points, lifetime: acct.lifetime + points };
   const final = { points: acct.points, lifetime: acct.lifetime, held: acct.held, ...next };
-  await db.from('tcg_accounts').upsert({ user_id: uid, ...final, wow_server: accountSrv, last_t: newLastT, last_sync: stamp, updated_at: stamp }, { onConflict: 'user_id' });
+  await db.from('tcg_accounts').upsert({ user_id: uid, ...final, wow_server: accountSrv, last_t: newLastT, last_sync: stamp, updated_at: stamp,
+    drop_expected: totalExpected, drop_actual: totalActual }, { onConflict: 'user_id' });
   await db.from('tcg_syncs').insert({ user_id: uid, entries: lines.length, counted: fresh.length, points, summary, flags, status: held ? 'held' : 'ok' });
   await db.from('tcg_seen').delete().eq('user_id', uid).lt('seen_at', new Date(Date.now() - 15 * 86400000).toISOString());
 

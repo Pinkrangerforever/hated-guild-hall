@@ -1262,6 +1262,7 @@
   .tcg-rules{ margin-top:10px; font-size:13px; color:#c6e3df; } .tcg-rules summary{ cursor:pointer; color:#3ff2d9; } .tcg-rules ul{ margin:6px 0 0; padding-left:18px; line-height:1.6; }
   .tcg-list{ margin-top:14px; } .tcg-list-h{ font:700 11px Cinzel, Georgia, serif; letter-spacing:.1em; color:#7fb5ad; text-transform:uppercase; margin-bottom:6px; }
   .tcg-row{ display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; padding:7px 10px; border-bottom:1px solid rgba(63,242,217,.1); font-size:13px; color:#d9efec; }
+  .tcg-rar-common{ color:#e8e8e8; } .tcg-rar-uncommon{ color:#1eff00; } .tcg-rar-rare{ color:#3d9bff; } .tcg-rar-epic{ color:#c06cff; } .tcg-rar-legendary{ color:#ff8000; }
   .tcg-row:nth-child(even){ background:rgba(255,255,255,.02); }
   .tcg-when{ color:#7fb5ad; min-width:110px; } .tcg-pts{ color:#3ff2d9; } .tcg-what{ color:#a9cbc6; }
   .tcg-flags{ flex-basis:100%; color:#ffb35c; font-size:12px; line-height:1.5; }
@@ -11942,12 +11943,23 @@ async function loadTcg(userId){
     sb.from('tcg_accounts').select('*').eq('user_id', userId).maybeSingle(),
     sb.from('tcg_syncs').select('*').eq('user_id', userId).order('at', { ascending: false }).limit(6),
   ]);
-  let queue = null;
-  if(testIsRaidLeader() && state.profile && state.profile.id === userId){
-    const q = await sb.from('tcg_syncs').select('*').eq('status', 'held').order('at', { ascending: true }).limit(50);
-    queue = q.data || [];
+  let queue = null, heldDrops = null, drops = [], dailies = [];
+  const me = state.profile && state.profile.id === userId;
+  if(testIsRaidLeader() && me){
+    const [q, h] = await Promise.all([
+      sb.from('tcg_syncs').select('*').eq('status', 'held').order('at', { ascending: true }).limit(50),
+      sb.from('tcg_held_drops').select('*').eq('status', 'held').order('at', { ascending: true }).limit(50),
+    ]);
+    queue = q.data || []; heldDrops = h.data || [];
   }
-  state.tcg = { userId, account: a.data || null, syncs: s.data || [], queue, loading: null };
+  if(me){   // your own history: card drops and daily challenges
+    const [d, y] = await Promise.all([
+      sb.from('tcg_drops').select('card_id, rarity, hero, at, char, tcg_cards(name)').eq('user_id', userId).order('at', { ascending: false }).limit(12),
+      sb.from('tcg_daily').select('char, day, level, done, points').eq('user_id', userId).order('day', { ascending: false }).limit(14),
+    ]);
+    drops = d.data || []; dailies = y.data || [];
+  }
+  state.tcg = { userId, account: a.data || null, syncs: s.data || [], queue, heldDrops, drops, dailies, loading: null };
   if(state.tab === 'tcg' || state.tab === 'profile') render();
 }
 function tcgSummaryText(sm){
@@ -11959,6 +11971,7 @@ function tcgSummaryText(sm){
   if(sm.dungeonBosses) bits.push(sm.dungeonBosses + ' dungeon boss' + (sm.dungeonBosses === 1 ? '' : 'es'));
   if(sm.raidBosses) bits.push(sm.raidBosses + ' raid boss' + (sm.raidBosses === 1 ? '' : 'es'));
   if(sm.drops) bits.push(sm.drops + ' card drop' + (sm.drops === 1 ? '' : 's'));
+  if(sm.dropsHeld) bits.push(sm.dropsHeld + ' card drop' + (sm.dropsHeld === 1 ? '' : 's') + ' held for the Raid Leader (unusually lucky)');
   if(sm.dailies) bits.push(sm.dailies + ' daily challenge' + (sm.dailies === 1 ? '' : 's') + ' (+' + sm.dailyPoints + ')');
   if(sm.grey) bits.push(sm.grey + ' grey (no points)');
   if(sm.capped) bits.push(sm.capped + ' over the daily cap');
@@ -12000,6 +12013,19 @@ function renderTcgPanel(p, isMe){
     ${ T.syncs.length ? `<div class="tcg-list"><div class="tcg-list-h">Recent syncs</div>${ T.syncs.map(s => `<div class="tcg-row">
         <span class="tcg-when">${when(s.at)}</span><b class="tcg-pts">+${s.points}</b>${status(s)}<span class="tcg-what">${esc(tcgSummaryText(s.summary)) || (s.counted ? '' : 'nothing new')}</span>
         ${ (s.flags || []).length ? `<div class="tcg-flags">${s.flags.map(f => '&#9888; ' + esc(f)).join('<br>')}</div>` : '' }</div>`).join('') }</div>` : '' }
+    ${ (T.drops || []).length ? `<div class="tcg-list"><div class="tcg-list-h">Card drops</div>${ T.drops.map(d => `<div class="tcg-row">
+        <span class="tcg-when">${when(d.at)}</span><b class="tcg-rar-${esc(d.rarity)}">${esc((d.tcg_cards && d.tcg_cards.name) || d.card_id)}</b>
+        <span class="tcg-what">${esc(d.rarity)}${d.hero ? ' hero' : ''} · ${esc(d.char || '')}</span></div>`).join('') }</div>` : '' }
+    ${ (T.dailies || []).length ? `<div class="tcg-list"><div class="tcg-list-h">Daily challenges</div>${ T.dailies.map(y => `<div class="tcg-row">
+        <span class="tcg-when">${new Date(y.day * 864e5 + 12 * 36e5).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })}</span><b>${esc(y.char)}</b>
+        <span class="tcg-what">level ${y.level} · ${(y.done || []).length} done${(y.done || []).includes('dungeon') ? ' (dungeon cleared)' : ''}</span><b class="tcg-pts">+${y.points}</b></div>`).join('') }</div>` : '' }
+    ${ T.heldDrops ? `<div class="tcg-list tcg-queue"><div class="tcg-list-h">Held card drops (${T.heldDrops.length})</div>${ T.heldDrops.length ? T.heldDrops.map(h => {
+        const who = state.profilesById[h.user_id];
+        const odds = h.chance > 0 ? '1 in ' + Math.round(1 / h.chance).toLocaleString() : 'impossible';
+        return `<div class="tcg-row"><span class="tcg-when">${when(h.at)}</span><b>${esc(who ? who.character_name || who.discord_username : 'Unknown')}</b>
+          <span class="tcg-what">${(h.drops || []).length} card${(h.drops || []).length === 1 ? '' : 's'}: ${esc((h.drops || []).map(d => d.rarity + (d.hero ? ' hero' : '')).join(', '))}</span>
+          <div class="tcg-flags">&#9888; ${h.actual} drops so far when about ${h.expected.toFixed(1)} were expected (${odds} luck)</div>
+          <div class="tcg-act"><button class="btn tcg-mini" data-tcg-drops="${h.id}|approve">Approve</button><button class="btn danger tcg-mini" data-tcg-drops="${h.id}|reject">Reject</button></div></div>`; }).join('') : '<p class="muted sans" style="margin:6px 0 0;">Nothing waiting.</p>' }</div>` : '' }
     ${ T.queue ? `<div class="tcg-list tcg-queue"><div class="tcg-list-h">Raid Leader review (${T.queue.length})</div>${ T.queue.length ? T.queue.map(s => {
         const who = state.profilesById[s.user_id];
         return `<div class="tcg-row"><span class="tcg-when">${when(s.at)}</span><b>${esc(who ? who.character_name || who.discord_username : 'Unknown')}</b><b class="tcg-pts">+${s.points}</b>
@@ -12147,6 +12173,13 @@ function wireTcg(){
     try{ const out = await tcgCall({ action: 'code' }); state.tcgCode = out.code; try{ await navigator.clipboard.writeText(out.code); showToast('Copied! Paste it in game: /tcg > Import from website.'); }catch(e){ showToast('Copy the code below into the TCG window in game (/tcg).'); } render(); }
     catch(e){ showToast('Could not get your code: ' + e.message, true); }
   });
+  document.querySelectorAll('[data-tcg-drops]').forEach(b => b.addEventListener('click', async () => {
+    const [id, decision] = b.dataset.tcgDrops.split('|');
+    if(decision === 'reject' && !confirm('Reject these card drops? They will not be added.')) return;
+    try{ await tcgCall({ action: 'review_drops', id: +id, decision }); showToast(decision === 'approve' ? 'Approved: the cards were added.' : 'Rejected.'); }
+    catch(e){ showToast('Could not save: ' + e.message, true); }
+    state.tcg = null; state.tcgMine = null; render();
+  }));
   document.querySelectorAll('[data-tcg-review]').forEach(b => b.addEventListener('click', async () => {
     const [id, decision] = b.dataset.tcgReview.split('|');
     if(decision === 'reject' && !confirm('Reject these points? They will not be credited.')) return;

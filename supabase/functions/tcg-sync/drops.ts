@@ -43,6 +43,22 @@ function pick(r: (n: number) => number, group: string, cls: string, kind: string
   }
   return out;
 }
+// how many drops a kill should give on average (its chance at a card, plus its chance at a hero) - for the luck check
+export function expectedDrops(group: string, cls: string, kind: string) {
+  let e = 0;
+  if (cls !== '' && X.heroes[cls]) e += 1 / X.heroOdds;
+  const named = group.startsWith('n.') && X.named[group.slice(2)], tribe = group.startsWith('t.') && X.tribes[group.slice(2)];
+  if (named || tribe) e += 1 / (named ? Math.min(X.odds[kind] || X.odds.normal, X.odds.named) : (X.odds[kind] || X.odds.normal));
+  return e;
+}
+// the chance of getting at least k drops when lam were expected (Poisson)
+export function luckChance(k: number, lam: number) {
+  if (k <= 0) return 1;
+  if (lam <= 0) return 0;
+  let term = Math.exp(-lam), below = 0;
+  for (let i = 0; i < k; i++) { below += term; term *= lam / (i + 1); }
+  return Math.max(0, 1 - below);
+}
 export const killKind = (cls: string) => cls === 'worldboss' ? 'worldboss' : (cls === 'rare' || cls === 'rareelite') ? 'rare' : cls === 'elite' ? 'elite' : 'normal';
 export const RARITY = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
 export const rarityOf = (dbf: number) => RARITY[(X.rarity[dbf] || 1) - 1];
