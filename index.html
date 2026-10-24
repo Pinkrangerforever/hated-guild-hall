@@ -17395,7 +17395,7 @@ function bindApp(){
 // It also pauses while scrolled out of view (decoding a 1920 x 640 video nobody can see costs the computer for nothing).
 let bannerInView = true;
 // ?lite in the address: no banner video and no looping animations (a test for slow computers / other windows lagging)
-const LITE = /[?&]lite/.test(location.search);
+const LITE = /[?&]lite(?:[=&]|$)/.test(location.search);
 if(LITE){
   const st = document.createElement('style');
   st.textContent = '*,*::before,*::after{animation:none !important;transition:none !important}';
