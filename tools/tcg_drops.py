@@ -20,11 +20,11 @@ Card data: the renderer's manifest (Documents/Hearthstone Art/manifest.json).
 """
 import json, os, re, sys
 
-VERSION = 3
+VERSION = 4
 HERO_ODDS = 100
 HOLO_ODDS = 50            # a dropped Rare, Epic, Legendary or hero is holographic 1 in 50 (2%, like packs)
 # 1 in N per kill, by kind of kill
-ODDS = {'normal': 200, 'elite': 80, 'rare': 25, 'worldboss': 10, 'dungeonboss': 20, 'raidboss': 10, 'named': 20}
+ODDS = {'normal': 100, 'elite': 40, 'rare': 25, 'worldboss': 10, 'dungeonboss': 20, 'raidboss': 10, 'named': 20}
 # % per rarity (common, uncommon, rare, epic, legendary): ordinary kills / rares, bosses and raids
 RARITY_PCT = {'low': [50, 30, 14, 5, 1], 'high': [30, 32, 23, 11, 4]}
 RARITIES = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary']

@@ -95,9 +95,9 @@ HatedTCG_DROPS = {
   },
   odds = {
     dungeonboss = 20,
-    elite = 80,
+    elite = 40,
     named = 20,
-    normal = 200,
+    normal = 100,
     raidboss = 10,
     rare = 25,
     worldboss = 10
@@ -1170,5 +1170,5 @@ HatedTCG_DROPS = {
     WORGEN = { {  }, { 69812, 69957 }, {  }, {  }, {  } },
     YETI = { { 68400 }, { 66874 }, {  }, {  }, {  } }
   },
-  version = 3
+  version = 4
 }
