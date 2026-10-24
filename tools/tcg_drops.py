@@ -8,7 +8,9 @@ Bump VERSION whenever a table changes (it's part of every roll's seed).
 
 Cards only drop from their own kind of creature:
   1. NAMED   a card named after that very creature (Hogger drops Hogger, Ragnaros drops Ragnaros) - better odds
-  2. TRIBE   a card of the creature's race: by name (murlocs, pirates, quilboar), else by creature type (beast,
+  2. FAMILY  a card of the creature's kind, by a word in its name (kobolds drop Kobold cards, gnolls Gnoll cards,
+             the Scarlet Crusade Scarlet cards...: FAMILIES below)
+  3. TRIBE   a card of the creature's race: by name (murlocs, pirates, quilboar), else by creature type (beast,
              undead, dragonkin, demon, elemental, mechanical)
   Anything else drops no card.
 A creature with a class (a word in its name: "Druid of the Fang" is a druid - WoW calls nearly every NPC a warrior,
@@ -18,7 +20,7 @@ Card data: the renderer's manifest (Documents/Hearthstone Art/manifest.json).
 """
 import json, os, re, sys
 
-VERSION = 2
+VERSION = 3
 HERO_ODDS = 100
 HOLO_ODDS = 50            # a dropped Rare, Epic, Legendary or hero is holographic 1 in 50 (2%, like packs)
 # 1 in N per kill, by kind of kill
@@ -109,6 +111,49 @@ CLASS_WORDS = {
     'WARRIOR': ['warrior', 'brute', 'berserker', 'gladiator', 'soldier', 'enforcer', 'warlord', 'champion', 'myrmidon', 'mercenary', 'thug'],
 }
 # creature type letter (HatedTCGDailyData's CTYPE) -> card tribe
+# creature families with no Hearthstone race: a word in the creature's name -> the cards of that kind
+# (checked before the tribe words; the cards go in their own pool, by rarity, like a tribe's)
+FAMILIES = {
+    'KOBOLD':     (['kobold'], ['Kobold Geomancer', 'Kobold Taskmaster']),
+    'GNOLL':      (['gnoll'], ['Goldshire Gnoll', 'Wildpaw Gnoll']),
+    'OGRE':       (['ogre'], ['Ogre Magi', 'Boulderfist Ogre']),
+    'HARPY':      (['harpy'], ['Windfury Harpy', 'Snowblind Harpy']),
+    'DEFIAS':     (['defias'], ['Defias Ringleader']),
+    'SCARLET':    (['scarlet'], ['Scarlet Crusader', 'Scarlet Purifier']),
+    'DARKIRON':   (['dark iron'], ['Dark Iron Dwarf', 'Dark Iron Skulker']),
+    'VENTURE':    (['venture'], ['Venture Co. Mercenary']),
+    'TROLL':      (['troll', 'gurubashi', 'amani', 'darkspear', 'skullsplitter', 'bloodscalp', 'witherbark', 'vilebranch',
+                    'smolderthorn', 'sandfury', 'frostmane', 'mossflayer', 'shadowpine', 'zandalar', 'hakkari'],
+                   ['Gurubashi Berserker', 'Amani Berserker', 'Darkspear Berserker', 'Troll Centurion', 'Voodoo Doctor']),
+    'TROGG':      (['trogg'], ['Irondeep Trogg']),
+    'CENTAUR':    (['centaur', 'kolkar', 'galak', 'maraudine', 'gelkis', 'magram'], ['Kolkar Pack Runner']),
+    'WORGEN':     (['worgen'], ['Raging Worgen', 'Worgen Infiltrator']),
+    'LEPERGNOME': (['leper gnome'], ['Leper Gnome']),
+    'OOZE':       (['ooze', 'slime', 'sludge'], ['Acidic Swamp Ooze', 'Echoing Ooze', 'Devouring Ectoplasm']),
+    'YETI':       (['yeti'], ['Chillwind Yeti', 'Coldtooth Yeti']),
+    'GOLEM':      (['golem'], ['Arcane Golem', 'War Golem']),
+    'CULTIST':    (['cultist', 'burning blade', 'twilight'], ['Burning Blade Acolyte', 'Cult Master', 'Dark Cultist']),
+    'FLAMEWAKER': (['flamewaker'], ['Flamewaker']),
+    'BLACKWING':  (['blackwing'], ['Blackwing Technician', 'Blackwing Corruptor']),
+    'QIRAJI':     (['anubisath', 'qiraji'], ['Anubisath Sentinel', 'Skeram Cultist']),
+    'PRISONER':   (['prisoner', 'inmate', 'convict'], ['Stockades Prisoner']),
+    'WISP':       (['wisp'], ['Wisp']),
+    'STORMPIKE':  (['stormpike'], ['Stormpike Commando', 'Stormpike Marshal']),
+    'FROSTWOLF':  (['frostwolf'], ['Frostwolf Grunt', 'Frostwolf Warlord']),
+    'STORMWIND':  (['stormwind'], ['Stormwind Guard', 'Stormwind Knight']),
+    'KORKRON':    (["kor'kron"], ["Kor'kron Elite"]),
+    'WARSONG':    (['warsong'], ['Warsong Commander']),
+    'BOOTYBAY':   (['booty bay'], ['Booty Bay Bodyguard']),
+    'GRIMTOTEM':  (['grimtotem'], ['Grimtotem Bounty Hunter']),
+    'SENJIN':     (["sen'jin"], ["Sen'jin Shieldmasta"]),
+    'GIANT':      (['giant'], ['Mountain Giant', 'Sea Giant', 'Molten Giant']),
+}
+# cards that belong to a race but aren't tagged with it -> that race's pool too
+EXTRA_RACE = {
+    'ELEMENTAL': ['Fire Elemental', 'Earth Elemental', 'Water Elemental', 'Frost Elemental', 'Dust Devil', 'Fen Creeper', 'Unbound Elemental'],
+    'UNDEAD': ['Abomination', 'Flesheating Ghoul', 'Grave Defiler'],
+    'QUILBOAR': ['Razorfen Hunter'],
+}
 CTYPE_TRIBE = {'B': 'BEAST', 'U': 'UNDEAD', 'K': 'DRAGON', 'D': 'DEMON', 'E': 'ELEMENTAL', 'M': 'MECHANICAL'}
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -133,13 +178,18 @@ def build():
         for c in cards:
             if c['type'] != 'HERO' and pred(c): out[rix(c)].append(c['dbfId'])
         return [sorted(p) for p in out]
-    tribes = {t: pools(lambda c, t=t: c['race'] == t) for t in sorted(set(TRIBE_WORDS) | set(CTYPE_TRIBE.values()))}
+    for name in [n for _, cs in FAMILIES.values() for n in cs] + [n for cs in EXTRA_RACE.values() for n in cs]:
+        if name not in by_name: sys.exit(f'FAMILIES / EXTRA_RACE: no card called {name!r}')
+    extra = {n: t for t, cs in EXTRA_RACE.items() for n in cs}
+    tribes = {t: pools(lambda c, t=t: c['race'] == t or extra.get(c['name']) == t) for t in sorted(set(TRIBE_WORDS) | set(CTYPE_TRIBE.values()))}
+    for f, (_, names) in FAMILIES.items():
+        tribes[f] = pools(lambda c, names=names: c['name'] in names)
     heroes = {k: sorted(c['dbfId'] for c in cards if c['type'] == 'HERO' and c['cardClass'] == k) for k in CLASS_WORDS}
     rarity = {c['dbfId']: rix(c) + 1 for c in cards}
     for k, v in heroes.items():
         if not v: sys.exit(f'no hero card for {k}')
     return dict(version=VERSION, heroOdds=HERO_ODDS, holoOdds=HOLO_ODDS, rarity=rarity, odds=ODDS, rarityPct=RARITY_PCT, named=named,
-                tribeWords=TRIBE_WORDS, tribeOrder=list(TRIBE_WORDS), classWords=CLASS_WORDS, classOrder=list(CLASS_WORDS), ctypeTribe=CTYPE_TRIBE,
+                tribeWords={**{f: w for f, (w, _) in FAMILIES.items()}, **TRIBE_WORDS}, tribeOrder=list(FAMILIES) + list(TRIBE_WORDS), classWords=CLASS_WORDS, classOrder=list(CLASS_WORDS), ctypeTribe=CTYPE_TRIBE,
                 tribes=tribes, heroes=heroes), rarity
 
 
