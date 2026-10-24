@@ -4475,6 +4475,25 @@
   .ev-spec-btn{ width:34px; height:34px; padding:4px; cursor:pointer; opacity:.55; transition:opacity .12s, transform .12s, box-shadow .12s; }
   .ev-spec-btn:hover{ opacity:1; transform:translateY(-2px); }
   .ev-spec-btn.on{ opacity:1; transform:scale(1.12); outline:2px solid #ffd36a; outline-offset:1px; }
+  .cal-hero-spec{ width:24px; height:24px; }
+  /* phones: use the whole width, big tap targets, a compact spec picker */
+  @media (max-width:600px){
+    .main.page-calendar{ padding:12px 10px; }
+    .cal-wrap{ padding:0 !important; }
+    .cal-hero{ padding:14px; }
+    .cal-hero-side{ width:100%; align-items:stretch; }
+    .cal-hero-emblems{ justify-content:flex-start; max-width:none; }
+    .cal-hero-rsvp{ width:100%; } .cal-hero-rsvp .rsvp-chip{ flex:1; padding:10px 6px; text-align:center; }
+    .cal-nav{ flex-wrap:wrap; gap:8px; }
+    #cal-today{ margin-left:auto !important; padding:6px 12px; }
+    .cal-agenda-item{ padding:12px 10px; }
+    .modal-backdrop{ padding:8px !important; align-items:flex-start !important; }
+    .modal-panel{ padding:16px 14px !important; max-height:calc(100vh - 16px) !important; }
+    .ev-spec-grid{ grid-template-columns:repeat(2, 1fr); gap:6px 10px; }
+    .ev-spec-btn{ width:30px; height:30px; padding:3px; }
+    .rsvp-btns{ gap:6px; } .rsvp-btns .rsvp-btn{ flex:1; padding:11px 6px; text-align:center; }
+    .cal-attend{ grid-template-columns:1fr !important; }
+  }
   .ev-kind{ display:inline-block; vertical-align:middle; margin-left:6px; font:700 10px system-ui, sans-serif; letter-spacing:.06em; text-transform:uppercase;
     padding:3px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.2); color:#ddd; background:rgba(255,255,255,.06); }
   .ev-kind-raid{ color:#ffb38a; border-color:#c8642e; background:rgba(200,100,46,.18); }
@@ -13382,6 +13401,13 @@ function rankEmblemFor(userId){
   const p = state.profilesById && state.profilesById[userId];
   return p ? `<span class="cal-emblem" title="${esc(p.character_name || '')}">${RANK_EMBLEM[rankKey(p)]}</span>` : '';
 }
+// someone on an event's Going list: the spec they picked (with their name on hover), else their rank emblem
+function goingIcon(eventId, userId){
+  const rv = state.rsvps.find(r => r.event_id === eventId && r.user_id === userId);
+  const cls = rv && rv.class_key && CLASS_SPECS[rv.class_key], spec = cls && cls.specs.find(x => x.key === rv.spec_key);
+  if(!spec) return rankEmblemFor(userId);
+  return `<span class="spec-icon-xs cal-hero-spec" style="${specIconStyle(rv.class_key)}" title="${esc(nameFor(userId) + ' - ' + spec.label + ' ' + cls.label)}">${specIconHtml(rv.class_key, rv.spec_key)}</span>`;
+}
 function renderCalendarHero(today){
   const upcoming = state.events.filter(ev => ev.date >= today)
     .map(ev => ({ ev, start: eventStartDate(ev) }))
@@ -13403,7 +13429,7 @@ function renderCalendarHero(today){
       </div>
       <div class="cal-hero-side">
         <div class="cal-hero-tally"><b class="t-going">${g.going.length}</b> going &middot; <b class="t-maybe">${g.maybe.length}</b> maybe &middot; <b class="t-out">${g.out.length}</b> out</div>
-        <div class="cal-hero-emblems">${goingIds.slice(0, 14).map(rankEmblemFor).join('')}${goingIds.length > 14 ? `<span class="cal-more">+${goingIds.length - 14}</span>` : ''}</div>
+        <div class="cal-hero-emblems">${goingIds.slice(0, 14).map(id => goingIcon(ev.id, id)).join('')}${goingIds.length > 14 ? `<span class="cal-more">+${goingIds.length - 14}</span>` : ''}</div>
         <div class="cal-hero-rsvp">
           <button type="button" class="rsvp-chip going ${mine === 'going' ? 'on' : ''}" data-cal-rsvp="going" data-event="${ev.id}">Going</button>
           <button type="button" class="rsvp-chip maybe ${mine === 'maybe' ? 'on' : ''}" data-cal-rsvp="maybe" data-event="${ev.id}">Maybe</button>
@@ -13427,7 +13453,8 @@ document.addEventListener('click', e => {
   const b = e.target.closest && e.target.closest('[data-cal-rsvp]');
   if(!b) return;
   e.stopPropagation(); e.preventDefault();
-  setRsvp(b.getAttribute('data-event'), b.getAttribute('data-cal-rsvp'));
+  const id = b.getAttribute('data-event');
+  setRsvp(id, b.getAttribute('data-cal-rsvp'), eventTakesSpecs(id) && !myRsvpSpec(id) ? lastRsvpSpec() || undefined : undefined);
 }, true);
 
 function renderCalendar(){
@@ -13450,7 +13477,7 @@ function renderCalendar(){
   state.events.forEach(ev=>{ (eventsByDate[ev.date] = eventsByDate[ev.date] || []).push(ev); });
 
   return `
-    <div style="max-width:1200px; margin:0 auto; padding:0 20px;">
+    <div class="cal-wrap" style="max-width:1200px; margin:0 auto; padding:0 20px;">
     ${renderCalendarHero(today)}
     <div class="cal-ornate-frame">
       <div class="ornate-corner tl"></div>
