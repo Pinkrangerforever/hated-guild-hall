@@ -958,6 +958,11 @@
   }
   .ornate-frame svg.hero-landscape-svg{ width:100%; height:100%; display:block; }
   .hero-video-embed{ width:100%; height:100%; display:block; border:none; }
+  .yt-facade{ position:relative; display:block; width:100%; min-height:200px; padding:0; border:none; cursor:pointer; background:#000; overflow:hidden; }
+  .yt-facade img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.85; transition:opacity .2s, transform .3s; }
+  .yt-facade:hover img{ opacity:1; transform:scale(1.02); }
+  .yt-play{ position:absolute; left:50%; top:50%; width:68px; height:48px; transform:translate(-50%, -50%); filter:drop-shadow(0 2px 8px rgba(0,0,0,.6)); transition:transform .15s; }
+  .yt-facade:hover .yt-play{ transform:translate(-50%, -50%) scale(1.1); }
   .hero-video-thumb{ position:relative; display:block; width:100%; height:100%; }
   .hero-video-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
   .play-badge{
@@ -9915,7 +9920,7 @@ function renderLanding(){
             <div class="ornate-corner tr"></div>
             <div class="ornate-corner bl"></div>
             <div class="ornate-corner br"></div>
-            <iframe class="hero-video-embed" src="https://www.youtube.com/embed/D30zXcEjg_Y" title="Guild video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            ${ytFacade('D30zXcEjg_Y', 'hero-video-embed')}
           </div>
         </div>
       </div>
@@ -15637,11 +15642,26 @@ function renderEntryPage(){
   `;
 }
 
+// A YouTube video as its thumbnail and a play button; the real player only loads when someone clicks it. (Every
+// embedded player is a whole YouTube app: the home page renders desktop and phone layouts, and re-renders often, so
+// live embeds meant two players reloading over and over - competing with YouTube in other windows.)
+const ytOpen = {};   // video id -> clicked (keeps playing across re-renders)
+function ytFacade(id, cls, style){
+  if(ytOpen[id]) return `<iframe class="${cls}" src="https://www.youtube.com/embed/${id}?autoplay=1" title="Guild video" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen style="display:block; width:100%; ${style || ''}"></iframe>`;
+  return `<button type="button" class="yt-facade ${cls}" data-yt="${id}" style="${style || ''}" aria-label="Play the guild video">
+    <img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy"><span class="yt-play"><svg viewBox="0 0 68 48"><path d="M66.5 7.7a8.5 8.5 0 0 0-6-6C55.2.3 34 .3 34 .3s-21.2 0-26.5 1.4a8.5 8.5 0 0 0-6 6C.1 13 .1 24 .1 24s0 11 1.4 16.3a8.5 8.5 0 0 0 6 6C12.8 47.7 34 47.7 34 47.7s21.2 0 26.5-1.4a8.5 8.5 0 0 0 6-6C67.9 35 67.9 24 67.9 24s0-11-1.4-16.3z" fill="#e00"/><path d="M27 34V14l18 10z" fill="#fff"/></svg></span></button>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-yt]');
+  if(!b) return;
+  ytOpen[b.dataset.yt] = true;
+  b.outerHTML = ytFacade(b.dataset.yt, [...b.classList].filter(c => c !== 'yt-facade').join(' '), b.getAttribute('style'));
+});
 function renderEntryYouTubeVideo(){
   const videoId = 'FlQpoj6UpnE'; // HATED guild video
   return `
     <div class="module" style="padding:0; border-radius:12px; overflow:hidden;">
-      <iframe width="100%" height="400" src="https://www.youtube.com/embed/${videoId}" title="Guild video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="display:block;"></iframe>
+      ${ytFacade(videoId, '', 'height:400px;')}
     </div>
   `;
 }
@@ -17372,11 +17392,21 @@ function bindApp(){
 
 // The banner video: browsers sometimes suspend a background video while the page is busy (after sign-in the site
 // loads a lot at once) and never resume it, so it freezes on a frame. Check every 2 s and nudge it back to playing.
+// It also pauses while scrolled out of view (decoding a 1920 x 640 video nobody can see costs the computer for nothing).
+let bannerInView = true;
+(function bannerVisibility(){
+  const v = document.getElementById('hated-banner');
+  if(!v || !('IntersectionObserver' in window)) return;
+  new IntersectionObserver(([en]) => {
+    bannerInView = en.isIntersecting;
+    if(bannerInView){ const p = v.play(); if(p && p.catch) p.catch(() => {}); } else v.pause();
+  }).observe(v);
+})();
 (function bannerWatchdog(){
   let last = -1;
   setInterval(() => {
     const v = document.getElementById('hated-banner');
-    if(!v || document.hidden || !v.isConnected || v.offsetParent === null) return;
+    if(!v || document.hidden || !bannerInView || !v.isConnected || v.offsetParent === null) return;
     const stuck = v.paused || v.ended || (v.readyState >= 2 && Math.abs(v.currentTime - last) < 0.01);
     last = v.currentTime;
     if(stuck){ v.muted = true; const p = v.play(); if(p && p.catch) p.catch(() => {}); }
