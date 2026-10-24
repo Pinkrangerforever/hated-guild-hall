@@ -4494,6 +4494,9 @@
     .rsvp-btns{ gap:6px; } .rsvp-btns .rsvp-btn{ flex:1; padding:11px 6px; text-align:center; }
     .cal-attend{ grid-template-columns:1fr !important; }
   }
+  .ev-softres{ display:inline-flex; align-items:center; gap:6px; margin:0 0 14px; padding:6px 12px; border-radius:6px; text-decoration:none; font-size:13px; font-weight:600;
+    color:#ffd36a; border:1px solid rgba(214,169,64,.45); background:rgba(214,169,64,.1); transition:border-color .15s, box-shadow .15s; }
+  .ev-softres:hover{ border-color:#ffd36a; box-shadow:0 0 10px rgba(214,169,64,.35); }
   .ev-kind{ display:inline-block; vertical-align:middle; margin-left:6px; font:700 10px system-ui, sans-serif; letter-spacing:.06em; text-transform:uppercase;
     padding:3px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.2); color:#ddd; background:rgba(255,255,255,.06); }
   .ev-kind-raid{ color:#ffb38a; border-color:#c8642e; background:rgba(200,100,46,.18); }
@@ -6435,9 +6438,11 @@ async function addEvent(){
   const instance = (c.querySelector('[name=instance]').value||'').trim();
   const notes = (c.querySelector('[name=notes]').value||'').trim();
   const kind = c.querySelector('[name=kind]').value || 'event';
+  const softres_url = kind === 'raid' ? (c.querySelector('[name=softres]').value || '').trim() || null : null;
   const errEl = document.getElementById('event-error');
   if(!title || !date){ errEl.textContent = 'Title and date are required.'; errEl.style.display='block'; return; }
-  const { data, error } = await sb.from('events').insert({ title, date, time, instance, notes, kind }).select().single();
+  if(softres_url && !/^https?:\/\//i.test(softres_url)){ errEl.textContent = 'The Soft Res link should start with https://'; errEl.style.display='block'; return; }
+  const { data, error } = await sb.from('events').insert({ title, date, time, instance, notes, kind, softres_url }).select().single();
   if(error){ showToast("Couldn't save  try again", true); return; }
   state.events = [...state.events, data].sort((a,b)=>a.date.localeCompare(b.date));
   state.modal = null;
@@ -13876,10 +13881,11 @@ function renderAddEventModal(prefillDate){
           <div class="field"><label>Date</label><input name="date" type="date" value="${esc(prefillDate)}" required></div>
         </div>
         <div class="row">
-          <div class="field"><label>Event type</label><select name="kind">${EVENT_KINDS.map(k => `<option value="${k.key}" ${k.key === 'raid' ? 'selected' : ''}>${k.label}</option>`).join('')}</select></div>
+          <div class="field"><label>Event type</label><select name="kind" id="event-kind">${EVENT_KINDS.map(k => `<option value="${k.key}" ${k.key === 'raid' ? 'selected' : ''}>${k.label}</option>`).join('')}</select></div>
           <div class="field"><label>Time (optional)</label><input name="time" placeholder="e.g. 8:00 PM server"></div>
         </div>
         <div class="field"><label>Instance (optional)</label><input name="instance" placeholder="e.g. Onyxia's Lair"></div>
+        <div class="field" id="event-softres-field"><label>Soft Res link (optional)</label><input name="softres" type="url" placeholder="e.g. https://softres.it/raid/..."></div>
         <div class="field"><label>Notes (optional)</label><textarea name="notes" placeholder="Invites go out 30 min early, bring flasks"></textarea></div>
         <div id="event-error" class="field-error" style="display:none;"></div>
         <button class="btn" type="button" id="event-form-btn">Add to calendar</button>
@@ -13919,7 +13925,8 @@ function renderEventDetailModal(eventId){
         <h3>${esc(ev.title)} <span class="ev-kind ev-kind-${kind.key}">${kind.label}</span></h3>
         <button class="modal-x" id="modal-close">&times;</button>
       </div>
-      <div class="muted" style="margin-bottom:14px;"><span class="mono">${fmtDate(ev.date)}${ev.time?' &middot; '+esc(ev.time):''}</span>${ev.instance?' &middot; '+esc(ev.instance):''}</div>
+      <div class="muted" style="margin-bottom:${ev.softres_url ? '8' : '14'}px;"><span class="mono">${fmtDate(ev.date)}${ev.time?' &middot; '+esc(ev.time):''}</span>${ev.instance?' &middot; '+esc(ev.instance):''}</div>
+      ${ kind.key === 'raid' && /^https?:\/\//i.test(ev.softres_url || '') ? `<a class="ev-softres" href="${esc(ev.softres_url)}" target="_blank" rel="noopener">&#127922; Soft Res for this raid &#8599;</a>` : '' }
       ${ ev.notes ? `<div style="margin-bottom:16px; line-height:1.6; white-space:pre-wrap;">${esc(ev.notes)}</div>` : '' }
 
       <div class="rule"></div>
@@ -13941,6 +13948,7 @@ function renderEventDetailModal(eventId){
       ${ officer ? `
       <div class="rule"></div>
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        ${ kind.key === 'raid' ? `<label class="muted sans" style="font-size:13px; flex:1 1 260px;">Soft Res link <input id="ev-softres-input" data-event="${ev.id}" type="url" value="${esc(ev.softres_url || '')}" placeholder="https://softres.it/raid/..." style="width:100%;"></label>` : '' }
         <label class="muted sans" style="font-size:13px;">Event type <select id="ev-kind-select" data-event="${ev.id}">${EVENT_KINDS.map(k => `<option value="${k.key}" ${k.key === kind.key ? 'selected' : ''}>${k.label}</option>`).join('')}</select></label>
         <button class="btn danger" data-modal-delete-event="${ev.id}" style="margin-left:auto;">Remove event</button>
       </div>` : '' }
@@ -16789,6 +16797,19 @@ function bindApp(){
     const mine = myRsvpFor(id);
     if(mine) setRsvp(id, mine, { classKey, specKey }); else render();
   }));
+  // schedule form: the Soft Res link field only for raids
+  const kindPick = document.getElementById('event-kind'), srField = document.getElementById('event-softres-field');
+  if(kindPick && srField){ const sync = () => { srField.style.display = kindPick.value === 'raid' ? '' : 'none'; }; kindPick.addEventListener('change', sync); sync(); }
+  // officers: change a raid's Soft Res link on the event (saved when you leave the box)
+  const srIn = document.getElementById('ev-softres-input');
+  if(srIn) srIn.addEventListener('change', async () => {
+    const url = srIn.value.trim() || null;
+    if(url && !/^https?:\/\//i.test(url)){ showToast('The Soft Res link should start with https://', true); return; }
+    const { error } = await sb.from('events').update({ softres_url: url }).eq('id', srIn.dataset.event);
+    if(error){ showToast("Couldn't save the link  try again", true); return; }
+    const ev = state.events.find(e => e.id === srIn.dataset.event); if(ev) ev.softres_url = url;
+    showToast(url ? 'Soft Res link saved' : 'Soft Res link removed'); render();
+  });
   const kindSel = document.getElementById('ev-kind-select');
   if(kindSel) kindSel.addEventListener('change', () => setEventKind(kindSel.dataset.event, kindSel.value));
   const modalDelBtn = document.querySelector('[data-modal-delete-event]');
