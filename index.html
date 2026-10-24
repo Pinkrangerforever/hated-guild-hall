@@ -4048,13 +4048,7 @@
   .shop-card-name{ font-family:'Cinzel', Georgia, serif; color: var(--hh-gold-bright); letter-spacing:0.03em; }
   .shop-card-desc{ color: var(--hh-muted) !important; }
   .shop-owned-badge{ color: var(--hh-arcane) !important; text-shadow: 0 0 8px rgba(127,212,255,0.4); }
-  /* Divider flashes electric blue when lightning strikes its heading */
-  .gold-leaderboard-widget-title.hh-zap,
-  #module-announcements-display .announcement-header:has(.hh-zap){
-    background-image: linear-gradient(90deg, transparent, var(--hh-arcane) 30%, var(--hh-arcane-white) 50%, var(--hh-arcane) 70%, transparent) !important;
-    background-size: 100% 1px !important; filter: drop-shadow(0 0 2px rgba(127,212,255,0.5));
-  }
-  .gold-leaderboard-widget-title.hh-zap img, #module-announcements-display .announcement-header:has(.hh-zap) *{ filter:none; }
+  /* (the divider under a heading stays as it is when lightning strikes it: its gold rule and diamond don't change) */
   .coming-up-header.hh-zap::after{
     background: linear-gradient(90deg, var(--hh-arcane-white), var(--hh-arcane) 40%, transparent) !important;
     box-shadow: 0 0 4px rgba(127,212,255,0.45);
