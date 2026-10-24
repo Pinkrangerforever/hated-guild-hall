@@ -1,7 +1,7 @@
 --[[ Hated Companion: TCG card drops
-  Any kill can drop a card, right there in game: the creature's own card if it has one (Hogger drops Hogger), else a
-  card of its tribe (beasts drop Beasts, murlocs Murlocs...) or of its class (from its name: "Druid of the Fang"
-  drops druid cards), else a neutral card. A creature with a class also has a 1 in 100 chance at its class's hero.
+  Cards drop from their own kind of creature, right there in game: a creature's own card if it has one (Hogger drops
+  Hogger), else a card of its race (beasts drop Beasts, murlocs Murlocs...); anything else drops nothing. A creature
+  with a class (from its name: "Druid of the Fang" is a druid) has a 1 in 100 chance at its class's hero card.
   The roll comes from the creature's spawn id with the tables in HatedTCGDropData.lua; the website rolls it again
   the same way when you sync and adds the card to your collection. Until then it sits in the binder as unsealed.
 ]]
@@ -15,7 +15,7 @@ local function say(msg) DEFAULT_CHAT_FRAME:AddMessage("|cff5afff2Hated TCG:|r " 
 -- ---------- what a creature can drop (the same rules as the server: drops.ts) ----------
 local function norm(s) return ((s or ""):lower():gsub("[^a-z]", "")) end
 local function hasWord(padded, w) return padded:find(" " .. w .. " ", 1, true) ~= nil end
--- returns the drop group ("n.<creature>", "t.<TRIBE>", "c.<CLASS>" or "" for neutral) and the class ("" if none)
+-- returns the drop group ("n.<creature>", "t.<TRIBE>", or "" for none) and the class ("" if none: only its hero drops)
 local function classify(name, ctype)
   local padded = " " .. (name or ""):lower():gsub("[^a-z']", " ") .. " "
   local cls = ""
@@ -28,7 +28,6 @@ local function classify(name, ctype)
   for _, t in ipairs(X.tribeOrder) do
     for _, w in ipairs(X.tribeWords[t]) do if hasWord(padded, w) then return "t." .. t, cls end end
   end
-  if cls ~= "" then return "c." .. cls, cls end
   local tribe = X.ctypeTribe[ctype or ""]
   if tribe then return "t." .. tribe, cls end
   return "", cls
@@ -43,13 +42,12 @@ local function pick(r, group, cls, kind)
   local hero
   if cls ~= "" and X.heroes[cls] and r(X.heroOdds) == 0 then local h = X.heroes[cls]; hero = h[r(#h) + 1] end
   local named = group:sub(1, 2) == "n." and X.named[group:sub(3)]
+  local pools = group:sub(1, 2) == "t." and X.tribes[group:sub(3)]
+  if not named and not pools then return nil, hero end           -- not a creature any card belongs to
   local odds = X.odds[kind] or X.odds.normal
   if named then odds = math.min(odds, X.odds.named) end
   if r(odds) ~= 0 then return nil, hero end
   if named then return named[r(#named) + 1], hero end
-  local pools = X.neutral
-  if group:sub(1, 2) == "t." then pools = X.tribes[group:sub(3)] or X.neutral
-  elseif group:sub(1, 2) == "c." then pools = X.classes[group:sub(3)] or X.neutral end
   local pct = (kind == "normal" or kind == "elite") and X.rarityPct.low or X.rarityPct.high
   local x, want = r(100), 5
   for i = 1, 5 do x = x - pct[i]; if x < 0 then want = i; break end end

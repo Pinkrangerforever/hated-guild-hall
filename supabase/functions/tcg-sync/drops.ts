@@ -8,9 +8,9 @@ function rng(seed: string) {
   return (n: number) => { s = (s * 48271) % 2147483647; return s % n; };
 }
 
-// is this a group the tables know? ("n.<creature>", "t.<TRIBE>", "c.<CLASS>" or "")
+// is this a group the tables know? ("n.<creature>", "t.<TRIBE>" or ""; addon 3.8.0 also sent "c.<CLASS>", which now drops nothing)
 export const validGroup = (g: string) => g === '' || (g.startsWith('n.') && !!X.named[g.slice(2)])
-  || (g.startsWith('t.') && !!X.tribes[g.slice(2)]) || (g.startsWith('c.') && !!X.classes[g.slice(2)]);
+  || (g.startsWith('t.') && !!X.tribes[g.slice(2)]) || (g.startsWith('c.') && !!X.heroes[g.slice(2)]);
 export const validClass = (c: string) => c === '' || !!X.heroes[c];
 
 // kind: normal / elite / rare / worldboss / dungeonboss / raidboss -> { drop, hero } card dbf ids (or undefined), and
@@ -26,13 +26,12 @@ function pick(r: (n: number) => number, group: string, cls: string, kind: string
   const out: { drop?: number; hero?: number } = {};
   if (cls !== '' && X.heroes[cls] && r(X.heroOdds) === 0) { const h = X.heroes[cls]; out.hero = h[r(h.length)]; }
   const named: number[] | undefined = group.startsWith('n.') ? X.named[group.slice(2)] : undefined;
+  const pools: number[][] | undefined = group.startsWith('t.') ? X.tribes[group.slice(2)] : undefined;
+  if (!named && !pools) return out;                                // not a creature any card belongs to
   let odds = X.odds[kind] || X.odds.normal;
   if (named) odds = Math.min(odds, X.odds.named);
   if (r(odds) !== 0) return out;
   if (named) { out.drop = named[r(named.length)]; return out; }
-  let pools: number[][] = X.neutral;
-  if (group.startsWith('t.')) pools = X.tribes[group.slice(2)] || X.neutral;
-  else if (group.startsWith('c.')) pools = X.classes[group.slice(2)] || X.neutral;
   const pct: number[] = (kind === 'normal' || kind === 'elite') ? X.rarityPct.low : X.rarityPct.high;
   let x = r(100), want = 5;
   for (let i = 1; i <= 5; i++) { x -= pct[i - 1]; if (x < 0) { want = i; break; } }

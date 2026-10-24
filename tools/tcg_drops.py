@@ -6,19 +6,19 @@ again when you sync, so both must use the same tables in the same order. Edit th
 which writes addons/HatedCompanion/HatedTCGDropData.lua and supabase/functions/tcg-sync/drop_data.ts.
 Bump VERSION whenever a table changes (it's part of every roll's seed).
 
-What a creature drops, most specific first:
-  1. NAMED   a card named after that very creature (Hogger drops Hogger) - its own, better odds
-  2. TRIBE   by name (murlocs, pirates, quilboar), then...
-  3. CLASS   by a word in its name ("Druid of the Fang" -> druid cards); WoW calls nearly every NPC a warrior,
-             paladin, rogue or mage, so its real class has to come from the name
-  4. TRIBE   by creature type (beast, undead, dragonkin, demon, elemental, mechanical)
-  5. NEUTRAL anything else: a neutral card with no tribe
-Separately, a creature with a class gets a 1 in HERO_ODDS chance per kill at one of that class's hero cards.
+Cards only drop from their own kind of creature:
+  1. NAMED   a card named after that very creature (Hogger drops Hogger, Ragnaros drops Ragnaros) - better odds
+  2. TRIBE   a card of the creature's race: by name (murlocs, pirates, quilboar), else by creature type (beast,
+             undead, dragonkin, demon, elemental, mechanical)
+  Anything else drops no card.
+A creature with a class (a word in its name: "Druid of the Fang" is a druid - WoW calls nearly every NPC a warrior,
+paladin, rogue or mage, so the real class has to come from the name) has a 1 in HERO_ODDS chance per kill at one of
+that class's hero cards; that's all a class gives.
 Card data: the renderer's manifest (Documents/Hearthstone Art/manifest.json).
 """
 import json, os, re, sys
 
-VERSION = 1
+VERSION = 2
 HERO_ODDS = 100
 HOLO_ODDS = 50            # a dropped Rare, Epic, Legendary or hero is holographic 1 in 50 (2%, like packs)
 # 1 in N per kill, by kind of kill
@@ -134,15 +134,13 @@ def build():
             if c['type'] != 'HERO' and pred(c): out[rix(c)].append(c['dbfId'])
         return [sorted(p) for p in out]
     tribes = {t: pools(lambda c, t=t: c['race'] == t) for t in sorted(set(TRIBE_WORDS) | set(CTYPE_TRIBE.values()))}
-    classes = {k: pools(lambda c, k=k: c['cardClass'] == k) for k in CLASS_WORDS}
     heroes = {k: sorted(c['dbfId'] for c in cards if c['type'] == 'HERO' and c['cardClass'] == k) for k in CLASS_WORDS}
-    neutral = pools(lambda c: c['cardClass'] == 'NEUTRAL' and not c['race'])
     rarity = {c['dbfId']: rix(c) + 1 for c in cards}
     for k, v in heroes.items():
         if not v: sys.exit(f'no hero card for {k}')
     return dict(version=VERSION, heroOdds=HERO_ODDS, holoOdds=HOLO_ODDS, rarity=rarity, odds=ODDS, rarityPct=RARITY_PCT, named=named,
                 tribeWords=TRIBE_WORDS, tribeOrder=list(TRIBE_WORDS), classWords=CLASS_WORDS, classOrder=list(CLASS_WORDS), ctypeTribe=CTYPE_TRIBE,
-                tribes=tribes, classes=classes, heroes=heroes, neutral=neutral), rarity
+                tribes=tribes, heroes=heroes), rarity
 
 
 def lua(v, ind=''):
