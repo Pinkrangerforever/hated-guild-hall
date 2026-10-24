@@ -13356,7 +13356,11 @@ function eventStartDate(ev){
   }
   return dt;
 }
+// the event's type as chosen when it was scheduled (raid / holiday / event; a notification shows like an event).
+// Events from before types existed fall back to a guess from the title and instance.
 function eventKind(ev){
+  if(ev.kind === 'raid' || ev.kind === 'holiday') return ev.kind;
+  if(ev.kind === 'event' || ev.kind === 'notification') return 'event';
   const t = (ev.title || '') + ' ' + (ev.instance || '');
   if(/halloween|christmas|winter veil|hallow|holiday|brewfest|launch|anniversary|party|meetup/i.test(t)) return 'holiday';
   return ev.instance ? 'raid' : 'event';
@@ -13384,7 +13388,7 @@ function renderCalendarHero(today){
     .filter(x => x.start.getTime() > Date.now() - 4 * 3600000) // still show it for a few hours after it starts
     .sort((a, b) => a.start - b.start);
   if(!upcoming.length) return `<div class="cal-hero empty"><div class="cal-hero-kicker">Next up</div><div class="cal-hero-title">Nothing scheduled yet</div></div>`;
-  const { ev, start } = upcoming.find(x => eventKind(x.ev) === 'raid') || upcoming[0];
+  const { ev, start } = upcoming.find(x => x.ev.kind === 'raid') || upcoming[0];   // the next Raid-type event (else whatever's next)
   const mine = myRsvpFor(ev.id);
   const g = rsvpGroupsFor(ev.id);
   const goingIds = state.rsvps.filter(rv => rv.event_id === ev.id && rv.status === 'going').map(rv => rv.user_id);
