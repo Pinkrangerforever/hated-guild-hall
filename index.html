@@ -9839,7 +9839,6 @@ function renderLanding(){
       {id:'roster', label:'Roster'},
       {id:'raidlogs', label:'Raid Logs'},
       {id:'strategies', label:'Boss Strategies'},
-      {id:'softres', label:'Soft Res Links'},
     ]},
     {label:'Guild Resources', submenu:[
       {id:'guildbank', label:'Guild Bank'},
@@ -10049,7 +10048,6 @@ function renderApp(){
       {id:'roster', label:'Roster'},
       {id:'raidlogs', label:'Raid Logs'},
       {id:'strategies', label:'Boss Strategies'},
-      {id:'softres', label:'Soft Res Links'},
     ]},
     {label:'Guild Resources', submenu:[
       {id:'guildbank', label:'Guild Bank'},
@@ -10081,7 +10079,6 @@ function renderTab(){
   switch(state.tab){
     case 'calendar': return renderCalendar();
     case 'strategies': return renderStrategies();
-    case 'softres': return renderSoftres();
     case 'roster': return renderRoster();
     case 'loot': return renderLoot();
     case 'news': return renderNews();
@@ -11786,7 +11783,7 @@ function mountHomeScenes(){
 const profilePets = {};          // userId -> pets[] | 'loading' | 'error'
 
 // Every page has its own address (#/calendar, #/roster, #/profile/<id>...), so a refresh reopens it
-const URL_TABS = ['news', 'calendar', 'strategies', 'softres', 'roster', 'loot', 'recruitment', 'gallery',
+const URL_TABS = ['news', 'calendar', 'strategies', 'roster', 'loot', 'recruitment', 'gallery',
                   'guildbank', 'raidlogs', 'settings', 'admin', 'dealer', 'tcg'];
 function tabFromHash(){
   const m = (window.location.hash || '').match(/^#\/([a-z]+)$/);
