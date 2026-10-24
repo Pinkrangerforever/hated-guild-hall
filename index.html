@@ -4496,6 +4496,7 @@
   }
   .ev-softres{ display:inline-flex; align-items:center; gap:6px; margin:0 0 14px; padding:6px 12px; border-radius:6px; text-decoration:none; font-size:13px; font-weight:600;
     color:#ffd36a; border:1px solid rgba(214,169,64,.45); background:rgba(214,169,64,.1); transition:border-color .15s, box-shadow .15s; }
+  .cal-hero-sr{ margin:10px 0 0; }
   .ev-softres:hover{ border-color:#ffd36a; box-shadow:0 0 10px rgba(214,169,64,.35); }
   .ev-kind{ display:inline-block; vertical-align:middle; margin-left:6px; font:700 10px system-ui, sans-serif; letter-spacing:.06em; text-transform:uppercase;
     padding:3px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.2); color:#ddd; background:rgba(255,255,255,.06); }
@@ -13427,6 +13428,7 @@ function renderCalendarHero(today){
         <div class="cal-hero-kicker">${kind === 'raid' ? 'Next raid' : 'Next up'}</div>
         <div class="cal-hero-title">${esc(ev.title)}</div>
         <div class="cal-hero-meta">${fmtDate(ev.date)}${ev.time ? ' &middot; ' + esc(ev.time) : ''}${ev.instance ? ' &middot; ' + esc(ev.instance) : ''}</div>
+        ${ kind === 'raid' && /^https?:\/\//i.test(ev.softres_url || '') ? `<a class="ev-softres cal-hero-sr" href="${esc(ev.softres_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">&#127922; Soft Res &#8599;</a>` : '' }
         <div class="cal-hero-count">Starts in <span data-countdown-to="${start.getTime()}">${fmtCountdown(start - Date.now())}</span></div>
       </div>
       <div class="cal-hero-side">
