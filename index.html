@@ -3710,10 +3710,6 @@
     border-radius: var(--hh-radius) !important;
     box-shadow: var(--hh-panel-shadow) !important;
   }
-  #module-announcements-display:hover{
-    border-color: var(--hh-gold-bright) !important;
-    box-shadow: var(--hh-panel-shadow) !important;
-  }
   .coming-up-panel::after,
   .gold-leaderboard-widget::after{ display:none; }
 
@@ -3953,7 +3949,7 @@
     transform:translate(-5px, -2px) rotate(-26deg) scale(1.2);
     filter:drop-shadow(0 3px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 12px rgba(240,201,90,0.85));
   }
-  .hh-zap{ color:#eaf8ff !important; text-shadow:0 0 6px #bfe8ff, 0 0 16px #7fd4ff, 0 0 28px rgba(127,212,255,0.6) !important; transition:color .15s, text-shadow .15s; }
+  .hh-zap{ color:#dff2ff !important; text-shadow:0 0 4px rgba(191,232,255,0.7), 0 0 10px rgba(127,212,255,0.35) !important; transition:color .15s, text-shadow .15s; }
 
   /* ======================================================================
      THEME PASS 3 (2026-10-10): Horde red / ember orange from the banner.
@@ -4056,12 +4052,12 @@
   .gold-leaderboard-widget-title.hh-zap,
   #module-announcements-display .announcement-header:has(.hh-zap){
     background-image: linear-gradient(90deg, transparent, var(--hh-arcane) 30%, var(--hh-arcane-white) 50%, var(--hh-arcane) 70%, transparent) !important;
-    background-size: 100% 2px !important; filter: drop-shadow(0 0 4px rgba(127,212,255,0.9));
+    background-size: 100% 1px !important; filter: drop-shadow(0 0 2px rgba(127,212,255,0.5));
   }
   .gold-leaderboard-widget-title.hh-zap img, #module-announcements-display .announcement-header:has(.hh-zap) *{ filter:none; }
   .coming-up-header.hh-zap::after{
     background: linear-gradient(90deg, var(--hh-arcane-white), var(--hh-arcane) 40%, transparent) !important;
-    box-shadow: 0 0 8px rgba(127,212,255,0.9);
+    box-shadow: 0 0 4px rgba(127,212,255,0.45);
   }
 
   /* ======================================================================
@@ -4983,6 +4979,14 @@
       0 2px 0 rgba(0,0,0,0.9),
       0 16px 32px rgba(0,0,0,0.55),
       0 4px 10px rgba(0,0,0,0.5) !important;
+  }
+  /* Announcements keeps its frame on hover (older styles lit its border gold) */
+  #module-announcements-display:hover{
+    border-color:#120a05 !important;
+    box-shadow:
+      inset 0 0 0 1px rgba(226,182,96,0.55), inset 0 0 0 3px rgba(18,10,5,0.85), inset 0 0 0 4px rgba(226,182,96,0.18),
+      inset 0 1px 0 4px rgba(255,226,160,0.10), inset 0 -10px 24px rgba(0,0,0,0.45),
+      0 2px 0 rgba(0,0,0,0.9), 0 16px 32px rgba(0,0,0,0.55), 0 4px 10px rgba(0,0,0,0.5) !important;
   }
   /* the corners on these panels come from the background now */
   .coming-up-panel .ornate-corner{ display:none !important; }
@@ -19211,14 +19215,15 @@ function spawnTopGlint(){
 setTimeout(spawnTopGlint, 1500);
 
 /* ---------------- Ambient lightning ----------------
-   Every 15-30s a procedurally generated, branching blue-white bolt arcs off one of the panel
+   Every 25-50s a procedurally generated, branching blue-white bolt arcs off one of the panel
    headings and flickers out, and the heading briefly lights up. Off for "reduce motion" users
    and while the tab is hidden. Tune via HH_LIGHTNING. */
 const HH_LIGHTNING = {
   targets: '.coming-up-header, .gold-leaderboard-widget-title, #module-announcements-display .announcement-header h3',
   panels: '.coming-up-panel, .gold-leaderboard-widget, #module-announcements-display',
-  minDelayMs: 15000,
-  maxDelayMs: 30000
+  minDelayMs: 25000,
+  maxDelayMs: 50000,
+  strength: 0.55          // how bright the bolt and heading flash are (1 = the old full strength)
 };
 (function initAmbientLightning(){
   if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -19289,7 +19294,7 @@ const HH_LIGHTNING = {
     const fromLeft = Math.random() < 0.5;
     const sx = fromLeft ? r.left + r.width * (0.1 + Math.random() * 0.25) : r.right - r.width * (0.1 + Math.random() * 0.25);
     const sy = r.top + r.height * 0.5;
-    const len = 70 + Math.random() * 90;
+    const len = 45 + Math.random() * 55;
     const angle = (fromLeft ? -Math.PI * 0.75 : -Math.PI * 0.25) + (Math.random() - 0.5) * 0.6;
     const ex = sx + Math.cos(angle) * len, ey = sy + Math.sin(angle) * len;
     const main = boltPath(sx, sy, ex, ey, len * 0.28);
@@ -19309,11 +19314,12 @@ const HH_LIGHTNING = {
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       const a = frames[f];
       if(a > 0){
-        strokePath(main, 6, 'rgba(127,212,255,0.45)', 18, a);
-        strokePath(main, 2, '#f2fbff', 8, a);
+        const k = a * HH_LIGHTNING.strength;
+        strokePath(main, 4, 'rgba(127,212,255,0.4)', 10, k);
+        strokePath(main, 1.4, '#f2fbff', 5, k);
         branches.forEach(bp => {
-          strokePath(bp, 3, 'rgba(127,212,255,0.4)', 12, a * 0.8);
-          strokePath(bp, 1.2, '#e6f7ff', 6, a * 0.8);
+          strokePath(bp, 2, 'rgba(127,212,255,0.35)', 7, k * 0.7);
+          strokePath(bp, 0.9, '#e6f7ff', 4, k * 0.7);
         });
       }
       f++;
@@ -19330,10 +19336,10 @@ const HH_LIGHTNING = {
       schedule();
     }, delay);
   }
-  // Hovering a panel: its heading strikes every 2-5s
+  // Hovering a panel: its heading strikes every 5-10s
   let hoverTimer = null;
   function hoverLoop(heading){
-    hoverTimer = setTimeout(() => { if(!document.hidden) strike(heading); hoverLoop(heading); }, 2000 + Math.random() * 3000);
+    hoverTimer = setTimeout(() => { if(!document.hidden) strike(heading); hoverLoop(heading); }, 5000 + Math.random() * 5000);
   }
   document.addEventListener('mouseover', e => {
     const panel = e.target.closest && e.target.closest(HH_LIGHTNING.panels);
